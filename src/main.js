@@ -152,8 +152,8 @@ function initDeck() {
 
   function cardUnitPx(params) {
     const h = state[0]?.el.offsetHeight || 400;
-    // ~1.75× the prior 0.39 unit so the same swipe advances the stack less.
-    return (h * 0.68) / Math.max(0.3, params.dragSensitivity ?? 1.2);
+    // 3× the previous mobile unit (0.68) so the same swipe advances the stack a third as far.
+    return (h * 2.04) / Math.max(0.3, params.dragSensitivity ?? 1.2);
   }
 
   function applyRubber(raw) {
