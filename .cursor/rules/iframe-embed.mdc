@@ -1,0 +1,33 @@
+---
+description: Site is always embedded in a parent iframe (kaik.pictures / Cargo). Every feature must work inside that iframe.
+alwaysApply: true
+---
+
+# Iframe embed constraint
+
+This site is not a standalone tab. It is framed by another site (Cargo / kaik.pictures). Treat the iframe viewport as the only window we own.
+
+## Layout and scroll
+
+- Fill the iframe: `html, body` are `width/height: 100%`.
+- Course landing: `body` is `overflow: hidden`. Scroll lives on `[data-scroll-root].viewport`, never on `window`.
+- Admin (`body.admin`): scroll on `body` with `overscroll-behavior: contain`.
+- `position: fixed` UI (panel, deck, toasts, popovers) stays **outside** the scroll root, as a sibling, so it sticks to the iframe viewport.
+- Size against `--frame-w` / `--frame-h` (set from `innerWidth` / `innerHeight`). Do not rely on `100vh` / `100vw` alone.
+- Keep `overscroll-behavior: contain` so wheel/touch does not chain to the parent page.
+- Parent must give the iframe a real height (typically `100vh` of the host). Do not auto-grow the iframe to content height — the card flight needs an internal scroller.
+
+## Navigation and browser APIs
+
+- Internal `#hash` links scroll the scroll root, not `window`.
+- External links (`kaik.pictures`, forms, etc.) use `target="_top"` so they leave the iframe.
+- Never break out with `window.top.location` unless the user is following an external link.
+- `localStorage` / cookies may be blocked in a third-party iframe — always go through `safeStorage()` in `src/embed.js`.
+- Do not set `X-Frame-Options`. Keep `Content-Security-Policy: frame-ancestors *` on the Vite server so Cargo can frame us.
+- Do not add COOP/COEP headers that would refuse framing.
+
+## New pages and features
+
+- Admin, catalog, overlays, modals: they must fit and scroll inside the iframe, not assume a full browser chrome.
+- Modals: `position: fixed` relative to the iframe; trap overscroll.
+- No `window.open` to same-origin flows that the user expects to see in the embed — stay in-frame unless it is an external destination.

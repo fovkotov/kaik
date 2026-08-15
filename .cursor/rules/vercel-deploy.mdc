@@ -1,0 +1,43 @@
+---
+description: After any finished change, immediately deploy production to Vercel. One project ships site, admin, and catalog together.
+alwaysApply: true
+---
+
+# Immediate Vercel production deploy
+
+This project opts into auto-deploy. After a task that changes files, ship production **without asking**. Do not wait for “закоммить / запушь / задеплой”.
+
+## One project, all products
+
+One Vite app, one Vercel project (`kaik`). A single production deploy updates every product:
+
+| Product | URL path | Source |
+|---|---|---|
+| Site (course) | `/` | `index.html` |
+| Admin | `/admin` | `admin.html` |
+| Catalog | `/catalog` | `catalog.html` |
+
+Do not treat them as separate apps. Do not skip a deploy because “only admin changed”.
+
+Live host: `https://kaik-one.vercel.app`
+
+## How to ship
+
+There is often **no git repo**. Prefer CLI deploy of the working tree:
+
+```bash
+NODE_TLS_REJECT_UNAUTHORIZED=0 vercel deploy --prod --yes --project kaik --logs
+```
+
+- `--prod` is required (not a preview URL).
+- If git + remote exist later, commit then `git push` so Vercel builds — still production, still all products.
+- Do not update git config. Do not commit secrets (`.env`, tokens).
+- If TLS intercept blocks the CLI, keep `NODE_TLS_REJECT_UNAUTHORIZED=0` for that command only.
+
+## After deploy
+
+Reply with the three live URLs:
+
+- https://kaik-one.vercel.app/
+- https://kaik-one.vercel.app/admin
+- https://kaik-one.vercel.app/catalog

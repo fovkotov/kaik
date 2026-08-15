@@ -1,0 +1,1224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>LETTER II — käik</title>
+    <meta property="og:title" content="LETTER II — käik" />
+    <link
+      rel="icon"
+      href="https://freight.cargo.site/t/original/i/H2765952418214795329571591071100/kaik_favicon.ico"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script>
+      /* Scriptik boot: lock html lang to the browser (or saved choice) before paint. */
+      (function () {
+        var KEY = "kaik-course-locale";
+        var SUPPORTED = { en: 1, ru: 1 };
+        function pick(value) {
+          if (!value) return null;
+          var base = String(value).toLowerCase().split("-")[0];
+          return SUPPORTED[base] ? base : null;
+        }
+        var locale = null;
+        try {
+          locale = pick(localStorage.getItem(KEY));
+        } catch (e) {}
+        if (!locale) {
+          var list = navigator.languages || [];
+          for (var i = 0; i < list.length; i++) {
+            locale = pick(list[i]);
+            if (locale) break;
+          }
+          if (!locale) {
+            locale = pick(navigator.language) || pick(navigator.userLanguage);
+          }
+        }
+        locale = locale || "en";
+        document.documentElement.lang = locale;
+        document.documentElement.setAttribute("data-locale", locale);
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="viewport" data-scroll-root>
+      <div class="scroll-track" aria-hidden="true"></div>
+    </div>
+
+    <aside class="panel" data-panel>
+      <div class="panel__row">
+        <div class="panel__brand">
+          <span
+            class="panel__dropcap"
+            data-dropcap="L"
+            data-dropcap-en="L"
+            data-dropcap-ru="Э"
+          ></span>
+          <div class="panel__copy">
+            <p class="panel__title" data-i18n="title">ETTER II</p>
+            <p class="panel__dates" data-i18n="dates">from 31 avgust
+to 12 october</p>
+            <p class="panel__dates panel__dates--short" data-i18n="dates.short">31 avgust – 12 october</p>
+          </div>
+        </div>
+
+        <div class="panel__side">
+          <nav class="panel__nav" aria-label="Course">
+            <a href="/program.html" data-program-nav data-i18n="nav.program">program</a>
+            <a href="#student-work" data-work-nav data-i18n="nav.work">student work</a>
+            <a class="panel__enroll" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-i18n="nav.enroll">enroll</a>
+          </nav>
+        </div>
+      </div>
+      <div class="panel__lang" role="group" data-i18n-aria="lang.label" aria-label="Language">
+        <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">en</button>
+        <span class="lang-sep" aria-hidden="true">/</span>
+        <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">ru</button>
+      </div>
+    </aside>
+
+    <div class="deck" data-deck>
+      <!-- front → back; images 01–10 from New Folder With Items 3 -->
+      <article
+        class="card"
+        data-card
+        data-base-rotate="0"
+        data-base-x="54"
+        data-base-y="0"
+        data-tip="-18"
+        style="--card-color: #ffffff; --z: 10"
+      >
+        <img class="card__art" src="/assets/cards/01.png" alt="" draggable="false" />
+      </article>
+      <article
+        class="card"
+        data-card
+        data-base-rotate="3.41"
+        data-base-x="34"
+        data-base-y="4"
+        data-tip="14"
+        style="--card-color: #9371e8; --z: 9"
+      >
+        <div class="format-card">
+          <div class="format-card__top">
+            <div class="format-card__row format-card__row--weeks">
+              <p class="format-card__num"><span>6</span></p>
+              <div class="format-card__col format-card__col--weeks">
+                <p class="format-card__label" data-i18n="format.weeks">weeks</p>
+              </div>
+            </div>
+            <div class="format-card__row">
+              <p class="format-card__num"><span>10</span></p>
+              <div class="format-card__col format-card__col--workshops">
+                <p class="format-card__label" data-i18n="format.workshops">online workshops</p>
+                <div class="format-card__workshop">
+                  <div class="format-card__media">
+                    <img
+                      class="format-card__photo"
+                      src="/assets/cards/02-workshop.png"
+                      alt=""
+                      width="882"
+                      height="494"
+                      draggable="false"
+                    />
+                    <img
+                      class="format-card__mute"
+                      src="/assets/cards/02-mute.png"
+                      alt=""
+                      width="58"
+                      height="58"
+                      draggable="false"
+                    />
+                  </div>
+                  <p class="format-card__note" data-i18n="format.workshops.note">
+                    we talk on Mondays and Thursdays in Zoom and draw together
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="format-card__row">
+            <p class="format-card__num"><span>8</span></p>
+            <div class="format-card__col format-card__col--videos">
+              <p class="format-card__label" data-i18n="format.videos">recorded videos</p>
+              <p class="format-card__note format-card__note--videos" data-i18n="format.videos.note">
+                about history, materials, typography, and so on
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article
+        class="card"
+        data-card
+        data-base-rotate="-6"
+        data-base-x="32"
+        data-base-y="-42"
+        data-tip="-22"
+        style="--card-color: #0044bf; --z: 8"
+      >
+        <div class="author-card">
+          <p class="author-card__title" data-i18n="author.title">course author</p>
+          <div class="author-card__header">
+            <div class="author-card__avatar">
+              <img
+                src="/assets/author/avatar.png"
+                alt=""
+                width="157"
+                height="157"
+                draggable="false"
+              />
+            </div>
+            <div class="author-card__byline">
+              <img
+                class="author-card__sig"
+                src="/assets/author/signature.svg"
+                alt=""
+                width="91"
+                height="51"
+                draggable="false"
+              />
+              <a
+                class="author-card__name"
+                href="https://www.instagram.com/vanok.regular/"
+                target="_top"
+                rel="noopener noreferrer"
+                data-i18n-aria="author.open"
+                aria-label="anok regular — open profile"
+              >
+                <span data-i18n="author.name">anok regular</span>
+                <span class="author-card__arrow" aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </div>
+          <div class="author-card__collage" aria-hidden="true">
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 61.52; --t: 376.221; --w: 201.226; --h: 79.229"
+            >
+              <img src="/assets/author/work-la-noche.png" alt="" width="201" height="79" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 270.533; --t: 366.641; --w: 261.984; --h: 88.881"
+            >
+              <img src="/assets/author/work-el-invierno.png" alt="" width="262" height="89" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 326.273; --t: 220.333; --w: 151.915; --h: 58.203"
+            >
+              <img src="/assets/author/work-euphoria.png" alt="" width="152" height="58" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--blue"
+              style="--l: 328.008; --t: 141.083; --w: 204.686; --h: 71.402"
+            >
+              <img src="/assets/author/work-blue-script.png" alt="" width="205" height="153" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--mushrooms"
+              style="--l: 270.533; --t: 290.004; --w: 261.83; --h: 68.008"
+            >
+              <img src="/assets/author/work-mushrooms.png" alt="" width="262" height="196" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 61.52; --t: 220.333; --w: 201.479; --h: 150.435"
+            >
+              <img src="/assets/author/work-buckle.png" alt="" width="201" height="150" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 53.683; --t: 130.632; --w: 272.76; --h: 203.656"
+            >
+              <img src="/assets/author/work-chrome.png" alt="" width="273" height="204" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 181.703; --t: 39.19; --w: 140.212; --h: 140.212"
+            >
+              <img src="/assets/author/work-wild-east.png" alt="" width="140" height="140" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 397.681; --t: 0; --w: 134.987; --h: 134.987"
+            >
+              <img src="/assets/author/work-grillz.png" alt="" width="135" height="135" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--purple"
+              style="--l: 58.907; --t: 131.503; --w: 118.389; --h: 47.919"
+            >
+              <img src="/assets/author/work-purple.png" alt="" width="118" height="118" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--cover"
+              style="--l: 328.008; --t: 51.382; --w: 62.703; --h: 83.605"
+            >
+              <img src="/assets/author/work-mark.png" alt="" width="63" height="84" draggable="false" />
+            </div>
+            <div
+              class="author-card__shot author-card__shot--teur"
+              style="--l: 58.907; --t: 92.313; --w: 117.962; --h: 34.103"
+            >
+              <img src="/assets/author/work-teur.png" alt="" width="118" height="116" draggable="false" />
+            </div>
+          </div>
+        </div>
+      </article>
+      <article
+        class="card"
+        data-card
+        data-program-card
+        data-focus-card
+        data-base-rotate="-6.52"
+        data-base-x="10"
+        data-base-y="-16"
+        data-tip="16"
+        style="--card-color: #861ebe; --z: 7"
+      >
+        <div class="program-card">
+          <p class="program-card__title" data-i18n="program.title">program</p>
+          <div class="program-card__sheet">
+            <section class="program-card__week">
+              <h2 class="program-card__week-title" data-i18n="program.w1">1 week</h2>
+              <ul class="program-card__list">
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w1.a">История леттеринга и отличие от каллиграфии</span>
+                  <span class="program-card__when"></span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w1.b">Инструменты и пайплайны</span>
+                  <span class="program-card__when"></span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w1.c">Авторы, насмотренность, референсы</span>
+                  <span class="program-card__when"></span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w1.d">Обсуждение тем для финального проекта</span>
+                  <span class="program-card__when" data-i18n="program.date.sep3">3 сентября, Четверг</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">звонок</span>
+                </li>
+              </ul>
+            </section>
+            <section class="program-card__week">
+              <h2 class="program-card__week-title" data-i18n="program.w2">2 week</h2>
+              <ul class="program-card__list">
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w2.a">Готическая каллиграфия</span>
+                  <span class="program-card__when" data-i18n="program.date.sep7">7 сентября, Понедельник</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                </li>
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w2.b">Пять стартовых упражнений</span>
+                  <span class="program-card__when" data-i18n="program.date.sep10">10 сентября, Четверг</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                </li>
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w2.c">Перевод надписи в диджитал</span>
+                  <span class="program-card__when"></span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w2.d">Экспериментальная типографика: правила вёрстки и их разрушение</span>
+                  <span class="program-card__when"></span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+              </ul>
+            </section>
+            <section class="program-card__week">
+              <h2 class="program-card__week-title" data-i18n="program.w3">3 week</h2>
+              <ul class="program-card__list">
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w3.a">Вариативная стилизация надписи</span>
+                  <span class="program-card__when" data-i18n="program.date.sep14">14 сентября, Понедельник</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                </li>
+                <li class="program-card__row program-card__row--no-when">
+                  <span class="program-card__name" data-i18n="program.w3.b">Модульная типографика</span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+                <li class="program-card__row program-card__row--no-when">
+                  <span class="program-card__name" data-i18n="program.w3.c">Леттеринг + типографика, работа с титрами</span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+              </ul>
+            </section>
+            <section class="program-card__week">
+              <h2 class="program-card__week-title" data-i18n="program.w4">4 week</h2>
+              <ul class="program-card__list">
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w4.a">Модульная типографика</span>
+                  <span class="program-card__when" data-i18n="program.date.sep21">21 сентября, Понедельник</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                </li>
+                <li class="program-card__row program-card__row--no-when">
+                  <span class="program-card__name" data-i18n="program.w4.b">Работа с эффектами</span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+                <li class="program-card__row program-card__row--no-when">
+                  <span class="program-card__name" data-i18n="program.w4.c">Нейросети для рисования/обработки букв</span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                </li>
+              </ul>
+            </section>
+            <section class="program-card__week">
+              <h2 class="program-card__week-title" data-i18n="program.w5">5 week</h2>
+              <ul class="program-card__list">
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w5.a">Консультация-предпросмотр</span>
+                  <span class="program-card__when" data-i18n="program.date.sep28">28 сентября, Понедельник</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">звонок</span>
+                </li>
+              </ul>
+            </section>
+            <section class="program-card__week">
+              <h2 class="program-card__week-title" data-i18n="program.w6">6 week</h2>
+              <ul class="program-card__list">
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w6.a">Финальный просмотр работ</span>
+                  <span class="program-card__when" data-i18n="program.date.oct5">5 октября, Понедельник</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.review">просмотр</span>
+                </li>
+                <li class="program-card__row">
+                  <span class="program-card__name" data-i18n="program.w6.b">Что делать (с жизнью) после курса</span>
+                  <span class="program-card__when" data-i18n="program.date.oct8">8 октября, Четверг</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">звонок</span>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </div>
+      </article>
+      <article
+        class="card"
+        data-card
+        data-focus-card
+        data-work-card
+        id="student-work"
+        data-base-rotate="-1.66"
+        data-base-x="44"
+        data-base-y="-4"
+        data-tip="-12"
+        style="--card-color: #a38d44; --z: 6"
+      >
+        <div class="work-card">
+        <div class="work-card__face">
+        <div class="progress-card">
+          <p class="progress-card__title" data-i18n="progress.title">student progress</p>
+          <div class="progress-card__stack">
+            <div class="progress-card__row">
+              <div class="progress-card__sheet progress-card__sheet--yan" data-work-open="yan">
+                <div class="progress-card__art" style="--l: 103.201; --t: 95.786; --w: 255.841; --h: 143.988">
+                  <img src="/assets/cards/progress/yan-bg.svg" alt="" width="256" height="144" draggable="false" />
+                </div>
+                <div class="progress-card__art" style="--l: 241.035; --t: 95.634; --w: 27.615; --h: 114.549">
+                  <img src="/assets/cards/progress/yan-g1.svg" alt="" width="28" height="115" draggable="false" />
+                </div>
+                <div class="progress-card__art" style="--l: 121.744; --t: 90.214; --w: 78.728; --h: 143.8">
+                  <img src="/assets/cards/progress/yan-g2.svg" alt="" width="79" height="144" draggable="false" />
+                </div>
+                <div class="progress-card__art" style="--l: 271.706; --t: 90.214; --w: 78.726; --h: 143.8">
+                  <img src="/assets/cards/progress/yan-g3.svg" alt="" width="79" height="144" draggable="false" />
+                </div>
+                <div class="progress-card__art" style="--l: 203.482; --t: 95.558; --w: 34.525; --h: 114.55">
+                  <img src="/assets/cards/progress/yan-g4.svg" alt="" width="35" height="115" draggable="false" />
+                </div>
+                <p class="progress-card__who">
+                  <span>yan</span>
+                  <a
+                    class="progress-card__ig"
+                    data-work-ig
+                    href="https://www.instagram.com/l200kmhinthewronglane/"
+                    target="_top"
+                    rel="noopener noreferrer"
+                    data-i18n-aria="progress.yan"
+                    aria-label="yan — open Instagram"
+                  >@l200kmhinthewronglane</a>
+                </p>
+                <p class="progress-card__week progress-card__week--yan-1" data-i18n="progress.week1">1 week</p>
+                <p class="progress-card__week progress-card__week--yan-4" data-i18n="progress.week4">4 week</p>
+                <span class="progress-card__expand" aria-hidden="true">
+                  <img src="/assets/cards/progress/expand.svg" alt="" width="18" height="18" draggable="false" />
+                </span>
+                <div class="progress-card__art progress-card__art--cover" style="--l: 9.268; --t: 120.505; --w: 86.362; --h: 115.149">
+                  <img src="/assets/cards/progress/yan-sketch.jpg" alt="" width="345" height="461" draggable="false" />
+                </div>
+                <div class="progress-card__line progress-card__line--yan" style="--l: 10.198; --t: 80.336; --w: 100.421; --h: 20.084">
+                  <span class="progress-card__line-fill progress-card__line-fill--yan">
+                    <img src="/assets/cards/progress/yan-line.svg" alt="" width="101" height="23" draggable="false" />
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="progress-card__row">
+              <div class="progress-card__sheet progress-card__sheet--polina" data-work-open="polina">
+                <p class="progress-card__who">
+                  <span>polina</span>
+                  <a
+                    class="progress-card__ig"
+                    data-work-ig
+                    href="https://www.instagram.com/pelagieon/"
+                    target="_top"
+                    rel="noopener noreferrer"
+                    data-i18n-aria="progress.polina"
+                    aria-label="polina — open Instagram"
+                  >@pelagieon</a>
+                </p>
+                <p class="progress-card__week progress-card__week--polina-1" data-i18n="progress.week1">1 week</p>
+                <p class="progress-card__week progress-card__week--polina-3" data-i18n="progress.week3">3 week</p>
+                <span class="progress-card__expand" aria-hidden="true">
+                  <img src="/assets/cards/progress/expand.svg" alt="" width="18" height="18" draggable="false" />
+                </span>
+                <div class="progress-card__art progress-card__art--cover" style="--l: 14.832; --t: 57.471; --w: 74.157; --h: 98.876">
+                  <img src="/assets/cards/progress/polina-sketch.jpg" alt="" width="297" height="396" draggable="false" />
+                </div>
+                <div class="progress-card__art" style="--l: 105.678; --t: 59.943; --w: 244.099; --h: 161.599">
+                  <img src="/assets/cards/progress/polina-lettering.svg" alt="" width="244" height="162" draggable="false" />
+                </div>
+                <div class="progress-card__line progress-card__line--polina" style="--l: 14.832; --t: 181.066; --w: 84.044; --h: 51.292">
+                  <span class="progress-card__line-spin progress-card__line-spin--polina">
+                    <span class="progress-card__line-box progress-card__line-box--polina">
+                      <span class="progress-card__line-fill progress-card__line-fill--polina">
+                        <img src="/assets/cards/progress/polina-line.svg" alt="" width="55" height="85" draggable="false" />
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="progress-card__row">
+              <div class="progress-card__sheet progress-card__sheet--alena" data-work-open="alena">
+                <p class="progress-card__who">
+                  <span>alena</span>
+                  <a
+                    class="progress-card__ig"
+                    data-work-ig
+                    href="https://www.instagram.com/alenapichh/"
+                    target="_top"
+                    rel="noopener noreferrer"
+                    data-i18n-aria="progress.alena"
+                    aria-label="alena — open Instagram"
+                  >@alenapichh</a>
+                </p>
+                <p class="progress-card__week progress-card__week--alena-1" data-i18n="progress.week1">1 week</p>
+                <p class="progress-card__week progress-card__week--alena-4" data-i18n="progress.week4">4 week</p>
+                <span class="progress-card__expand" aria-hidden="true">
+                  <img src="/assets/cards/progress/expand.svg" alt="" width="18" height="18" draggable="false" />
+                </span>
+                <div class="progress-card__art progress-card__art--cover" style="--l: 267.585; --t: 59.325; --w: 74.157; --h: 98.876">
+                  <img src="/assets/cards/progress/alena-sketch.jpg" alt="" width="297" height="396" draggable="false" />
+                </div>
+                <div class="progress-card__art" style="--l: 19.159; --t: 169.376; --w: 322.578; --h: 64.878">
+                  <img src="/assets/cards/progress/alena-lettering.svg" alt="" width="323" height="65" draggable="false" />
+                </div>
+                <div class="progress-card__line progress-card__line--alena" style="--l: 181.37; --t: 63.033; --w: 33.68; --h: 84.353">
+                  <span class="progress-card__line-spin progress-card__line-spin--alena">
+                    <span class="progress-card__line-box progress-card__line-box--alena">
+                      <span class="progress-card__line-fill progress-card__line-fill--alena">
+                        <img src="/assets/cards/progress/alena-line.svg" alt="" width="37" height="85" draggable="false" />
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+        <div class="work-card__full work-card__full--alena">
+          <header class="work-card__head">
+            <p class="work-card__who">
+              <span>alena</span>
+              <a class="work-card__ig" data-work-ig href="https://www.instagram.com/alenapichh/" target="_top" rel="noopener noreferrer" data-i18n-aria="progress.alena" aria-label="alena — open Instagram">@alenapichh</a>
+            </p>
+            <p class="work-card__blurb" data-i18n="work.blurb">A review will go here.</p>
+          </header>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week1">1 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/w1-hero.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+            <div class="work-card__photos">
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/w1-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/w1-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week2">2 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/w2-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/w2-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week3">3 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__marks">
+              <div class="work-card__mark work-card__mark--fresh">
+                <img src="/assets/cards/work/mark-always-fresh.svg" alt="" width="613" height="192" draggable="false" />
+              </div>
+              <div class="work-card__mark work-card__mark--mind">
+                <img class="work-card__mark--mind-w" src="/assets/cards/work/mark-mind-w.svg" alt="" width="223" height="78" draggable="false" />
+                <img class="work-card__mark--mind-d" src="/assets/cards/work/mark-mind-d.svg" alt="" width="60" height="78" draggable="false" />
+                <img class="work-card__mark--mind-n" src="/assets/cards/work/mark-mind-n.svg" alt="" width="164" height="97" draggable="false" />
+                <img class="work-card__mark--mind-i" src="/assets/cards/work/mark-mind-i.svg" alt="" width="153" height="98" draggable="false" />
+              </div>
+              <div class="work-card__mark work-card__mark--design">
+                <img src="/assets/cards/work/mark-design.svg" alt="" width="613" height="298" draggable="false" />
+              </div>
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week4">4 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__marks">
+              <div class="work-card__mark work-card__mark--kaik">
+                <img src="/assets/cards/work/mark-kaik.svg" alt="" width="613" height="169" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/mark-word-1.svg" alt="" width="613" height="215" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/mark-word-2.svg" alt="" width="613" height="240" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/mark-word-3.svg" alt="" width="613" height="134" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/mark-word-4.svg" alt="" width="613" height="230" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/mark-word-5.svg" alt="" width="613" height="64" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/mark-word-6.svg" alt="" width="613" height="176" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/mark-word-7.svg" alt="" width="613" height="123" draggable="false" />
+              </div>
+              <div class="work-card__mark work-card__mark--letter">
+                <img src="/assets/cards/work/mark-letter.svg" alt="" width="613" height="228" draggable="false" />
+              </div>
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week5">5 week (not yet)</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week6">6 week (not yet)</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.final">Final project (not yet)</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+          </section>
+        </div>
+        <div class="work-card__full work-card__full--yan">
+          <header class="work-card__head">
+            <p class="work-card__who">
+              <span>yan</span>
+              <a class="work-card__ig" data-work-ig href="https://www.instagram.com/l200kmhinthewronglane/" target="_top" rel="noopener noreferrer" data-i18n-aria="progress.yan" aria-label="yan — open Instagram">@l200kmhinthewronglane</a>
+            </p>
+            <p class="work-card__blurb" data-i18n="work.blurb">A review will go here.</p>
+          </header>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week1">1 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/yan/w1-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+            <div class="work-card__photos">
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-c.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+            </div>
+            <div class="work-card__photos">
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-d.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-e.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+            </div>
+            <div class="work-card__photos">
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-f.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-g.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week2">2 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/yan/w2-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+            <div class="work-card__photos">
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w2-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w2-c.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+            </div>
+            <div class="work-card__photo work-card__photo--wide">
+              <img src="/assets/cards/work/yan/w2-d.jpg" alt="" width="1600" height="1200" draggable="false" />
+            </div>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/yan/w2-f.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week3">3 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__mark">
+              <img src="/assets/cards/work/yan/week3.svg" alt="" width="613" height="1608" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week4">4 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__mark">
+              <img src="/assets/cards/work/yan/week4.svg" alt="" width="613" height="1734" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week5">5 week (not yet)</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week6">6 week (not yet)</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+          </section>
+        </div>
+        <div class="work-card__full work-card__full--polina">
+          <header class="work-card__head">
+            <p class="work-card__who">
+              <span>polina</span>
+              <a class="work-card__ig" data-work-ig href="https://www.instagram.com/pelagieon/" target="_top" rel="noopener noreferrer" data-i18n-aria="progress.polina" aria-label="polina — open Instagram">@pelagieon</a>
+            </p>
+            <p class="work-card__blurb" data-i18n="work.blurb">A review will go here.</p>
+          </header>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week1">1 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/polina/w1-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+            <div class="work-card__photos">
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/polina/w1-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/polina/w1-c.jpg" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+            </div>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/polina/w1-d.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week2">2 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__photo">
+              <img src="/assets/cards/work/polina/w2-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week3">3 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__mark">
+              <img src="/assets/cards/work/polina/week3.svg" alt="" width="624" height="1816" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week4">4 week</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+            <div class="work-card__mark">
+              <img src="/assets/cards/work/polina/week4.svg" alt="" width="613" height="882" draggable="false" />
+            </div>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week5">5 week (not yet)</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+          </section>
+          <section class="work-card__week">
+            <h2 class="work-card__week-head">
+              <span class="work-card__week-title" data-i18n="work.week6">6 week (not yet)</span>
+              <span class="work-card__week-meta" data-i18n="work.dash">—</span>
+            </h2>
+          </section>
+        </div>
+        </div>
+      </article>
+      <article
+        class="card"
+        data-card
+        data-base-rotate="1.89"
+        data-base-x="43"
+        data-base-y="-4"
+        data-tip="11"
+        style="--card-color: #ff91f8; --z: 5"
+      >
+        <img class="card__art" src="/assets/cards/06.png" alt="" draggable="false" />
+      </article>
+      <article
+        class="card"
+        data-card
+        data-base-rotate="2.11"
+        data-base-x="28"
+        data-base-y="-22"
+        data-tip="-15"
+        style="--card-color: #fed301; --z: 4"
+      >
+        <div class="exercises-card">
+          <p class="exercises-card__title" data-i18n="exercises.title">
+            three exercises to create beautiful letters
+          </p>
+          <div class="exercises-card__list">
+            <div class="exercises-card__item">
+              <div class="exercises-card__num-wrap">
+                <p class="exercises-card__num">1</p>
+              </div>
+              <p class="exercises-card__text" data-i18n="exercises.1">
+                Choose one letter. Come up with and draw as many variations of its shape as possible in 10 minutes, regardless of the references.
+              </p>
+            </div>
+            <div class="exercises-card__item exercises-card__item--nudge">
+              <div class="exercises-card__num-wrap">
+                <p class="exercises-card__num">2</p>
+              </div>
+              <p class="exercises-card__text" data-i18n="exercises.2">
+                Find a long stick. Attach a pen to the end of it, and try to draw as many letters as possible in 10 minutes, holding the stick with your left hand.
+              </p>
+            </div>
+            <div class="exercises-card__item exercises-card__item--nudge">
+              <div class="exercises-card__num-wrap">
+                <p class="exercises-card__num">3</p>
+              </div>
+              <p class="exercises-card__text" data-i18n="exercises.3">
+                Choose the inscription that you like. Anything from a word on an album cover to a street sign. Try to copy it first in a minute, then in 10, then in 30.
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article
+        class="card"
+        data-card
+        data-base-rotate="-6.38"
+        data-base-x="2"
+        data-base-y="-22"
+        data-tip="13"
+        style="--card-color: #b6d9c1; --z: 3"
+      >
+        <div class="preview-card">
+          <p class="preview-card__title" data-i18n="preview.title">final preview</p>
+          <div class="preview-card__play" aria-hidden="true">
+            <img
+              src="/assets/cards/08-play.svg"
+              alt=""
+              width="45"
+              height="45"
+              draggable="false"
+            />
+          </div>
+        </div>
+      </article>
+      <article
+        class="card"
+        data-card
+        data-base-rotate="0"
+        data-base-x="18"
+        data-base-y="4"
+        data-tip="-10"
+        style="--card-color: #9d9d9d; --z: 2"
+      >
+        <div class="faq-card">
+          <p class="faq-card__title" data-i18n="faq.title">questions and answers</p>
+          <div class="faq-card__list">
+            <div class="faq-card__item">
+              <p class="faq-card__q" data-i18n="faq.tablet.q">Do I need a graphics tablet?</p>
+              <p class="faq-card__a" data-i18n="faq.tablet.a">
+                No, a graphics tablet is not required. But if you have one, it will be more convenient to work with.
+              </p>
+            </div>
+            <div class="faq-card__item">
+              <p class="faq-card__q" data-i18n="faq.need.q">What will I need?</p>
+              <div class="faq-card__a faq-card__a--list">
+                <p data-i18n="faq.need.tools">Adobe Illustrator, Adobe Photoshop, Figma</p>
+                <p data-i18n="faq.need.materials">
+                  Materials for making letters: paper, pencils, pens, markers, etc.
+                </p>
+              </div>
+            </div>
+            <div class="faq-card__item">
+              <p class="faq-card__q" data-i18n="faq.more.q">Still have questions?</p>
+              <p class="faq-card__a faq-card__a--wide">
+                <span data-i18n="faq.more.a">Ask them here: </span><a href="https://t.me/vanokregular" target="_top" rel="noopener noreferrer">@vanokregular</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </article>
+      <article
+        class="card"
+        data-card
+        data-focus-card
+        data-base-rotate="0.82"
+        data-base-x="13"
+        data-base-y="1"
+        data-tip="17"
+        style="--card-color: #ff00ae; --z: 1"
+      >
+        <div class="history-card">
+          <p class="history-card__kicker" data-i18n="history.kicker">if you're still bored...</p>
+          <div class="history-card__inner">
+            <div class="history-card__title-block">
+              <h2 class="history-card__title">
+                <span class="history-card__title-line" data-i18n="history.title.1">A Very Brief Visual</span>
+                <span class="history-card__title-line">
+                  <span data-i18n="history.title.2">History of </span><span class="history-card__accent" data-i18n="history.title.3">Letter(-ing).</span>
+                </span>
+              </h2>
+            </div>
+
+            <figure class="history-card__figure" style="--w: 563.733; --h: 473.157">
+              <img src="/assets/cards/history/mielot.jpg" alt="" width="1500" height="1259" draggable="false" />
+            </figure>
+            <p class="history-card__text" data-i18n="history.p1">As a species, people need communication. People also love beautiful things. Lettering, or the Art of Drawing a Letter, emerges from combination of this two existential requirements.</p>
+            <p class="history-card__caption" data-i18n="history.cap.mielot">↳ The scribe Jean Mielot in the writing room (secretary of the duke), between 1450 and 1460.</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/trajans-1.jpg" alt="" width="512" height="224" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/trajans-2.jpg" alt="" width="2200" height="1471" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/trajans-3.jpg" alt="" width="1500" height="1117" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p2">The very oldest examples of intentionally formed letters comes from the Roman Times. A lot has been lost, but the oldest remain in stone. Resistance of the material to writing tool makes for a simplification of strokes and straightening of lines.</p>
+            <p class="history-card__caption" data-i18n="history.cap.trajan">↳ Pedestal inscriptions on the Trajan Column in Rome, 113 AD.</p>
+            <hr class="history-card__rule" />
+
+            <figure class="history-card__figure history-card__figure--center" style="--w: 509.884; --h: 804.533">
+              <img src="/assets/cards/history/roman-tree.jpg" alt="" width="507" height="800" draggable="false" />
+            </figure>
+            <p class="history-card__text" data-i18n="history.p3">From then, Roman letters evolved into many different forms and shapes. They migrated from Italy to the North, East and West, becoming more elaborate and strikingly beautiful.</p>
+            <p class="history-card__caption" data-i18n="history.cap.tree">↳ “Family Tree” of the Roman inscriptions development.</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/lindisfarne-1.jpg" alt="" width="2200" height="3072" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/lindisfarne-2.jpg" alt="" width="1266" height="1797" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p4">Peoples of the former Roman Empire — dwellers of the British Isles, modern-day Central Europe, France and Italy — have significantly developped art of lettering in the early Middle Ages. Most of them are found in illuminated manuscripts.</p>
+            <p class="history-card__caption" data-i18n="history.cap.lindisfarne">↳ Pages from Lindisfarne Gospels, Northumberland (modern UK), 715–720</p>
+            <hr class="history-card__rule" />
+
+            <figure class="history-card__figure" style="--w: 563.733; --h: 873.928">
+              <img src="/assets/cards/history/initial-e.jpg" alt="" width="2200" height="3411" draggable="false" />
+            </figure>
+            <p class="history-card__text" data-i18n="history.p5">Imagination did not stop, and slowly ornamental decorations turned into full-scale paintings inside letters.</p>
+            <p class="history-card__caption" data-i18n="history.cap.initial">↳ Inhabited Initial E. Montecassino, Italy. 1153</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/whimsy-1.jpg" alt="" width="2200" height="2304" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/whimsy-2.jpg" alt="" width="984" height="1062" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/chansonnier-1.jpg" alt="" width="1239" height="826" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/chansonnier-2.jpg" alt="" width="1280" height="1279" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p6">Some more whimsical examples.</p>
+            <hr class="history-card__rule" />
+
+            <figure class="history-card__figure" style="--w: 563.733; --h: 743.495">
+              <img src="/assets/cards/history/gutenberg.jpg" alt="" width="1292" height="1704" draggable="false" />
+            </figure>
+            <p class="history-card__text" data-i18n="history.p7">Gradually, decorative elements moved from just Capital letters to all vowels and consonants in use. The process was also driven by the invention of the printing press which made book production much faster.</p>
+            <p class="history-card__caption" data-i18n="history.cap.gutenberg">↳ Page from the Gutenberg Bible, 1455</p>
+            <hr class="history-card__rule" />
+
+            <figure class="history-card__figure" style="--w: 563.733; --h: 281.202">
+              <img src="/assets/cards/history/coke.jpg" alt="" width="1295" height="646" draggable="false" />
+            </figure>
+            <p class="history-card__text" data-i18n="history.p8">Next significant change to the Letter happened after the industrial revolution: it became irreplaceable part of advertising.</p>
+            <p class="history-card__caption" data-i18n="history.cap.coke">↳ Coca-Cola lettering by Frank M. Robertson</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/grasset-1.jpg" alt="" width="1598" height="2560" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/grasset-2.jpg" alt="" width="1807" height="2560" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/grasset-3.jpg" alt="" width="1830" height="2560" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p9">Industrial revolution also re-sparked interest to everything floral and natural motives in visual art — people were tired of straight lines and rationality. Welcome, Art-Nouvuae!</p>
+            <p class="history-card__caption" data-i18n="history.cap.grasset">↳ Posters and advertising by Eugene Grasset, 1880-s</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/eckmann-1.jpg" alt="" width="1556" height="1920" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/eckmann-2.jpg" alt="" width="2200" height="3098" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/eckmann-3.jpg" alt="" width="2200" height="1547" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/eckmann-4.jpg" alt="" width="442" height="694" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/eckmann-5.jpg" alt="" width="1208" height="810" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p10">This type of lettering was especially loved by the Jugendstihl artsits of the early XX century!</p>
+            <p class="history-card__caption" data-i18n="history.cap.eckmann">↳ Posters and advertising by Otto Eckmann, late 1890-s</p>
+            <hr class="history-card__rule" />
+
+            <figure class="history-card__figure" style="--w: 563.733; --h: 150.82">
+              <img src="/assets/cards/history/bernhard.jpg" alt="" width="1880" height="503" draggable="false" />
+            </figure>
+            <p class="history-card__text" data-i18n="history.p11">And some more advertisment!</p>
+            <p class="history-card__caption" data-i18n="history.cap.bernhard">↳ Lettering for advertising by Lucian Berhard</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/psych-1.jpg" alt="" width="2200" height="3059" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/psych-2.png" alt="" width="848" height="1338" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/psych-3.png" alt="" width="1000" height="1283" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/psych-4.jpg" alt="" width="1302" height="1861" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p12">If looking at letters above made you think of psychedelic rock, then you are not wrong! In the 60-s many designers drew inspiration from floral designs of Jugendstihl posters for their musical posters. The whole gang was there: Hendrix, Janis Joplin, Grateful Dead.</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/hofmann.png" alt="" width="721" height="828" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/nicholson.png" alt="" width="1290" height="852" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p13">The tradition continued well into the end of XX century — reimagined multiple times, of course! Expressive naturalistic details were replaced by soled shapes. Yes, like that Paul Nicholson’s logo.</p>
+            <p class="history-card__caption" data-i18n="history.cap.hofmann">↳ Shape from Armin Hofmann’s Graphic Design Manual.</p>
+            <hr class="history-card__rule" />
+
+            <div class="img-slider" data-img-slider>
+              <figure class="img-slider__slide is-active" data-img-slider-slide>
+                <img src="/assets/cards/history/vanok-1.jpg" alt="" width="2200" height="2200" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/vanok-2.jpg" alt="" width="2200" height="2200" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/vanok-3.jpg" alt="" width="2200" height="2200" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/vanok-4.jpg" alt="" width="2200" height="2200" draggable="false" />
+              </figure>
+              <figure class="img-slider__slide" data-img-slider-slide>
+                <img src="/assets/cards/history/vanok-5.jpg" alt="" width="2200" height="1643" draggable="false" />
+              </figure>
+              <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+              <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="Next">
+                <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
+              </button>
+            </div>
+            <p class="history-card__text" data-i18n="history.p14">Art of the letter is very alive and kicking even now!</p>
+            <p class="history-card__caption">
+              <span data-i18n="history.cap.vanok.1">↳ Works by </span><a href="https://www.instagram.com/vanok.regular/" target="_top" rel="noopener noreferrer">Vanök.Regular</a><span data-i18n="history.cap.vanok.2">, author of LETTER course in käik</span>
+            </p>
+            <hr class="history-card__rule" />
+
+            <p class="history-card__text" data-i18n="history.p15">If you are eager to explore art of lettering even more, here are some suggestions from käik.pictures:</p>
+            <div class="history-card__grid">
+              <div class="history-card__book">
+                <figure class="history-card__figure" style="--w: 274.398; --h: 203.626">
+                  <img src="/assets/cards/history/book-weinberg.png" alt="" width="951" height="708" draggable="false" />
+                </figure>
+                <p class="history-card__book-cap" data-i18n="history.book.weinberg">Encyclopedia of Comparative Letterforms, Norman S. Weinberg</p>
+              </div>
+              <div class="history-card__book">
+                <figure class="history-card__figure" style="--w: 273.256; --h: 314.13">
+                  <img src="/assets/cards/history/hofmann.png" alt="" width="721" height="828" draggable="false" />
+                </figure>
+                <p class="history-card__book-cap" data-i18n="history.book.hofmann">Graphic Design Manual, Armin Hofmann</p>
+              </div>
+              <div class="history-card__book">
+                <figure class="history-card__figure" style="--w: 274.398; --h: 378.695">
+                  <img src="/assets/cards/history/book-gray.jpg" alt="" width="1086" height="1500" draggable="false" />
+                </figure>
+                <p class="history-card__book-cap" data-i18n="history.book.gray">A History of Lettering, Nicolete Gray</p>
+              </div>
+              <div class="history-card__book">
+                <figure class="history-card__figure" style="--w: 273.194; --h: 394.836">
+                  <img src="/assets/cards/history/book-letter.jpg" alt="" width="1622" height="2337" draggable="false" />
+                </figure>
+                <p class="history-card__book-cap" data-i18n="history.book.join">And join LETTER class</p>
+              </div>
+            </div>
+
+            <div class="history-card__cta">
+              <p class="history-card__cta-title" data-i18n="history.letter">LETTER  class</p>
+              <ul class="history-card__meta">
+                <li class="history-card__meta-row">
+                  <span class="history-card__meta-key" data-i18n="history.meta.length">Length:</span>
+                  <span class="history-card__meta-val" data-i18n="history.meta.weeks">6 weeks</span>
+                </li>
+                <li class="history-card__meta-row">
+                  <span class="history-card__meta-key" data-i18n="history.meta.price">Price:</span>
+                  <span class="history-card__meta-val">250 EUR</span>
+                </li>
+                <li class="history-card__meta-row">
+                  <span class="history-card__meta-key" data-i18n="history.meta.program">Program:</span>
+                  <button type="button" class="history-card__program" data-open-program data-i18n="history.meta.click">Click here</button>
+                </li>
+                <li class="history-card__meta-row">
+                  <span class="history-card__meta-key" data-i18n="history.meta.start">Start:</span>
+                  <span class="history-card__meta-val">TBA</span>
+                </li>
+              </ul>
+              <a class="history-card__barcode" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-i18n-aria="nav.enroll" aria-label="enroll">
+                <img src="/assets/cards/history/barcode.svg" alt="" width="564" height="134" draggable="false" />
+              </a>
+              <a class="history-card__join" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-i18n="history.join">JOIN WAITLIST</a>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
