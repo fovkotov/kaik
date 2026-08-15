@@ -317,6 +317,7 @@ html:not(.i18n-ready) [data-i18n] {
   --base-x: 0px;
   --base-y: 0px;
   --base-r: 0deg;
+  letter-spacing: normal;
   position: absolute;
   top: 50%;
   left: auto;
@@ -808,6 +809,9 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 .card[data-works-card] {
+  --works-shift-x: 103px;
+  --works-shift-y: 0px;
+  --works-rotate: 0deg;
   --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
   --works-open-scale: 1.16;
   --focus-open-w: min(
@@ -1000,10 +1004,8 @@ img.works-card__piece {
 
 @media (max-width: 900px) {
   .card[data-works-card] {
-    --focus-open-w: min(
-      calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
-      calc(var(--frame-w) - 32px)
-    );
+    --works-shift-x: 0px;
+    --focus-open-w: var(--frame-w);
     --program-open-w: var(--focus-open-w);
   }
 }
@@ -2232,7 +2234,7 @@ img.works-card__piece {
 @media (max-width: 900px) {
   [data-program-card],
   [data-focus-card] {
-    --focus-open-w: min(680px, calc(var(--frame-w) - 32px));
+    --focus-open-w: var(--frame-w);
     --program-open-w: var(--focus-open-w);
   }
 }
@@ -2766,5 +2768,46 @@ img.works-card__piece {
     overflow: hidden;
     touch-action: none;
     overscroll-behavior: none;
+  }
+}
+
+/* Mobile fly-open: full-bleed width + fixed close (sibling of scroll root). */
+.fly-close {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --fly-close-h: max(
+      var(--panel-chrome-bot, 68px),
+      calc(48px + max(16px, env(safe-area-inset-bottom, 0px)))
+    );
+  }
+
+  .fly-close {
+    position: fixed;
+    z-index: 50;
+    left: 50%;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    min-height: 48px;
+    padding: 0 0 max(16px, env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: contain;
+  }
+
+  .fly-close[hidden] {
+    display: none;
   }
 }

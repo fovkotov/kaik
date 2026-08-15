@@ -1,11 +1,13 @@
 import { t } from "./scriptik.js";
-import { applyDeckParams } from "./tweaks.js";
+import { applyDeckParams, isMobile } from "./tweaks.js";
 
 const PROGRAM_NAV = "[data-program-nav], [data-i18n='nav.program']";
 const FOCUS_SEL = "[data-focus-card], [data-program-card], [data-work-card]";
-const FOCUS_IGNORE = "a, button, [data-img-slider], [data-history-slideshow], [data-open-program]";
+const FOCUS_IGNORE = "a, button, [data-tweaks], [data-tweaks-reopen], [data-img-slider], [data-history-slideshow], [data-open-program]";
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
+const FLY_CLOSE = "[data-fly-close]";
+const CLOSE_BAR_FALLBACK = 72;
 
 export function initProgramModal() {
   const cards = [...new Set([...document.querySelectorAll(FOCUS_SEL)])];
@@ -19,7 +21,7 @@ export function initProgramModal() {
   const TOP_GAP = 28;
   const OPEN_W = 680;
   const OPEN_GUTTER = 48;
-  const OPEN_GUTTER_NARROW = 32;
+  const WORKS_OPEN_SCALE = 1.16;
   const ORIGIN_X = 0.5;
   const ORIGIN_Y = 0.55;
 
@@ -135,7 +137,15 @@ export function initProgramModal() {
     };
   }
 
+  function closeBarH() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue("--fly-close-h");
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : CLOSE_BAR_FALLBACK;
+  }
+
   function openWidth() {
+    const { w: vw } = frameSize();
+    if (isMobile()) return vw;
     const host = card;
     const raw = host
       ? getComputedStyle(host).getPropertyValue("--focus-open-w").trim() ||
@@ -143,32 +153,41 @@ export function initProgramModal() {
       : "";
     const parsed = Number.parseFloat(raw);
     if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    const { w: vw } = frameSize();
-    const gutter = window.matchMedia("(max-width: 900px)").matches
-      ? OPEN_GUTTER_NARROW
-      : OPEN_GUTTER;
-    return Math.min(OPEN_W, Math.max(0, vw - gutter));
+    return Math.min(OPEN_W, Math.max(0, vw - OPEN_GUTTER));
   }
 
   function destBox(from) {
     const { w: vw, h: vh } = frameSize();
-    const mobile = window.matchMedia("(max-width: 900px)").matches;
-    const gutter = mobile ? OPEN_GUTTER_NARROW : OPEN_GUTTER;
+    const mobile = isMobile();
+    const gutter = mobile ? 0 : OPEN_GUTTER;
     const side = gutter / 2;
     const panel = document.querySelector("[data-panel]");
     const panelH = panel?.getBoundingClientRect().height ?? 0;
     const topGap = mobile ? Math.min(Math.max(TOP_GAP, panelH + 8), vh * 0.32) : TOP_GAP;
-    const bottomGap = mobile ? 20 : 28;
-    const { scaleY } = deckSpace();
-    let width = Math.min(openWidth(), Math.max(0, vw - gutter));
-    if (card?.hasAttribute("data-works-card")) {
-      width = Math.min(width, Math.max(0, vh - topGap - bottomGap));
+    const bottomGap = mobile ? closeBarH() : 28;
+    const { scaleX, scaleY } = deckSpace();
+    const maxW = Math.max(0, vw - gutter);
+    const maxH = Math.max(0, vh - topGap - bottomGap);
+    let width = Math.min(openWidth(), maxW);
+    let height = Math.max((from?.height ?? 0) * scaleY, maxH);
+    if (mobile) {
+      width = maxW;
+      height = maxH;
+    } else if (card?.hasAttribute("data-works-card")) {
+      const foldedVisual = Math.max((from?.width ?? 0) * scaleX, (from?.height ?? 0) * scaleY);
+      const grown = foldedVisual > 0 ? foldedVisual * WORKS_OPEN_SCALE : 0;
+      // Square works card is already wider than A4 — never cap at the 680 program dest.
+      // Dest is a tall column; inner 64:20 --u uses layout width (cqw/842), not this height.
+      width = Math.min(maxW, Math.max(foldedVisual, grown));
+      if (width <= 0) width = Math.min(maxW, maxH * 0.72);
+      height = maxH;
     }
-    let left = (vw - width) / 2;
-    if (left < side) left = side;
-    if (left + width > vw - side) left = Math.max(side, vw - side - width);
+    let left = mobile ? 0 : (vw - width) / 2;
+    if (!mobile) {
+      if (left < side) left = side;
+      if (left + width > vw - side) left = Math.max(side, vw - side - width);
+    }
     const top = topGap;
-    const height = Math.max((from?.height ?? 0) * scaleY, vh - topGap - bottomGap);
     return visualBoxToCardSpace({
       left,
       top,
@@ -206,6 +225,10 @@ export function initProgramModal() {
     card.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true }));
     card.setAttribute("data-fly-lock", "");
     card.classList.add("is-program-open");
+    if (card.hasAttribute("data-work-student")) {
+      card.getBoundingClientRect();
+      card.classList.add("is-work-open");
+    }
     deck.setAttribute("data-program-open", "");
     card.addEventListener("wheel", trapCardScroll, { passive: true });
     card.addEventListener("touchmove", trapCardScroll, { passive: true });
@@ -215,7 +238,7 @@ export function initProgramModal() {
     if (!card) return;
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
-    card.classList.remove("is-program-open", "is-program-scroll");
+    card.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
     [
       "--fly-l",
       "--fly-t",
@@ -335,7 +358,7 @@ export function initProgramModal() {
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
     if (card) card.scrollTop = 0;
-    card?.classList.remove("is-program-scroll");
+    card?.classList.remove("is-work-open", "is-program-scroll");
     deck.removeAttribute("data-program-open");
     syncAria();
     playFly(rest ?? (card ? capturePose(card) : destBox()), true);
@@ -348,6 +371,43 @@ export function initProgramModal() {
     return expanded ? "history.close" : "history.open";
   }
 
+  function ensureCloseBtn() {
+    const existing = document.querySelector(FLY_CLOSE);
+    if (existing instanceof HTMLButtonElement) return existing;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "fly-close";
+    btn.setAttribute("data-fly-close", "");
+    btn.hidden = true;
+    btn.setAttribute("aria-hidden", "true");
+    const mark = document.createElement("span");
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = "×";
+    btn.append(mark);
+    document.body.append(btn);
+    btn.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeFocus();
+    });
+    return btn;
+  }
+
+  function syncClose() {
+    const btn = ensureCloseBtn();
+    const show = isMobile() && (phase === "opening" || phase === "open");
+    btn.hidden = !show;
+    if (show) {
+      btn.removeAttribute("aria-hidden");
+      btn.setAttribute("aria-label", t(card ? labelKey(card, true) : "program.close"));
+    } else {
+      btn.setAttribute("aria-hidden", "true");
+    }
+  }
+
   function syncAria() {
     const expanded = phase === "open" || phase === "opening";
     cards.forEach((el) => {
@@ -355,6 +415,7 @@ export function initProgramModal() {
       el.setAttribute("aria-expanded", isThis ? "true" : "false");
       el.setAttribute("aria-label", t(labelKey(el, isThis)));
     });
+    syncClose();
   }
 
   syncAria();
@@ -441,6 +502,7 @@ export function initProgramModal() {
       if (card?.contains(target)) return;
       const hit = target instanceof Element ? target : target.parentElement;
       if (hit?.closest?.(PROGRAM_NAV)) return;
+      if (hit?.closest?.(FLY_CLOSE)) return;
       closeFocus();
     },
     true,
@@ -457,7 +519,8 @@ export function initProgramModal() {
 
   const onFrameResize = () => {
     if (phase !== "open") return;
-    pin(destBox(), false);
+    pin(destBox(rest), false);
+    syncClose();
   };
   window.addEventListener("resize", onFrameResize, { passive: true });
   window.visualViewport?.addEventListener("resize", onFrameResize, { passive: true });
