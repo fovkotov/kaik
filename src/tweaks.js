@@ -24,6 +24,8 @@ export const DESKTOP = {
   deckLeftPct: 58,
   deckRightPx: 209,
   deckScale: 1.15,
+  /** 1 = max height that still fits the iframe; <1 shrinks, never overflows. */
+  cardSize: 1,
   travelDir: -1,
 
   parallaxX: 27,
@@ -61,6 +63,8 @@ export const MOBILE = {
 
   deckLeftPct: 50,
   deckScale: 1,
+  /** 1 = max height that still fits the iframe; <1 shrinks, never overflows. */
+  cardSize: 1,
   travelDir: 0,
 
   parallaxX: 14,
@@ -148,6 +152,7 @@ function cardStageCenterY(frameH) {
  * max rotate, hover lift, and vertical toss stays inside `--frame-h`.
  * Square works-card uses the same `--card-h` (wider than A4 siblings).
  * Raising `deckScale` shrinks the card instead of overflowing.
+ * `cardSize` (0.5–1) then scales that max-fit height; 1 = current viewport fit.
  */
 export function syncCardMetrics() {
   const p = getParams();
@@ -156,6 +161,8 @@ export function syncCardMetrics() {
   if (frameW <= 0 || frameH <= 0) return;
 
   const scale = Math.max(0.5, Number(p.deckScale) || 1);
+  const rawSize = Number(p.cardSize);
+  const cardSize = Number.isFinite(rawSize) ? Math.min(1, Math.max(0.5, rawSize)) : 1;
   const { maxRotate, maxBaseY, maxTip } = readCardPoseExtents();
   const fan = mobile ? Number(p.fanScale) || 0.42 : 1;
   const rotZ =
@@ -185,7 +192,7 @@ export function syncCardMetrics() {
   const widthGutter = mobile ? 32 : 48;
   const a4MaxH = Math.min(A4_MAX_W, frameW * widthFrac) * A4_ASPECT;
   const worksMaxH = Math.max(0, frameW / scale - widthGutter);
-  h = Math.min(h, a4MaxH, worksMaxH);
+  h = Math.min(h, a4MaxH, worksMaxH) * cardSize;
   h = Math.max(1, Math.round(h * 100) / 100);
 
   const w = h / A4_ASPECT;
@@ -254,8 +261,8 @@ const FIELDS = [
       {
         key: "dragSensitivity",
         label: "swipe speed (higher = faster)",
-        min: 0.3,
-        max: 3,
+        min: 0.05,
+        max: 5,
         step: 0.05,
         mobileOnly: true,
       },
@@ -263,14 +270,14 @@ const FIELDS = [
         key: "scrollPerCard",
         label: "scroll / card (desktop px)",
         min: 50,
-        max: 5000,
+        max: 10000,
         step: 10,
         desktopOnly: true,
       },
-      { key: "travelMult", label: "fly distance", min: 0.1, max: 5, step: 0.05 },
-      { key: "peekPx", label: "rest peek (px)", min: 0, max: 80, step: 1, mobileOnly: true },
-      { key: "progressGain", label: "lead (which card holds center)", min: 0.1, max: 5, step: 0.05 },
-      { key: "speedStep", label: "speed falloff curve", min: 0, max: 0.5, step: 0.005 },
+      { key: "travelMult", label: "fly distance", min: 0.1, max: 20, step: 0.05 },
+      { key: "peekPx", label: "rest peek (px)", min: 0, max: 120, step: 1, mobileOnly: true },
+      { key: "progressGain", label: "lead (which card holds center)", min: 0.1, max: 10, step: 0.05 },
+      { key: "speedStep", label: "speed falloff curve", min: 0, max: 1, step: 0.005 },
       { key: "speedMin", label: "slowest card speed", min: 0.01, max: 1, step: 0.01 },
       {
         key: "ease",
@@ -289,12 +296,13 @@ const FIELDS = [
   {
     group: "Stack / tilt",
     items: [
-      { key: "fanScale", label: "fan scale", min: 0, max: 3, step: 0.05, mobileOnly: true },
-      { key: "tipScale", label: "tip rotate", min: 0, max: 6, step: 0.05 },
-      { key: "rotateXAmt", label: "rotateX (°)", min: 0, max: 60, step: 0.5 },
+      { key: "fanScale", label: "fan scale", min: 0, max: 4, step: 0.05, mobileOnly: true },
+      { key: "tipScale", label: "tip rotate", min: 0, max: 12, step: 0.05 },
+      { key: "rotateXAmt", label: "rotateX (°)", min: 0, max: 120, step: 0.5 },
       { key: "deckLeftPct", label: "stack left %", min: 0, max: 100, step: 0.5, mobileOnly: true },
-      { key: "deckRightPx", label: "stack right (px)", min: 0, max: 600, step: 1, desktopOnly: true },
-      { key: "deckScale", label: "stack scale", min: 0.5, max: 1.4, step: 0.01 },
+      { key: "deckRightPx", label: "stack right (px)", min: 0, max: 1200, step: 1, desktopOnly: true },
+      { key: "deckScale", label: "stack scale", min: 0.5, max: 2.8, step: 0.01 },
+      { key: "cardSize", label: "размер карточек", min: 0.5, max: 1, step: 0.01 },
     ],
   },
 ];
