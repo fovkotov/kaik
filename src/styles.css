@@ -42,6 +42,8 @@
   --font-courtship: CourtshipJNL, "SF Pro Rounded", sans-serif;
   --frame-w: 100vw;
   --frame-h: 100vh;
+  /* Parent (kaik.pictures) top plate overlay; 100px on mobile/webview embed. */
+  --host-bar: 0px;
   /* Portrait A4: 210×297 → h/w = 297/210 */
   --card-aspect: calc(297 / 210);
   --stack-card-w: min(
@@ -315,6 +317,7 @@ html:not(.i18n-ready) [data-i18n] {
   --base-x: 0px;
   --base-y: 0px;
   --base-r: 0deg;
+  letter-spacing: normal;
   position: absolute;
   top: 50%;
   left: auto;
@@ -806,12 +809,16 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 .card[data-works-card] {
-  --focus-open-w: min(680px, calc(var(--frame-w) - 48px), calc(var(--frame-h) - 56px));
+  --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
+  --works-open-scale: 1.16;
+  --focus-open-w: min(
+    calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
+    calc(var(--frame-w) - 48px)
+  );
   --program-open-w: var(--focus-open-w);
 }
 
 .card[data-works-card]:not(.is-program-open) {
-  --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
   --card-w: var(--works-side);
   --card-h: var(--works-side);
   width: var(--works-side);
@@ -820,7 +827,7 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 .works-card {
-  --u: calc(var(--card-w) / 840);
+  --u: calc(var(--card-w) / 842);
   position: relative;
   z-index: 1;
   display: flex;
@@ -889,28 +896,20 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 .works-card__who {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: baseline;
-  gap: 0.35em;
   width: 100%;
   margin: 0;
   font-family: var(--font-ru);
   font-size: calc(11.749 * var(--u));
   line-height: normal;
   text-align: center;
-  color: #000;
-}
-
-.works-card__who span,
-.works-card__ig {
   text-decoration: underline;
   text-underline-position: from-font;
+  color: #000;
 }
 
 .works-card__ig {
   color: inherit;
+  text-decoration: inherit;
 }
 
 .works-card__art {
@@ -963,15 +962,15 @@ img.works-card__piece {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  row-gap: calc(24 * var(--u));
   width: 100%;
 }
 
-.works-card__slider {
-  display: none;
+.works-card__pair-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  margin: 0;
-  outline: none;
-  box-shadow: none;
 }
 
 .card.is-program-open .works-card {
@@ -980,18 +979,18 @@ img.works-card__piece {
   overflow: visible;
 }
 
+.card.is-program-open .works-card__item,
+.card.is-program-open .works-card__col {
+  gap: calc(24 * var(--u));
+}
+
+.card.is-program-open .works-card__tight {
+  gap: calc(16 * var(--u));
+}
+
 .card.is-program-open .works-card__title,
-.card.is-program-open .works-card__who span,
-.card.is-program-open .works-card__ig {
+.card.is-program-open .works-card__who {
   text-decoration: none;
-}
-
-.card.is-program-open .works-card__storm-grid {
-  display: none;
-}
-
-.card.is-program-open .works-card__slider {
-  display: block;
 }
 
 .card.is-program-open.is-program-scroll .works-card {
@@ -1002,7 +1001,10 @@ img.works-card__piece {
 
 @media (max-width: 900px) {
   .card[data-works-card] {
-    --focus-open-w: min(680px, calc(var(--frame-w) - 32px), calc(var(--frame-h) - 56px));
+    --focus-open-w: min(
+      calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
+      calc(var(--frame-w) - 32px)
+    );
     --program-open-w: var(--focus-open-w);
   }
 }
@@ -1243,6 +1245,7 @@ img.works-card__piece {
   font-family: var(--font);
   font-weight: 700;
   overflow: hidden;
+  cursor: default;
 }
 
 .progress-card__title {
@@ -1504,6 +1507,8 @@ img.works-card__piece {
   --work-ink: rgba(0, 0, 0, 0.4);
   --work-rule: rgba(0, 0, 0, 0.08);
   --work-blur: 18px;
+  --work-swap-ms: 0.92s;
+  --work-swap-ease: cubic-bezier(0.22, 1, 0.32, 1);
   position: relative;
   z-index: 1;
   display: flex;
@@ -1513,6 +1518,7 @@ img.works-card__piece {
   height: 100%;
   overflow: hidden;
   background: #8a7e59;
+  cursor: default;
 }
 
 .work-card__face {
@@ -1525,8 +1531,8 @@ img.works-card__piece {
   filter: blur(0);
   pointer-events: auto;
   transition:
-    opacity var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
-    filter var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1));
+    opacity var(--work-swap-ms) var(--work-swap-ease),
+    filter var(--work-swap-ms) var(--work-swap-ease);
 }
 
 .work-card__full {
@@ -1534,6 +1540,7 @@ img.works-card__piece {
   position: relative;
   z-index: 1;
   width: 100%;
+  min-height: 100%;
   flex-direction: column;
   align-items: stretch;
   gap: calc(48 * var(--u));
@@ -1541,12 +1548,13 @@ img.works-card__piece {
   color: var(--work-ink);
   font-family: var(--font);
   font-weight: 700;
+  background: #fff;
   opacity: 0;
   filter: blur(var(--work-blur));
   pointer-events: none;
   transition:
-    opacity var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
-    filter var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1));
+    opacity var(--work-swap-ms) var(--work-swap-ease),
+    filter var(--work-swap-ms) var(--work-swap-ease);
 }
 
 .work-card__head {
@@ -1732,25 +1740,27 @@ img.works-card__piece {
   background: #fff;
 }
 
-.card.is-program-open .work-card__face {
+.card[data-work-student="alena"] .work-card__full--alena,
+.card[data-work-student="yan"] .work-card__full--yan,
+.card[data-work-student="polina"] .work-card__full--polina {
+  display: flex;
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
+  margin: 0;
+  transform: none;
+}
+
+.card.is-work-open .work-card__face {
   opacity: 0;
   filter: blur(var(--work-blur));
   pointer-events: none;
 }
 
-.card.is-program-open[data-work-student="alena"] .work-card__full--alena,
-.card.is-program-open[data-work-student="yan"] .work-card__full--yan,
-.card.is-program-open[data-work-student="polina"] .work-card__full--polina {
-  display: flex;
-  position: relative;
-  top: 0;
-  left: 0;
-  margin: 0;
-  transform: none;
+.card.is-work-open[data-work-student="alena"] .work-card__full--alena,
+.card.is-work-open[data-work-student="yan"] .work-card__full--yan,
+.card.is-work-open[data-work-student="polina"] .work-card__full--polina {
   opacity: 1;
   filter: blur(0);
 }
@@ -1771,6 +1781,7 @@ img.works-card__piece {
 }
 
 .card.is-program-open.is-program-scroll .work-card__full {
+  position: relative;
   pointer-events: auto;
 }
 
@@ -2132,6 +2143,21 @@ img.works-card__piece {
 [data-focus-card] {
   --focus-open-w: min(680px, calc(var(--frame-w) - 48px));
   --program-open-w: var(--focus-open-w);
+}
+
+[data-program-card],
+[data-focus-card]:not([data-work-card]) {
+  cursor: pointer;
+}
+
+.card[data-work-card],
+.card[data-work-card] .work-card,
+.card[data-work-card] .progress-card {
+  cursor: default;
+}
+
+.card[data-work-card] .progress-card__sheet,
+.card[data-work-card] [data-work-open] {
   cursor: pointer;
 }
 
@@ -2513,7 +2539,10 @@ img.works-card__piece {
 
 @media (max-width: 900px) {
   :root {
-    --panel-chrome-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 56px);
+    --host-bar: 100px;
+    --panel-chrome-top: calc(
+      var(--host-bar) + max(12px, env(safe-area-inset-top, 0px)) + 56px
+    );
     --panel-chrome-bot: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 52px);
     /* Same A4 ratio as desktop, fitted between chrome */
     --stack-card-w: min(
