@@ -40,23 +40,28 @@
   --font-bocklin: "Arnold BocklinC", "SF Pro Rounded", sans-serif;
   --font-abode: Abode, "SF Pro Rounded", sans-serif;
   --font-courtship: CourtshipJNL, "SF Pro Rounded", sans-serif;
-  --frame-w: 100vw;
-  --frame-h: 100vh;
+  --frame-w: 100%;
+  --frame-h: 100%;
   /* Parent (kaik.pictures) top plate overlay; 100px on mobile/webview embed. */
   --host-bar: 0px;
+  --card-gutter: 12px;
   /* Portrait A4: 210×297 → h/w = 297/210 */
   --card-aspect: calc(297 / 210);
-  --stack-card-w: min(
-    490px,
-    calc(var(--frame-w) * 0.34),
-    calc(var(--frame-h) * 0.82 / var(--card-aspect))
-  );
-  --card-w: var(--stack-card-w);
-  --card-h: calc(var(--card-w) * var(--card-aspect));
-  /* Independent of --card-w so open/fly width cannot stretch it. */
-  --stack-card-h: calc(var(--stack-card-w) * var(--card-aspect));
-  --scroll-per-card: 500;
   --deck-scale: 1.15;
+  /*
+    Height-first from the iframe. Visual AABB after --deck-scale and ~8° rotate
+    (1.12) plus hover/toss reserve must fit --frame-h. tweaks.syncCardMetrics
+    overwrites these with live hoverLift / rotate / travelMult.
+  */
+  --card-h: min(
+    calc(((var(--frame-h) - 2 * var(--card-gutter)) / var(--deck-scale) - 52px) / 1.12),
+    calc((var(--frame-w) - 48px) / var(--deck-scale)),
+    calc(min(490px, var(--frame-w) * 0.34) * var(--card-aspect))
+  );
+  --stack-card-w: calc(var(--card-h) / var(--card-aspect));
+  --stack-card-h: var(--card-h);
+  --card-w: var(--stack-card-w);
+  --scroll-per-card: 500;
 }
 
 html[data-locale="ru"],
@@ -76,7 +81,7 @@ body {
   width: 100%;
   height: 100%;
   background: var(--bg);
-  overscroll-behavior: none;
+  overscroll-behavior: contain;
 }
 
 body {
@@ -2634,15 +2639,15 @@ img.works-card__piece {
       var(--host-bar) + max(12px, env(safe-area-inset-top, 0px)) + 56px
     );
     --panel-chrome-bot: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 52px);
-    /* Same A4 ratio as desktop, fitted between chrome */
-    --stack-card-w: min(
-      490px,
-      calc(var(--frame-w) * 0.78),
-      calc((var(--frame-h) - var(--panel-chrome-top) - var(--panel-chrome-bot) - 20px) / var(--card-aspect))
-    );
-    --card-w: var(--stack-card-w);
-    --card-h: calc(var(--card-w) * var(--card-aspect));
     --deck-scale: 1;
+    --card-h: min(
+      calc(((var(--frame-h) - 2 * var(--card-gutter)) / var(--deck-scale) - 24px) / 1.12),
+      calc((var(--frame-w) - 32px) / var(--deck-scale)),
+      calc(min(490px, var(--frame-w) * 0.78) * var(--card-aspect))
+    );
+    --stack-card-w: calc(var(--card-h) / var(--card-aspect));
+    --stack-card-h: var(--card-h);
+    --card-w: var(--stack-card-w);
   }
 
   .deck {
@@ -2775,8 +2780,7 @@ img.works-card__piece {
   .faq-card__a,
   .format-card__note,
   .author-card__name,
-  .progress-card__who,
-  .works-card__who {
+  .progress-card__who {
     font-size: 16px;
     line-height: 1.35;
     letter-spacing: 0;
@@ -2790,19 +2794,31 @@ img.works-card__piece {
     letter-spacing: 0;
   }
 
-  /* Open student-works overlay only — first-screen chrome stays 20px. */
-  .card[data-works-card].is-program-open .works-card,
-  .card[data-works-card].is-program-open .works-card :is(
-    .works-card__title,
-    .works-card__who,
-    .works-card__ig,
-    p,
-    a,
-    span
-  ) {
-    font-size: 12px;
+  /*
+    Works gallery captions. The 16px mobile chrome rule and
+    calc(11.749 * var(--u)) both beat a loose 12px :is() override
+    (and iOS text-size-adjust inflates sub-16px type). Pin hard.
+  */
+  .works-card__who,
+  .works-card__who span,
+  .works-card__ig {
+    font-size: 12px !important;
     line-height: 1.3;
     letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Open overlay title matches captions; closed first-screen title stays 20px. */
+  .card[data-works-card].is-program-open .works-card__title,
+  .card[data-works-card].is-program-open .works-card__who,
+  .card[data-works-card].is-program-open .works-card__who span,
+  .card[data-works-card].is-program-open .works-card__ig {
+    font-size: 12px !important;
+    line-height: 1.3;
+    letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   .panel__lockup .panel__title,
@@ -3210,5 +3226,10 @@ img.works-card__piece {
   .tweaks-reopen {
     top: calc(var(--host-bar) + 8px);
     right: 8px;
+  }
+
+  body:has(.card.is-program-open) .tweaks,
+  body:has(.card.is-program-open) .tweaks-reopen {
+    display: none !important;
   }
 }
