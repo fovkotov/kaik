@@ -51,7 +51,8 @@
   /*
     Height-first from the iframe. Visual AABB after --deck-scale and ~8° rotate
     (1.12) plus hover/toss reserve must fit --frame-h. tweaks.syncCardMetrics
-    overwrites these with live hoverLift / rotate / travelMult.
+    overwrites these with live hoverLift / rotate / travelMult, then multiplies
+    by cardSize (desktop default 1.32; 1 = this max-fit size).
   */
   --card-h: min(
     calc(((var(--frame-h) - 2 * var(--card-gutter)) / var(--deck-scale) - 52px) / 1.12),
@@ -342,7 +343,7 @@ html:not(.i18n-ready) [data-i18n] {
   position: absolute;
   top: 50%;
   left: auto;
-  right: 209px;
+  right: 304px;
   width: var(--card-w);
   height: var(--card-h);
   margin-top: calc(var(--card-h) / -2);
@@ -2110,9 +2111,14 @@ img.works-card__piece {
   transform: translateX(-50%);
   align-items: center;
   justify-content: center;
-  gap: calc(8 * var(--u));
+  gap: calc(10 * var(--u));
+  height: calc(28 * var(--u));
   margin: 0;
-  padding: 0;
+  padding: 0 calc(12 * var(--u));
+  border-radius: 120px;
+  background: rgba(85, 85, 85, 0.8);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   pointer-events: auto;
 }
 
@@ -2120,17 +2126,15 @@ img.works-card__piece {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(28 * var(--u));
-  height: calc(28 * var(--u));
+  width: calc(16 * var(--u));
+  height: 100%;
   padding: 0;
   border: 0;
-  border-radius: 120px;
-  background: rgba(85, 85, 85, 0.8);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  background: transparent;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .img-slider__dot::after {
@@ -2139,6 +2143,7 @@ img.works-card__piece {
   height: calc(7 * var(--u));
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
+  transition: background 0.2s ease;
 }
 
 .img-slider__dot.is-active::after {
@@ -2649,14 +2654,11 @@ img.works-card__piece {
     );
     --panel-chrome-bot: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 52px);
     --deck-scale: 1;
-    --card-h: min(
-      calc(((var(--frame-h) - 2 * var(--card-gutter)) / var(--deck-scale) - 24px) / 1.12),
-      calc((var(--frame-w) - 32px) / var(--deck-scale)),
-      calc(min(490px, var(--frame-w) * 0.78) * var(--card-aspect))
-    );
-    --stack-card-w: calc(var(--card-h) / var(--card-aspect));
-    --stack-card-h: var(--card-h);
+    --card-aspect: calc(450 / 320);
+    --stack-card-w: min(320px, var(--frame-w));
     --card-w: var(--stack-card-w);
+    --card-h: calc(var(--stack-card-w) * 450 / 320);
+    --stack-card-h: var(--card-h);
   }
 
   .deck {
@@ -2754,10 +2756,7 @@ img.works-card__piece {
     display: block;
   }
 
-  .panel__title,
-  .panel__dates,
-  .panel__dates--short,
-  .panel__lang,
+  /* Figma 76:864 — card titles 16px. Chrome stays 17px. */
   .program-card__title,
   .program-card__week-title,
   .progress-card__title,
@@ -2768,82 +2767,115 @@ img.works-card__piece {
   .faq-card__q,
   .author-card__title,
   .history-card__kicker,
-  .history-card__title,
   .format-card__label,
-  .work-card__who,
   .work-card__week-title {
-    font-size: 20px;
+    font-size: 16px;
     line-height: 1.2;
     letter-spacing: 0;
   }
 
-  .panel__nav a {
-    font-size: 20px;
-    line-height: 1.2;
+  .history-card__title {
+    font-size: 28.5px;
+    line-height: 28.5px;
     letter-spacing: 0;
+  }
+
+  .format-card__num span {
+    font-size: 98px;
+  }
+
+  .exercises-card__num {
+    font-size: 48px;
+    line-height: 1;
+  }
+
+  .author-card__name {
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .panel__nav a {
+    font-size: 17px;
+    line-height: normal;
+    letter-spacing: 0;
+  }
+
+  .format-card__note,
+  .exercises-card__text,
+  .faq-card__a,
+  .progress-card__who,
+  .progress-card__who span,
+  .progress-card__ig,
+  .work-card__who,
+  .work-card__who span,
+  .work-card__ig {
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   .program-card__row,
   .program-card__name,
   .program-card__kind,
+  .program-card__when,
   .history-card__text,
+  .history-card__caption,
   .work-card__blurb,
   .work-card__week-head,
-  .exercises-card__text,
-  .faq-card__a,
-  .format-card__note,
-  .author-card__name,
-  .progress-card__who {
-    font-size: 16px;
-    line-height: 1.35;
-    letter-spacing: 0;
-  }
-
-  .history-card__caption,
-  .progress-card__week,
-  .program-card__when {
-    font-size: 12px;
+  .progress-card__week {
+    font-size: 10px;
     line-height: 1.3;
     letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /*
-    Works gallery captions. The 16px mobile chrome rule and
-    calc(11.749 * var(--u)) both beat a loose 12px :is() override
-    (and iOS text-size-adjust inflates sub-16px type). Pin hard.
+    Works captions: first-screen pieces 10px, the rest of the
+    gallery 6.28px (Figma 76:1062). iOS text-size-adjust inflates
+    sub-16px type — pin hard.
   */
   .works-card__who,
   .works-card__who span,
   .works-card__ig {
-    font-size: 12px !important;
+    font-size: 6.28px !important;
     line-height: 1.3;
     letter-spacing: 0;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
 
-  /* Open overlay title matches captions; closed first-screen title stays 20px. */
-  .card[data-works-card].is-program-open .works-card__title,
-  .card[data-works-card].is-program-open .works-card__who,
-  .card[data-works-card].is-program-open .works-card__who span,
-  .card[data-works-card].is-program-open .works-card__ig {
-    font-size: 12px !important;
+  .works-card__list > .works-card__item:nth-child(-n + 2) .works-card__who,
+  .works-card__list > .works-card__item:nth-child(-n + 2) .works-card__who span,
+  .works-card__list > .works-card__item:nth-child(-n + 2) .works-card__ig {
+    font-size: 10px !important;
     line-height: 1.3;
     letter-spacing: 0;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+  }
+
+  .card[data-works-card].is-program-open .works-card__title {
+    font-size: 16px !important;
+    line-height: 1.2;
+    letter-spacing: 0;
   }
 
   .panel__lockup .panel__title,
   .panel__lockup .panel__dates,
   .panel__lockup .panel__dates--short {
-    font-size: 20px;
+    font-size: 17px;
     line-height: normal;
     color: var(--ink);
   }
 
   .panel__lockup .panel__enroll {
-    font-size: 20px;
+    font-size: 17px;
     line-height: normal;
   }
 
@@ -2860,7 +2892,7 @@ img.works-card__piece {
     justify-content: flex-end;
     align-items: flex-start;
     margin: 0;
-    font-size: 20px;
+    font-size: 17px;
     line-height: normal;
     color: rgba(0, 0, 0, 0.32);
     pointer-events: none;
@@ -2938,7 +2970,6 @@ img.works-card__piece {
   }
 
   .card.is-program-open {
-    z-index: 50;
     border-radius: 0;
   }
 
@@ -2960,12 +2991,12 @@ img.works-card__piece {
   }
 
   .program-card__sheet {
-    gap: 24px;
-    padding: 16px 16px 24px;
+    gap: 32px;
+    padding: 12px;
   }
 
   .program-card__week {
-    gap: 12px;
+    gap: 16px;
   }
 
   .program-card__row,
@@ -2973,8 +3004,9 @@ img.works-card__piece {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-rows: auto auto;
-    gap: 4px 10px;
+    gap: 2px 4px;
     align-items: start;
+    padding: 8px 0;
   }
 
   .program-card__name {
@@ -3031,6 +3063,74 @@ img.works-card__piece {
 
   .card.is-program-open .work-card__photos {
     flex-direction: column;
+  }
+
+  .exercises-card {
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+  }
+
+  .exercises-card__title {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: calc(100% - 56px);
+    margin: 0 auto;
+  }
+
+  .exercises-card__list {
+    gap: 12px;
+    padding: 8px 12px;
+  }
+
+  .exercises-card__item,
+  .exercises-card__item--nudge {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .exercises-card__item--nudge .exercises-card__num-wrap {
+    padding-top: 0;
+  }
+
+  .exercises-card__num-wrap {
+    width: 64px;
+  }
+
+  .exercises-card__num {
+    width: 64px;
+    height: auto;
+    text-align: left;
+  }
+
+  .exercises-card__text {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .faq-card__list {
+    gap: 24px;
+    width: 100%;
+    padding: 8px 12px;
+    bottom: 0;
+  }
+
+  .faq-card__item {
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .faq-card__q,
+  .faq-card__a,
+  .faq-card__a--wide {
+    width: 100%;
+    text-align: left;
   }
 
   .img-slider__nav {

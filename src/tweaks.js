@@ -22,10 +22,10 @@ export const DESKTOP = {
   rotateXAmt: 2.5,
 
   deckLeftPct: 58,
-  deckRightPx: 209,
+  deckRightPx: 304,
   deckScale: 1.15,
-  /** 1 = max height that still fits the iframe; <1 shrinks, never overflows. */
-  cardSize: 1,
+  /** 1 = max height that still fits the iframe; >1 grows past that fit. */
+  cardSize: 1.32,
   travelDir: -1,
 
   parallaxX: 27,
@@ -94,6 +94,8 @@ export const MOBILE_MQ = "(max-width: 900px)";
 const STORAGE_KEY = "kaik-deck-tweaks-v4";
 const LEGACY_STORAGE_KEY = "kaik-deck-tweaks-v3";
 const UI_STORAGE_KEY = "kaik-deck-tweaks-ui-v3";
+/** Bump to force-write DESKTOP over a stale `kaik-deck-tweaks-v4` desktop blob. */
+const DESKTOP_REV = 5;
 
 /** @type {"auto" | "desktop" | "mobile"} */
 let editMode = "mobile";
@@ -119,9 +121,9 @@ function getEditDefaults() {
 }
 
 function getEditLabel() {
-  if (editMode === "desktop") return "desktop";
-  if (editMode === "mobile") return "mobile";
-  return isMobile() ? "mobile (auto)" : "desktop (auto)";
+  if (editMode === "desktop") return "десктоп";
+  if (editMode === "mobile") return "телефон";
+  return isMobile() ? "телефон (авто)" : "десктоп (авто)";
 }
 
 const A4_ASPECT = 297 / 210;
@@ -152,7 +154,7 @@ function cardStageCenterY(frameH) {
  * max rotate, hover lift, and vertical toss stays inside `--frame-h`.
  * Square works-card uses the same `--card-h` (wider than A4 siblings).
  * Raising `deckScale` shrinks the card instead of overflowing.
- * `cardSize` (0.5–1) then scales that max-fit height; 1 = current viewport fit.
+ * `cardSize` then scales that max-fit height; 1 = current viewport fit.
  */
 export function syncCardMetrics() {
   const p = getParams();
@@ -160,9 +162,20 @@ export function syncCardMetrics() {
   const { width: frameW, height: frameH } = getViewportSize();
   if (frameW <= 0 || frameH <= 0) return;
 
+  if (mobile) {
+    const w = Math.min(320, frameW);
+    const h = w * (450 / 320);
+    const root = document.documentElement;
+    root.style.setProperty("--card-h", `${h}px`);
+    root.style.setProperty("--card-w", `${w}px`);
+    root.style.setProperty("--stack-card-h", `${h}px`);
+    root.style.setProperty("--stack-card-w", `${w}px`);
+    return;
+  }
+
   const scale = Math.max(0.5, Number(p.deckScale) || 1);
   const rawSize = Number(p.cardSize);
-  const cardSize = Number.isFinite(rawSize) ? Math.min(1, Math.max(0.5, rawSize)) : 1;
+  const cardSize = Number.isFinite(rawSize) ? Math.min(3, Math.max(1, rawSize)) : 1;
   const { maxRotate, maxBaseY, maxTip } = readCardPoseExtents();
   const fan = mobile ? Number(p.fanScale) || 0.42 : 1;
   const rotZ =
@@ -222,7 +235,7 @@ export function applyDeckParams() {
       card.style.right = "";
     } else {
       card.style.left = "auto";
-      card.style.right = `${p.deckRightPx ?? 209}px`;
+      card.style.right = `${p.deckRightPx ?? 304}px`;
     }
   });
   document.documentElement.style.setProperty("--scroll-per-card", String(p.scrollPerCard));
@@ -256,11 +269,11 @@ export function easeByName(name, t) {
 
 const FIELDS = [
   {
-    group: "Flight",
+    group: "Полёт",
     items: [
       {
         key: "dragSensitivity",
-        label: "swipe speed (higher = faster)",
+        label: "скорость свайпа (больше — быстрее)",
         min: 0.05,
         max: 5,
         step: 0.05,
@@ -268,41 +281,41 @@ const FIELDS = [
       },
       {
         key: "scrollPerCard",
-        label: "scroll / card (desktop px)",
+        label: "скролл на карточку (десктоп, px)",
         min: 50,
         max: 10000,
         step: 10,
         desktopOnly: true,
       },
-      { key: "travelMult", label: "fly distance", min: 0.1, max: 20, step: 0.05 },
-      { key: "peekPx", label: "rest peek (px)", min: 0, max: 120, step: 1, mobileOnly: true },
-      { key: "progressGain", label: "lead (which card holds center)", min: 0.1, max: 10, step: 0.05 },
-      { key: "speedStep", label: "speed falloff curve", min: 0, max: 1, step: 0.005 },
-      { key: "speedMin", label: "slowest card speed", min: 0.01, max: 1, step: 0.01 },
+      { key: "travelMult", label: "дальность полёта", min: 0.1, max: 20, step: 0.05 },
+      { key: "peekPx", label: "выглядывание в покое (px)", min: 0, max: 120, step: 1, mobileOnly: true },
+      { key: "progressGain", label: "лид (какая карточка в центре)", min: 0.1, max: 10, step: 0.05 },
+      { key: "speedStep", label: "кривая замедления", min: 0, max: 1, step: 0.005 },
+      { key: "speedMin", label: "скорость самой медленной", min: 0.01, max: 1, step: 0.01 },
       {
         key: "ease",
-        label: "easing",
+        label: "плавность",
         type: "select",
         options: [
-          { value: "linear", label: "linear" },
-          { value: "inOutCubic", label: "inOut cubic" },
-          { value: "outCubic", label: "out cubic" },
-          { value: "inCubic", label: "in cubic" },
-          { value: "inOutQuad", label: "inOut quad" },
+          { value: "linear", label: "линейная" },
+          { value: "inOutCubic", label: "кубическая туда-обратно" },
+          { value: "outCubic", label: "кубическая на выход" },
+          { value: "inCubic", label: "кубическая на вход" },
+          { value: "inOutQuad", label: "квадратичная туда-обратно" },
         ],
       },
     ],
   },
   {
-    group: "Stack / tilt",
+    group: "Стопка / наклон",
     items: [
-      { key: "fanScale", label: "fan scale", min: 0, max: 4, step: 0.05, mobileOnly: true },
-      { key: "tipScale", label: "tip rotate", min: 0, max: 12, step: 0.05 },
-      { key: "rotateXAmt", label: "rotateX (°)", min: 0, max: 120, step: 0.5 },
-      { key: "deckLeftPct", label: "stack left %", min: 0, max: 100, step: 0.5, mobileOnly: true },
-      { key: "deckRightPx", label: "stack right (px)", min: 0, max: 1200, step: 1, desktopOnly: true },
-      { key: "deckScale", label: "stack scale", min: 0.5, max: 2.8, step: 0.01 },
-      { key: "cardSize", label: "размер карточек", min: 0.5, max: 1, step: 0.01 },
+      { key: "fanScale", label: "размах веера", min: 0, max: 4, step: 0.05, mobileOnly: true },
+      { key: "tipScale", label: "поворот кончика", min: 0, max: 12, step: 0.05 },
+      { key: "rotateXAmt", label: "наклон rotateX (°)", min: 0, max: 120, step: 0.5 },
+      { key: "deckLeftPct", label: "стопка слева %", min: 0, max: 100, step: 0.5, mobileOnly: true },
+      { key: "deckRightPx", label: "стопка справа (px)", min: 0, max: 1200, step: 1, desktopOnly: true },
+      { key: "deckScale", label: "масштаб стопки", min: 0.5, max: 2.8, step: 0.01 },
+      { key: "cardSize", label: "размер карточек", min: 1, max: 3, step: 0.01 },
     ],
   },
 ];
@@ -352,33 +365,44 @@ function applyMobileSaved(mobile) {
 }
 
 function loadSaved() {
+  let overwriteDesktop = true;
   try {
     const raw = storage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      applyDesktopSaved(data.desktop);
       applyMobileSaved(data.mobile);
+      if (data.desktopRev === DESKTOP_REV && data.desktop) {
+        applyDesktopSaved(data.desktop);
+        overwriteDesktop = false;
+      }
       if (data.editMode === "auto" || data.editMode === "desktop" || data.editMode === "mobile") {
         editMode = data.editMode;
       }
-      return;
-    }
-
-    const legacyRaw = storage.getItem(LEGACY_STORAGE_KEY);
-    if (!legacyRaw) return;
-    const legacy = JSON.parse(legacyRaw);
-    applyDesktopSaved(legacy.desktop);
-    if (legacy.editMode === "auto" || legacy.editMode === "desktop" || legacy.editMode === "mobile") {
-      editMode = legacy.editMode;
+    } else {
+      const legacyRaw = storage.getItem(LEGACY_STORAGE_KEY);
+      if (legacyRaw) {
+        const legacy = JSON.parse(legacyRaw);
+        if (legacy.editMode === "auto" || legacy.editMode === "desktop" || legacy.editMode === "mobile") {
+          editMode = legacy.editMode;
+        }
+      }
     }
   } catch {
     // ignore
+  }
+
+  if (overwriteDesktop) {
+    Object.assign(DESKTOP, DESKTOP_DEFAULTS);
+    save();
   }
 }
 
 function save() {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify({ desktop: DESKTOP, mobile: MOBILE, editMode }));
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ desktop: DESKTOP, mobile: MOBILE, editMode, desktopRev: DESKTOP_REV }),
+    );
   } catch {
     // ignore
   }
@@ -406,17 +430,17 @@ export function initTweaks(onChange) {
   root.innerHTML = `
     <div class="tweaks__bar">
       <button type="button" class="tweaks__toggle" data-tweaks-toggle aria-expanded="true">
-        flight tweaks
+        настройки полёта
       </button>
-      <button type="button" class="tweaks__action" data-tweaks-reset>reset</button>
-      <button type="button" class="tweaks__action" data-tweaks-copy>copy JSON</button>
-      <button type="button" class="tweaks__action" data-tweaks-hide title="Hide panel (T)">hide</button>
+      <button type="button" class="tweaks__action" data-tweaks-reset>сброс</button>
+      <button type="button" class="tweaks__action" data-tweaks-copy>копировать JSON</button>
+      <button type="button" class="tweaks__action" data-tweaks-hide title="Скрыть панель (T)">скрыть</button>
     </div>
     <div class="tweaks__mode">
-      <span class="tweaks__mode-label">edit</span>
-      <button type="button" class="tweaks__mode-btn" data-mode="auto">auto</button>
-      <button type="button" class="tweaks__mode-btn" data-mode="desktop">desktop</button>
-      <button type="button" class="tweaks__mode-btn" data-mode="mobile">mobile</button>
+      <span class="tweaks__mode-label">править</span>
+      <button type="button" class="tweaks__mode-btn" data-mode="auto">авто</button>
+      <button type="button" class="tweaks__mode-btn" data-mode="desktop">десктоп</button>
+      <button type="button" class="tweaks__mode-btn" data-mode="mobile">телефон</button>
       <span class="tweaks__mode-current" data-mode-current></span>
     </div>
     <div class="tweaks__body" data-tweaks-body></div>
@@ -426,8 +450,8 @@ export function initTweaks(onChange) {
   reopen.type = "button";
   reopen.className = "tweaks-reopen is-hidden";
   reopen.dataset.tweaksReopen = "";
-  reopen.title = "Show flight tweaks (T)";
-  reopen.textContent = "tweaks";
+  reopen.title = "Показать настройки полёта (T)";
+  reopen.textContent = "настройки";
   reopen.setAttribute("aria-hidden", "true");
 
   const body = root.querySelector("[data-tweaks-body]");
@@ -626,7 +650,7 @@ export function initTweaks(onChange) {
       await navigator.clipboard.writeText(text);
       const btn = root.querySelector("[data-tweaks-copy]");
       const prev = btn.textContent;
-      btn.textContent = "copied";
+      btn.textContent = "скопировано";
       setTimeout(() => {
         btn.textContent = prev;
       }, 1200);
