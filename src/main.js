@@ -576,6 +576,7 @@ function initDeck() {
       if (flyLocked) {
         if (hoveredIndex === i) hoveredIndex = -1;
         item.hover = 0;
+        if (mobile) item.el.style.zIndex = "";
         return;
       }
 
@@ -634,8 +635,13 @@ function initDeck() {
         t * params.rotateXAmt * (i % 2 === 0 ? -1 : 1) + cursorRotX;
 
       item.el.style.transform = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
-      if (!item.el.matches(FOCUS_SEL)) {
+      if (mobile) {
+        // Later cards (still below) paint over earlier ones already flying up.
+        item.el.style.zIndex = String(i + 1);
+      } else if (!item.el.matches(FOCUS_SEL)) {
         item.el.style.zIndex = String(item.baseZ);
+      } else {
+        item.el.style.zIndex = "";
       }
     });
 
