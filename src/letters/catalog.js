@@ -1,6 +1,7 @@
+import { publicUrl } from "../public-url.js";
 import { KIND_LETTER, KIND_WORD, isLetter, normalizeEntry } from "./taxonomy.js";
 
-const CATALOG_URL = "/letters/catalog.json";
+const CATALOG_URL = publicUrl("letters/catalog.json");
 
 export const emptyCatalog = () => ({
   version: 1,

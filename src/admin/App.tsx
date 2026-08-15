@@ -56,6 +56,7 @@ import {
   KIND_WORD,
   inferTextFromFilename,
 } from "@/letters/taxonomy.js";
+import { publicUrl } from "@/public-url.js";
 import { getLocale, setLocale as persistLocale, t } from "@/scriptik.js";
 
 type Kind = typeof KIND_LETTER | typeof KIND_WORD;
@@ -158,7 +159,7 @@ function CatalogGlyph({ item }: { item: Work }) {
 
   useEffect(() => {
     let alive = true;
-    fetch(`/letters/${item.file}`)
+    fetch(publicUrl(`letters/${item.file}`))
       .then((res) => res.text())
       .then((svg) => {
         if (alive) setHtml(svgToInline(svg, item.id));
@@ -361,7 +362,7 @@ export function AdminApp() {
   useEffect(() => {
     if (!editing) return;
     let alive = true;
-    fetch(`/letters/${editing.file}`)
+    fetch(publicUrl(`letters/${editing.file}`))
       .then((res) => res.text())
       .then((svg) => {
         if (alive) setEditGlyph(svgToInline(svg, editing.id));
@@ -641,8 +642,8 @@ export function AdminApp() {
     <div className="min-h-svh bg-background">
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
-          <a href="/" className="flex items-center gap-2.5 text-sm font-medium">
-            <img src="/assets/logo.svg" alt="" width={22} height={28} className="h-7 w-auto" />
+          <a href={publicUrl()} className="flex items-center gap-2.5 text-sm font-medium">
+            <img src={publicUrl("assets/logo.svg")} alt="" width={22} height={28} className="h-7 w-auto" />
             {copy("admin.brand")}
           </a>
           <div className="flex items-center gap-2">
@@ -650,10 +651,10 @@ export function AdminApp() {
               {writable ? copy("admin.writable") : copy("admin.readOnly")}
             </Badge>
             <Button variant="ghost" size="sm" asChild>
-              <a href="/catalog.html">{copy("admin.openCatalog")}</a>
+              <a href={publicUrl("catalog.html")}>{copy("admin.openCatalog")}</a>
             </Button>
             <Button variant="ghost" size="sm" asChild>
-              <a href="/">{copy("admin.site")}</a>
+              <a href={publicUrl()}>{copy("admin.site")}</a>
             </Button>
             <ToggleGroup
               type="single"

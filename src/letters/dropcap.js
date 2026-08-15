@@ -1,4 +1,5 @@
 import { getScrollRoot, getViewportSize, safeSessionStorage } from "../embed.js";
+import { publicUrl } from "../public-url.js";
 import {
   allLetters,
   clickPool,
@@ -30,7 +31,7 @@ function remember(slot, id) {
 
 async function fetchSvg(entry) {
   if (svgCache.has(entry.id)) return svgCache.get(entry.id);
-  const res = await fetch(`/letters/${entry.file}?t=${entry.createdAt || ""}`);
+  const res = await fetch(`${publicUrl(`letters/${entry.file}`)}?t=${entry.createdAt || ""}`);
   if (!res.ok) throw new Error("SVG missing");
   const text = await res.text();
   svgCache.set(entry.id, text);

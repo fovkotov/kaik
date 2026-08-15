@@ -14,6 +14,7 @@ import {
   KIND_WORD,
   entryLabel,
 } from "@/letters/taxonomy.js";
+import { publicUrl } from "@/public-url.js";
 import { getLocale, setLocale as persistLocale, t } from "@/scriptik.js";
 
 type Kind = typeof KIND_LETTER | typeof KIND_WORD;
@@ -91,7 +92,7 @@ function WorkGlyph({ item, className }: { item: Work; className?: string }) {
       return;
     }
     let alive = true;
-    fetch(`/letters/${item.file}`)
+    fetch(publicUrl(`letters/${item.file}`))
       .then((res) => res.text())
       .then((svg) => {
         const inline = svgToInline(svg, item.id);
@@ -199,8 +200,8 @@ export function CatalogApp() {
       <div className="viewport archive-scroll" data-scroll-root>
         <header className="archive-bar">
           <div className="archive-bar__row">
-            <a className="archive-bar__brand" href="/catalog.html">
-              <img src="/assets/logo.svg" alt="" width={22} height={28} />
+            <a className="archive-bar__brand" href={publicUrl("catalog.html")}>
+              <img src={publicUrl("assets/logo.svg")} alt="" width={22} height={28} />
               {copy("catalog.brand")}
             </a>
             <nav className="archive-tabs" aria-label={copy("catalog.brand")}>
@@ -220,7 +221,7 @@ export function CatalogApp() {
               </button>
             </nav>
             <div className="archive-bar__meta">
-              <a href="/">{copy("catalog.site")}</a>
+              <a href={publicUrl()}>{copy("catalog.site")}</a>
               <div className="archive-lang" role="group" aria-label={copy("lang.label")}>
                 <button
                   type="button"

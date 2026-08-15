@@ -12,8 +12,24 @@ const embedHeaders = {
   "Content-Security-Policy": "frame-ancestors *",
 };
 
+/** Prefix leftover same-origin page links when `base` is not `/` (GitHub Pages). */
+function pagesHtmlLinks() {
+  let base = "/";
+  return {
+    name: "pages-html-links",
+    configResolved(config) {
+      base = config.base || "/";
+    },
+    transformIndexHtml(html) {
+      if (!base || base === "/") return html;
+      const prefix = base.endsWith("/") ? base : `${base}/`;
+      return html.replace(/href="\/((?:program|admin|catalog|index)\.html)"/g, `href="${prefix}$1"`);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), lettersAdminPlugin()],
+  plugins: [react(), tailwindcss(), lettersAdminPlugin(), pagesHtmlLinks()],
   resolve: {
     alias: {
       "@": path.resolve(root, "./src"),
