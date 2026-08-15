@@ -141,9 +141,7 @@ function initDeck() {
   const FOCUS_SEL = "[data-focus-card], [data-program-card]";
   const programIndex = state.findIndex((item) => item.el.hasAttribute("data-program-card"));
   const lockup = document.querySelector("[data-lockup]");
-  const panelRow = document.querySelector(".panel__row");
-  if (lockup && panelRow && lockup.parentElement !== panelRow) {
-    panelRow.prepend(lockup);
+  if (lockup) {
     lockup.style.transform = "";
     lockup.style.visibility = "";
   }
@@ -357,7 +355,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    ".panel a, .panel button, .author-card a, [data-fly-close], [data-lockup] button, [data-lockup] a, [data-lockup] .dropcap";
+    "a, button, [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;

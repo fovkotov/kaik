@@ -104,22 +104,22 @@ function bindSlider(root) {
   bindNav(NEXT, 1);
 
   let swipe = null;
-  root.addEventListener("pointerdown", (event) => {
-    event.stopPropagation();
-    swipe = { x: event.clientX, y: event.clientY, id: event.pointerId };
-  });
-  root.addEventListener("pointerup", (event) => {
-    if (!swipe || event.pointerId !== swipe.id) return;
+  const endSwipe = (event) => {
+    if (!swipe || (event && event.pointerId !== swipe.id)) return;
     const dx = event.clientX - swipe.x;
     const dy = event.clientY - swipe.y;
     swipe = null;
     if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return;
     show(index + (dx < 0 ? 1 : -1));
+  };
+  root.addEventListener("pointerdown", (event) => {
+    if (event.target.closest?.("button, a, [data-img-slider-dot], [data-img-slider-dots]")) return;
+    swipe = { x: event.clientX, y: event.clientY, id: event.pointerId };
   });
-  root.addEventListener("pointercancel", () => {
+  window.addEventListener("pointerup", endSwipe);
+  window.addEventListener("pointercancel", () => {
     swipe = null;
   });
-  root.addEventListener("click", (event) => event.stopPropagation());
 
   const images = slides.flatMap(slideImages);
   const refresh = () => measureTrack(root);

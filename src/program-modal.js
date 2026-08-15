@@ -4,7 +4,9 @@ import { applyDeckParams } from "./tweaks.js";
 const PROGRAM_NAV = "[data-program-nav], [data-i18n='nav.program']";
 const WORK_NAV = "[data-work-nav], [data-i18n='nav.work']";
 const FOCUS_SEL = "[data-focus-card], [data-program-card], [data-work-card], [data-works-card]";
-const FOCUS_IGNORE = "a, button, [data-tweaks], [data-tweaks-reopen], [data-img-slider], [data-history-slideshow], [data-open-program]";
+const FOCUS_IGNORE =
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-open-program], [data-fly-close], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
 
@@ -395,7 +397,10 @@ export function initProgramModal() {
   cards.forEach((el) => {
     el.addEventListener("pointerdown", (event) => {
       start = { x: event.clientX, y: event.clientY };
-      event.stopPropagation();
+      // Let the deck capture a vertical swipe. Only real controls keep the event.
+      if (event.target.closest?.(FOCUS_IGNORE) || event.target.closest?.(WORK_IG)) {
+        event.stopPropagation();
+      }
     });
 
     el.addEventListener("click", (event) => {
@@ -403,13 +408,15 @@ export function initProgramModal() {
         event.stopPropagation();
         return;
       }
+      const moved =
+        start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > DRAG_CLICK_PX;
       const sheet = el.hasAttribute("data-work-card")
         ? event.target.closest?.(WORK_OPEN)
         : null;
       if (sheet) {
         event.preventDefault();
         event.stopPropagation();
-        if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return;
+        if (moved) return;
         if (phase !== "idle") return;
         el.setAttribute("data-work-student", sheet.getAttribute("data-work-open") || "");
         openFocus(el);
@@ -420,7 +427,7 @@ export function initProgramModal() {
         return;
       }
       event.stopPropagation();
-      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return;
+      if (moved) return;
       if (phase !== "idle") return;
       if (el.hasAttribute("data-work-card")) return;
       openFocus(el);
@@ -435,7 +442,7 @@ export function initProgramModal() {
       }
       event.preventDefault();
       event.stopPropagation();
-      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return;
+      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > DRAG_CLICK_PX) return;
       const host = sheet.closest("[data-work-card]");
       if (!host) return;
       if (phase !== "idle") return;
