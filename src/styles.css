@@ -2286,24 +2286,32 @@ img.works-card__piece {
   left: 50%;
   bottom: max(16px, env(safe-area-inset-bottom, 0px));
   z-index: 60;
-  width: 48px;
-  height: 48px;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
   margin: 0;
-  padding: 0;
+  padding: 8px;
   border: 0;
   border-radius: 120px;
   background: rgba(85, 85, 85, 0.8);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   color: #fff;
-  font-size: 28px;
-  line-height: 1;
+  line-height: 0;
   transform: translateX(-50%);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
   pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
+}
+
+.fly-close__icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 900px) {
