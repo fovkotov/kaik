@@ -3,7 +3,7 @@
  * Defaults to the mobile preset so flight can be tuned on a phone.
  */
 
-import { safeStorage } from "./embed.js";
+import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
 
 const storage = safeStorage();
 
@@ -44,20 +44,20 @@ export const DESKTOP = {
 
 export const MOBILE = {
   scrollPerCard: 1,
-  travelMult: 1,
+  travelMult: 5,
   progressGain: 3.2,
-  speedStep: 0.14,
+  speedStep: 0.28,
   speedMin: 0.06,
   ease: "inOutCubic",
 
-  driftY: 0,
+  driftY: 18,
   tipScale: 0.12,
   rotateYBase: 0,
   rotateYStep: 0,
   rotateXAmt: 3,
   fanScale: 0.42,
   /** Visible top-edge sliver at rest (px of `--frame-h`). */
-  peekPx: 16,
+  peekPx: 6,
 
   deckLeftPct: 50,
   deckScale: 1,
@@ -75,7 +75,7 @@ export const MOBILE = {
   hoverLift: 30,
   hoverLerp: 0.2,
   /** Lower = more finger/wheel travel per card (slower stack). */
-  dragSensitivity: 1.2,
+  dragSensitivity: 0.35,
 
   /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
   worksShiftX: 0,
@@ -87,7 +87,8 @@ const DESKTOP_DEFAULTS = { ...DESKTOP };
 const MOBILE_DEFAULTS = { ...MOBILE };
 
 export const MOBILE_MQ = "(max-width: 900px)";
-const STORAGE_KEY = "kaik-deck-tweaks-v3";
+const STORAGE_KEY = "kaik-deck-tweaks-v4";
+const LEGACY_STORAGE_KEY = "kaik-deck-tweaks-v3";
 const UI_STORAGE_KEY = "kaik-deck-tweaks-ui-v3";
 
 /** @type {"auto" | "desktop" | "mobile"} */
@@ -119,6 +120,82 @@ function getEditLabel() {
   return isMobile() ? "mobile (auto)" : "desktop (auto)";
 }
 
+const A4_ASPECT = 297 / 210;
+const CARD_GUTTER = 12;
+const A4_MAX_W = 490;
+
+function readCardPoseExtents() {
+  let maxRotate = 0;
+  let maxBaseY = 0;
+  let maxTip = 0;
+  document.querySelectorAll("[data-card]").forEach((el) => {
+    maxRotate = Math.max(maxRotate, Math.abs(Number(el.dataset.baseRotate) || 0));
+    maxBaseY = Math.max(maxBaseY, Math.abs(Number(el.dataset.baseY) || 0));
+    maxTip = Math.max(maxTip, Math.abs(Number(el.dataset.tip) || 0));
+  });
+  return { maxRotate, maxBaseY, maxTip };
+}
+
+function cardStageCenterY(frameH) {
+  const sample = document.querySelector("[data-card]");
+  if (!sample) return frameH / 2;
+  const top = Number.parseFloat(getComputedStyle(sample).top);
+  return Number.isFinite(top) ? top : frameH / 2;
+}
+
+/**
+ * Size A4 `--card-h` from the iframe so the visual box after deck scale,
+ * max rotate, hover lift, and vertical toss stays inside `--frame-h`.
+ * Square works-card uses the same `--card-h` (wider than A4 siblings).
+ * Raising `deckScale` shrinks the card instead of overflowing.
+ */
+export function syncCardMetrics() {
+  const p = getParams();
+  const mobile = isMobile();
+  const { width: frameW, height: frameH } = getViewportSize();
+  if (frameW <= 0 || frameH <= 0) return;
+
+  const scale = Math.max(0.5, Number(p.deckScale) || 1);
+  const { maxRotate, maxBaseY, maxTip } = readCardPoseExtents();
+  const fan = mobile ? Number(p.fanScale) || 0.42 : 1;
+  const rotZ =
+    maxRotate * fan +
+    maxTip * (Number(p.tipScale) || 0) +
+    Math.abs(Number(p.cursorTiltZ) || 0) * 0.65 +
+    Math.abs(Number(p.worksRotate) || 0);
+  const theta = (Math.max(rotZ, 6) * Math.PI) / 180;
+  const rotFactor = Math.abs(Math.sin(theta)) + Math.abs(Math.cos(theta));
+
+  const hover = mobile ? 0 : Math.abs(Number(p.hoverLift) || 0);
+  const parallax = Math.abs(Number(p.parallaxY) || 0);
+  const drift = mobile
+    ? 0
+    : Math.abs(Number(p.driftY) || 0) * Math.max(1, Number(p.travelMult) || 1);
+  const baseY = mobile ? 0 : maxBaseY * fan;
+  const maxUp = hover + parallax + drift + baseY;
+  const maxDown = parallax + drift + baseY;
+
+  const centerY = cardStageCenterY(frameH);
+  const halfFromUp = (centerY - CARD_GUTTER) / scale - maxUp;
+  const halfFromDown = (frameH - centerY - CARD_GUTTER) / scale - maxDown;
+  const half = Math.max(0, Math.min(halfFromUp, halfFromDown));
+  let h = (2 * half) / rotFactor;
+
+  const widthFrac = mobile ? 0.78 : 0.34;
+  const widthGutter = mobile ? 32 : 48;
+  const a4MaxH = Math.min(A4_MAX_W, frameW * widthFrac) * A4_ASPECT;
+  const worksMaxH = Math.max(0, frameW / scale - widthGutter);
+  h = Math.min(h, a4MaxH, worksMaxH);
+  h = Math.max(1, Math.round(h * 100) / 100);
+
+  const w = h / A4_ASPECT;
+  const root = document.documentElement;
+  root.style.setProperty("--card-h", `${h}px`);
+  root.style.setProperty("--card-w", `${w}px`);
+  root.style.setProperty("--stack-card-h", `${h}px`);
+  root.style.setProperty("--stack-card-w", `${w}px`);
+}
+
 export function applyDeckParams() {
   const p = getParams();
   const mobile = isMobile();
@@ -128,6 +205,7 @@ export function applyDeckParams() {
     "--deck-scale",
     String(Number.isFinite(scale) ? scale : 1),
   );
+  syncCardMetrics();
   document.querySelectorAll("[data-card]").forEach((card) => {
     if (card.hasAttribute("data-fly-lock")) return;
     // Desktop is right-pinned. Mobile stays centered at deckLeftPct 50
@@ -221,67 +299,69 @@ const FIELDS = [
   },
 ];
 
+function applyDesktopSaved(desktop) {
+  if (!desktop) return;
+  Object.assign(DESKTOP, desktop);
+  if (desktop.travelMult == null || desktop.travelMult === 0.95) {
+    DESKTOP.travelMult = DESKTOP_DEFAULTS.travelMult;
+  }
+  if (desktop.deckRightPx == null || desktop.deckRightPx === 56 || desktop.deckRightPx === 140) {
+    DESKTOP.deckRightPx = DESKTOP_DEFAULTS.deckRightPx;
+  }
+  if (desktop.deckScale == null || desktop.deckScale === 1 || desktop.deckScale === 1.21) {
+    DESKTOP.deckScale = DESKTOP_DEFAULTS.deckScale;
+  }
+  if (
+    desktop.worksShiftX == null ||
+    desktop.worksShiftX === 0 ||
+    desktop.worksShiftX === 103 ||
+    desktop.worksShiftX === 130 ||
+    desktop.worksShiftX === 116
+  ) {
+    DESKTOP.worksShiftX = DESKTOP_DEFAULTS.worksShiftX;
+  }
+}
+
+function isStaleMobileSnapshot(mobile) {
+  if (!mobile) return false;
+  return (
+    mobile.scrollPerCard === 1100 ||
+    mobile.fanScale === 0.7 ||
+    mobile.fanScale === 0.28 ||
+    mobile.fanScale === 0.12 ||
+    mobile.ease === "outCubic" ||
+    (mobile.travelMult === 1 && mobile.dragSensitivity === 1.2 && mobile.peekPx === 16)
+  );
+}
+
+function applyMobileSaved(mobile) {
+  if (!mobile) return;
+  if (isStaleMobileSnapshot(mobile)) {
+    Object.assign(MOBILE, MOBILE_DEFAULTS);
+    return;
+  }
+  Object.assign(MOBILE, mobile);
+}
+
 function loadSaved() {
   try {
     const raw = storage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    if (data.desktop) {
-      Object.assign(DESKTOP, data.desktop);
-      if (data.desktop.travelMult == null || data.desktop.travelMult === 0.95) {
-        DESKTOP.travelMult = DESKTOP_DEFAULTS.travelMult;
+    if (raw) {
+      const data = JSON.parse(raw);
+      applyDesktopSaved(data.desktop);
+      applyMobileSaved(data.mobile);
+      if (data.editMode === "auto" || data.editMode === "desktop" || data.editMode === "mobile") {
+        editMode = data.editMode;
       }
-      if (
-        data.desktop.deckRightPx == null ||
-        data.desktop.deckRightPx === 56 ||
-        data.desktop.deckRightPx === 140
-      ) {
-        DESKTOP.deckRightPx = DESKTOP_DEFAULTS.deckRightPx;
-      }
-      if (
-        data.desktop.deckScale == null ||
-        data.desktop.deckScale === 1 ||
-        data.desktop.deckScale === 1.21
-      ) {
-        DESKTOP.deckScale = DESKTOP_DEFAULTS.deckScale;
-      }
-      if (
-        data.desktop.worksShiftX == null ||
-        data.desktop.worksShiftX === 0 ||
-        data.desktop.worksShiftX === 103 ||
-        data.desktop.worksShiftX === 130 ||
-        data.desktop.worksShiftX === 116
-      ) {
-        DESKTOP.worksShiftX = DESKTOP_DEFAULTS.worksShiftX;
-      }
+      return;
     }
-    if (data.mobile) {
-      Object.assign(MOBILE, data.mobile);
-      if (
-        data.mobile.scrollPerCard === 1100 ||
-        data.mobile.fanScale === 0.7 ||
-        data.mobile.fanScale === 0.28 ||
-        data.mobile.fanScale === 0.12 ||
-        data.mobile.ease === "outCubic"
-      ) {
-        MOBILE.scrollPerCard = MOBILE_DEFAULTS.scrollPerCard;
-        MOBILE.fanScale = MOBILE_DEFAULTS.fanScale;
-        MOBILE.peekPx = MOBILE_DEFAULTS.peekPx;
-        MOBILE.travelMult = MOBILE_DEFAULTS.travelMult;
-        MOBILE.progressGain = MOBILE_DEFAULTS.progressGain;
-        MOBILE.speedStep = MOBILE_DEFAULTS.speedStep;
-        MOBILE.speedMin = MOBILE_DEFAULTS.speedMin;
-        MOBILE.ease = MOBILE_DEFAULTS.ease;
-        MOBILE.tipScale = MOBILE_DEFAULTS.tipScale;
-        MOBILE.rotateYBase = MOBILE_DEFAULTS.rotateYBase;
-        MOBILE.rotateYStep = MOBILE_DEFAULTS.rotateYStep;
-        MOBILE.rotateXAmt = MOBILE_DEFAULTS.rotateXAmt;
-        MOBILE.travelDir = MOBILE_DEFAULTS.travelDir;
-        MOBILE.dragSensitivity = MOBILE_DEFAULTS.dragSensitivity;
-      }
-    }
-    if (data.editMode === "auto" || data.editMode === "desktop" || data.editMode === "mobile") {
-      editMode = data.editMode;
+
+    const legacyRaw = storage.getItem(LEGACY_STORAGE_KEY);
+    if (!legacyRaw) return;
+    const legacy = JSON.parse(legacyRaw);
+    applyDesktopSaved(legacy.desktop);
+    if (legacy.editMode === "auto" || legacy.editMode === "desktop" || legacy.editMode === "mobile") {
+      editMode = legacy.editMode;
     }
   } catch {
     // ignore
@@ -310,6 +390,7 @@ function formatValue(key, value) {
 export function initTweaks(onChange) {
   loadSaved();
   applyDeckParams();
+  onFrameMetrics(() => applyDeckParams());
 
   const root = document.createElement("aside");
   root.className = "tweaks";

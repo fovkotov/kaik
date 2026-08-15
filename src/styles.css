@@ -62,6 +62,9 @@
   --stack-card-h: var(--card-h);
   --card-w: var(--stack-card-w);
   --scroll-per-card: 500;
+  --z-lockup: 5;
+  --z-deck: 10;
+  --z-chrome: 40;
 }
 
 html[data-locale="ru"],
@@ -141,31 +144,20 @@ a {
   pointer-events: none;
 }
 
-/* Fixed left copy; cards stay on the right */
+/* Figma 74:771 — two iframe-fixed layers, no shared stacking context.
+   Lockup (dropcap + title + dates + enroll) under .deck at --z-lockup;
+   chrome (program / student work / lang) over cards at --z-chrome.
+   Text left = 32 + dropcap 77.199 + gap 24. Group h 96.499, vertically centered. */
 .panel {
-  /* Figma 73:601 — letter 58×72.5, gap 16, frame pad 57 → title at 131.
-     Title y = 240 on the 800 artboard; lang sits 16 from the bottom. */
-  --panel-dropcap-h: 72.5px;
-  --panel-dropcap-gap: 16px;
-  --panel-pad-x: 131px;
+  --panel-dropcap-h: 96.499px;
+  --panel-dropcap-gap: 24px;
+  --panel-pad-x: 133.199px;
   --panel-pad-y: 16px;
-  --panel-pad-top: 240px;
   --panel-brand-w: 215px;
-  --panel-nav-w: 141px;
-  --panel-lockup-gap: 52px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 30;
-  width: min(calc(var(--frame-w) * 0.48), 560px);
-  height: var(--frame-h);
-  padding: var(--panel-pad-top) 0 var(--panel-pad-y) var(--panel-pad-x);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  overflow: visible;
-  pointer-events: none;
+  --panel-nav-gap: 24px;
+  --panel-lockup-h: 96.499px;
+  --panel-line: 24px;
+  display: contents;
 }
 
 .panel a,
@@ -173,22 +165,34 @@ a {
   pointer-events: auto;
 }
 
-.panel__row {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--panel-lockup-gap);
-  width: max-content;
-  max-width: 100%;
+.panel__lockup {
+  position: fixed;
+  top: calc(50% - var(--panel-lockup-h) / 2);
+  left: var(--panel-pad-x);
+  z-index: var(--z-lockup);
+  width: var(--panel-brand-w);
+  height: var(--panel-lockup-h);
+  overflow: visible;
+  pointer-events: none;
 }
 
-.panel__lockup {
-  display: contents;
+.panel__chrome {
+  position: fixed;
+  left: var(--panel-pad-x);
+  bottom: var(--panel-pad-y);
+  z-index: var(--z-chrome);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--panel-nav-gap);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .panel__brand {
   position: relative;
   width: var(--panel-brand-w);
+  height: 100%;
   flex-shrink: 0;
   overflow: visible;
 }
@@ -239,6 +243,10 @@ a {
   line-height: 24px;
 }
 
+.panel__title {
+  white-space: nowrap;
+}
+
 .panel__dates {
   white-space: pre-line;
 }
@@ -248,20 +256,11 @@ a {
   white-space: nowrap;
 }
 
-.panel__side {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  width: max-content;
-  min-width: var(--panel-nav-w);
-  flex-shrink: 0;
-}
-
 .panel__nav {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
-  gap: 0;
+  gap: var(--panel-nav-gap);
   margin: 0;
 }
 
@@ -272,19 +271,29 @@ a {
 }
 
 .panel__enroll {
+  display: block;
+  margin: 0;
   color: var(--enroll);
+  font-size: 22px;
+  line-height: 24px;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.panel__nav .panel__enroll {
+  display: none;
 }
 
 .panel__lang {
-  position: absolute;
-  left: var(--panel-pad-x);
-  bottom: var(--panel-pad-y);
+  position: static;
   margin: 0;
   font-size: 22px;
   line-height: 24px;
+  color: rgba(0, 0, 0, 0.32);
   display: flex;
   align-items: baseline;
   gap: 0;
+  white-space: nowrap;
 }
 
 html:not(.i18n-ready) [data-i18n] {
@@ -309,7 +318,7 @@ html:not(.i18n-ready) [data-i18n] {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 10;
+  z-index: var(--z-deck);
   width: var(--frame-w);
   height: var(--frame-h);
   perspective: 1400px;
@@ -2658,8 +2667,16 @@ img.works-card__piece {
     touch-action: none;
   }
 
-  /* Do not keep .panel at desktop z-index 30 — that paints the lockup over cards. */
+  /* Desktop .panel is display:contents — restore a box so mobile chrome can grid. */
   .panel {
+    --panel-lockup-w: min(361px, calc(var(--frame-w) - 36px));
+    --panel-lockup-top: calc(
+      var(--host-bar) +
+        (var(--frame-h) - var(--host-bar) - var(--panel-chrome-bot)) / 2
+    );
+    position: fixed;
+    top: 0;
+    left: 0;
     z-index: auto;
     display: grid;
     grid-template-columns: 1fr;
@@ -2672,10 +2689,10 @@ img.works-card__piece {
       max(16px, env(safe-area-inset-bottom, 0px));
     background: none;
     gap: 0;
+    pointer-events: none;
   }
 
-  .panel__row,
-  .panel__side {
+  .panel__chrome {
     display: contents;
   }
 
@@ -2683,24 +2700,20 @@ img.works-card__piece {
   .panel__lockup {
     position: fixed;
     left: 50%;
-    top: calc(
-      var(--host-bar) +
-        (var(--frame-h) - var(--host-bar) - var(--panel-chrome-bot)) / 2
-    );
+    top: var(--panel-lockup-top);
     transform: translate(-50%, -50%);
     z-index: 5;
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) auto;
+    grid-template-columns: 38px minmax(0, 1fr);
     column-gap: 20px;
     align-items: end;
-    width: min(361px, calc(var(--frame-w) - 36px));
+    width: var(--panel-lockup-w);
     height: auto;
     padding: 0;
     text-align: left;
     pointer-events: none;
   }
 
-  .panel__lockup .panel__lang,
   .panel__lockup .dropcap {
     pointer-events: auto;
   }
@@ -2829,18 +2842,32 @@ img.works-card__piece {
     color: var(--ink);
   }
 
+  .panel__lockup .panel__enroll {
+    font-size: 20px;
+    line-height: normal;
+  }
+
   .panel__lang {
-    position: static;
-    left: auto;
+    position: fixed;
+    left: 50%;
+    top: var(--panel-lockup-top);
     bottom: auto;
-    grid-column: 3;
-    grid-row: 1;
-    align-self: start;
+    width: var(--panel-lockup-w);
+    height: 47.5px;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
     margin: 0;
-    justify-content: flex-start;
     font-size: 20px;
     line-height: normal;
     color: rgba(0, 0, 0, 0.32);
+    pointer-events: none;
+  }
+
+  .panel__lang .lang-btn {
+    pointer-events: auto;
   }
 
   .panel__nav {
@@ -2868,7 +2895,17 @@ img.works-card__piece {
     grid-row: 2;
   }
 
-  .panel__enroll {
+  .panel__lockup .panel__enroll {
+    display: none;
+  }
+
+  .panel__nav .panel__enroll {
+    position: static;
+    left: auto;
+    top: auto;
+    z-index: auto;
+    transform: none;
+    display: block;
     grid-column: 2;
     grid-row: 1 / -1;
     align-self: end;
@@ -3112,9 +3149,15 @@ img.works-card__piece {
 }
 
 .tweaks__body {
-  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(var(--frame-h) - 8rem);
   padding: 0.55rem 0.65rem 0.75rem;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .tweaks.is-collapsed .tweaks__body,
@@ -3220,7 +3263,11 @@ img.works-card__piece {
     left: 8px;
     width: auto;
     max-width: none;
-    max-height: 46vh;
+    max-height: calc(var(--frame-h) - var(--host-bar) - 16px);
+  }
+
+  .tweaks__body {
+    max-height: calc(var(--frame-h) - var(--host-bar) - 8.5rem);
   }
 
   .tweaks-reopen {

@@ -436,6 +436,7 @@ function initDeck() {
     "wheel",
     (event) => {
       if (eventFrom(event.target, ".is-program-open")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -466,6 +467,7 @@ function initDeck() {
     (event) => {
       if (!isMobile()) return;
       if (eventFrom(event.target, ".is-program-open")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
