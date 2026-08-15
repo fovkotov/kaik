@@ -71,7 +71,7 @@ function scrollYForCard(index, count, params) {
 
 /**
  * Desktop: scroll-driven stack + cursor parallax.
- * Mobile: sequential toss via free inertial drag; gyro parallax.
+ * Mobile: sequential toss via free inertial drag; Y-only gyro (no X).
  */
 function initDeck() {
   const cards = [...document.querySelectorAll("[data-card]")];
@@ -145,8 +145,8 @@ function initDeck() {
 
   function cardUnitPx(params) {
     const h = state[0]?.el.offsetHeight || 400;
-    // Half the previous 0.52 * cardH — one card takes half the finger/wheel travel.
-    return (h * 0.26) / Math.max(0.3, params.dragSensitivity ?? 1.2);
+    // 75% of the original sequential unit (0.52 * cardH): halfway back from the 0.26 half-cut.
+    return (h * 0.39) / Math.max(0.3, params.dragSensitivity ?? 1.2);
   }
 
   function applyRubber(raw) {
@@ -510,10 +510,6 @@ function initDeck() {
 
     holdFlyLock();
     const y = freezeY != null ? freezeY : mobile ? dragProgress : root.scrollTop || 0;
-    const topA = clamp(Math.floor(y), 0, state.length - 1);
-    const topB = clamp(topA + 1, 0, state.length - 1);
-    const topFrac = mobile ? clamp(y - topA, 0, 1) : 0;
-    const originX = mobile ? lerp(state[topA].baseX, state[topB].baseX, topFrac) * fan : 0;
     const originY = 0;
 
     const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
@@ -534,7 +530,7 @@ function initDeck() {
     }
     if (!wantSpread && spread === 0) spreadPlan = null;
 
-    const inputX = mobile ? gyro.x : pointer.x;
+    const inputX = mobile ? 0 : pointer.x;
     const inputY = mobile ? gyro.y : pointer.y;
     if (!locked) {
       pointerSmooth.x = lerp(pointerSmooth.x, inputX, params.pointerLerp);
@@ -559,7 +555,7 @@ function initDeck() {
 
       const depth = Math.pow(params.cursorFalloff, i);
       const pointerAmt = locked ? 0 : depth;
-      const parallaxX = pointerSmooth.x * params.parallaxX * pointerAmt;
+      const parallaxX = mobile ? 0 : pointerSmooth.x * params.parallaxX * pointerAmt;
       const parallaxY = pointerSmooth.y * params.parallaxY * pointerAmt;
       const cursorRotY = pointerSmooth.x * params.cursorTiltY * pointerAmt;
       const cursorRotX = -pointerSmooth.y * params.cursorTiltX * pointerAmt;
@@ -568,11 +564,11 @@ function initDeck() {
       const baseX = item.baseX * fan;
       const baseY = mobile ? 0 : item.baseY * fan;
 
-      const tossX = mobile ? t * item.tip * 1.4 : params.travelDir * t * travel;
+      const tossX = mobile ? 0 : params.travelDir * t * travel;
       const tossY = mobile
         ? -t * travel
         : t * (i % 2 === 0 ? -params.driftY : params.driftY);
-      const scrollX = baseX - originX + tossX;
+      const scrollX = mobile ? baseX : baseX + tossX;
       const scrollY = baseY - originY + tossY;
 
       const planned = spreadPlan?.[i];
