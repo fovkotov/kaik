@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-15T14:38:35.498Z",
+  "updatedAt": "2026-08-15T21:33:51.612Z",
   "letters": [
     {
       "id": "ltr_d094952c",
@@ -9,7 +9,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Frame 26.svg",
-      "createdAt": "2026-08-13T21:56:14.601Z"
+      "createdAt": "2026-08-13T21:56:14.601Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "",
+      "family": ""
     },
     {
       "id": "ltr_9c88f6f0",
@@ -18,7 +22,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Frame 27.svg",
-      "createdAt": "2026-08-13T21:56:14.602Z"
+      "createdAt": "2026-08-13T21:56:14.602Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "",
+      "family": ""
     },
     {
       "id": "ltr_a7085a04",
@@ -27,7 +35,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Frame 28.svg",
-      "createdAt": "2026-08-13T21:56:14.602Z"
+      "createdAt": "2026-08-13T21:56:14.602Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "",
+      "family": ""
     },
     {
       "id": "ltr_9cf88498",
@@ -36,7 +48,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Frame 29.svg",
-      "createdAt": "2026-08-13T21:56:14.602Z"
+      "createdAt": "2026-08-13T21:56:14.602Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "",
+      "family": ""
     },
     {
       "id": "ltr_d2559774",
@@ -45,7 +61,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Frame 30.svg",
-      "createdAt": "2026-08-13T21:56:14.603Z"
+      "createdAt": "2026-08-13T21:56:14.603Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "",
+      "family": ""
     },
     {
       "id": "ltr_49304cb0",
@@ -54,16 +74,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Frame 31.svg",
-      "createdAt": "2026-08-13T21:56:14.603Z"
-    },
-    {
-      "id": "ltr_b5e972bc",
-      "char": "L",
-      "file": "ltr_b5e972bc.svg",
-      "author": "я",
-      "stream": "1",
-      "originalName": "Frame 32.svg",
-      "createdAt": "2026-08-13T21:56:14.603Z"
+      "createdAt": "2026-08-13T21:56:14.603Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "modular",
+      "family": ""
     },
     {
       "id": "ltr_98d9510f",
@@ -72,7 +87,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Layer_1-1.svg",
-      "createdAt": "2026-08-13T21:56:14.603Z"
+      "createdAt": "2026-08-13T21:56:14.603Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "modular",
+      "family": ""
     },
     {
       "id": "ltr_25a367eb",
@@ -81,7 +100,11 @@
       "author": "я",
       "stream": "1",
       "originalName": "Layer_1.svg",
-      "createdAt": "2026-08-13T21:56:14.604Z"
+      "createdAt": "2026-08-13T21:56:14.604Z",
+      "kind": "letter",
+      "text": "",
+      "construction": "",
+      "family": ""
     }
   ]
 }

@@ -51,12 +51,27 @@ export function getViewportSize() {
   };
 }
 
+const frameListeners = new Set();
+
+/** Run after `--frame-w` / `--frame-h` update (resize, visualViewport). */
+export function onFrameMetrics(fn) {
+  frameListeners.add(fn);
+  return () => frameListeners.delete(fn);
+}
+
 export function syncFrameMetrics() {
   const { width, height } = getViewportSize();
   const root = document.documentElement;
   root.style.setProperty("--frame-w", `${width}px`);
   root.style.setProperty("--frame-h", `${height}px`);
   root.classList.toggle("is-embedded", isEmbedded());
+  frameListeners.forEach((fn) => {
+    try {
+      fn({ width, height });
+    } catch {
+      // Listener must not break frame sync.
+    }
+  });
   return { width, height };
 }
 
@@ -110,12 +125,19 @@ function rewriteExternalLinks(event) {
 function scrollHashIntoView(event) {
   const link = event.target.closest?.('a[href^="#"]');
   if (!link) return;
+  if (event.defaultPrevented) return;
+  if (link.matches("[data-work-nav], [data-program-nav]")) return;
 
   const id = link.getAttribute("href")?.slice(1);
   if (!id) return;
 
   const target = document.getElementById(id);
   if (!target) return;
+  // Deck cards are transformed / stacked — their box is not a page section.
+  if (target.closest("[data-card], [data-deck]")) {
+    event.preventDefault();
+    return;
+  }
 
   event.preventDefault();
   const root = getScrollRoot();

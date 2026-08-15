@@ -66,6 +66,7 @@
   --z-lockup: 5;
   --z-deck: 10;
   --z-chrome: 40;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 html[data-locale="ru"],
@@ -271,6 +272,43 @@ a {
   white-space: nowrap;
 }
 
+/* Button press + fine-pointer hover (animate/RECIPES.md). Program / works only. */
+.panel__nav a[data-program-nav],
+.panel__nav a[data-work-nav] {
+  text-decoration-color: currentColor;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 160ms var(--ease-out),
+    text-decoration-color 160ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .panel__nav a[data-program-nav]:hover,
+  .panel__nav a[data-work-nav]:hover {
+    transform: scale(1.05);
+    text-decoration-color: #000;
+  }
+}
+
+.panel__nav a[data-program-nav]:active,
+.panel__nav a[data-work-nav]:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel__nav a[data-program-nav],
+  .panel__nav a[data-work-nav] {
+    transition: text-decoration-color 160ms var(--ease-out);
+  }
+
+  .panel__nav a[data-program-nav]:hover,
+  .panel__nav a[data-work-nav]:hover,
+  .panel__nav a[data-program-nav]:active,
+  .panel__nav a[data-work-nav]:active {
+    transform: none;
+  }
+}
+
 .panel__enroll {
   display: block;
   margin: 0;
@@ -286,15 +324,28 @@ a {
 }
 
 .panel__lang {
-  position: static;
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  left: auto;
+  top: auto;
+  z-index: var(--z-chrome);
+  width: 58px;
+  height: 24px;
   margin: 0;
   font-size: 22px;
   line-height: 24px;
   color: rgba(0, 0, 0, 0.32);
   display: flex;
   align-items: baseline;
+  justify-content: flex-end;
   gap: 0;
   white-space: nowrap;
+  pointer-events: none;
+}
+
+.panel__lang .lang-btn {
+  pointer-events: auto;
 }
 
 html:not(.i18n-ready) [data-i18n] {
@@ -452,9 +503,9 @@ html:not(.i18n-ready) [data-i18n] {
   height: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: space-between;
-  padding: calc(32.12 * var(--u)) calc(58.019 * var(--u)) calc(65.335 * var(--u))
-    calc(58.64 * var(--u));
+  padding: 0 calc(11.02 * var(--u)) calc(18.34 * var(--u)) calc(11.64 * var(--u));
   background: #9371e8;
   color: var(--format-ink);
   font-family: var(--font);
@@ -477,17 +528,27 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 .format-card__row--weeks {
-  margin-bottom: calc(-29.011 * var(--u));
+  margin-bottom: calc(-55.01 * var(--u));
 }
 
 .format-card__num {
   margin: 0;
-  width: calc(135 * var(--u));
-  height: calc(167 * var(--u));
+  width: calc(173 * var(--u));
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
+}
+
+.format-card__num--six {
+  position: relative;
+  height: calc(167 * var(--u));
+}
+
+.format-card__num--six span {
+  position: absolute;
+  left: calc(89 * var(--u));
+  top: calc(-20 * var(--u));
 }
 
 .format-card__num span {
@@ -508,7 +569,7 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 .format-card__col--weeks {
-  padding-top: calc(31.984 * var(--u));
+  padding-top: calc(12 * var(--u));
 }
 
 .format-card__col--workshops {
@@ -524,7 +585,7 @@ html:not(.i18n-ready) [data-i18n] {
 .format-card__label {
   margin: 0;
   font-size: calc(33.168 * var(--u));
-  line-height: 1.175;
+  line-height: 1;
 }
 
 .format-card__workshop {
@@ -544,11 +605,12 @@ html:not(.i18n-ready) [data-i18n] {
 
 .format-card__photo {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  left: -284.58%;
+  top: -20.65%;
+  width: 391.84%;
+  height: 452.23%;
+  max-width: none;
+  object-fit: fill;
   display: block;
   pointer-events: none;
   user-select: none;
@@ -568,7 +630,7 @@ html:not(.i18n-ready) [data-i18n] {
 .format-card__note {
   margin: 0;
   font-size: calc(16.586 * var(--u));
-  line-height: 1.205;
+  line-height: 1;
   width: calc(327.153 * var(--u));
 }
 
@@ -585,8 +647,8 @@ html:not(.i18n-ready) [data-i18n] {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: calc(65.316 * var(--u));
-  padding-bottom: calc(69.683 * var(--u));
+  justify-content: space-between;
+  padding-bottom: calc(12 * var(--u));
   background: #0044bf;
   color: #c7f0ff;
   font-weight: 700;
@@ -798,14 +860,22 @@ html:not(.i18n-ready) [data-i18n] {
   align-items: start;
   width: 100%;
   margin: 0;
+  /* Figma 20:24: py 12 → 10.071u, 16px type in 19px line box, items-start. */
   padding: calc(10.071 * var(--u)) 0;
   border-top: calc(0.839 * var(--u)) solid rgba(0, 0, 0, 0.08);
   font-size: calc(16 * var(--u));
-  line-height: 1;
+  line-height: calc(19 * var(--u));
 }
 
 .program-card__row--no-when {
   grid-template-columns: minmax(0, 1fr) calc(58.745 * var(--u));
+}
+
+.program-card__name,
+.program-card__when,
+.program-card__kind {
+  align-self: start;
+  line-height: calc(19 * var(--u));
 }
 
 .program-card__name {
@@ -824,6 +894,7 @@ html:not(.i18n-ready) [data-i18n] {
 .program-card__kind {
   text-align: right;
   color: #b6d9c1;
+  white-space: nowrap;
 }
 
 .program-card__kind--live {
@@ -1312,7 +1383,7 @@ img.works-card__piece {
 
 @media (hover: hover) and (pointer: fine) {
   .progress-card__sheet:hover {
-    transform: translateY(-10px);
+    transform: translateY(-4px);
   }
 }
 
@@ -1367,9 +1438,7 @@ img.works-card__piece {
 .progress-card__ig {
   position: relative;
   z-index: 2;
-  pointer-events: auto;
   color: inherit;
-  text-decoration: none;
 }
 
 .progress-card__week {
@@ -1648,11 +1717,6 @@ img.works-card__piece {
 .work-card__week-title {
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.work-card__week-meta {
-  flex: 0 0 auto;
-  text-align: right;
 }
 
 .work-card__photo {
@@ -1944,8 +2008,8 @@ img.works-card__piece {
 }
 
 .history-card__figure--center {
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  height: auto;
 }
 
 .history-card__figure img {
@@ -1958,6 +2022,11 @@ img.works-card__piece {
   box-shadow: none;
   pointer-events: none;
   user-select: none;
+}
+
+.history-card__figure--center img {
+  height: auto;
+  object-fit: unset;
 }
 
 .history-card figure,
@@ -2006,6 +2075,16 @@ img.works-card__piece {
   border: 0;
   outline: none;
   box-shadow: none;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.img-slider.is-dragging {
+  cursor: grabbing;
+  touch-action: none;
 }
 
 .img-slider__slide {
@@ -2018,13 +2097,9 @@ img.works-card__piece {
   border: 0;
   outline: none;
   box-shadow: none;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.img-slider__slide.is-active {
   opacity: 1;
-  pointer-events: auto;
+  pointer-events: none;
+  will-change: transform;
 }
 
 .img-slider__slide img {
@@ -2111,10 +2186,10 @@ img.works-card__piece {
   transform: translateX(-50%);
   align-items: center;
   justify-content: center;
-  gap: calc(10 * var(--u));
+  gap: 0;
   height: calc(28 * var(--u));
   margin: 0;
-  padding: 0 calc(12 * var(--u));
+  padding: 0 calc(8 * var(--u));
   border-radius: 120px;
   background: rgba(85, 85, 85, 0.8);
   backdrop-filter: blur(40px);
@@ -2142,7 +2217,7 @@ img.works-card__piece {
   width: calc(7 * var(--u));
   height: calc(7 * var(--u));
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.38);
   transition: background 0.2s ease;
 }
 
@@ -2285,6 +2360,36 @@ img.works-card__piece {
   height: auto;
   min-height: 100%;
   overflow: visible;
+}
+
+.card.is-program-open .history-card__text,
+.card.is-program-open .history-card__caption,
+.card.is-program-open .history-card__book-cap {
+  font-size: 16px;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+/*
+  Fullscreen article: 20px from the card edges (same side inset as
+  program-open sheet). --u is rebuilt on the content column so figures,
+  sliders and the book grid still fill the padded width.
+*/
+.card.is-program-open .history-card {
+  --u: calc((var(--card-w) - 40px) / 563.733);
+}
+
+.card.is-program-open .history-card__inner {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.card.is-program-open .history-card__title,
+.card.is-program-open .history-card__figure,
+.card.is-program-open .history-card .img-slider,
+.card.is-program-open .history-card__grid,
+.card.is-program-open .history-card__cols {
+  max-width: 100%;
 }
 
 .card.is-program-open .program-card__sheet {
@@ -2671,6 +2776,7 @@ img.works-card__piece {
 
   /* Desktop .panel is display:contents — restore a box so mobile chrome can grid. */
   .panel {
+    --panel-lockup-glyph: 40px;
     --panel-lockup-w: min(361px, calc(var(--frame-w) - 36px));
     --panel-lockup-top: calc(
       var(--host-bar) +
@@ -2698,7 +2804,9 @@ img.works-card__piece {
     display: contents;
   }
 
-  /* Figma 74:747 — fixed, centered, under the deck so cards fly over LETTER II. */
+  /* Figma 74:747 — fixed, centered, under the deck so cards fly over LETTER II.
+     Glyph 40×40, flush with the two 17px title/date lines (20+20 leading).
+     12px from the right edge of the letter to ETTER II / dates. */
   .panel__lockup {
     position: fixed;
     left: 50%;
@@ -2706,11 +2814,11 @@ img.works-card__piece {
     transform: translate(-50%, -50%);
     z-index: 5;
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr);
-    column-gap: 20px;
-    align-items: end;
+    grid-template-columns: var(--panel-lockup-glyph) minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
     width: var(--panel-lockup-w);
-    height: auto;
+    height: var(--panel-lockup-glyph);
     padding: 0;
     text-align: left;
     pointer-events: none;
@@ -2728,23 +2836,27 @@ img.works-card__piece {
     position: static;
     right: auto;
     grid-column: 1;
-    grid-row: 1 / span 2;
-    align-self: end;
+    grid-row: 1;
+    align-self: start;
     margin: 0;
-    width: 38px;
-    height: 47.5px;
+    width: var(--panel-lockup-glyph);
+    height: var(--panel-lockup-glyph);
   }
 
   .panel__dropcap .dropcap,
   .panel__dropcap .dropcap svg {
-    width: 38px;
-    height: 47.5px;
+    width: var(--panel-lockup-glyph);
+    height: var(--panel-lockup-glyph);
   }
 
   .panel__copy {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     width: auto;
+    height: var(--panel-lockup-glyph);
     text-align: left;
   }
 
@@ -2767,11 +2879,23 @@ img.works-card__piece {
   .faq-card__q,
   .author-card__title,
   .history-card__kicker,
-  .format-card__label,
-  .work-card__week-title {
+  .format-card__label {
     font-size: 16px;
     line-height: 1.2;
     letter-spacing: 0;
+  }
+
+  /* Figma 76:864 — 4px top inset before the first text. */
+  .author-card__title,
+  .preview-card__title,
+  .faq-card__title,
+  .history-card__kicker {
+    top: 4px;
+  }
+
+  .works-card {
+    padding-top: 4px;
+    gap: 34px;
   }
 
   .history-card__title {
@@ -2780,8 +2904,54 @@ img.works-card__piece {
     letter-spacing: 0;
   }
 
+  .format-card {
+    --fm: calc(var(--card-w) / 320);
+    padding: 4px calc(58.019 * var(--u)) calc(65.335 * var(--u))
+      calc(58.64 * var(--u));
+  }
+
+  /* Figma 76:868 — 6 at y=-14.76, 10 at y=70.8. Do not let the 98px
+     Courtship em + a short 167*u box + negative margin glue them. */
+  .format-card__row--weeks {
+    margin-bottom: 0;
+  }
+
+  .format-card__num {
+    width: calc(135 * var(--u));
+    height: auto;
+  }
+
+  .format-card__num--six {
+    height: calc(67 * var(--fm));
+  }
+
+  .format-card__num--six span {
+    position: relative;
+    left: auto;
+    top: calc(-19 * var(--fm));
+  }
+
+  .format-card__col--weeks {
+    padding-top: 1px;
+  }
+
+  .format-card__col--workshops {
+    padding-top: calc(18 * var(--fm));
+  }
+
+  .format-card__photo {
+    inset: 0;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
   .format-card__num span {
-    font-size: 98px;
+    font-size: calc(98 * var(--fm));
+    line-height: 1;
   }
 
   .exercises-card__num {
@@ -2805,15 +2975,19 @@ img.works-card__piece {
 
   .format-card__note,
   .exercises-card__text,
-  .faq-card__a,
-  .progress-card__who,
-  .progress-card__who span,
-  .progress-card__ig,
-  .work-card__who,
-  .work-card__who span,
-  .work-card__ig {
+  .faq-card__a {
     font-size: 12px;
     line-height: 1.3;
+    letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .progress-card__who,
+  .progress-card__who span,
+  .progress-card__ig {
+    font-size: 12px !important;
+    line-height: 14px;
     letter-spacing: 0;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -2822,13 +2996,18 @@ img.works-card__piece {
   .program-card__row,
   .program-card__name,
   .program-card__kind,
-  .program-card__when,
+  .program-card__when {
+    font-size: 10px;
+    line-height: 11.875px;
+    letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   .history-card__text,
   .history-card__caption,
-  .work-card__blurb,
-  .work-card__week-head,
-  .progress-card__week {
-    font-size: 10px;
+  .history-card__book-cap {
+    font-size: 16px;
     line-height: 1.3;
     letter-spacing: 0;
     -webkit-text-size-adjust: 100%;
@@ -2860,17 +3039,39 @@ img.works-card__piece {
     text-size-adjust: 100%;
   }
 
-  .card[data-works-card].is-program-open .works-card__title {
-    font-size: 16px !important;
-    line-height: 1.2;
+  /*
+    Lettering / student-works modal: every caption and the open-sheet
+    title are 12px. Deck-face titles stay 16px (Figma 76:864).
+    !important beats the 6.28/10px gallery rules and 16px title chrome.
+  */
+  .card[data-works-card].is-program-open .works-card__title,
+  .card[data-works-card].is-program-open .works-card :is(p, span, a, h2),
+  .card.is-program-open .work-card__full :is(p, span, a, h2),
+  .card.is-program-open .work-card__who,
+  .card.is-program-open .work-card__who span,
+  .card.is-program-open .work-card__ig,
+  .card.is-program-open .work-card__blurb,
+  .card.is-program-open .work-card__week-head,
+  .card.is-program-open .work-card__week-title,
+  .card[data-works-card].is-program-open .works-card__who,
+  .card[data-works-card].is-program-open .works-card__who span,
+  .card[data-works-card].is-program-open .works-card__ig,
+  .card[data-works-card].is-program-open .works-card__list > .works-card__item .works-card__who,
+  .card[data-works-card].is-program-open .works-card__list > .works-card__item .works-card__who span,
+  .card[data-works-card].is-program-open .works-card__list > .works-card__item .works-card__ig {
+    font-size: 12px !important;
+    line-height: 1.3;
     letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   .panel__lockup .panel__title,
   .panel__lockup .panel__dates,
   .panel__lockup .panel__dates--short {
     font-size: 17px;
-    line-height: normal;
+    line-height: 20px;
+    letter-spacing: 0;
     color: var(--ink);
   }
 
@@ -2882,10 +3083,11 @@ img.works-card__piece {
   .panel__lang {
     position: fixed;
     left: 50%;
+    right: auto;
     top: var(--panel-lockup-top);
     bottom: auto;
     width: var(--panel-lockup-w);
-    height: 47.5px;
+    height: var(--panel-lockup-glyph);
     transform: translate(-50%, -50%);
     z-index: 5;
     display: flex;
@@ -2987,7 +3189,48 @@ img.works-card__piece {
   }
 
   .program-card {
-    gap: 20px;
+    gap: 53px;
+    padding-top: 4px;
+  }
+
+  .program-card__title,
+  .program-card__week-title {
+    line-height: 19.2px;
+  }
+
+  .program-card,
+  .program-card__sheet,
+  .program-card__week,
+  .program-card__week:last-child,
+  .program-card__title,
+  .program-card__week-title,
+  .program-card__row,
+  .program-card__row--no-when,
+  .program-card__name,
+  .program-card__kind,
+  .program-card__when {
+    transition:
+      font-size 0.92s cubic-bezier(0.22, 1, 0.32, 1),
+      line-height 0.92s cubic-bezier(0.22, 1, 0.32, 1),
+      letter-spacing 0.92s cubic-bezier(0.22, 1, 0.32, 1),
+      padding 0.92s cubic-bezier(0.22, 1, 0.32, 1),
+      gap 0.92s cubic-bezier(0.22, 1, 0.32, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .program-card,
+    .program-card__sheet,
+    .program-card__week,
+    .program-card__week:last-child,
+    .program-card__title,
+    .program-card__week-title,
+    .program-card__row,
+    .program-card__row--no-when,
+    .program-card__name,
+    .program-card__kind,
+    .program-card__when {
+      transition: none;
+    }
   }
 
   .program-card__sheet {
@@ -3006,7 +3249,7 @@ img.works-card__piece {
     grid-template-rows: auto auto;
     gap: 2px 4px;
     align-items: start;
-    padding: 8px 0;
+    padding: 12px 0;
   }
 
   .program-card__name {
@@ -3031,29 +3274,125 @@ img.works-card__piece {
     white-space: nowrap;
   }
 
+  /*
+    Figma 76:1816 — program / phone · 390, opened fullscreen.
+    Drive type/spacing from deck[data-program-open] (set on lock, cleared
+    at close start) so font-size tweens with the fly, not after it.
+  */
+  .deck[data-program-open] [data-program-card].is-program-open .program-card {
+    gap: 63.025px;
+    padding-top: 4.717px;
+  }
+
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__title,
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__week-title {
+    font-size: 24px;
+    line-height: 28px;
+    letter-spacing: 0;
+  }
+
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__sheet {
+    gap: 48px;
+    padding: 32px 20px 40px;
+  }
+
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__week {
+    gap: 24px;
+  }
+
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__week:last-child {
+    padding-bottom: 0;
+  }
+
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__row,
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__row--no-when {
+    gap: 4px;
+    padding: 12px 0;
+    border-top-width: 1px;
+  }
+
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__row,
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__name,
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__kind,
+  .deck[data-program-open] [data-program-card].is-program-open .program-card__when {
+    font-size: 14px;
+    line-height: 17px;
+    letter-spacing: 0;
+  }
+
+  /* Figma 76:985 — 318×450: 4px top, 16px title, staggered sheets, 12px who/@ig. */
   .progress-card {
-    justify-content: center;
-    gap: 12px;
-    padding: 12px 10px 16px;
+    --pm: calc(var(--card-w) / 317.993);
+    justify-content: flex-start;
+    gap: 11px;
+    padding: 4px 3px;
   }
 
   .progress-card__title {
     height: auto;
-    white-space: normal;
+    white-space: nowrap;
+    font-family: var(--font-en);
+    font-size: 16px;
+    line-height: 1.2;
+    letter-spacing: 0;
   }
 
   .progress-card__stack {
     width: 100%;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 4px;
   }
 
-  .progress-card__sheet--yan,
-  .progress-card__sheet--polina,
+  .progress-card__row {
+    height: calc(134.75 * var(--pm));
+  }
+
+  .progress-card__sheet {
+    width: calc(193.539 * var(--pm));
+    height: calc(134.75 * var(--pm));
+    transform: none;
+  }
+
+  .progress-card__sheet--yan {
+    left: 0;
+    top: 0;
+  }
+
+  .progress-card__sheet--polina {
+    left: auto;
+    right: 0;
+    top: 0;
+  }
+
   .progress-card__sheet--alena {
     left: 50%;
     top: 0;
     transform: translateX(-50%);
+  }
+
+  .progress-card__who,
+  .progress-card__who span,
+  .progress-card__ig {
+    top: 0;
+    width: calc(202.456 * var(--pm));
+    font-family: var(--font-en);
+    font-size: 12px;
+    line-height: normal;
+    letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .progress-card__expand {
+    left: auto;
+    right: calc(6.8 * var(--pm));
+    top: calc(3.63 * var(--pm));
+    width: calc(9.62 * var(--pm));
+    height: calc(9.62 * var(--pm));
+  }
+
+  .progress-card__week {
+    display: none;
   }
 
   .card.is-program-open .work-card__full {
@@ -3069,7 +3408,7 @@ img.works-card__piece {
     justify-content: space-between;
     align-items: center;
     gap: 0;
-    padding: 0;
+    padding: 4px 0 0;
   }
 
   .exercises-card__title {
@@ -3331,6 +3670,7 @@ img.works-card__piece {
 }
 
 .tweaks-reopen {
+  display: none !important;
   position: fixed;
   top: 10px;
   right: 10px;
@@ -3349,7 +3689,7 @@ img.works-card__piece {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   color: rgba(0, 0, 0, 0.78);
   cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .tweaks-reopen:hover {

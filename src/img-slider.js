@@ -1,6 +1,13 @@
 const SLIDE = "[data-img-slider-slide]";
 const PREV = "[data-img-slider-prev]";
 const NEXT = "[data-img-slider-next]";
+const IGNORE = "button, a, [data-img-slider-dot], [data-img-slider-dots]";
+
+const AXIS_PX = 8;
+const COMMIT_RATIO = 0.22;
+const DECEL = 0.998;
+const SPRING_RESPONSE = 0.4;
+const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 function slideImages(slide) {
   return [...slide.querySelectorAll("img")].filter(
@@ -36,21 +43,145 @@ function whenReady(img) {
   });
 }
 
+function project(velocity, decelerationRate = DECEL) {
+  return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate);
+}
+
+function sampleVel(samples) {
+  if (samples.length < 2) return 0;
+  const a = samples[0];
+  const b = samples[samples.length - 1];
+  const dt = b.t - a.t;
+  if (dt < 8) return 0;
+  return ((b.x - a.x) / dt) * 1000;
+}
+
+function wrapDelta(i, index, count, offset) {
+  let d = i - index;
+  d -= count * Math.round(d / count);
+  if (count % 2 === 0 && Math.abs(d) === count / 2) {
+    d = offset > 0 ? -count / 2 : count / 2;
+  }
+  return d;
+}
+
 function bindSlider(root) {
   const slides = [...root.querySelectorAll(SLIDE)];
   if (slides.length < 2) return;
 
   let index = 0;
+  let shift = 0;
+  let velocity = 0;
+  let stopSpring = null;
+  let gesture = null;
+  let didSlide = false;
   const dots = [];
 
-  const show = (next) => {
-    index = (next + slides.length) % slides.length;
+  const widthOf = () => root.clientWidth || 1;
+
+  const paint = (offset) => {
+    const w = widthOf();
+    const n = slides.length;
+    slides.forEach((slide, i) => {
+      const x = wrapDelta(i, index, n, offset) * w + offset;
+      slide.style.transform = `translate3d(${x}px,0,0)`;
+    });
+  };
+
+  const syncDots = () => {
     slides.forEach((slide, i) => slide.classList.toggle("is-active", i === index));
     dots.forEach((dot, i) => {
       const on = i === index;
       dot.classList.toggle("is-active", on);
       dot.setAttribute("aria-current", on ? "true" : "false");
     });
+  };
+
+  const wrapIndex = (next) => (next + slides.length) % slides.length;
+
+  const shortestSteps = (from, to) => {
+    let delta = to - from;
+    const n = slides.length;
+    if (delta > n / 2) delta -= n;
+    if (delta < -n / 2) delta += n;
+    return delta;
+  };
+
+  const finishIndex = (next) => {
+    index = wrapIndex(next);
+    shift = 0;
+    velocity = 0;
+    paint(0);
+    syncDots();
+  };
+
+  const cancelSpring = () => {
+    if (!stopSpring) return;
+    stopSpring();
+    stopSpring = null;
+  };
+
+  const springTo = (dest, vel, onDone) => {
+    cancelSpring();
+    if (REDUCE.matches) {
+      shift = dest;
+      paint(shift);
+      onDone();
+      return;
+    }
+    const omega = (2 * Math.PI) / SPRING_RESPONSE;
+    const zeta = Math.abs(vel) > 800 ? 0.86 : 1;
+    let x = shift;
+    let v = vel;
+    let last = performance.now();
+    let raf = 0;
+    const step = (now) => {
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      const acc = -omega * omega * (x - dest) - 2 * zeta * omega * v;
+      v += acc * dt;
+      x += v * dt;
+      shift = x;
+      velocity = v;
+      paint(shift);
+      if (Math.abs(x - dest) < 0.5 && Math.abs(v) < 12) {
+        shift = dest;
+        velocity = 0;
+        paint(shift);
+        stopSpring = null;
+        onDone();
+        return;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    stopSpring = () => cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(step);
+  };
+
+  const settleShift = (dest, vel, nextIndex) => {
+    springTo(dest, vel, () => finishIndex(nextIndex));
+  };
+
+  const goTo = (next, vel = 0) => {
+    const target = wrapIndex(next);
+    const steps = shortestSteps(index, target);
+    if (!steps && Math.abs(shift) < 0.5) {
+      finishIndex(target);
+      return;
+    }
+    settleShift(-steps * widthOf(), vel, target);
+  };
+
+  const commitFromRelease = (vel) => {
+    const w = widthOf();
+    const projected = shift + project(vel);
+    let steps = Math.round(-projected / w);
+    if (!steps && Math.abs(shift) > w * COMMIT_RATIO) {
+      steps = shift < 0 ? 1 : -1;
+    }
+    const max = slides.length - 1;
+    steps = Math.max(-max, Math.min(max, steps));
+    settleShift(-steps * w, vel, index + steps);
   };
 
   const holdFocus = (event) => {
@@ -77,7 +208,7 @@ function bindSlider(root) {
     dot.setAttribute("aria-label", `${i + 1} / ${slides.length}`);
     dot.addEventListener("click", (event) => {
       holdFocus(event);
-      show(i);
+      goTo(i);
     });
     pager.append(dot);
     dots.push(dot);
@@ -94,35 +225,118 @@ function bindSlider(root) {
     });
     btn.addEventListener("click", (event) => {
       holdFocus(event);
-      show(index + step);
+      goTo(index + step);
     });
   };
-
-  show(0);
 
   bindNav(PREV, -1);
   bindNav(NEXT, 1);
 
-  let swipe = null;
-  const endSwipe = (event) => {
-    if (!swipe || (event && event.pointerId !== swipe.id)) return;
-    const dx = event.clientX - swipe.x;
-    const dy = event.clientY - swipe.y;
-    swipe = null;
-    if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return;
-    show(index + (dx < 0 ? 1 : -1));
+  const releaseDeck = () => {
+    document.dispatchEvent(new CustomEvent("kaik:cancel-deck-drag"));
   };
+
+  const endGesture = (event, cancelled) => {
+    if (!gesture || (event && event.pointerId !== gesture.id)) return;
+    const axis = gesture.axis;
+    const id = gesture.id;
+    gesture = null;
+    root.classList.remove("is-dragging");
+    try {
+      if (root.hasPointerCapture?.(id)) root.releasePointerCapture(id);
+    } catch {
+      // ignore
+    }
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+    if (axis !== "x") {
+      if (Math.abs(shift) > 1) commitFromRelease(0);
+      return;
+    }
+    if (cancelled) {
+      settleShift(0, 0, index);
+      return;
+    }
+    commitFromRelease(sampleVel(gestureSamples) || velocity);
+  };
+
+  let gestureSamples = [];
+
+  const onMove = (event) => {
+    if (!gesture || event.pointerId !== gesture.id) return;
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+
+    if (!gesture.axis) {
+      if (Math.abs(dx) < AXIS_PX && Math.abs(dy) < AXIS_PX) return;
+      if (Math.abs(dx) > Math.abs(dy) * 1.05) {
+        gesture.axis = "x";
+        didSlide = true;
+        root.classList.add("is-dragging");
+        releaseDeck();
+        try {
+          root.setPointerCapture(event.pointerId);
+        } catch {
+          // ignore
+        }
+      } else {
+        gesture.axis = "y";
+        return;
+      }
+    }
+
+    if (gesture.axis !== "x") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    shift = gesture.origin + dx;
+    velocity = 0;
+    gestureSamples.push({ x: shift, t: event.timeStamp || performance.now() });
+    if (gestureSamples.length > 5) gestureSamples.shift();
+    if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
+    paint(shift);
+  };
+
+  const onUp = (event) => endGesture(event, false);
+  const onCancel = (event) => endGesture(event, true);
+
   root.addEventListener("pointerdown", (event) => {
-    if (event.target.closest?.("button, a, [data-img-slider-dot], [data-img-slider-dots]")) return;
-    swipe = { x: event.clientX, y: event.clientY, id: event.pointerId };
-  });
-  window.addEventListener("pointerup", endSwipe);
-  window.addEventListener("pointercancel", () => {
-    swipe = null;
+    if (event.button && event.button !== 0) return;
+    if (event.target.closest?.(IGNORE)) return;
+    cancelSpring();
+    didSlide = Math.abs(shift) > 4;
+    gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
+    gesture = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      origin: shift,
+      axis: null,
+    };
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
   });
 
+  root.addEventListener(
+    "click",
+    (event) => {
+      if (!didSlide) return;
+      event.preventDefault();
+      event.stopPropagation();
+      didSlide = false;
+    },
+    true,
+  );
+
+  finishIndex(0);
+
   const images = slides.flatMap(slideImages);
-  const refresh = () => measureTrack(root);
+  const refresh = () => {
+    measureTrack(root);
+    paint(shift);
+  };
   refresh();
   Promise.all(images.map(whenReady)).then(refresh);
   const ro = new ResizeObserver(refresh);

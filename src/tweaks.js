@@ -46,20 +46,20 @@ export const DESKTOP = {
 
 export const MOBILE = {
   scrollPerCard: 1,
-  travelMult: 5,
-  progressGain: 3.2,
-  speedStep: 0.28,
-  speedMin: 0.06,
+  travelMult: 5.2,
+  progressGain: 2.7,
+  speedStep: 0.08,
+  speedMin: 0.07,
   ease: "inOutCubic",
 
   driftY: 18,
-  tipScale: 0.12,
+  tipScale: 2.55,
   rotateYBase: 0,
   rotateYStep: 0,
   rotateXAmt: 3,
-  fanScale: 0.42,
+  fanScale: 0.3,
   /** Visible top-edge sliver at rest (px of `--frame-h`). */
-  peekPx: 6,
+  peekPx: 9,
 
   deckLeftPct: 50,
   deckScale: 1,
@@ -79,7 +79,7 @@ export const MOBILE = {
   hoverLift: 30,
   hoverLerp: 0.2,
   /** Lower = more finger/wheel travel per card (slower stack). */
-  dragSensitivity: 0.35,
+  dragSensitivity: 0.1,
 
   /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
   worksShiftX: 0,
@@ -91,10 +91,10 @@ const DESKTOP_DEFAULTS = { ...DESKTOP };
 const MOBILE_DEFAULTS = { ...MOBILE };
 
 export const MOBILE_MQ = "(max-width: 900px)";
-const STORAGE_KEY = "kaik-deck-tweaks-v4";
-const LEGACY_STORAGE_KEY = "kaik-deck-tweaks-v3";
+const STORAGE_KEY = "kaik-deck-tweaks-v6";
+const LEGACY_STORAGE_KEYS = ["kaik-deck-tweaks-v5", "kaik-deck-tweaks-v4", "kaik-deck-tweaks-v3"];
 const UI_STORAGE_KEY = "kaik-deck-tweaks-ui-v3";
-/** Bump to force-write DESKTOP over a stale `kaik-deck-tweaks-v4` desktop blob. */
+/** Bump to force-write DESKTOP over a stale desktop blob. */
 const DESKTOP_REV = 5;
 
 /** @type {"auto" | "desktop" | "mobile"} */
@@ -351,7 +351,13 @@ function isStaleMobileSnapshot(mobile) {
     mobile.fanScale === 0.28 ||
     mobile.fanScale === 0.12 ||
     mobile.ease === "outCubic" ||
-    (mobile.travelMult === 1 && mobile.dragSensitivity === 1.2 && mobile.peekPx === 16)
+    (mobile.travelMult === 1 && mobile.dragSensitivity === 1.2 && mobile.peekPx === 16) ||
+    (mobile.travelMult === 5 &&
+      mobile.progressGain === 3.2 &&
+      mobile.speedStep === 0.28 &&
+      mobile.dragSensitivity === 0.35) ||
+    (mobile.tipScale === 0.12 && mobile.fanScale === 0.42 && mobile.peekPx === 6) ||
+    (mobile.speedMin === 0.28 && mobile.speedStep === 0.075)
   );
 }
 
@@ -364,8 +370,15 @@ function applyMobileSaved(mobile) {
   Object.assign(MOBILE, mobile);
 }
 
+function applyEditMode(data) {
+  if (data?.editMode === "auto" || data?.editMode === "desktop" || data?.editMode === "mobile") {
+    editMode = data.editMode;
+  }
+}
+
 function loadSaved() {
   let overwriteDesktop = true;
+  let persist = false;
   try {
     const raw = storage.getItem(STORAGE_KEY);
     if (raw) {
@@ -375,16 +388,21 @@ function loadSaved() {
         applyDesktopSaved(data.desktop);
         overwriteDesktop = false;
       }
-      if (data.editMode === "auto" || data.editMode === "desktop" || data.editMode === "mobile") {
-        editMode = data.editMode;
-      }
+      applyEditMode(data);
     } else {
-      const legacyRaw = storage.getItem(LEGACY_STORAGE_KEY);
-      if (legacyRaw) {
+      // v6 drops saved mobile so phones pick up the new defaults.
+      // Desktop + editMode migrate from v5/v4/v3 when the desktop rev still matches.
+      persist = true;
+      for (const key of LEGACY_STORAGE_KEYS) {
+        const legacyRaw = storage.getItem(key);
+        if (!legacyRaw) continue;
         const legacy = JSON.parse(legacyRaw);
-        if (legacy.editMode === "auto" || legacy.editMode === "desktop" || legacy.editMode === "mobile") {
-          editMode = legacy.editMode;
+        if (legacy.desktopRev === DESKTOP_REV && legacy.desktop) {
+          applyDesktopSaved(legacy.desktop);
+          overwriteDesktop = false;
         }
+        applyEditMode(legacy);
+        break;
       }
     }
   } catch {
@@ -393,8 +411,9 @@ function loadSaved() {
 
   if (overwriteDesktop) {
     Object.assign(DESKTOP, DESKTOP_DEFAULTS);
-    save();
+    persist = true;
   }
+  if (persist) save();
 }
 
 function save() {
@@ -543,8 +562,8 @@ export function initTweaks(onChange) {
   function setHidden(hidden) {
     root.classList.toggle("is-hidden", hidden);
     root.setAttribute("aria-hidden", String(hidden));
-    reopen.classList.toggle("is-hidden", !hidden);
-    reopen.setAttribute("aria-hidden", String(!hidden));
+    reopen.classList.add("is-hidden");
+    reopen.setAttribute("aria-hidden", "true");
     writeUiState({ hidden });
   }
 
@@ -567,8 +586,14 @@ export function initTweaks(onChange) {
 
   const ui = readUiState();
   if (ui.collapsed === true || (ui.collapsed == null && isMobile())) setCollapsed(true);
-  if (ui.hidden) setHidden(true);
-  else setHidden(false);
+  const wantOpen = (() => {
+    try {
+      return new URLSearchParams(window.location.search).has("tweaks");
+    } catch {
+      return false;
+    }
+  })();
+  setHidden(!wantOpen);
 
   root.addEventListener("pointerdown", (event) => event.stopPropagation());
   reopen.addEventListener("pointerdown", (event) => event.stopPropagation());

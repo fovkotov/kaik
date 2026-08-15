@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 import { FileUpIcon, Trash2Icon, TypeIcon, UploadIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -263,12 +271,22 @@ function nextSelection(current: Set<string>, id: string, ordered: string[], rang
   return next;
 }
 
+function ChipSection({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section className="grid gap-2">
+      <h3 className="text-xs font-medium text-muted-foreground">{label}</h3>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </section>
+  );
+}
+
 function FilterChips({
   label,
   value,
   options,
   prefix,
   copy,
+  disabled,
   onChange,
 }: {
   label: string;
@@ -276,15 +294,16 @@ function FilterChips({
   options: readonly string[];
   prefix: string;
   copy: (key: string) => string;
+  disabled?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <ChipSection label={label}>
       <Button
         type="button"
         size="sm"
         variant={value === "" ? "default" : "outline"}
+        disabled={disabled}
         onClick={() => onChange("")}
       >
         {copy("admin.none")}
@@ -295,12 +314,13 @@ function FilterChips({
           type="button"
           size="sm"
           variant={value === id ? "default" : "outline"}
+          disabled={disabled}
           onClick={() => onChange(id)}
         >
           {copy(`${prefix}${id}`)}
         </Button>
       ))}
-    </div>
+    </ChipSection>
   );
 }
 
@@ -639,7 +659,7 @@ export function AdminApp() {
       : undefined;
 
   return (
-    <div className="min-h-svh bg-background">
+    <div className="min-h-[var(--frame-h)] bg-background pl-[var(--admin-sidebar)]">
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
           <a href={publicUrl()} className="flex items-center gap-2.5 text-sm font-medium">
@@ -672,7 +692,7 @@ export function AdminApp() {
         </div>
       </header>
 
-      <main className={cn("mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8", selectedCount ? "pb-36" : "")}>
+      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8">
         <input
           ref={inputRef}
           type="file"
@@ -884,7 +904,6 @@ export function AdminApp() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="grid gap-2">
               <h2 className="font-heading text-base font-medium">{copy("admin.catalog")}</h2>
-              <p className="max-w-2xl text-sm text-muted-foreground">{copy("admin.selectHint")}</p>
               <KindToggle
                 value={catalogKind}
                 onChange={(kind) => {
@@ -977,81 +996,91 @@ export function AdminApp() {
         </section>
       </main>
 
-      {selectedCount > 0 ? (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background/95 backdrop-blur">
-          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium">
-                {copy("admin.selected").replace("{n}", String(selectedCount))}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedInbox(new Set(inbox.map((item) => item.key)));
-                    setSelectedCatalog(new Set(visualCatalogIds));
-                  }}
-                >
-                  {copy("admin.selectAll")}
-                </Button>
-                {oneCatalog ? (
-                  <Button type="button" size="sm" variant="outline" onClick={() => openEditor(oneCatalog)}>
-                    {copy("admin.editOne")}
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setSelectedInbox(new Set());
-                    setSelectedCatalog(new Set());
-                  }}
-                >
-                  {copy("admin.clearSelection")}
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-muted-foreground">{copy("admin.kind")}</span>
+      <aside
+        className="fixed top-0 left-0 z-30 flex w-[var(--admin-sidebar)] flex-col overflow-y-auto overscroll-contain border-r bg-sidebar text-sidebar-foreground"
+        style={{ height: "var(--frame-h)" }}
+      >
+        <div className="flex flex-col gap-5 p-4">
+          <div className="grid gap-2">
+            <p className="text-sm font-medium">
+              {selectedCount
+                ? copy("admin.selected").replace("{n}", String(selectedCount))
+                : copy("admin.selectEmpty")}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
               <Button
                 type="button"
                 size="sm"
-                variant={sharedKind === KIND_LETTER ? "default" : "outline"}
-                onClick={() => applyTag({ kind: KIND_LETTER })}
+                variant="outline"
+                onClick={() => {
+                  setSelectedInbox(new Set(inbox.map((item) => item.key)));
+                  setSelectedCatalog(new Set(visualCatalogIds));
+                }}
               >
-                {copy("admin.kind.letter")}
+                {copy("admin.selectAll")}
               </Button>
+              {oneCatalog ? (
+                <Button type="button" size="sm" variant="outline" onClick={() => openEditor(oneCatalog)}>
+                  {copy("admin.editOne")}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
-                variant={sharedKind === KIND_WORD ? "default" : "outline"}
-                onClick={() => applyTag({ kind: KIND_WORD })}
+                variant="ghost"
+                disabled={!selectedCount}
+                onClick={() => {
+                  setSelectedInbox(new Set());
+                  setSelectedCatalog(new Set());
+                }}
               >
-                {copy("admin.kind.word")}
+                {copy("admin.clearSelection")}
               </Button>
             </div>
-            <FilterChips
-              label={copy("admin.construction")}
-              value={sharedConstruction}
-              options={CONSTRUCTIONS}
-              prefix="tax.construction."
-              copy={copy}
-              onChange={(construction) => applyTag({ construction })}
-            />
-            <FilterChips
-              label={copy("admin.family")}
-              value={sharedFamily}
-              options={FAMILIES}
-              prefix="tax.family."
-              copy={copy}
-              onChange={(family) => applyTag({ family })}
-            />
+            {selectedCount ? null : (
+              <p className="text-xs text-muted-foreground">{copy("admin.selectHint")}</p>
+            )}
           </div>
+          <ChipSection label={copy("admin.kind")}>
+            <Button
+              type="button"
+              size="sm"
+              variant={sharedKind === KIND_LETTER ? "default" : "outline"}
+              disabled={!selectedCount}
+              onClick={() => applyTag({ kind: KIND_LETTER })}
+            >
+              {copy("admin.kind.letter")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={sharedKind === KIND_WORD ? "default" : "outline"}
+              disabled={!selectedCount}
+              onClick={() => applyTag({ kind: KIND_WORD })}
+            >
+              {copy("admin.kind.word")}
+            </Button>
+          </ChipSection>
+          <FilterChips
+            label={copy("admin.construction")}
+            value={sharedConstruction}
+            options={CONSTRUCTIONS}
+            prefix="tax.construction."
+            copy={copy}
+            disabled={!selectedCount}
+            onChange={(construction) => applyTag({ construction })}
+          />
+          <FilterChips
+            label={copy("admin.family")}
+            value={sharedFamily}
+            options={FAMILIES}
+            prefix="tax.family."
+            copy={copy}
+            disabled={!selectedCount}
+            onChange={(family) => applyTag({ family })}
+          />
         </div>
-      ) : null}
+      </aside>
 
       <datalist id="author-list">
         {authors.map((value: string) => (

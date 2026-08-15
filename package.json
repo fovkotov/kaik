@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:cargo": "KAIK_CARGO=1 vite build && node scripts/pack-cargo-html.js",
     "build:pages": "vite build --base /kaik/",
     "preview": "vite preview"
   },

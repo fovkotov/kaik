@@ -57,8 +57,8 @@ const REVEAL_FLIGHT = 0.22;
 
 function scrollYForCard(index, count, params) {
   const total = maxProgress(count, params);
-  const targetT = isMobile() ? 0.5 : REVEAL_FLIGHT;
-  if (!isMobile() && index <= 0) return 0;
+  const targetT = REVEAL_FLIGHT;
+  if (index <= 0) return 0;
   let lo = 0;
   let hi = 1;
   for (let n = 0; n < 28; n++) {
@@ -462,6 +462,20 @@ function initDeck() {
     el.addEventListener("pointercancel", endDrag);
   });
 
+  document.addEventListener("kaik:cancel-deck-drag", () => {
+    if (!drag) return;
+    const id = drag.id;
+    dragProgress = drag.startProgress;
+    cancelDeckDrag();
+    for (const el of [deck, root]) {
+      try {
+        if (el.hasPointerCapture?.(id)) el.releasePointerCapture(id);
+      } catch {
+        // ignore
+      }
+    }
+  });
+
   // Kill page scroll on mobile — cards move only via drag
   window.addEventListener(
     "wheel",
@@ -613,7 +627,7 @@ function initDeck() {
       if (flyLocked) {
         if (hoveredIndex === i) hoveredIndex = -1;
         item.hover = 0;
-        if (mobile) item.el.style.zIndex = "";
+        if (mobile) item.el.style.zIndex = String(i + 1);
         return;
       }
 
@@ -766,13 +780,15 @@ function initDeck() {
 const PROGRAM_NAV = "[data-program-nav], [data-i18n='nav.program']";
 const WORK_NAV = "[data-work-nav], [data-i18n='nav.work']";
 
-function bindProgramNav(deckApi, programApi) {
-  if (!deckApi || !programApi) return;
-  document.querySelectorAll(PROGRAM_NAV).forEach((link) => {
+/** Same fly-open as tapping the card — no hash/deck seek first. */
+function bindNavOpen(selector, programApi, isCurrent, open) {
+  if (!programApi) return;
+  document.querySelectorAll(selector).forEach((link) => {
     link.addEventListener("click", (event) => {
       event.preventDefault();
-      if (programApi.isProgramFocused?.()) return;
-      const go = () => deckApi.revealProgram(() => programApi.open());
+      event.stopPropagation();
+      if (isCurrent()) return;
+      const go = () => open();
       if (programApi.isFocused()) {
         programApi.close(go);
         return;
@@ -782,29 +798,30 @@ function bindProgramNav(deckApi, programApi) {
   });
 }
 
-function bindWorkNav(deckApi, programApi) {
-  if (!deckApi || !programApi) return;
-  document.querySelectorAll(WORK_NAV).forEach((link) => {
-    link.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (programApi.isWorksFocused?.()) return;
-      const go = () => deckApi.revealWorks(() => programApi.openWorks());
-      if (programApi.isFocused()) {
-        programApi.close(go);
-        return;
-      }
-      go();
-    });
-  });
+function bindProgramNav(programApi) {
+  bindNavOpen(
+    PROGRAM_NAV,
+    programApi,
+    () => programApi.isProgramFocused?.(),
+    () => programApi.open(),
+  );
+}
+
+function bindWorkNav(programApi) {
+  bindNavOpen(
+    WORK_NAV,
+    programApi,
+    () => programApi.isWorksFocused?.(),
+    () => programApi.openWorks(),
+  );
 }
 
 initEmbed();
 initLocale();
 initTweaks();
-const deckApi = initDeck();
+initDeck();
 const programApi = initProgramModal();
-bindProgramNav(deckApi, programApi);
-bindWorkNav(deckApi, programApi);
+bindProgramNav(programApi);
+bindWorkNav(programApi);
 initImgSliders();
 initDropcaps();
