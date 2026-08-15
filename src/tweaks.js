@@ -51,7 +51,9 @@ export const MOBILE = {
   rotateYBase: 0,
   rotateYStep: 0,
   rotateXAmt: 3,
-  fanScale: 0.12,
+  fanScale: 0.42,
+  /** Visible top-edge sliver at rest (px of `--frame-h`). */
+  peekPx: 16,
 
   deckLeftPct: 50,
   deckScale: 1,
@@ -191,10 +193,12 @@ function loadSaved() {
         data.mobile.scrollPerCard === 1100 ||
         data.mobile.fanScale === 0.7 ||
         data.mobile.fanScale === 0.28 ||
+        data.mobile.fanScale === 0.12 ||
         data.mobile.ease === "outCubic"
       ) {
         MOBILE.scrollPerCard = MOBILE_DEFAULTS.scrollPerCard;
         MOBILE.fanScale = MOBILE_DEFAULTS.fanScale;
+        MOBILE.peekPx = MOBILE_DEFAULTS.peekPx;
         MOBILE.travelMult = MOBILE_DEFAULTS.travelMult;
         MOBILE.progressGain = MOBILE_DEFAULTS.progressGain;
         MOBILE.speedStep = MOBILE_DEFAULTS.speedStep;

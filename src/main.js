@@ -70,6 +70,24 @@ function scrollYForCard(index, count, params) {
 }
 
 /**
+ * Mobile rest: card tops just enter `--frame-h` from below (a ~10–20px sliver).
+ * Flight still goes that peek → fully off the top.
+ */
+function mobileRestTossY(el, cardH, vh, t, params) {
+  const peekRaw = Number(params.peekPx);
+  const peek = Number.isFinite(peekRaw) ? peekRaw : 16;
+  const cs = getComputedStyle(el);
+  const topPx = Number.parseFloat(cs.top);
+  const marginTop = Number.parseFloat(cs.marginTop);
+  const restTop =
+    (Number.isFinite(topPx) ? topPx : vh * 0.5) +
+    (Number.isFinite(marginTop) ? marginTop : -cardH / 2);
+  const restY = vh - peek - restTop;
+  const exitY = restTop + cardH + 24;
+  return restY - t * (restY + exitY) * (params.travelMult ?? 1);
+}
+
+/**
  * Desktop: scroll-driven stack + cursor parallax (right → left).
  * Mobile: same lead curve, vertical only — cards rise from below the viewport.
  */
@@ -582,7 +600,7 @@ function initDeck() {
 
       const tossX = mobile ? 0 : params.travelDir * t * travel;
       const tossY = mobile
-        ? hide - t * travelY
+        ? mobileRestTossY(item.el, cardH, vh, t, params)
         : t * (i % 2 === 0 ? -params.driftY : params.driftY);
       const scrollX = mobile ? baseX : baseX + tossX;
       const scrollY = baseY - originY + tossY;

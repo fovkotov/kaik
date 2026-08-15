@@ -2746,8 +2746,8 @@ img.works-card__piece {
   }
 
   .panel__nav a {
-    font-size: 16px;
-    line-height: 1.25;
+    font-size: 20px;
+    line-height: 1.2;
     letter-spacing: 0;
   }
 
@@ -2809,6 +2809,8 @@ img.works-card__piece {
     gap: 0;
     width: 100%;
     margin: 0;
+    position: relative;
+    z-index: 25;
   }
 
   .panel__nav a[data-program-nav] {
@@ -2838,6 +2840,7 @@ img.works-card__piece {
         (var(--frame-h) - var(--panel-chrome-top) - var(--panel-chrome-bot)) / 2
     );
     margin-left: calc(var(--card-w) / -2);
+    transform-origin: 50% 100%;
     cursor: grab;
     touch-action: none;
     pointer-events: auto;
