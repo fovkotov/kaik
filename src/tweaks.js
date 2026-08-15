@@ -32,26 +32,30 @@ export const DESKTOP = {
 
   hoverLift: 22,
   hoverLerp: 0.18,
+
+  worksShiftX: 116,
+  worksShiftY: 0,
+  worksRotate: 0,
 };
 
 export const MOBILE = {
   scrollPerCard: 1,
-  travelMult: 1.12,
-  progressGain: 2.5,
-  speedStep: 0.2,
-  speedMin: 0.05,
-  ease: "outCubic",
+  travelMult: 1,
+  progressGain: 3.2,
+  speedStep: 0.14,
+  speedMin: 0.06,
+  ease: "inOutCubic",
 
-  driftY: 18,
-  tipScale: 0.35,
-  rotateYBase: 0.4,
-  rotateYStep: 0.2,
-  rotateXAmt: 8,
-  fanScale: 0.28,
+  driftY: 0,
+  tipScale: 0.12,
+  rotateYBase: 0,
+  rotateYStep: 0,
+  rotateXAmt: 3,
+  fanScale: 0.12,
 
   deckLeftPct: 50,
   deckScale: 1,
-  travelDir: -1,
+  travelDir: 0,
 
   parallaxX: 14,
   parallaxY: 10,
@@ -66,6 +70,11 @@ export const MOBILE = {
   hoverLerp: 0.2,
   /** How strongly a vertical swipe advances the stack (higher = less travel per card) */
   dragSensitivity: 1.2,
+
+  /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
+  worksShiftX: 0,
+  worksShiftY: 0,
+  worksRotate: 0,
 };
 
 const DESKTOP_DEFAULTS = { ...DESKTOP };
@@ -104,6 +113,16 @@ export function applyDeckParams() {
     }
   });
   document.documentElement.style.setProperty("--scroll-per-card", String(p.scrollPerCard));
+
+  const shiftX = Number(p.worksShiftX);
+  const shiftY = Number(p.worksShiftY);
+  const rotate = Number(p.worksRotate);
+  const works = document.querySelector("[data-works-card]");
+  if (works) {
+    works.style.setProperty("--works-shift-x", `${Number.isFinite(shiftX) ? shiftX : 0}px`);
+    works.style.setProperty("--works-shift-y", `${Number.isFinite(shiftY) ? shiftY : 0}px`);
+    works.style.setProperty("--works-rotate", `${Number.isFinite(rotate) ? rotate : 0}deg`);
+  }
 }
 
 export function easeByName(name, t) {
@@ -152,16 +171,39 @@ function loadSaved() {
       ) {
         DESKTOP.deckScale = DESKTOP_DEFAULTS.deckScale;
       }
+      // Old saves snapshot previous defaults (0, then 103, then 130).
+      // Keep a custom worksShiftX; otherwise pick up the new desktop inset.
+      if (
+        data.desktop.worksShiftX == null ||
+        data.desktop.worksShiftX === 0 ||
+        data.desktop.worksShiftX === 103 ||
+        data.desktop.worksShiftX === 130
+      ) {
+        DESKTOP.worksShiftX = DESKTOP_DEFAULTS.worksShiftX;
+      }
     }
     if (data.mobile) {
       Object.assign(MOBILE, data.mobile);
-      // Pre-stack mobile used pixel scroll + a wide fan. Sequential toss
-      // needs the new defaults unless the user actually retuned them.
-      if (data.mobile.scrollPerCard === 1100 || data.mobile.fanScale === 0.7) {
+      // Drop sequential-toss / wide-fan snapshots so the vertical stack
+      // picks up current defaults unless the user retuned after this pass.
+      if (
+        data.mobile.scrollPerCard === 1100 ||
+        data.mobile.fanScale === 0.7 ||
+        data.mobile.fanScale === 0.28 ||
+        data.mobile.ease === "outCubic"
+      ) {
         MOBILE.scrollPerCard = MOBILE_DEFAULTS.scrollPerCard;
         MOBILE.fanScale = MOBILE_DEFAULTS.fanScale;
         MOBILE.travelMult = MOBILE_DEFAULTS.travelMult;
+        MOBILE.progressGain = MOBILE_DEFAULTS.progressGain;
+        MOBILE.speedStep = MOBILE_DEFAULTS.speedStep;
+        MOBILE.speedMin = MOBILE_DEFAULTS.speedMin;
+        MOBILE.ease = MOBILE_DEFAULTS.ease;
+        MOBILE.tipScale = MOBILE_DEFAULTS.tipScale;
+        MOBILE.rotateYBase = MOBILE_DEFAULTS.rotateYBase;
+        MOBILE.rotateYStep = MOBILE_DEFAULTS.rotateYStep;
         MOBILE.rotateXAmt = MOBILE_DEFAULTS.rotateXAmt;
+        MOBILE.travelDir = MOBILE_DEFAULTS.travelDir;
         MOBILE.dragSensitivity = MOBILE_DEFAULTS.dragSensitivity;
       }
     }

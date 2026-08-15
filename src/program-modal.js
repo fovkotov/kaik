@@ -1,13 +1,12 @@
 import { t } from "./scriptik.js";
-import { applyDeckParams, isMobile } from "./tweaks.js";
+import { applyDeckParams } from "./tweaks.js";
 
 const PROGRAM_NAV = "[data-program-nav], [data-i18n='nav.program']";
-const FOCUS_SEL = "[data-focus-card], [data-program-card], [data-work-card]";
+const WORK_NAV = "[data-work-nav], [data-i18n='nav.work']";
+const FOCUS_SEL = "[data-focus-card], [data-program-card], [data-work-card], [data-works-card]";
 const FOCUS_IGNORE = "a, button, [data-tweaks], [data-tweaks-reopen], [data-img-slider], [data-history-slideshow], [data-open-program]";
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
-const FLY_CLOSE = "[data-fly-close]";
-const CLOSE_BAR_FALLBACK = 72;
 
 export function initProgramModal() {
   const cards = [...new Set([...document.querySelectorAll(FOCUS_SEL)])];
@@ -15,12 +14,15 @@ export function initProgramModal() {
   if (!cards.length || !deck) return null;
 
   const programCard = cards.find((el) => el.hasAttribute("data-program-card")) || null;
+  const worksCard = cards.find((el) => el.hasAttribute("data-works-card")) || null;
+  const closeBtn = document.querySelector("[data-fly-close]");
 
   const FLY_MS = 920;
   const FLY_EASE = "cubic-bezier(0.22, 1, 0.32, 1)";
   const TOP_GAP = 28;
   const OPEN_W = 680;
   const OPEN_GUTTER = 48;
+  const OPEN_GUTTER_NARROW = 32;
   const WORKS_OPEN_SCALE = 1.16;
   const ORIGIN_X = 0.5;
   const ORIGIN_Y = 0.55;
@@ -137,15 +139,7 @@ export function initProgramModal() {
     };
   }
 
-  function closeBarH() {
-    const raw = getComputedStyle(document.documentElement).getPropertyValue("--fly-close-h");
-    const parsed = Number.parseFloat(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : CLOSE_BAR_FALLBACK;
-  }
-
   function openWidth() {
-    const { w: vw } = frameSize();
-    if (isMobile()) return vw;
     const host = card;
     const raw = host
       ? getComputedStyle(host).getPropertyValue("--focus-open-w").trim() ||
@@ -153,27 +147,35 @@ export function initProgramModal() {
       : "";
     const parsed = Number.parseFloat(raw);
     if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    return Math.min(OPEN_W, Math.max(0, vw - OPEN_GUTTER));
+    const { w: vw } = frameSize();
+    const gutter = window.matchMedia("(max-width: 900px)").matches
+      ? OPEN_GUTTER_NARROW
+      : OPEN_GUTTER;
+    return Math.min(OPEN_W, Math.max(0, vw - gutter));
   }
 
   function destBox(from) {
     const { w: vw, h: vh } = frameSize();
-    const mobile = isMobile();
-    const gutter = mobile ? 0 : OPEN_GUTTER;
+    const mobile = window.matchMedia("(max-width: 900px)").matches;
+    if (mobile) {
+      return visualBoxToCardSpace({
+        left: 0,
+        top: 0,
+        width: vw,
+        height: vh,
+        rotate: 0,
+      });
+    }
+    const gutter = OPEN_GUTTER;
     const side = gutter / 2;
-    const panel = document.querySelector("[data-panel]");
-    const panelH = panel?.getBoundingClientRect().height ?? 0;
-    const topGap = mobile ? Math.min(Math.max(TOP_GAP, panelH + 8), vh * 0.32) : TOP_GAP;
-    const bottomGap = mobile ? closeBarH() : 28;
+    const topGap = TOP_GAP;
+    const bottomGap = 28;
     const { scaleX, scaleY } = deckSpace();
     const maxW = Math.max(0, vw - gutter);
     const maxH = Math.max(0, vh - topGap - bottomGap);
     let width = Math.min(openWidth(), maxW);
     let height = Math.max((from?.height ?? 0) * scaleY, maxH);
-    if (mobile) {
-      width = maxW;
-      height = maxH;
-    } else if (card?.hasAttribute("data-works-card")) {
+    if (card?.hasAttribute("data-works-card")) {
       const foldedVisual = Math.max((from?.width ?? 0) * scaleX, (from?.height ?? 0) * scaleY);
       const grown = foldedVisual > 0 ? foldedVisual * WORKS_OPEN_SCALE : 0;
       // Square works card is already wider than A4 — never cap at the 680 program dest.
@@ -182,11 +184,9 @@ export function initProgramModal() {
       if (width <= 0) width = Math.min(maxW, maxH * 0.72);
       height = maxH;
     }
-    let left = mobile ? 0 : (vw - width) / 2;
-    if (!mobile) {
-      if (left < side) left = side;
-      if (left + width > vw - side) left = Math.max(side, vw - side - width);
-    }
+    let left = (vw - width) / 2;
+    if (left < side) left = side;
+    if (left + width > vw - side) left = Math.max(side, vw - side - width);
     const top = topGap;
     return visualBoxToCardSpace({
       left,
@@ -371,41 +371,13 @@ export function initProgramModal() {
     return expanded ? "history.close" : "history.open";
   }
 
-  function ensureCloseBtn() {
-    const existing = document.querySelector(FLY_CLOSE);
-    if (existing instanceof HTMLButtonElement) return existing;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "fly-close";
-    btn.setAttribute("data-fly-close", "");
-    btn.hidden = true;
-    btn.setAttribute("aria-hidden", "true");
-    const mark = document.createElement("span");
-    mark.setAttribute("aria-hidden", "true");
-    mark.textContent = "×";
-    btn.append(mark);
-    document.body.append(btn);
-    btn.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-    });
-    btn.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      closeFocus();
-    });
-    return btn;
-  }
-
-  function syncClose() {
-    const btn = ensureCloseBtn();
-    const show = isMobile() && (phase === "opening" || phase === "open");
-    btn.hidden = !show;
-    if (show) {
-      btn.removeAttribute("aria-hidden");
-      btn.setAttribute("aria-label", t(card ? labelKey(card, true) : "program.close"));
-    } else {
-      btn.setAttribute("aria-hidden", "true");
-    }
+  function syncCloseBtn() {
+    if (!closeBtn) return;
+    const mobile = window.matchMedia("(max-width: 900px)").matches;
+    const expanded = phase === "open" || phase === "opening";
+    const show = mobile && expanded && card;
+    closeBtn.hidden = !show;
+    if (show && card) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
   }
 
   function syncAria() {
@@ -415,7 +387,7 @@ export function initProgramModal() {
       el.setAttribute("aria-expanded", isThis ? "true" : "false");
       el.setAttribute("aria-label", t(labelKey(el, isThis)));
     });
-    syncClose();
+    syncCloseBtn();
   }
 
   syncAria();
@@ -502,11 +474,19 @@ export function initProgramModal() {
       if (card?.contains(target)) return;
       const hit = target instanceof Element ? target : target.parentElement;
       if (hit?.closest?.(PROGRAM_NAV)) return;
-      if (hit?.closest?.(FLY_CLOSE)) return;
+      if (hit?.closest?.(WORK_NAV)) return;
+      if (hit?.closest?.("[data-fly-close]")) return;
       closeFocus();
     },
     true,
   );
+
+  closeBtn?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (phase !== "open" && phase !== "opening") return;
+    closeFocus();
+  });
 
   window.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
@@ -520,16 +500,18 @@ export function initProgramModal() {
   const onFrameResize = () => {
     if (phase !== "open") return;
     pin(destBox(rest), false);
-    syncClose();
   };
   window.addEventListener("resize", onFrameResize, { passive: true });
   window.visualViewport?.addEventListener("resize", onFrameResize, { passive: true });
 
   return {
     open: () => openFocus(programCard),
+    openWorks: () => openFocus(worksCard),
     close: closeFocus,
     isFocused: () => phase === "open" || phase === "opening",
     isProgramFocused: () =>
       Boolean(card?.hasAttribute("data-program-card") && (phase === "open" || phase === "opening")),
+    isWorksFocused: () =>
+      Boolean(card?.hasAttribute("data-works-card") && (phase === "open" || phase === "opening")),
   };
 }

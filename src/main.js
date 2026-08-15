@@ -56,22 +56,22 @@ function cardFlightT(index, count, params, p) {
 const REVEAL_FLIGHT = 0.22;
 
 function scrollYForCard(index, count, params) {
-  if (isMobile()) return clamp(index, 0, Math.max(0, count - 1));
   const total = maxProgress(count, params);
-  if (index <= 0) return 0;
+  const targetT = isMobile() ? 0.5 : REVEAL_FLIGHT;
+  if (!isMobile() && index <= 0) return 0;
   let lo = 0;
   let hi = 1;
   for (let n = 0; n < 28; n++) {
     const mid = (lo + hi) / 2;
-    if (cardFlightT(index, count, params, mid) < REVEAL_FLIGHT) lo = mid;
+    if (cardFlightT(index, count, params, mid) < targetT) lo = mid;
     else hi = mid;
   }
   return clamp(hi * total, 0, total);
 }
 
 /**
- * Desktop: scroll-driven stack + cursor parallax.
- * Mobile: sequential toss via free inertial drag; Y-only gyro (no X).
+ * Desktop: scroll-driven stack + cursor parallax (right → left).
+ * Mobile: same lead curve, vertical only — cards rise from below the viewport.
  */
 function initDeck() {
   const cards = [...document.querySelectorAll("[data-card]")];
@@ -122,6 +122,21 @@ function initDeck() {
   const SPREAD_MS = 920;
   const FOCUS_SEL = "[data-focus-card], [data-program-card]";
   const programIndex = state.findIndex((item) => item.el.hasAttribute("data-program-card"));
+  const lockup = document.querySelector("[data-lockup]");
+  const panelRow = document.querySelector(".panel__row");
+
+  function placeLockup() {
+    if (!lockup) return;
+    if (isMobile()) {
+      if (lockup.parentElement !== root) root.append(lockup);
+      return;
+    }
+    if (panelRow && lockup.parentElement !== panelRow) panelRow.prepend(lockup);
+    lockup.style.transform = "";
+    lockup.style.visibility = "";
+  }
+
+  placeLockup();
 
   const programLocked = () => Boolean(deck.querySelector("[data-fly-lock]"));
   const reduceMotionSpread = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -331,12 +346,13 @@ function initDeck() {
   }
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
-  deck.addEventListener("pointerdown", (event) => {
+  const DRAG_IGNORE =
+    ".panel a, .panel button, .author-card a, [data-fly-close], [data-lockup] button, [data-lockup] a, [data-lockup] .dropcap";
+
+  function onDeckPointerDown(event) {
     if (!isMobile()) return;
     if (programLocked()) return;
-    if (event.target.closest?.(".panel a, .panel button, .author-card a")) {
-      return;
-    }
+    if (event.target.closest?.(DRAG_IGNORE)) return;
 
     enableMotion();
     cancelSnap();
@@ -353,13 +369,13 @@ function initDeck() {
     };
     deck.classList.add("is-dragging");
     try {
-      deck.setPointerCapture(event.pointerId);
+      event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
       // ignore
     }
-  });
+  }
 
-  deck.addEventListener("pointermove", (event) => {
+  function onDeckPointerMove(event) {
     if (!drag || event.pointerId !== drag.id) return;
     if (programLocked()) {
       cancelDeckDrag();
@@ -384,7 +400,7 @@ function initDeck() {
     drag.lastT = now;
 
     event.preventDefault();
-  });
+  }
 
   function endDrag(event) {
     if (!drag || (event && event.pointerId !== drag.id)) return;
@@ -400,8 +416,12 @@ function initDeck() {
     dragInertia = moved ? vel * 16 : 0;
   }
 
-  deck.addEventListener("pointerup", endDrag);
-  deck.addEventListener("pointercancel", endDrag);
+  [deck, root].forEach((el) => {
+    el.addEventListener("pointerdown", onDeckPointerDown);
+    el.addEventListener("pointermove", onDeckPointerMove);
+    el.addEventListener("pointerup", endDrag);
+    el.addEventListener("pointercancel", endDrag);
+  });
 
   // Kill page scroll on mobile — cards move only via drag
   window.addEventListener(
@@ -461,6 +481,7 @@ function initDeck() {
 
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
     applyDeckParams();
+    placeLockup();
     root.scrollTop = 0;
     if (isMobile()) {
       enableMotion();
@@ -478,8 +499,8 @@ function initDeck() {
     const mobile = isMobile();
     const { width: vw, height: vh } = getViewportSize();
     const totalScroll = maxProgress(state.length, params);
-    const fan = mobile ? params.fanScale ?? 0.28 : 1;
-    const travel = mobile ? vh * (params.travelMult ?? 1.12) : vw * params.travelMult;
+    const fan = mobile ? params.fanScale ?? 0.12 : 1;
+    const travel = mobile ? 0 : vw * params.travelMult;
 
     const locked = programLocked();
     if (!locked && mobile && !drag) {
@@ -511,6 +532,17 @@ function initDeck() {
     holdFlyLock();
     const y = freezeY != null ? freezeY : mobile ? dragProgress : root.scrollTop || 0;
     const originY = 0;
+    const p = clamp(totalScroll ? y / totalScroll : 0, 0, 1);
+
+    if (lockup) {
+      if (mobile) {
+        lockup.style.visibility = locked ? "hidden" : "";
+        lockup.style.transform = `translate(-50%, calc(-50% + ${-p * vh}px))`;
+      } else {
+        lockup.style.visibility = "";
+        lockup.style.transform = "";
+      }
+    }
 
     const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
     const lockedIndex = state.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
@@ -538,9 +570,7 @@ function initDeck() {
     }
 
     state.forEach((item, i) => {
-      const t = mobile
-        ? clamp(y - i, 0, 1)
-        : cardFlightT(i, state.length, params, clamp(y / totalScroll, 0, 1));
+      const t = cardFlightT(i, state.length, params, p);
 
       const flyLocked = item.el.hasAttribute("data-fly-lock");
       if (flyLocked) {
@@ -557,16 +587,20 @@ function initDeck() {
       const pointerAmt = locked ? 0 : depth;
       const parallaxX = mobile ? 0 : pointerSmooth.x * params.parallaxX * pointerAmt;
       const parallaxY = pointerSmooth.y * params.parallaxY * pointerAmt;
-      const cursorRotY = pointerSmooth.x * params.cursorTiltY * pointerAmt;
+      const cursorRotY = mobile ? 0 : pointerSmooth.x * params.cursorTiltY * pointerAmt;
       const cursorRotX = -pointerSmooth.y * params.cursorTiltX * pointerAmt;
-      const cursorRotZ = pointerSmooth.x * params.cursorTiltZ * pointerAmt * 0.65;
+      const cursorRotZ = mobile ? 0 : pointerSmooth.x * params.cursorTiltZ * pointerAmt * 0.65;
 
       const baseX = item.baseX * fan;
       const baseY = mobile ? 0 : item.baseY * fan;
 
+      const cardH = item.el.offsetHeight || vh * 0.55;
+      const hide = (vh + cardH) / 2 + 24;
+      const travelY = hide * 2 * (params.travelMult ?? 1);
+
       const tossX = mobile ? 0 : params.travelDir * t * travel;
       const tossY = mobile
-        ? -t * travel
+        ? hide - t * travelY
         : t * (i % 2 === 0 ? -params.driftY : params.driftY);
       const scrollX = mobile ? baseX : baseX + tossX;
       const scrollY = baseY - originY + tossY;
@@ -576,8 +610,13 @@ function initDeck() {
       const spreadY = (planned?.y ?? 0) * spread;
       const spreadR = (planned?.r ?? 0) * spread;
 
-      const x = scrollX + parallaxX + spreadX;
-      const yPos = scrollY + parallaxY - item.hover * params.hoverLift + spreadY;
+      const worksCard = item.el.hasAttribute("data-works-card");
+      const worksX = worksCard ? Number(params.worksShiftX) || 0 : 0;
+      const worksY = worksCard ? Number(params.worksShiftY) || 0 : 0;
+      const worksR = worksCard ? Number(params.worksRotate) || 0 : 0;
+
+      const x = scrollX + parallaxX + spreadX + worksX;
+      const yPos = scrollY + parallaxY - item.hover * params.hoverLift + spreadY + worksY;
 
       const dragTilt =
         mobile && drag?.moved ? clamp((drag.startY - drag.lastY) * 0.035, -12, 12) : 0;
@@ -587,7 +626,8 @@ function initDeck() {
         t * item.tip * params.tipScale +
         cursorRotZ +
         dragTilt * depth +
-        spreadR;
+        spreadR +
+        worksR;
       const rotateY =
         t * (params.rotateYBase + i * params.rotateYStep) * (i % 2 === 0 ? 1 : -1) + cursorRotY;
       const rotateX =
@@ -608,6 +648,10 @@ function initDeck() {
     return state.findIndex((item) => item.el.hasAttribute("data-program-card"));
   }
 
+  function worksCardIndex() {
+    return state.findIndex((item) => item.el.hasAttribute("data-works-card"));
+  }
+
   function revealIndex(index, onReady) {
     const done = typeof onReady === "function" ? onReady : () => {};
     if (index < 0) {
@@ -616,13 +660,12 @@ function initDeck() {
     }
 
     const params = getParams();
-    const target = isMobile()
-      ? clamp(index, 0, deckMax())
-      : (() => {
-          const y = scrollYForCard(index, state.length, params);
-          const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
-          return clamp(y, 0, maxTop || maxProgress(state.length, params));
-        })();
+    const target = (() => {
+      const y = scrollYForCard(index, state.length, params);
+      if (isMobile()) return clamp(y, 0, deckMax());
+      const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
+      return clamp(y, 0, maxTop || maxProgress(state.length, params));
+    })();
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (isMobile()) {
@@ -666,7 +709,15 @@ function initDeck() {
     revealIndex(programCardIndex(), onReady);
   }
 
-  return { revealProgram, revealIndex };
+  /**
+   * Seek so `[data-works-card]` (grey student works, not olive progress)
+   * is the current stack card, then run onReady.
+   */
+  function revealWorks(onReady) {
+    revealIndex(worksCardIndex(), onReady);
+  }
+
+  return { revealProgram, revealWorks, revealIndex };
 }
 
 const PROGRAM_NAV = "[data-program-nav], [data-i18n='nav.program']";
@@ -689,16 +740,14 @@ function bindProgramNav(deckApi, programApi) {
 }
 
 function bindWorkNav(deckApi, programApi) {
-  if (!deckApi) return;
-  const workIndex = [...document.querySelectorAll("[data-card]")].findIndex((el) =>
-    el.hasAttribute("data-work-card"),
-  );
+  if (!deckApi || !programApi) return;
   document.querySelectorAll(WORK_NAV).forEach((link) => {
     link.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const go = () => deckApi.revealIndex(workIndex);
-      if (programApi?.isFocused()) {
+      if (programApi.isWorksFocused?.()) return;
+      const go = () => deckApi.revealWorks(() => programApi.openWorks());
+      if (programApi.isFocused()) {
         programApi.close(go);
         return;
       }

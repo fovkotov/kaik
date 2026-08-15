@@ -47,35 +47,39 @@
 
     <aside class="panel" data-panel>
       <div class="panel__row">
-        <div class="panel__brand">
-          <span
-            class="panel__dropcap"
-            data-dropcap="L"
-            data-dropcap-en="L"
-            data-dropcap-ru="Э"
-          ></span>
-          <div class="panel__copy">
-            <p class="panel__title" data-i18n="title">ETTER II</p>
-            <p class="panel__dates" data-i18n="dates">from 31 avgust
+        <div class="panel__lockup" data-lockup>
+          <div class="panel__brand">
+            <span
+              class="panel__dropcap"
+              data-dropcap="L"
+              data-dropcap-en="L"
+              data-dropcap-ru="Э"
+            ></span>
+            <div class="panel__copy">
+              <p class="panel__title" data-i18n="title">ETTER II</p>
+              <p class="panel__dates" data-i18n="dates">from 31 avgust
 to 12 october</p>
-            <p class="panel__dates panel__dates--short" data-i18n="dates.short">31 avgust – 12 october</p>
+              <p class="panel__dates panel__dates--short" data-i18n="dates.short">31 avgust – 12 october</p>
+            </div>
+          </div>
+          <div class="panel__lang" role="group" data-i18n-aria="lang.label" aria-label="Language">
+            <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">en</button>
+            <span class="lang-sep" aria-hidden="true">/</span>
+            <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">ru</button>
           </div>
         </div>
 
         <div class="panel__side">
           <nav class="panel__nav" aria-label="Course">
             <a href="/program.html" data-program-nav data-i18n="nav.program">program</a>
-            <a href="#student-work" data-work-nav data-i18n="nav.work">student work</a>
+            <a href="#works" data-work-nav data-i18n="nav.work">student work</a>
             <a class="panel__enroll" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-i18n="nav.enroll">enroll</a>
           </nav>
         </div>
       </div>
-      <div class="panel__lang" role="group" data-i18n-aria="lang.label" aria-label="Language">
-        <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">en</button>
-        <span class="lang-sep" aria-hidden="true">/</span>
-        <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">ru</button>
-      </div>
     </aside>
+
+    <button type="button" class="fly-close" data-fly-close hidden aria-label="Close">×</button>
 
     <div class="deck" data-deck>
       <!-- front → back; images 01–10 from New Folder With Items 3 -->
@@ -276,7 +280,7 @@ to 12 october</p>
         data-base-x="10"
         data-base-y="-16"
         data-tip="16"
-        style="--card-color: #861ebe; --z: 7"
+        style="--card-color: #2bb673; --z: 7"
       >
         <div class="program-card">
           <p class="program-card__title" data-i18n="program.title">program</p>
@@ -779,8 +783,13 @@ to 12 october</p>
               <span class="work-card__week-title" data-i18n="work.week3">3 week</span>
               <span class="work-card__week-meta" data-i18n="work.dash">—</span>
             </h2>
-            <div class="work-card__mark">
-              <img src="/assets/cards/work/polina/week3.svg" alt="" width="624" height="1816" draggable="false" />
+            <div class="work-card__marks">
+              <div class="work-card__mark work-card__mark--polina-boring">
+                <img src="/assets/cards/work/polina/week3-boring.svg" alt="" width="613" height="167" draggable="false" />
+              </div>
+              <div class="work-card__mark">
+                <img src="/assets/cards/work/polina/week3.svg" alt="" width="624" height="1635" draggable="false" />
+              </div>
             </div>
           </section>
           <section class="work-card__week">
@@ -810,14 +819,312 @@ to 12 october</p>
       <article
         class="card"
         data-card
+        data-focus-card
+        data-works-card
+        id="works"
         data-base-rotate="1.89"
         data-base-x="43"
         data-base-y="-4"
         data-tip="11"
-        style="--card-color: #ff91f8; --z: 5"
+        style="--card-color: #9d9d9d; --z: 5"
       >
-        <img class="card__art" src="/assets/cards/06.png" alt="" draggable="false" />
+        <div class="works-card">
+          <p class="works-card__title" data-i18n="works.title">student works</p>
+          <div class="works-card__list">
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 248.001">
+              <img src="/assets/cards/works/alena-1.svg" alt="" width="810" height="248" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Алёна</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenuchotam/" target="_top" rel="noopener noreferrer">@alenuchotam</a>
+          </p>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 812; --art-h: 222">
+              <img src="/assets/cards/works/andrei-fresh.svg" alt="" width="812" height="222" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Андрей</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/iamprpl/" target="_top" rel="noopener noreferrer">@iamprpl</a>
+          </p>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 197">
+              <img src="/assets/cards/works/kira.svg" alt="" width="419" height="197" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Кира</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/k1pk1p/" target="_top" rel="noopener noreferrer">@k1pk1p</a>
+          </p>
+          </div>
+          <div class="works-card__col works-card__col--391">
+            <div class="works-card__art" style="--art-w: 391; --art-h: 197">
+              <img src="/assets/cards/works/nadya.svg" alt="" width="391" height="197" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Надя</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+          </p>
+          </div>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 812; --art-h: 302">
+              <img src="/assets/cards/works/masha.svg" alt="" width="812" height="302" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Маша</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/mashaaaaaam/" target="_top" rel="noopener noreferrer">@mashaaaaaam</a>
+          </p>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419 works-card__tight">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 130">
+              <img src="/assets/cards/works/masha-polina.svg" alt="" width="419" height="130" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Маша Полина</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/pelagieonmashaaaaaam/" target="_top" rel="noopener noreferrer">@pelagieonmashaaaaaam</a>
+          </p>
+          </div>
+          <div class="works-card__col works-card__col--389 works-card__tight">
+            <div class="works-card__art" style="--art-w: 389; --art-h: 130">
+              <img src="/assets/cards/works/alena-2.svg" alt="" width="389" height="130" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Алёна</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenuchotam/" target="_top" rel="noopener noreferrer">@alenuchotam</a>
+          </p>
+          </div>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419 works-card__tight">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 169">
+              <img src="/assets/cards/works/danil.svg" alt="" width="419" height="169" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Данил</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/fursovdm/" target="_top" rel="noopener noreferrer">@fursovdm</a>
+          </p>
+          </div>
+          <div class="works-card__col works-card__col--391 works-card__tight">
+            <div class="works-card__art" style="--art-w: 391; --art-h: 169">
+              <img src="/assets/cards/works/polina-pair.svg" alt="" width="391" height="169" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Полина</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/pelagieon/" target="_top" rel="noopener noreferrer">@pelagieon</a>
+          </p>
+          </div>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 512">
+              <img src="/assets/cards/works/polina-big.svg" alt="" width="810" height="512" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Полина</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/pelagieon/" target="_top" rel="noopener noreferrer">@pelagieon</a>
+          </p>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 124.052">
+              <img src="/assets/cards/works/kira-wide.svg" alt="" width="810" height="124" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Кира</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/k1pk1p/" target="_top" rel="noopener noreferrer">@k1pk1p</a>
+          </p>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__storm-grid">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 158">
+              <img src="/assets/cards/works/storm-stencil.svg" alt="" width="419" height="158" draggable="false" />
+            </div>
+            <div class="works-card__art" style="--art-w: 391; --art-h: 158">
+              <img src="/assets/cards/works/storm-tribal.svg" alt="" width="391" height="158" draggable="false" />
+            </div>
+            <div class="works-card__art" style="--art-w: 419; --art-h: 148">
+              <img src="/assets/cards/works/storm-serif.svg" alt="" width="419" height="148" draggable="false" />
+            </div>
+            <div class="works-card__art" style="--art-w: 391; --art-h: 148">
+              <img src="/assets/cards/works/storm-ornament.svg" alt="" width="391" height="148" draggable="false" />
+            </div>
+          </div>
+          <p class="works-card__who">
+            <span>Андрей</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/iamprpl/" target="_top" rel="noopener noreferrer">@iamprpl</a>
+          </p>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 350">
+              <img src="/assets/cards/works/roma.svg" alt="" width="810" height="350" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Рома</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/rameoky/" target="_top" rel="noopener noreferrer">@rameoky</a>
+          </p>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 139">
+              <img src="/assets/cards/works/andrei-fov.svg" alt="" width="419" height="139" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Андрей</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/fovkotov/" target="_top" rel="noopener noreferrer">@fovkotov</a>
+          </p>
+          </div>
+          <div class="works-card__col works-card__col--391">
+            <div class="works-card__art" style="--art-w: 391; --art-h: 139">
+              <img src="/assets/cards/works/nadya-wide.svg" alt="" width="391" height="139" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Надя</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+          </p>
+          </div>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 156">
+              <img src="/assets/cards/works/ksusha-1.svg" alt="" width="419" height="156" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Ксюша</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dirigible4/" target="_top" rel="noopener noreferrer">@dirigible4</a>
+          </p>
+          </div>
+          <div class="works-card__col works-card__col--391">
+            <div class="works-card__art" style="--art-w: 391; --art-h: 156">
+              <img src="/assets/cards/works/ksusha-2.svg" alt="" width="391" height="156" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Ксюша —</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dirigible4/" target="_top" rel="noopener noreferrer">@dirigible4</a>
+          </p>
+          </div>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 459">
+              <img src="/assets/cards/works/bogdan.svg" alt="" width="810" height="459" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Богдан</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/Ybludok47/" target="_top" rel="noopener noreferrer">@Ybludok47</a>
+          </p>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 138">
+              <img src="/assets/cards/works/alena-pichh.svg" alt="" width="810" height="138" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Алена</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenapichh/" target="_top" rel="noopener noreferrer">@alenapichh</a>
+          </p>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 525.238">
+              <img src="/assets/cards/works/katya.svg" alt="" width="810" height="525" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Катя</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/hurujoi/" target="_top" rel="noopener noreferrer">@hurujoi</a>
+          </p>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 126">
+              <img src="/assets/cards/works/nadya-3.svg" alt="" width="419" height="126" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Надя</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+          </p>
+          </div>
+          <div class="works-card__col works-card__col--391">
+            <div class="works-card__art" style="--art-w: 391; --art-h: 126">
+              <img src="/assets/cards/works/yan.svg" alt="" width="391" height="126" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Ян</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/l200kmhinthewronglane/" target="_top" rel="noopener noreferrer">@l200kmhinthewronglane</a>
+          </p>
+          </div>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 285">
+              <img src="/assets/cards/works/nadya-mouth.svg" alt="" width="810" height="285" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>Надя</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+          </p>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 129">
+              <img src="/assets/cards/works/ksusha-3.svg" alt="" width="419" height="129" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>Ксюша —</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dirigible4/" target="_top" rel="noopener noreferrer">@dirigible4</a>
+          </p>
+          </div>
+          <div class="works-card__col works-card__col--391">
+            <div class="works-card__art" style="--art-w: 391; --art-h: 129">
+              <img src="/assets/cards/works/nadya-plus.svg" alt="" width="391" height="129" draggable="false" />
+            </div>
+            <p class="works-card__who">
+            <span>надя +</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+          </p>
+          </div>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 331">
+              <img src="/assets/cards/works/cluster.svg" alt="" width="810" height="331" draggable="false" />
+            </div>
+        </div>
+        <div class="works-card__row">
+          <div class="works-card__col works-card__col--419">
+            <div class="works-card__art" style="--art-w: 419; --art-h: 160">
+              <img src="/assets/cards/works/anya-left.svg" alt="" width="419" height="160" draggable="false" />
+            </div>
+          </div>
+          <div class="works-card__col works-card__col--391">
+            <div class="works-card__art" style="--art-w: 391; --art-h: 160">
+              <img src="/assets/cards/works/anya-right.svg" alt="" width="391" height="160" draggable="false" />
+            </div>
+          </div>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__row works-card__pair-grid">
+            <div class="works-card__art" style="--art-w: 420; --art-h: 158">
+              <img src="/assets/cards/works/anya-row-l.svg" alt="" width="420" height="158" draggable="false" />
+            </div>
+            <div class="works-card__art" style="--art-w: 390; --art-h: 158">
+              <img src="/assets/cards/works/anya-row-r.svg" alt="" width="390" height="158" draggable="false" />
+            </div>
+          </div>
+          <p class="works-card__who">
+            <span>Аня</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dontcatchbirds/" target="_top" rel="noopener noreferrer">@dontcatchbirds</a>
+          </p>
+        </div>
+        <div class="works-card__item">
+          <div class="works-card__art" style="--art-w: 810; --art-h: 156.829">
+              <img src="/assets/cards/works/alena-last.svg" alt="" width="810" height="157" draggable="false" />
+            </div>
+          <p class="works-card__who">
+            <span>алёна</span>
+            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenuchotam/" target="_top" rel="noopener noreferrer">@alenuchotam</a>
+          </p>
+        </div>
+          </div>
+        </div>
       </article>
+
       <article
         class="card"
         data-card
@@ -1187,32 +1494,6 @@ to 12 october</p>
                 </figure>
                 <p class="history-card__book-cap" data-i18n="history.book.join">And join LETTER class</p>
               </div>
-            </div>
-
-            <div class="history-card__cta">
-              <p class="history-card__cta-title" data-i18n="history.letter">LETTER  class</p>
-              <ul class="history-card__meta">
-                <li class="history-card__meta-row">
-                  <span class="history-card__meta-key" data-i18n="history.meta.length">Length:</span>
-                  <span class="history-card__meta-val" data-i18n="history.meta.weeks">6 weeks</span>
-                </li>
-                <li class="history-card__meta-row">
-                  <span class="history-card__meta-key" data-i18n="history.meta.price">Price:</span>
-                  <span class="history-card__meta-val">250 EUR</span>
-                </li>
-                <li class="history-card__meta-row">
-                  <span class="history-card__meta-key" data-i18n="history.meta.program">Program:</span>
-                  <button type="button" class="history-card__program" data-open-program data-i18n="history.meta.click">Click here</button>
-                </li>
-                <li class="history-card__meta-row">
-                  <span class="history-card__meta-key" data-i18n="history.meta.start">Start:</span>
-                  <span class="history-card__meta-val">TBA</span>
-                </li>
-              </ul>
-              <a class="history-card__barcode" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-i18n-aria="nav.enroll" aria-label="enroll">
-                <img src="/assets/cards/history/barcode.svg" alt="" width="564" height="134" draggable="false" />
-              </a>
-              <a class="history-card__join" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-i18n="history.join">JOIN WAITLIST</a>
             </div>
           </div>
         </div>
