@@ -5,7 +5,7 @@ const PROGRAM_NAV = "[data-program-nav], [data-i18n='nav.program']";
 const WORK_NAV = "[data-work-nav], [data-i18n='nav.work']";
 const FOCUS_SEL = "[data-focus-card], [data-program-card], [data-work-card], [data-works-card]";
 const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-open-program], [data-fly-close], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-open-program], [data-fly-close], [data-work-ig], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";

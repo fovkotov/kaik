@@ -137,6 +137,12 @@ body.program {
 }
 
 @media (max-width: 900px) {
+  html,
+  body,
+  body * {
+    letter-spacing: 0;
+  }
+
   .program-stage {
     padding: 20px 16px 32px;
   }
