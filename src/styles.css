@@ -816,7 +816,7 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 .card[data-works-card] {
-  --works-shift-x: 116px;
+  --works-shift-x: 110px;
   --works-shift-y: 0px;
   --works-rotate: 0deg;
   --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
@@ -2632,6 +2632,7 @@ img.works-card__piece {
   }
 
   .deck {
+    z-index: 20;
     perspective-origin: 50% 50%;
     transform-origin: 50% 50%;
     pointer-events: none;
@@ -2639,10 +2640,11 @@ img.works-card__piece {
   }
 
   .panel {
+    z-index: 5;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    align-items: end;
+    grid-template-rows: 1fr auto;
+    align-items: stretch;
     width: 100%;
     height: var(--frame-h);
     min-height: 0;
@@ -2657,28 +2659,20 @@ img.works-card__piece {
     display: contents;
   }
 
-  .panel [data-lockup] {
-    display: none;
-  }
-
-  .viewport > [data-lockup] {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: 1;
+  .panel__lockup {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: max-content;
-    max-width: calc(var(--frame-w) - 36px);
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
     text-align: center;
     pointer-events: none;
-    will-change: transform;
   }
 
-  .viewport > [data-lockup] .panel__lang,
-  .viewport > [data-lockup] .dropcap {
+  .panel__lockup .panel__lang,
+  .panel__lockup .dropcap {
     pointer-events: auto;
   }
 
@@ -2785,7 +2779,7 @@ img.works-card__piece {
 
   .panel__nav {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 2;
     display: grid;
     grid-template-columns: 1fr auto;
     grid-template-rows: auto auto;

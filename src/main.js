@@ -124,19 +124,11 @@ function initDeck() {
   const programIndex = state.findIndex((item) => item.el.hasAttribute("data-program-card"));
   const lockup = document.querySelector("[data-lockup]");
   const panelRow = document.querySelector(".panel__row");
-
-  function placeLockup() {
-    if (!lockup) return;
-    if (isMobile()) {
-      if (lockup.parentElement !== root) root.append(lockup);
-      return;
-    }
-    if (panelRow && lockup.parentElement !== panelRow) panelRow.prepend(lockup);
+  if (lockup && panelRow && lockup.parentElement !== panelRow) {
+    panelRow.prepend(lockup);
     lockup.style.transform = "";
     lockup.style.visibility = "";
   }
-
-  placeLockup();
 
   const programLocked = () => Boolean(deck.querySelector("[data-fly-lock]"));
   const reduceMotionSpread = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -481,7 +473,6 @@ function initDeck() {
 
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
     applyDeckParams();
-    placeLockup();
     root.scrollTop = 0;
     if (isMobile()) {
       enableMotion();
@@ -533,16 +524,6 @@ function initDeck() {
     const y = freezeY != null ? freezeY : mobile ? dragProgress : root.scrollTop || 0;
     const originY = 0;
     const p = clamp(totalScroll ? y / totalScroll : 0, 0, 1);
-
-    if (lockup) {
-      if (mobile) {
-        lockup.style.visibility = locked ? "hidden" : "";
-        lockup.style.transform = `translate(-50%, calc(-50% + ${-p * vh}px))`;
-      } else {
-        lockup.style.visibility = "";
-        lockup.style.transform = "";
-      }
-    }
 
     const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
     const lockedIndex = state.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
