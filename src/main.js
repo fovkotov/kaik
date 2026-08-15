@@ -71,7 +71,7 @@ function scrollYForCard(index, count, params) {
 
 /**
  * Desktop: scroll-driven stack + cursor parallax.
- * Mobile: stacked cards, one-at-a-time toss upward; gyro parallax.
+ * Mobile: sequential toss via free inertial drag; gyro parallax.
  */
 function initDeck() {
   const cards = [...document.querySelectorAll("[data-card]")];
@@ -102,13 +102,15 @@ function initDeck() {
 
   /** Virtual progress used on mobile instead of page scroll (card units: 0 = first on top) */
   let dragProgress = 0;
+  /** Leftover velocity after a flick (card units per frame); decays with friction. */
+  let dragInertia = 0;
   /** @type {null | { from: number, to: number, t0: number, dur: number, onDone?: (() => void) | null }} */
   let snapAnim = null;
-  /** @type {null | { id: number, startX: number, startY: number, startProgress: number, origin: number, lastY: number, lastT: number, vel: number, moved: boolean }} */
+  /** @type {null | { id: number, startX: number, startY: number, startProgress: number, lastY: number, lastT: number, vel: number, moved: boolean }} */
   let drag = null;
-  const SNAP_DIST = 0.2;
-  const SNAP_VEL = 0.0016;
   const RUBBER = 0.28;
+  const INERTIA_FRICTION = 0.92;
+  const INERTIA_MIN = 0.00035;
   /** Scroll/parallax freeze while the program card is in-deck focused */
   let freezeY = null;
   let spread = 0;
@@ -143,7 +145,15 @@ function initDeck() {
 
   function cardUnitPx(params) {
     const h = state[0]?.el.offsetHeight || 400;
-    return (h * 0.52) / Math.max(0.3, params.dragSensitivity ?? 1.2);
+    // Half the previous 0.52 * cardH — one card takes half the finger/wheel travel.
+    return (h * 0.26) / Math.max(0.3, params.dragSensitivity ?? 1.2);
+  }
+
+  function applyRubber(raw) {
+    const max = deckMax();
+    if (raw < 0) return raw * RUBBER;
+    if (raw > max) return max + (raw - max) * RUBBER;
+    return raw;
   }
 
   function cancelSnap() {
@@ -154,6 +164,7 @@ function initDeck() {
     const target = clamp(to, 0, deckMax());
     const from = dragProgress;
     const done = typeof onDone === "function" ? onDone : null;
+    dragInertia = 0;
     cancelSnap();
     if (reduceMotionSpread() || Math.abs(from - target) < 0.002) {
       dragProgress = target;
@@ -190,6 +201,7 @@ function initDeck() {
     if (freezeY == null) freezeY = poseNow();
     cancelDeckDrag();
     cancelSnap();
+    dragInertia = 0;
     if (isMobile()) dragProgress = freezeY;
     else if (root.scrollTop !== freezeY) root.scrollTop = freezeY;
     root.classList.add("is-fly-locked");
@@ -201,26 +213,47 @@ function initDeck() {
   }
 
   /**
-   * Push siblings out of the focused 680px box using live rects (any scroll pose).
+   * Push siblings out of the focused dest box using live rects (any scroll pose).
    * Left-of-focus → further left; right-of-focus → further right.
+   * Works card is wider than the 680 program dest — stronger clear + multiplier.
    */
   function measureSpread(focusEl, focusIndex) {
     const mobile = isMobile();
     const { width: vw, height: vh } = getViewportSize();
     const gutter = mobile || vw <= 900 ? 32 : 48;
-    const openW = Math.min(680, Math.max(0, vw - gutter));
+    const works = Boolean(focusEl?.hasAttribute("data-works-card"));
+    const maxW = Math.max(0, vw - gutter);
+    let openW = Math.min(680, maxW);
+    if (works && focusEl) {
+      const raw = getComputedStyle(focusEl).getPropertyValue("--focus-open-w").trim();
+      const parsed = Number.parseFloat(raw);
+      const deckScale =
+        Number.parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
+        ) || 1.15;
+      const foldedVisual = Math.max(focusEl.offsetWidth, focusEl.offsetHeight) * deckScale;
+      const scaleRaw = Number.parseFloat(
+        getComputedStyle(focusEl).getPropertyValue("--works-open-scale"),
+      );
+      const openScale = Number.isFinite(scaleRaw) && scaleRaw > 1 ? scaleRaw : 1.16;
+      openW = Math.min(
+        maxW,
+        Math.max(foldedVisual * openScale, foldedVisual, Number.isFinite(parsed) ? parsed : 0),
+      );
+    }
     const destL = (vw - openW) / 2;
     const destR = destL + openW;
-    const gap = mobile ? 20 : 40;
+    const gap = works ? (mobile ? 36 : 64) : mobile ? 20 : 40;
+    const spreadMul = works ? 1.4 : 1;
 
     const focusRect = focusEl?.getBoundingClientRect();
     const focusCx = focusRect ? focusRect.left + focusRect.width / 2 : vw / 2;
     const focusCy = focusRect ? focusRect.top + focusRect.height / 2 : vh / 2;
 
-    const baseX = mobile ? 56 : 100;
-    const stepX = mobile ? 24 : 44;
-    const baseY = mobile ? 16 : 28;
-    const stepY = mobile ? 8 : 12;
+    const baseX = (mobile ? 56 : 100) * spreadMul;
+    const stepX = (mobile ? 24 : 44) * spreadMul;
+    const baseY = (mobile ? 16 : 28) * spreadMul;
+    const stepY = (mobile ? 8 : 12) * spreadMul;
     const baseR = mobile ? 1.6 : 2.8;
     const stepR = mobile ? 0.3 : 0.55;
 
@@ -241,7 +274,7 @@ function initDeck() {
       return {
         x: dirX * Math.max(baseX + (dist - 1) * stepX, clearX),
         y: dirY * (baseY + (dist - 1) * stepY),
-        r: dirX * (baseR + (dist - 1) * stepR),
+        r: dirX * (baseR + (dist - 1) * stepR) * (works ? 1.2 : 1),
       };
     });
   }
@@ -297,7 +330,7 @@ function initDeck() {
     }
   }
 
-  // —— Mobile: vertical swipe, one card at a time ——
+  // —— Mobile: free vertical drag + inertia (no snap) ——
   deck.addEventListener("pointerdown", (event) => {
     if (!isMobile()) return;
     if (programLocked()) return;
@@ -307,13 +340,12 @@ function initDeck() {
 
     enableMotion();
     cancelSnap();
-    const origin = clamp(Math.floor(dragProgress + 1e-4), 0, deckMax());
+    dragInertia = 0;
     drag = {
       id: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       startProgress: dragProgress,
-      origin,
       lastY: event.clientY,
       lastT: performance.now(),
       vel: 0,
@@ -342,12 +374,7 @@ function initDeck() {
 
     const params = getParams();
     const unit = cardUnitPx(params);
-    const lo = Math.max(0, drag.origin - 1);
-    const hi = Math.min(deckMax(), drag.origin + 1);
-    let next = drag.startProgress - dy / unit;
-    if (next < lo) next = lo + (next - lo) * RUBBER;
-    else if (next > hi) next = hi + (next - hi) * RUBBER;
-    dragProgress = next;
+    dragProgress = applyRubber(drag.startProgress - dy / unit);
 
     const now = performance.now();
     const dt = Math.max(1, now - drag.lastT);
@@ -361,18 +388,16 @@ function initDeck() {
 
   function endDrag(event) {
     if (!drag || (event && event.pointerId !== drag.id)) return;
-    const { moved, origin, vel } = drag;
-    const progress = dragProgress;
+    const { moved, vel } = drag;
     deck.classList.remove("is-dragging");
     drag = null;
-    if (!moved) {
-      animateProgress(clamp(Math.round(progress), 0, deckMax()));
+    const max = deckMax();
+    if (dragProgress < 0 || dragProgress > max) {
+      dragInertia = 0;
+      animateProgress(clamp(dragProgress, 0, max));
       return;
     }
-    let target = origin;
-    if (vel > SNAP_VEL || progress - origin > SNAP_DIST) target = origin + 1;
-    else if (vel < -SNAP_VEL || origin - progress > SNAP_DIST) target = origin - 1;
-    animateProgress(clamp(target, 0, deckMax()));
+    dragInertia = moved ? vel * 16 : 0;
   }
 
   deck.addEventListener("pointerup", endDrag);
@@ -390,11 +415,16 @@ function initDeck() {
       }
       if (isMobile()) {
         event.preventDefault();
-        if (drag || snapAnim) return;
-        const dir = event.deltaY > 0 ? 1 : event.deltaY < 0 ? -1 : 0;
-        if (!dir) return;
-        const origin = clamp(Math.round(dragProgress), 0, deckMax());
-        animateProgress(origin + dir);
+        if (drag) return;
+        cancelSnap();
+        const unit = cardUnitPx(getParams());
+        const px = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+        if (!px) return;
+        const delta = px / unit;
+        const raw = dragProgress + delta;
+        const max = deckMax();
+        dragProgress = applyRubber(raw);
+        dragInertia = raw >= 0 && raw <= max ? delta * 0.4 : 0;
         return;
       }
       if (root.contains(event.target)) return;
@@ -436,6 +466,7 @@ function initDeck() {
       enableMotion();
       cancelDeckDrag();
       cancelSnap();
+      dragInertia = 0;
       dragProgress = 0;
     }
   });
@@ -451,14 +482,29 @@ function initDeck() {
     const travel = mobile ? vh * (params.travelMult ?? 1.12) : vw * params.travelMult;
 
     const locked = programLocked();
-    if (!locked && mobile && snapAnim && !drag) {
-      const u = clamp((performance.now() - snapAnim.t0) / snapAnim.dur, 0, 1);
-      dragProgress = lerp(snapAnim.from, snapAnim.to, 1 - (1 - u) ** 3);
-      if (u >= 1) {
-        const done = snapAnim.onDone;
-        dragProgress = snapAnim.to;
-        snapAnim = null;
-        if (done) afterPoseFrame(done);
+    if (!locked && mobile && !drag) {
+      if (snapAnim) {
+        const u = clamp((performance.now() - snapAnim.t0) / snapAnim.dur, 0, 1);
+        dragProgress = lerp(snapAnim.from, snapAnim.to, 1 - (1 - u) ** 3);
+        if (u >= 1) {
+          const done = snapAnim.onDone;
+          dragProgress = snapAnim.to;
+          snapAnim = null;
+          if (done) afterPoseFrame(done);
+        }
+      } else {
+        const max = deckMax();
+        if (dragProgress < 0 || dragProgress > max) {
+          const target = dragProgress < 0 ? 0 : max;
+          dragProgress = lerp(dragProgress, target, 0.22);
+          dragInertia = 0;
+          if (Math.abs(dragProgress - target) < 0.003) dragProgress = target;
+        } else if (Math.abs(dragInertia) > INERTIA_MIN) {
+          dragProgress += dragInertia;
+          dragInertia *= INERTIA_FRICTION;
+        } else {
+          dragInertia = 0;
+        }
       }
     }
 

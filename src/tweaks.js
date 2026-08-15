@@ -64,7 +64,7 @@ export const MOBILE = {
 
   hoverLift: 30,
   hoverLerp: 0.2,
-  /** How strongly a vertical swipe advances one card */
+  /** How strongly a vertical swipe advances the stack (higher = less travel per card) */
   dragSensitivity: 1.2,
 };
 
