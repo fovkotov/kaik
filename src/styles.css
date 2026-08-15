@@ -2776,6 +2776,14 @@ img.works-card__piece {
     letter-spacing: 0;
   }
 
+  /* Open student-works overlay only — first-screen chrome stays 20px. */
+  .card[data-works-card].is-program-open .works-card,
+  .card[data-works-card].is-program-open .works-card :is(p, a, span) {
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0;
+  }
+
   .panel__lockup .panel__title,
   .panel__lockup .panel__dates,
   .panel__lockup .panel__dates--short {
