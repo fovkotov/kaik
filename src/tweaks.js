@@ -33,7 +33,7 @@ export const DESKTOP = {
   hoverLift: 22,
   hoverLerp: 0.18,
 
-  worksShiftX: 116,
+  worksShiftX: 110,
   worksShiftY: 0,
   worksRotate: 0,
 };
@@ -68,7 +68,7 @@ export const MOBILE = {
 
   hoverLift: 30,
   hoverLerp: 0.2,
-  /** How strongly a vertical swipe advances the stack (higher = less travel per card) */
+  /** Lower = more finger/wheel travel per card (slower stack). */
   dragSensitivity: 1.2,
 
   /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
@@ -171,13 +171,14 @@ function loadSaved() {
       ) {
         DESKTOP.deckScale = DESKTOP_DEFAULTS.deckScale;
       }
-      // Old saves snapshot previous defaults (0, then 103, then 130).
+      // Old saves snapshot previous defaults (0, then 103, then 130, then 116).
       // Keep a custom worksShiftX; otherwise pick up the new desktop inset.
       if (
         data.desktop.worksShiftX == null ||
         data.desktop.worksShiftX === 0 ||
         data.desktop.worksShiftX === 103 ||
-        data.desktop.worksShiftX === 130
+        data.desktop.worksShiftX === 130 ||
+        data.desktop.worksShiftX === 116
       ) {
         DESKTOP.worksShiftX = DESKTOP_DEFAULTS.worksShiftX;
       }

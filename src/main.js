@@ -160,8 +160,8 @@ function initDeck() {
 
   function cardUnitPx(params) {
     const h = state[0]?.el.offsetHeight || 400;
-    // 75% of the original sequential unit (0.52 * cardH): halfway back from the 0.26 half-cut.
-    return (h * 0.39) / Math.max(0.3, params.dragSensitivity ?? 1.2);
+    // ~1.75× the prior 0.39 unit so the same swipe advances the stack less.
+    return (h * 0.68) / Math.max(0.3, params.dragSensitivity ?? 1.2);
   }
 
   function applyRubber(raw) {
