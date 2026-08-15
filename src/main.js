@@ -137,9 +137,9 @@ function initDeck() {
   let spreadT0 = 0;
   /** @type {null | { x: number, y: number, r: number }[]} */
   let spreadPlan = null;
-  const SPREAD_MS = 920;
+  let spreadPlanFor = -2;
+  const SPREAD_MS = 1100;
   const FOCUS_SEL = "[data-focus-card], [data-program-card]";
-  const programIndex = state.findIndex((item) => item.el.hasAttribute("data-program-card"));
   const lockup = document.querySelector("[data-lockup]");
   if (lockup) {
     lockup.style.transform = "";
@@ -236,49 +236,56 @@ function initDeck() {
   }
 
   /**
-   * Push siblings out of the focused dest box using live rects (any scroll pose).
-   * Left-of-focus → further left; right-of-focus → further right.
-   * Works card is wider than the 680 program dest — stronger clear + multiplier.
+   * Shove every sibling off the opening dest (visual rects → local translate).
+   * Mobile dest is fullscreen — push mostly down / out of the iframe.
+   * Desktop: clear the open column, then overshoot toward the edges.
    */
   function measureSpread(focusEl, focusIndex) {
     const mobile = isMobile();
     const { width: vw, height: vh } = getViewportSize();
-    const gutter = mobile || vw <= 900 ? 32 : 48;
     const works = Boolean(focusEl?.hasAttribute("data-works-card"));
-    const maxW = Math.max(0, vw - gutter);
-    let openW = Math.min(680, maxW);
-    if (works && focusEl) {
-      const raw = getComputedStyle(focusEl).getPropertyValue("--focus-open-w").trim();
-      const parsed = Number.parseFloat(raw);
-      const deckScale =
-        Number.parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
-        ) || 1.15;
-      const foldedVisual = Math.max(focusEl.offsetWidth, focusEl.offsetHeight) * deckScale;
-      const scaleRaw = Number.parseFloat(
-        getComputedStyle(focusEl).getPropertyValue("--works-open-scale"),
-      );
-      const openScale = Number.isFinite(scaleRaw) && scaleRaw > 1 ? scaleRaw : 1.16;
-      openW = Math.min(
-        maxW,
-        Math.max(foldedVisual * openScale, foldedVisual, Number.isFinite(parsed) ? parsed : 0),
-      );
-    }
-    const destL = (vw - openW) / 2;
-    const destR = destL + openW;
-    const gap = works ? (mobile ? 36 : 64) : mobile ? 20 : 40;
-    const spreadMul = works ? 1.4 : 1;
+    const deckScale =
+      Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
+      ) || 1;
+    const toLocal = (px) => px / Math.max(0.35, deckScale);
 
+    let destL;
+    let destR;
+    let destT;
+    let destB;
+    if (mobile) {
+      destL = 0;
+      destT = 0;
+      destR = vw;
+      destB = vh;
+    } else {
+      const gutter = vw <= 900 ? 32 : 48;
+      const maxW = Math.max(0, vw - gutter);
+      let openW = Math.min(680, maxW);
+      if (works && focusEl) {
+        const raw = getComputedStyle(focusEl).getPropertyValue("--focus-open-w").trim();
+        const parsed = Number.parseFloat(raw);
+        const foldedVisual = Math.max(focusEl.offsetWidth, focusEl.offsetHeight) * deckScale;
+        const scaleRaw = Number.parseFloat(
+          getComputedStyle(focusEl).getPropertyValue("--works-open-scale"),
+        );
+        const openScale = Number.isFinite(scaleRaw) && scaleRaw > 1 ? scaleRaw : 1.16;
+        openW = Math.min(
+          maxW,
+          Math.max(foldedVisual * openScale, foldedVisual, Number.isFinite(parsed) ? parsed : 0),
+        );
+      }
+      destL = (vw - openW) / 2;
+      destR = destL + openW;
+      destT = 28;
+      destB = vh - 28;
+    }
+
+    const gap = mobile ? 28 : works ? 64 : 40;
     const focusRect = focusEl?.getBoundingClientRect();
     const focusCx = focusRect ? focusRect.left + focusRect.width / 2 : vw / 2;
     const focusCy = focusRect ? focusRect.top + focusRect.height / 2 : vh / 2;
-
-    const baseX = (mobile ? 56 : 100) * spreadMul;
-    const stepX = (mobile ? 24 : 44) * spreadMul;
-    const baseY = (mobile ? 16 : 28) * spreadMul;
-    const stepY = (mobile ? 8 : 12) * spreadMul;
-    const baseR = mobile ? 1.6 : 2.8;
-    const stepR = mobile ? 0.3 : 0.55;
 
     return state.map((item, i) => {
       if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
@@ -286,18 +293,36 @@ function initDeck() {
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
       const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
-
       const dirX =
         cx < focusCx - 6 ? -1 : cx > focusCx + 6 ? 1 : focusIndex >= 0 && i < focusIndex ? -1 : 1;
-      const dirY = cy < focusCy - 6 ? -1 : cy > focusCy + 6 ? 1 : i % 2 === 0 ? -1 : 1;
 
+      if (mobile) {
+        const clearlyAbove = cy + rect.height * 0.2 < focusCy;
+        const dirY = clearlyAbove ? -1 : 1;
+        const clearX =
+          dirX < 0 ? Math.max(0, rect.right + gap - destL) : Math.max(0, destR + gap - rect.left);
+        const clearY =
+          dirY < 0 ? Math.max(0, rect.bottom + gap - destT) : Math.max(0, destB + gap - rect.top);
+        const kickX = vw * 0.28 + (dist - 1) * 48;
+        const kickY = Math.max(vh * 0.72, rect.height + 160) + (dist - 1) * 110;
+        return {
+          x: dirX * toLocal(Math.max(clearX * 0.45, kickX)),
+          y: dirY * toLocal(clearY + kickY),
+          r: dirX * (6.2 + (dist - 1) * 1.6),
+        };
+      }
+
+      const dirY = cy < focusCy - 6 ? -1 : cy > focusCy + 6 ? 1 : i % 2 === 0 ? -1 : 1;
       const clearX =
         dirX < 0 ? Math.max(0, rect.right + gap - destL) : Math.max(0, destR + gap - rect.left);
-
+      const clearY =
+        dirY < 0 ? Math.max(0, rect.bottom + gap - destT) : Math.max(0, destB + gap - rect.top);
+      const kickX = (works ? 240 : 200) + (dist - 1) * 64;
+      const kickY = (works ? 120 : 96) + (dist - 1) * 36;
       return {
-        x: dirX * Math.max(baseX + (dist - 1) * stepX, clearX),
-        y: dirY * (baseY + (dist - 1) * stepY),
-        r: dirX * (baseR + (dist - 1) * stepR) * (works ? 1.2 : 1),
+        x: dirX * toLocal(Math.max(clearX, kickX) + 100),
+        y: dirY * toLocal(Math.max(clearY * 0.4, kickY)),
+        r: dirX * ((works ? 5 : 4) + (dist - 1) * 0.85),
       };
     });
   }
@@ -545,9 +570,11 @@ function initDeck() {
 
     const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
     const lockedIndex = state.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
-    const spreadAround = lockedIndex >= 0 ? lockedIndex : programIndex;
-    if (wantSpread && !spreadPlan) {
+    const openingIndex = state.findIndex((entry) => entry.el.classList.contains("is-program-open"));
+    const spreadAround = lockedIndex >= 0 ? lockedIndex : openingIndex;
+    if (wantSpread && (!spreadPlan || spreadPlanFor !== spreadAround)) {
       spreadPlan = measureSpread(spreadAround >= 0 ? state[spreadAround].el : null, spreadAround);
+      spreadPlanFor = spreadAround;
     }
     if (wantSpread !== spreadTarget) {
       spreadTarget = wantSpread;
@@ -559,7 +586,10 @@ function initDeck() {
       spread = lerp(spreadFrom, spreadTarget, spreadEase(u));
       if (u >= 1) spread = spreadTarget;
     }
-    if (!wantSpread && spread === 0) spreadPlan = null;
+    if (!wantSpread && spread === 0) {
+      spreadPlan = null;
+      spreadPlanFor = -2;
+    }
 
     const inputX = mobile ? 0 : pointer.x;
     const inputY = mobile ? gyro.y : pointer.y;
