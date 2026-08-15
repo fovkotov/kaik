@@ -317,7 +317,6 @@ html:not(.i18n-ready) [data-i18n] {
   --base-x: 0px;
   --base-y: 0px;
   --base-r: 0deg;
-  letter-spacing: normal;
   position: absolute;
   top: 50%;
   left: auto;
@@ -2620,13 +2619,17 @@ img.works-card__piece {
     display: block;
   }
 
-  .panel__title,
+  .panel__title {
+    font-size: 32px;
+    line-height: 1.1;
+  }
+
   .panel__dates,
   .panel__dates--short,
   .panel__nav a,
   .panel__lang {
-    font-size: 18px;
-    line-height: 22px;
+    font-size: 16px;
+    line-height: 1.25;
   }
 
   .panel__lang {
@@ -2689,7 +2692,62 @@ img.works-card__piece {
   }
 
   .sheet__copy {
-    font-size: 13px;
+    font-size: 16px;
+    line-height: 1.28;
+  }
+
+  /* Mobile type scale: titles 32 / body 16 min / captions 12.
+     Explicit px so calc(... * var(--u)) card type actually lands. */
+  .format-card__label,
+  .author-card__title,
+  .program-card__title,
+  .works-card__title,
+  .exercises-card__title,
+  .preview-card__title,
+  .faq-card__title,
+  .faq-card__q,
+  .progress-card__title,
+  .work-card__who,
+  .history-card__title,
+  .history-card__cta-title,
+  .history-card__meta,
+  .history-card__join {
+    font-size: 32px;
+    line-height: 1.1;
+  }
+
+  .format-card__note,
+  .author-card__name,
+  .program-card__week-title,
+  .program-card__when,
+  .program-card__kind,
+  .works-card__who,
+  .works-card__ig,
+  .progress-card__ig,
+  .progress-card__week,
+  .work-card__ig,
+  .work-card__week-head,
+  .work-card__week-title,
+  .work-card__week-meta,
+  .history-card__kicker,
+  .history-card__caption,
+  .history-card__book-cap,
+  .dropcap-popover__author,
+  .dropcap-popover__stream {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .program-card__row,
+  .program-card__name,
+  .exercises-card__text,
+  .faq-card__a,
+  .faq-card__a--list p,
+  .progress-card__who,
+  .work-card__blurb,
+  .history-card__text {
+    font-size: 16px;
+    line-height: 1.25;
   }
 
   .viewport {
