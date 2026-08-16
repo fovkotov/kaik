@@ -177,7 +177,7 @@ function initDeck() {
 
   function applyRubber(raw) {
     const max = deckMax();
-    if (raw < 0) return raw * RUBBER;
+    if (raw < 0) return 0;
     if (raw > max) return max + (raw - max) * RUBBER;
     return raw;
   }
@@ -763,7 +763,7 @@ function initDeck() {
           tossY = -slot * lift - scaleComp;
         } else {
           const pass = clamp(-slot, 0, 1);
-          stackScale = 1 - 0.06 * pass;
+          stackScale = 1;
           tossY = pass * 16;
         }
       } else {
