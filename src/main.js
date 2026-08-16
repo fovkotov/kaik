@@ -444,7 +444,6 @@ function initDeck() {
     if (programLocked()) return;
     if (event.target.closest?.(DRAG_IGNORE)) return;
 
-    enableMotion();
     cancelSnap();
     dragInertia = 0;
     drag = {
@@ -480,6 +479,7 @@ function initDeck() {
 
     const params = getParams();
     const unit = cardUnitPx(params);
+    // Finger down (dy > 0) advances: current yields down, next comes from above.
     dragProgress = applyRubber(drag.startProgress + dy / unit);
 
     const now = performance.now();
@@ -494,16 +494,13 @@ function initDeck() {
 
   function endDrag(event) {
     if (!drag || (event && event.pointerId !== drag.id)) return;
-    const { moved, vel } = drag;
     deck.classList.remove("is-dragging");
     drag = null;
+    dragInertia = 0;
     const max = deckMax();
     if (dragProgress < 0 || dragProgress > max) {
-      dragInertia = 0;
       animateProgress(clamp(dragProgress, 0, max));
-      return;
     }
-    dragInertia = moved ? vel * 16 : 0;
   }
 
   [deck, root].forEach((el) => {
@@ -545,11 +542,11 @@ function initDeck() {
         const unit = cardUnitPx(getParams());
         const px = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
         if (!px) return;
+        // Wheel down (deltaY > 0) advances the stack.
         const delta = px / unit;
         const raw = dragProgress + delta;
-        const max = deckMax();
         dragProgress = applyRubber(raw);
-        dragInertia = raw >= 0 && raw <= max ? delta * 0.4 : 0;
+        dragInertia = 0;
         return;
       }
       if (root.contains(event.target)) return;
@@ -589,7 +586,6 @@ function initDeck() {
     applyDeckParams();
     root.scrollTop = 0;
     if (isMobile()) {
-      enableMotion();
       cancelDeckDrag();
       cancelSnap();
       dragInertia = 0;
@@ -620,17 +616,9 @@ function initDeck() {
         }
       } else {
         const max = deckMax();
+        dragInertia = 0;
         if (dragProgress < 0 || dragProgress > max) {
-          const target = dragProgress < 0 ? 0 : max;
-          dragInertia = 0;
-          animateProgress(target);
-        } else if (Math.abs(dragInertia) > INERTIA_MIN) {
-          dragProgress += dragInertia;
-          const sign = Math.sign(dragInertia);
-          dragInertia -= sign * INERTIA_DECEL;
-          if (Math.sign(dragInertia) !== sign) dragInertia = 0;
-        } else {
-          dragInertia = 0;
+          animateProgress(dragProgress < 0 ? 0 : max);
         }
       }
     }
@@ -701,7 +689,7 @@ function initDeck() {
     }
 
     const inputX = mobile ? 0 : pointer.x;
-    const inputY = mobile ? gyro.y : pointer.y;
+    const inputY = mobile ? 0 : pointer.y;
     if (!locked) {
       pointerSmooth.x = lerp(pointerSmooth.x, inputX, params.pointerLerp);
       pointerSmooth.y = lerp(pointerSmooth.y, inputY, params.pointerLerp);
@@ -802,8 +790,7 @@ function initDeck() {
       const x = scrollX + parallaxX + spreadX + worksX;
       const yPos = scrollY + parallaxY - item.hover * params.hoverLift + spreadY + worksY;
 
-      const dragTilt =
-        mobile && drag?.moved ? clamp((drag.startY - drag.lastY) * 0.035, -12, 12) : 0;
+      const dragTilt = 0;
 
       const twist = mobile
         ? Number.isFinite(Number(params.cardRotate))

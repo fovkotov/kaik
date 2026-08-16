@@ -3237,6 +3237,10 @@ img.works-card__piece {
 
   .panel__lang .lang-btn {
     pointer-events: auto;
+    text-decoration: none;
+  }
+
+  .panel__lang .lang-btn.is-active {
     text-decoration: underline;
     text-underline-offset: 0.12em;
   }
