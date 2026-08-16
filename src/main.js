@@ -274,7 +274,8 @@ function initDeck() {
 
   /**
    * Sibling spread from stable deck index, not live screen X.
-   * Focus i: j < i → left; j > i → right. Desktop Y = 0.
+   * Desktop: j < i → left; j > i → right; Y = 0.
+   * Mobile: X = 0; j < i → up; j > i → down; off-screen.
    * Landing is dest edge + gap (and width on the left), in deck-local space,
    * then clamped so a peek stays inside the iframe — no post-tween remasure.
    */
@@ -314,30 +315,21 @@ function initDeck() {
     const stackDir = (i) => (focusIndex >= 0 && i < focusIndex ? -1 : 1);
 
     if (mobile) {
-      const destL = 0;
       const destT = 0;
-      const destR = vw;
       const destB = vh;
-      const destCy = vh / 2;
       const gap = 28;
       return state.map((item, i) => {
         if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
         const box = homeBox(item, i);
-        const cy = box.top + box.height / 2;
         const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
-        const dirX = stackDir(i);
-        const clearlyAbove = cy + box.height * 0.2 < destCy;
-        const dirY = clearlyAbove ? -1 : 1;
-        const clearX =
-          dirX < 0 ? Math.max(0, box.right + gap - destL) : Math.max(0, destR + gap - box.left);
+        const dirY = stackDir(i);
         const clearY =
           dirY < 0 ? Math.max(0, box.bottom + gap - destT) : Math.max(0, destB + gap - box.top);
-        const kickX = Math.max(380, vw * 0.55) + (dist - 1) * 130;
-        const kickY = Math.max(480, vh * 0.85, box.height + 220) + (dist - 1) * 160;
+        const kickY = Math.max(vh * 1.05, box.height + 240) + (dist - 1) * 80;
         return {
-          x: dirX * toLocal(Math.max(clearX, kickX)),
+          x: 0,
           y: dirY * toLocal(clearY + kickY),
-          r: dirX * (10 + (dist - 1) * 3),
+          r: dirY * (6 + (dist - 1) * 2),
         };
       });
     }
