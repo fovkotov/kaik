@@ -70,26 +70,15 @@ function scrollYForCard(index, count, params) {
 }
 
 /**
- * Mobile rest: card tops just enter `--frame-h` from below (a ~10–20px sliver).
- * Flight still goes that peek → fully off the top.
+ * Distance from the focus card: 0 = at center, + = waiting below, − = passed/fading.
  */
-function mobileRestTossY(el, cardH, vh, t, params) {
-  const peekRaw = Number(params.peekPx);
-  const peek = Number.isFinite(peekRaw) ? peekRaw : 16;
-  const cs = getComputedStyle(el);
-  const topPx = Number.parseFloat(cs.top);
-  const marginTop = Number.parseFloat(cs.marginTop);
-  const restTop =
-    (Number.isFinite(topPx) ? topPx : vh * 0.5) +
-    (Number.isFinite(marginTop) ? marginTop : -cardH / 2);
-  const restY = vh - peek - restTop;
-  const exitY = restTop + cardH + 24;
-  return restY - t * (restY + exitY) * (params.travelMult ?? 1);
+function mobileStackSlot(index, focus) {
+  return index - focus;
 }
 
 /**
  * Desktop: scroll-driven stack + cursor parallax (right → left).
- * Mobile: same lead curve, vertical only — cards rise from below the viewport.
+ * Mobile: physical deck — rear cards smaller and slightly higher, grow to the front.
  */
 function initDeck() {
   const cards = [...document.querySelectorAll("[data-card]")];
@@ -109,6 +98,8 @@ function initDeck() {
     tip: Number(card.dataset.tip || 12),
     baseZ: Number.parseInt(getComputedStyle(card).zIndex, 10) || cards.length - index,
     hover: 0,
+    /** Un-spread visual box; never a live dest/fly rect. */
+    home: null,
   }));
 
   const pointer = { x: 0, y: 0 };
@@ -127,8 +118,8 @@ function initDeck() {
   /** @type {null | { id: number, startX: number, startY: number, startProgress: number, lastY: number, lastT: number, vel: number, moved: boolean }} */
   let drag = null;
   const RUBBER = 0.28;
-  const INERTIA_FRICTION = 0.92;
   const INERTIA_MIN = 0.00035;
+  const INERTIA_DECEL = 0.00055;
   /** Scroll/parallax freeze while the program card is in-deck focused */
   let freezeY = null;
   let spread = 0;
@@ -137,10 +128,13 @@ function initDeck() {
   let spreadT0 = 0;
   /** @type {null | { x: number, y: number, r: number }[]} */
   let spreadPlan = null;
+  let spreadPlanFrom = null;
   let spreadPlanFor = -2;
+  let spreadMix = 1;
+  let spreadMixT0 = 0;
   const SPREAD_MS = 920;
   const SPREAD_OUT_MS = 1100;
-  const FOCUS_SEL = "[data-focus-card], [data-program-card]";
+  const FOCUS_SEL = "[data-card]";
   const programIndex = state.findIndex((item) => item.el.hasAttribute("data-program-card"));
   const lockup = document.querySelector("[data-lockup]");
   if (lockup) {
@@ -170,8 +164,10 @@ function initDeck() {
 
   function cardUnitPx(params) {
     const h = state[0]?.el.offsetHeight || 400;
-    // 3× the previous mobile unit (2.04) so the same swipe advances the stack a third as far.
-    return (h * 6.12) / Math.max(0.3, params.dragSensitivity ?? 1.2);
+    // 1.36 = 2.04 / 1.5 — same swipe advances another 1.5× farther.
+    // Floor 0.05 (was 0.3) so the speed slider works below 0.3.
+    const sens = Number(params.dragSensitivity);
+    return (h * 1.36) / Math.max(0.05, Number.isFinite(sens) ? sens : 1);
   }
 
   function applyRubber(raw) {
@@ -237,11 +233,50 @@ function initDeck() {
     return 1 - (1 - x) ** 4;
   }
 
+  /** Match `--fly-ease`: cubic-bezier(0.22, 1, 0.32, 1). */
+  const flyEase = (() => {
+    const cx = 3 * 0.22;
+    const bx = 3 * (0.32 - 0.22) - cx;
+    const ax = 1 - cx - bx;
+    const cy = 3 * 1;
+    const by = 3 * (1 - 1) - cy;
+    const ay = 1 - cy - by;
+    const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+    const sampleDx = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+    return (t) => {
+      const time = clamp(t, 0, 1);
+      let x = time;
+      for (let i = 0; i < 6; i += 1) {
+        const z = sampleX(x) - time;
+        const d = sampleDx(x);
+        if (Math.abs(z) < 1e-5 || Math.abs(d) < 1e-6) break;
+        x -= z / d;
+      }
+      return sampleY(x);
+    };
+  })();
+
+  function spreadAt(plan, i) {
+    return plan?.[i] ?? { x: 0, y: 0, r: 0 };
+  }
+
+  function mixedSpread(i) {
+    const to = spreadAt(spreadPlan, i);
+    if (!spreadPlanFrom || spreadMix >= 1) return to;
+    const from = spreadAt(spreadPlanFrom, i);
+    return {
+      x: lerp(from.x, to.x, spreadMix),
+      y: lerp(from.y, to.y, spreadMix),
+      r: lerp(from.r, to.r, spreadMix),
+    };
+  }
+
   /**
-   * Push siblings away from the focused dest using live rects (any scroll pose).
-   * Desktop: original left/right clear (small Y). Unchanged.
-   * Mobile: siblings leave the iframe (up / down / out) so the open card is alone.
-   * Any fly-lock card (program, history, student work, works) is the focus.
+   * Sibling spread from stable deck index, not live screen X.
+   * Focus i: j < i → left; j > i → right. Desktop Y = 0.
+   * Landing is dest edge + gap (and width on the left), in deck-local space,
+   * then clamped so a peek stays inside the iframe — no post-tween remasure.
    */
   function measureSpread(focusEl, focusIndex) {
     const mobile = isMobile();
@@ -251,34 +286,54 @@ function initDeck() {
       Number.parseFloat(
         getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
       ) || 1;
-    const toLocal = (px) => px / Math.max(0.35, deckScale);
+    const scale = Math.max(0.35, deckScale);
+    const toLocal = (px) => px / scale;
 
-    const focusRect = focusEl?.getBoundingClientRect();
-    const focusCx = focusRect ? focusRect.left + focusRect.width / 2 : vw / 2;
-    const focusCy = focusRect ? focusRect.top + focusRect.height / 2 : vh / 2;
+    const homeBox = (item, i) => {
+      const flying =
+        item.el.hasAttribute("data-fly-lock") ||
+        item.el.classList.contains("is-program-open") ||
+        item.el.classList.contains("is-fly-pinned");
+      if (flying && item.home) return { ...item.home };
+      const rect = item.el.getBoundingClientRect();
+      const kick = mixedSpread(i);
+      const dx = kick.x * spread * scale;
+      const dy = kick.y * spread * scale;
+      const box = {
+        left: rect.left - dx,
+        right: rect.right - dx,
+        top: rect.top - dy,
+        bottom: rect.bottom - dy,
+        width: rect.width,
+        height: rect.height,
+      };
+      if (!flying) item.home = box;
+      return box;
+    };
+
+    const stackDir = (i) => (focusIndex >= 0 && i < focusIndex ? -1 : 1);
 
     if (mobile) {
       const destL = 0;
       const destT = 0;
       const destR = vw;
       const destB = vh;
+      const destCy = vh / 2;
       const gap = 28;
       return state.map((item, i) => {
         if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
-        const rect = item.el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
+        const box = homeBox(item, i);
+        const cy = box.top + box.height / 2;
         const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
-        const dirX =
-          cx < focusCx - 6 ? -1 : cx > focusCx + 6 ? 1 : focusIndex >= 0 && i < focusIndex ? -1 : 1;
-        const clearlyAbove = cy + rect.height * 0.2 < focusCy;
+        const dirX = stackDir(i);
+        const clearlyAbove = cy + box.height * 0.2 < destCy;
         const dirY = clearlyAbove ? -1 : 1;
         const clearX =
-          dirX < 0 ? Math.max(0, rect.right + gap - destL) : Math.max(0, destR + gap - rect.left);
+          dirX < 0 ? Math.max(0, box.right + gap - destL) : Math.max(0, destR + gap - box.left);
         const clearY =
-          dirY < 0 ? Math.max(0, rect.bottom + gap - destT) : Math.max(0, destB + gap - rect.top);
+          dirY < 0 ? Math.max(0, box.bottom + gap - destT) : Math.max(0, destB + gap - box.top);
         const kickX = Math.max(380, vw * 0.55) + (dist - 1) * 130;
-        const kickY = Math.max(480, vh * 0.85, rect.height + 220) + (dist - 1) * 160;
+        const kickY = Math.max(480, vh * 0.85, box.height + 220) + (dist - 1) * 160;
         return {
           x: dirX * toLocal(Math.max(clearX, kickX)),
           y: dirY * toLocal(clearY + kickY),
@@ -306,38 +361,34 @@ function initDeck() {
     const destL = (vw - openW) / 2;
     const destR = destL + openW;
     const gap = works ? 64 : 40;
-    const spreadMul = works ? 1.4 : 1;
-    const baseX = 100 * spreadMul;
-    const stepX = 44 * spreadMul;
-    const baseY = 28 * spreadMul;
-    const stepY = 12 * spreadMul;
+    const stepX = works ? 62 : 44;
     const baseR = 2.8;
     const stepR = 0.55;
+    const peek = 64;
 
     return state.map((item, i) => {
       if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
-      const rect = item.el.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
+      const box = homeBox(item, i);
       const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
-      const dirX =
-        cx < focusCx - 6 ? -1 : cx > focusCx + 6 ? 1 : focusIndex >= 0 && i < focusIndex ? -1 : 1;
-      const dirY = cy < focusCy - 6 ? -1 : cy > focusCy + 6 ? 1 : i % 2 === 0 ? -1 : 1;
-      const clearX =
-        dirX < 0 ? Math.max(0, rect.right + gap - destL) : Math.max(0, destR + gap - rect.left);
+      const dirX = stackDir(i);
+      const extra = (dist - 1) * stepX;
+      const rotPad = Math.abs(Math.sin((item.baseRotate * Math.PI) / 180)) * box.height * 0.35;
+      let targetLeft =
+        dirX < 0 ? destL - gap - rotPad - extra - box.width : destR + gap + rotPad + extra;
+      const peekStack = Math.min(Math.max(24, box.width - 12), peek + (dist - 1) * 14);
+      targetLeft = Math.max(peekStack - box.width, Math.min(vw - peekStack, targetLeft));
       return {
-        x: dirX * Math.max(baseX + (dist - 1) * stepX, clearX),
-        y: dirY * (baseY + (dist - 1) * stepY),
+        x: toLocal(targetLeft - box.left),
+        y: 0,
         r: dirX * (baseR + (dist - 1) * stepR) * (works ? 1.2 : 1),
       };
     });
   }
 
   state.forEach((item) => {
-    if (!item.el.matches(FOCUS_SEL) || item.el.hasAttribute("data-work-card")) return;
-
     item.el.addEventListener("pointerenter", () => {
       if (isMobile()) return;
+      if (programLocked()) return;
       hoveredIndex = item.index;
       item.el.classList.add("is-hovered");
     });
@@ -386,7 +437,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    "a, button, [data-tweaks], [data-tweaks-reopen], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
@@ -429,12 +480,12 @@ function initDeck() {
 
     const params = getParams();
     const unit = cardUnitPx(params);
-    dragProgress = applyRubber(drag.startProgress - dy / unit);
+    dragProgress = applyRubber(drag.startProgress + dy / unit);
 
     const now = performance.now();
     const dt = Math.max(1, now - drag.lastT);
     const vy = (event.clientY - drag.lastY) / dt;
-    drag.vel = -vy / unit;
+    drag.vel = vy / unit;
     drag.lastY = event.clientY;
     drag.lastT = now;
 
@@ -481,7 +532,7 @@ function initDeck() {
     "wheel",
     (event) => {
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -512,7 +563,7 @@ function initDeck() {
     (event) => {
       if (!isMobile()) return;
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -553,14 +604,14 @@ function initDeck() {
     const mobile = isMobile();
     const { width: vw, height: vh } = getViewportSize();
     const totalScroll = maxProgress(state.length, params);
-    const fan = mobile ? params.fanScale ?? 0.12 : 1;
+    const fan = mobile ? params.fanScale ?? 0.3 : 1;
     const travel = mobile ? 0 : vw * params.travelMult;
 
     const locked = programLocked();
     if (!locked && mobile && !drag) {
       if (snapAnim) {
         const u = clamp((performance.now() - snapAnim.t0) / snapAnim.dur, 0, 1);
-        dragProgress = lerp(snapAnim.from, snapAnim.to, 1 - (1 - u) ** 3);
+        dragProgress = lerp(snapAnim.from, snapAnim.to, u);
         if (u >= 1) {
           const done = snapAnim.onDone;
           dragProgress = snapAnim.to;
@@ -571,12 +622,13 @@ function initDeck() {
         const max = deckMax();
         if (dragProgress < 0 || dragProgress > max) {
           const target = dragProgress < 0 ? 0 : max;
-          dragProgress = lerp(dragProgress, target, 0.22);
           dragInertia = 0;
-          if (Math.abs(dragProgress - target) < 0.003) dragProgress = target;
+          animateProgress(target);
         } else if (Math.abs(dragInertia) > INERTIA_MIN) {
           dragProgress += dragInertia;
-          dragInertia *= INERTIA_FRICTION;
+          const sign = Math.sign(dragInertia);
+          dragInertia -= sign * INERTIA_DECEL;
+          if (Math.sign(dragInertia) !== sign) dragInertia = 0;
         } else {
           dragInertia = 0;
         }
@@ -584,18 +636,51 @@ function initDeck() {
     }
 
     holdFlyLock();
+    const deckScaleNow =
+      Number.parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
+      ) || 1;
+    const spreadScale = Math.max(0.35, deckScaleNow);
     const y = freezeY != null ? freezeY : mobile ? dragProgress : root.scrollTop || 0;
     const originY = 0;
     const p = clamp(totalScroll ? y / totalScroll : 0, 0, 1);
 
     const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
+    const focusOpenIndex = state.findIndex((entry) => entry.el.hasAttribute("data-focus-open"));
     const lockedIndex = state.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
-    const openingIndex = state.findIndex((entry) => entry.el.classList.contains("is-program-open"));
+    const openingIndex = state.findIndex(
+      (entry) =>
+        entry.el.classList.contains("is-program-open") &&
+        !entry.el.classList.contains("is-fly-pinned"),
+    );
     const spreadAround =
-      lockedIndex >= 0 ? lockedIndex : openingIndex >= 0 ? openingIndex : programIndex;
-    if (wantSpread && (!spreadPlan || spreadPlanFor !== spreadAround)) {
-      spreadPlan = measureSpread(spreadAround >= 0 ? state[spreadAround].el : null, spreadAround);
+      focusOpenIndex >= 0
+        ? focusOpenIndex
+        : openingIndex >= 0
+          ? openingIndex
+          : lockedIndex >= 0
+            ? lockedIndex
+            : programIndex;
+    if (wantSpread && spreadPlanFor !== spreadAround) {
+      const next = measureSpread(spreadAround >= 0 ? state[spreadAround].el : null, spreadAround);
+      if (spreadPlan && spreadPlanFor >= 0 && spreadAround >= 0 && spreadPlanFor !== spreadAround) {
+        spreadPlanFrom = state.map((_, i) => mixedSpread(i));
+        spreadMix = 0;
+        spreadMixT0 = performance.now();
+      } else {
+        spreadPlanFrom = null;
+        spreadMix = 1;
+      }
+      spreadPlan = next;
       spreadPlanFor = spreadAround;
+    }
+    if (spreadMix < 1) {
+      const u = reduceMotionSpread() ? 1 : clamp((performance.now() - spreadMixT0) / SPREAD_MS, 0, 1);
+      spreadMix = flyEase(u);
+      if (u >= 1) {
+        spreadMix = 1;
+        spreadPlanFrom = null;
+      }
     }
     if (wantSpread !== spreadTarget) {
       spreadTarget = wantSpread;
@@ -610,7 +695,9 @@ function initDeck() {
     }
     if (!wantSpread && spread === 0) {
       spreadPlan = null;
+      spreadPlanFrom = null;
       spreadPlanFor = -2;
+      spreadMix = 1;
     }
 
     const inputX = mobile ? 0 : pointer.x;
@@ -621,46 +708,91 @@ function initDeck() {
     }
 
     state.forEach((item, i) => {
-      const t = cardFlightT(i, state.length, params, p);
+      const t = mobile ? 0 : cardFlightT(i, state.length, params, p);
+      const slot = mobileStackSlot(i, y);
 
-      const flyLocked = item.el.hasAttribute("data-fly-lock");
+      if (item.el.hasAttribute("data-rest-lock")) {
+        if (spread > 0.001) {
+          if (mobile) {
+            item.el.style.zIndex = String(state.length - i);
+            item.el.style.opacity = "1";
+            item.el.style.pointerEvents = "";
+          }
+          return;
+        }
+        item.el.removeAttribute("data-rest-lock");
+      }
+
+      const flyLocked =
+        item.el.hasAttribute("data-fly-lock") ||
+        item.el.classList.contains("is-program-open") ||
+        item.el.classList.contains("is-fly-pinned");
       if (flyLocked) {
         if (hoveredIndex === i) hoveredIndex = -1;
         item.hover = 0;
-        if (mobile) item.el.style.zIndex = String(i + 1);
+        if (mobile) {
+          item.el.style.zIndex = String(state.length - i);
+          item.el.style.opacity = "1";
+          item.el.style.pointerEvents = "";
+        }
         return;
       }
 
-      const hoverTarget =
-        !mobile && !locked && hoveredIndex === i && !item.el.hasAttribute("data-work-card") ? 1 : 0;
+      const homeRect = item.el.getBoundingClientRect();
+      const homeKick = mixedSpread(i);
+      item.home = {
+        left: homeRect.left - homeKick.x * spread * spreadScale,
+        right: homeRect.right - homeKick.x * spread * spreadScale,
+        top: homeRect.top - homeKick.y * spread * spreadScale,
+        bottom: homeRect.bottom - homeKick.y * spread * spreadScale,
+        width: homeRect.width,
+        height: homeRect.height,
+      };
+
+      const hoverTarget = !mobile && !locked && hoveredIndex === i ? 1 : 0;
       item.hover = lerp(item.hover, hoverTarget, params.hoverLerp);
 
       const depth = Math.pow(params.cursorFalloff, i);
       const pointerAmt = locked ? 0 : depth;
       const parallaxX = mobile ? 0 : pointerSmooth.x * params.parallaxX * pointerAmt;
-      const parallaxY = pointerSmooth.y * params.parallaxY * pointerAmt;
+      const parallaxY = mobile ? 0 : pointerSmooth.y * params.parallaxY * pointerAmt;
       const cursorRotY = mobile ? 0 : pointerSmooth.x * params.cursorTiltY * pointerAmt;
-      const cursorRotX = -pointerSmooth.y * params.cursorTiltX * pointerAmt;
+      const cursorRotX = mobile ? 0 : -pointerSmooth.y * params.cursorTiltX * pointerAmt;
       const cursorRotZ = mobile ? 0 : pointerSmooth.x * params.cursorTiltZ * pointerAmt * 0.65;
 
       const baseX = item.baseX * fan;
       const baseY = mobile ? 0 : item.baseY * fan;
 
       const cardH = item.el.offsetHeight || vh * 0.55;
-      const hide = (vh + cardH) / 2 + 24;
-      const travelY = hide * 2 * (params.travelMult ?? 1);
-
       const tossX = mobile ? 0 : params.travelDir * t * travel;
-      const tossY = mobile
-        ? mobileRestTossY(item.el, cardH, vh, t, params)
-        : t * (i % 2 === 0 ? -params.driftY : params.driftY);
+      let tossY;
+      let stackScale = 1;
+      if (mobile) {
+        const lift = Number.isFinite(Number(params.stackLift)) ? Number(params.stackLift) : 8;
+        const rear = clamp(Number(params.rearScale) || 0.55, 0.2, 1);
+        const curve = Math.max(0.2, Number(params.scaleProgress) || 1);
+        if (slot >= 0) {
+          const depthT = clamp(slot, 0, 5) / 5;
+          stackScale = lerp(1, rear, depthT ** curve);
+          const scaleComp = (cardH * (1 - stackScale)) / 2;
+          tossY = -slot * lift - scaleComp;
+        } else {
+          const pass = clamp(-slot, 0, 1);
+          stackScale = 1 - 0.06 * pass;
+          tossY = pass * 16;
+        }
+      } else {
+        tossY = t * (i % 2 === 0 ? -params.driftY : params.driftY);
+      }
       const scrollX = mobile ? baseX : baseX + tossX;
       const scrollY = baseY - originY + tossY;
+      const stackOpacity =
+        !mobile || wantSpread ? 1 : slot >= 0 ? 1 : clamp(1 + slot * 1.25, 0, 1);
 
-      const planned = spreadPlan?.[i];
-      const spreadX = (planned?.x ?? 0) * spread;
-      const spreadY = (planned?.y ?? 0) * spread;
-      const spreadR = (planned?.r ?? 0) * spread;
+      const planned = mixedSpread(i);
+      const spreadX = planned.x * spread;
+      const spreadY = planned.y * spread;
+      const spreadR = planned.r * spread;
 
       const worksCard = item.el.hasAttribute("data-works-card");
       const worksX = worksCard ? Number(params.worksShiftX) || 0 : 0;
@@ -673,8 +805,13 @@ function initDeck() {
       const dragTilt =
         mobile && drag?.moved ? clamp((drag.startY - drag.lastY) * 0.035, -12, 12) : 0;
 
+      const twist = mobile
+        ? Number.isFinite(Number(params.cardRotate))
+          ? Number(params.cardRotate)
+          : 1
+        : 1;
       const rotateZ =
-        item.baseRotate * fan +
+        item.baseRotate * twist +
         t * item.tip * params.tipScale +
         cursorRotZ +
         dragTilt * depth +
@@ -685,10 +822,12 @@ function initDeck() {
       const rotateX =
         t * params.rotateXAmt * (i % 2 === 0 ? -1 : 1) + cursorRotX;
 
-      item.el.style.transform = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
+      item.el.style.transform = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${stackScale})`;
+      item.el.style.opacity = mobile ? String(stackOpacity) : "";
+      item.el.style.pointerEvents = mobile && stackOpacity < 0.16 ? "none" : "";
       if (mobile) {
-        // Later cards (still below) paint over earlier ones already flying up.
-        item.el.style.zIndex = String(i + 1);
+        // Current/earlier cards stay in front while they fade, next sits underneath.
+        item.el.style.zIndex = String(state.length - i);
       } else if (!item.el.matches(FOCUS_SEL)) {
         item.el.style.zIndex = String(item.baseZ);
       } else {
@@ -788,12 +927,7 @@ function bindNavOpen(selector, programApi, isCurrent, open) {
       event.preventDefault();
       event.stopPropagation();
       if (isCurrent()) return;
-      const go = () => open();
-      if (programApi.isFocused()) {
-        programApi.close(go);
-        return;
-      }
-      go();
+      open();
     });
   });
 }

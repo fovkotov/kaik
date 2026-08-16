@@ -50,16 +50,22 @@ export const MOBILE = {
   progressGain: 2.7,
   speedStep: 0.08,
   speedMin: 0.07,
-  ease: "inOutCubic",
+  ease: "linear",
 
   driftY: 18,
   tipScale: 2.55,
   rotateYBase: 0,
   rotateYStep: 0,
   rotateXAmt: 3,
-  fanScale: 0.3,
-  /** Visible top-edge sliver at rest (px of `--frame-h`). */
-  peekPx: 9,
+  fanScale: 0.2,
+  /** Multiplier on each card's data-base-rotate. 0 = straight, 1 = authored, >1 = more twist. */
+  cardRotate: 1,
+  /** Y lift per waiting slot (px). 0 = flat pile, higher = rear cards sit up. */
+  stackLift: 8,
+  /** Scale of the furthest waiting card (slot ≥ 5). Front is always 1. */
+  rearScale: 0.55,
+  /** Size curve back → front. 1 = linear; >1 front stays large longer. */
+  scaleProgress: 1.05,
 
   deckLeftPct: 50,
   deckScale: 1,
@@ -78,8 +84,8 @@ export const MOBILE = {
 
   hoverLift: 30,
   hoverLerp: 0.2,
-  /** Lower = more finger/wheel travel per card (slower stack). */
-  dragSensitivity: 0.1,
+  /** Higher = less finger travel per card (faster stack). */
+  dragSensitivity: 1.05,
 
   /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
   worksShiftX: 0,
@@ -91,8 +97,14 @@ const DESKTOP_DEFAULTS = { ...DESKTOP };
 const MOBILE_DEFAULTS = { ...MOBILE };
 
 export const MOBILE_MQ = "(max-width: 900px)";
-const STORAGE_KEY = "kaik-deck-tweaks-v6";
-const LEGACY_STORAGE_KEYS = ["kaik-deck-tweaks-v5", "kaik-deck-tweaks-v4", "kaik-deck-tweaks-v3"];
+const STORAGE_KEY = "kaik-deck-tweaks-v8";
+const LEGACY_STORAGE_KEYS = [
+  "kaik-deck-tweaks-v7",
+  "kaik-deck-tweaks-v6",
+  "kaik-deck-tweaks-v5",
+  "kaik-deck-tweaks-v4",
+  "kaik-deck-tweaks-v3",
+];
 const UI_STORAGE_KEY = "kaik-deck-tweaks-ui-v3";
 /** Bump to force-write DESKTOP over a stale desktop blob. */
 const DESKTOP_REV = 5;
@@ -227,7 +239,7 @@ export function applyDeckParams() {
   );
   syncCardMetrics();
   document.querySelectorAll("[data-card]").forEach((card) => {
-    if (card.hasAttribute("data-fly-lock")) return;
+    if (card.hasAttribute("data-fly-lock") || card.classList.contains("is-fly-pinned")) return;
     // Desktop is right-pinned. Mobile stays centered at deckLeftPct 50
     // (left % + margin-left: -card-w/2); only a mobile slider moves it.
     if (mobile) {
@@ -267,15 +279,24 @@ export function easeByName(name, t) {
   }
 }
 
+const STRIP_FIELDS = [
+  { key: "cardRotate", label: "поворот карточек", min: 0, max: 3, step: 0.05 },
+  { key: "fanScale", label: "веер", min: 0, max: 2, step: 0.05 },
+  { key: "stackLift", label: "разложенность вверх", min: 0, max: 48, step: 1 },
+  { key: "rearScale", label: "размер задней", min: 0.25, max: 1, step: 0.01 },
+  { key: "scaleProgress", label: "прогрессия размера", min: 0.3, max: 3, step: 0.05 },
+  { key: "dragSensitivity", label: "скорость скролла", min: 0.15, max: 4, step: 0.05 },
+];
+
 const FIELDS = [
   {
     group: "Полёт",
     items: [
       {
         key: "dragSensitivity",
-        label: "скорость свайпа (больше — быстрее)",
-        min: 0.05,
-        max: 5,
+        label: "скорость скролла",
+        min: 0.15,
+        max: 4,
         step: 0.05,
         mobileOnly: true,
       },
@@ -288,7 +309,6 @@ const FIELDS = [
         desktopOnly: true,
       },
       { key: "travelMult", label: "дальность полёта", min: 0.1, max: 20, step: 0.05 },
-      { key: "peekPx", label: "выглядывание в покое (px)", min: 0, max: 120, step: 1, mobileOnly: true },
       { key: "progressGain", label: "лид (какая карточка в центре)", min: 0.1, max: 10, step: 0.05 },
       { key: "speedStep", label: "кривая замедления", min: 0, max: 1, step: 0.005 },
       { key: "speedMin", label: "скорость самой медленной", min: 0.01, max: 1, step: 0.01 },
@@ -309,7 +329,11 @@ const FIELDS = [
   {
     group: "Стопка / наклон",
     items: [
-      { key: "fanScale", label: "размах веера", min: 0, max: 4, step: 0.05, mobileOnly: true },
+      { key: "cardRotate", label: "поворот карточек", min: 0, max: 3, step: 0.05, mobileOnly: true },
+      { key: "fanScale", label: "веер", min: 0, max: 2, step: 0.05, mobileOnly: true },
+      { key: "stackLift", label: "разложенность вверх", min: 0, max: 48, step: 1, mobileOnly: true },
+      { key: "rearScale", label: "размер задней", min: 0.25, max: 1, step: 0.01, mobileOnly: true },
+      { key: "scaleProgress", label: "прогрессия размера", min: 0.3, max: 3, step: 0.05, mobileOnly: true },
       { key: "tipScale", label: "поворот кончика", min: 0, max: 12, step: 0.05 },
       { key: "rotateXAmt", label: "наклон rotateX (°)", min: 0, max: 120, step: 0.5 },
       { key: "deckLeftPct", label: "стопка слева %", min: 0, max: 100, step: 0.5, mobileOnly: true },
@@ -351,6 +375,7 @@ function isStaleMobileSnapshot(mobile) {
     mobile.fanScale === 0.28 ||
     mobile.fanScale === 0.12 ||
     mobile.ease === "outCubic" ||
+    mobile.dragSensitivity === 0.1 ||
     (mobile.travelMult === 1 && mobile.dragSensitivity === 1.2 && mobile.peekPx === 16) ||
     (mobile.travelMult === 5 &&
       mobile.progressGain === 3.2 &&
@@ -368,6 +393,16 @@ function applyMobileSaved(mobile) {
     return;
   }
   Object.assign(MOBILE, mobile);
+  for (const key of [
+    "stackLift",
+    "rearScale",
+    "scaleProgress",
+    "fanScale",
+    "cardRotate",
+    "dragSensitivity",
+  ]) {
+    if (!Number.isFinite(Number(MOBILE[key]))) MOBILE[key] = MOBILE_DEFAULTS[key];
+  }
 }
 
 function applyEditMode(data) {
@@ -390,8 +425,8 @@ function loadSaved() {
       }
       applyEditMode(data);
     } else {
-      // v6 drops saved mobile so phones pick up the new defaults.
-      // Desktop + editMode migrate from v5/v4/v3 when the desktop rev still matches.
+      // v8 drops saved mobile so phones pick up the tuned defaults.
+      // Desktop + editMode migrate from older keys when the desktop rev still matches.
       persist = true;
       for (const key of LEGACY_STORAGE_KEYS) {
         const legacyRaw = storage.getItem(key);
@@ -473,6 +508,26 @@ export function initTweaks(onChange) {
   reopen.textContent = "настройки";
   reopen.setAttribute("aria-hidden", "true");
 
+  const strip = document.createElement("aside");
+  strip.className = "deck-tune";
+  strip.dataset.deckTune = "";
+  strip.innerHTML = `
+    <div class="deck-tune__bar">
+      <span class="deck-tune__title">стопка</span>
+      <button type="button" class="deck-tune__reset" data-deck-tune-copy>JSON</button>
+      <button type="button" class="deck-tune__reset" data-deck-tune-reset>сброс</button>
+      <button type="button" class="deck-tune__hide" data-deck-tune-hide aria-expanded="true">
+        скрыть
+      </button>
+    </div>
+    <div class="deck-tune__body" data-deck-tune-body></div>
+    <button type="button" class="deck-tune__tab" data-deck-tune-open aria-label="Показать настройки стопки">
+      стопка
+      <span class="deck-tune__chevron" aria-hidden="true"></span>
+    </button>
+  `;
+  const stripBody = strip.querySelector("[data-deck-tune-body]");
+
   const body = root.querySelector("[data-tweaks-body]");
 
   function buildFields() {
@@ -535,6 +590,31 @@ export function initTweaks(onChange) {
     body.append(frag);
   }
 
+  function buildStrip() {
+    stripBody.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    STRIP_FIELDS.forEach((field) => {
+      const row = document.createElement("label");
+      row.className = "tweaks__row";
+      row.dataset.key = field.key;
+      row.innerHTML = `
+        <span class="tweaks__label">${field.label}</span>
+        <span class="tweaks__value" data-value>${formatValue(field.key, MOBILE[field.key])}</span>
+        <input
+          class="tweaks__range"
+          type="range"
+          data-param="${field.key}"
+          min="${field.min}"
+          max="${field.max}"
+          step="${field.step}"
+          value="${MOBILE[field.key]}"
+        />
+      `;
+      frag.append(row);
+    });
+    stripBody.append(frag);
+  }
+
   function syncModeButtons() {
     root.querySelectorAll("[data-mode]").forEach((btn) => {
       btn.classList.toggle("is-active", btn.getAttribute("data-mode") === editMode);
@@ -573,6 +653,13 @@ export function initTweaks(onChange) {
     writeUiState({ collapsed });
   }
 
+  function setStripCollapsed(collapsed) {
+    strip.classList.toggle("is-collapsed", collapsed);
+    const hideBtn = strip.querySelector("[data-deck-tune-hide]");
+    if (hideBtn) hideBtn.setAttribute("aria-expanded", String(!collapsed));
+    writeUiState({ stripCollapsed: collapsed });
+  }
+
   function notify() {
     applyDeckParams();
     save();
@@ -580,12 +667,15 @@ export function initTweaks(onChange) {
   }
 
   buildFields();
+  buildStrip();
   syncModeButtons();
   document.body.append(root);
   document.body.append(reopen);
+  document.body.append(strip);
 
   const ui = readUiState();
   if (ui.collapsed === true || (ui.collapsed == null && isMobile())) setCollapsed(true);
+  setStripCollapsed(ui.stripCollapsed === true);
   const wantOpen = (() => {
     try {
       return new URLSearchParams(window.location.search).has("tweaks");
@@ -597,15 +687,11 @@ export function initTweaks(onChange) {
 
   root.addEventListener("pointerdown", (event) => event.stopPropagation());
   reopen.addEventListener("pointerdown", (event) => event.stopPropagation());
+  strip.addEventListener("pointerdown", (event) => event.stopPropagation());
 
-  root.addEventListener("input", (event) => {
-    const el = event.target;
-    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement)) return;
+  function applyParamInput(el, target) {
     const key = el.dataset.param;
-    if (!key) return;
-    const target = getEditTarget();
-    if (!(key in target)) return;
-
+    if (!key || !(key in target)) return false;
     if (el instanceof HTMLSelectElement) {
       target[key] = el.value;
     } else {
@@ -613,6 +699,21 @@ export function initTweaks(onChange) {
       const valueEl = el.closest(".tweaks__row")?.querySelector("[data-value]");
       if (valueEl) valueEl.textContent = formatValue(key, target[key]);
     }
+    return true;
+  }
+
+  root.addEventListener("input", (event) => {
+    const el = event.target;
+    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement)) return;
+    if (!applyParamInput(el, getEditTarget())) return;
+    if (getEditTarget() === MOBILE) buildStrip();
+    notify();
+  });
+
+  strip.addEventListener("input", (event) => {
+    const el = event.target;
+    if (!(el instanceof HTMLInputElement)) return;
+    if (!applyParamInput(el, MOBILE)) return;
     notify();
   });
 
@@ -666,7 +767,70 @@ export function initTweaks(onChange) {
   root.querySelector("[data-tweaks-reset]").addEventListener("click", () => {
     Object.assign(getEditTarget(), getEditDefaults());
     buildFields();
+    buildStrip();
     notify();
+  });
+
+  strip.querySelector("[data-deck-tune-reset]").addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    Object.assign(MOBILE, MOBILE_DEFAULTS);
+    buildFields();
+    buildStrip();
+    notify();
+  });
+
+  strip.querySelector("[data-deck-tune-hide]").addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setStripCollapsed(true);
+  });
+
+  strip.querySelector("[data-deck-tune-open]").addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setStripCollapsed(false);
+  });
+
+  function showJsonFallback(text) {
+    let box = strip.querySelector("[data-deck-tune-json]");
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "deck-tune__json";
+      box.dataset.deckTuneJson = "";
+      box.innerHTML = `
+        <textarea class="deck-tune__json-text" readonly rows="8"></textarea>
+        <button type="button" class="deck-tune__reset" data-deck-tune-json-close>закрыть</button>
+      `;
+      stripBody.prepend(box);
+      box.querySelector("[data-deck-tune-json-close]").addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        box.hidden = true;
+      });
+    }
+    const ta = box.querySelector("textarea");
+    ta.value = text;
+    box.hidden = false;
+    ta.focus();
+    ta.select();
+  }
+
+  strip.querySelector("[data-deck-tune-copy]").addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const btn = event.currentTarget;
+    const text = JSON.stringify(MOBILE, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      const prev = btn.textContent;
+      btn.textContent = "скопировано";
+      setTimeout(() => {
+        btn.textContent = prev;
+      }, 1200);
+    } catch {
+      showJsonFallback(text);
+    }
   });
 
   root.querySelector("[data-tweaks-copy]").addEventListener("click", async () => {

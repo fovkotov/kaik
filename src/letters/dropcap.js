@@ -1,5 +1,6 @@
 import { getScrollRoot, getViewportSize, safeSessionStorage } from "../embed.js";
 import { publicUrl } from "../public-url.js";
+import { isMobile } from "../tweaks.js";
 import {
   allLetters,
   clickPool,
@@ -92,6 +93,10 @@ function hidePopover() {
 }
 
 function showPopover(button, entry) {
+  if (isMobile()) {
+    hidePopover();
+    return;
+  }
   const popover = ensurePopover();
   popover.hidden = false;
   popover.querySelector("[data-pop-author]").textContent = entry.author;
@@ -227,7 +232,7 @@ export async function initDropcaps() {
           const next = await paintFromPool(button, clickPool(catalog, char), prevId);
           if (!next || next.id === prevId) return;
           remember(slot, next.id);
-          showPopover(button, next);
+          if (!isMobile()) showPopover(button, next);
         });
       }),
     );
@@ -247,6 +252,10 @@ export async function initDropcaps() {
   window.addEventListener(
     "resize",
     () => {
+      if (isMobile()) {
+        hidePopover();
+        return;
+      }
       const popover = document.querySelector("[data-dropcap-popover]");
       const slot = popover?.dataset.slot;
       if (!popover || popover.hidden || !slot) return;
