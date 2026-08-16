@@ -86,6 +86,8 @@ export const MOBILE = {
   hoverLerp: 0.2,
   /** Higher = less finger travel per card (faster stack). */
   dragSensitivity: 2.85,
+  /** Progress units the current card stays in focus (1 = one unit per card). */
+  focusSpan: 1,
 
   /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
   worksShiftX: 0,
@@ -97,8 +99,9 @@ const DESKTOP_DEFAULTS = { ...DESKTOP };
 const MOBILE_DEFAULTS = { ...MOBILE };
 
 export const MOBILE_MQ = "(max-width: 900px)";
-const STORAGE_KEY = "kaik-deck-tweaks-v9";
+const STORAGE_KEY = "kaik-deck-tweaks-v10";
 const LEGACY_STORAGE_KEYS = [
+  "kaik-deck-tweaks-v9",
   "kaik-deck-tweaks-v8",
   "kaik-deck-tweaks-v7",
   "kaik-deck-tweaks-v6",
@@ -285,8 +288,9 @@ const STRIP_FIELDS = [
   { key: "fanScale", label: "веер", min: 0, max: 2, step: 0.05 },
   { key: "stackLift", label: "разложенность вверх", min: 0, max: 48, step: 1 },
   { key: "rearScale", label: "размер задней", min: 0.25, max: 1, step: 0.01 },
-      { key: "scaleProgress", label: "прогрессия размера", min: 0.2, max: 3, step: 0.05 },
+  { key: "scaleProgress", label: "прогрессия размера", min: 0.2, max: 3, step: 0.05 },
   { key: "dragSensitivity", label: "скорость скролла", min: 0.15, max: 4, step: 0.05 },
+  { key: "focusSpan", label: "фокус карточки", min: 0.25, max: 4, step: 0.05 },
 ];
 
 const FIELDS = [
@@ -297,6 +301,14 @@ const FIELDS = [
         key: "dragSensitivity",
         label: "скорость скролла",
         min: 0.15,
+        max: 4,
+        step: 0.05,
+        mobileOnly: true,
+      },
+      {
+        key: "focusSpan",
+        label: "фокус карточки",
+        min: 0.25,
         max: 4,
         step: 0.05,
         mobileOnly: true,
@@ -401,6 +413,7 @@ function applyMobileSaved(mobile) {
     "fanScale",
     "cardRotate",
     "dragSensitivity",
+    "focusSpan",
   ]) {
     if (!Number.isFinite(Number(MOBILE[key]))) MOBILE[key] = MOBILE_DEFAULTS[key];
   }
@@ -426,7 +439,7 @@ function loadSaved() {
       }
       applyEditMode(data);
     } else {
-      // v9 drops saved mobile so phones pick up the tuned defaults.
+      // v10 drops saved mobile so phones pick up the tuned defaults.
       // Desktop + editMode migrate from older keys when the desktop rev still matches.
       persist = true;
       for (const key of LEGACY_STORAGE_KEYS) {

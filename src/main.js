@@ -72,8 +72,8 @@ function scrollYForCard(index, count, params) {
 /**
  * Distance from the focus card: 0 = at center, + = waiting below, − = passed/fading.
  */
-function mobileStackSlot(index, focus) {
-  return index - focus;
+function mobileStackSlot(index, focus, span = 1) {
+  return index - focus / Math.max(0.25, span);
 }
 
 /**
@@ -158,8 +158,13 @@ function initDeck() {
     requestAnimationFrame(() => requestAnimationFrame(done));
   }
 
+  function focusSpanOf(params = getParams()) {
+    const n = Number(params.focusSpan);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
   function deckMax() {
-    return Math.max(0, state.length - 1);
+    return Math.max(0, state.length - 1) * focusSpanOf();
   }
 
   function cardUnitPx(params) {
@@ -689,7 +694,7 @@ function initDeck() {
 
     state.forEach((item, i) => {
       const t = mobile ? 0 : cardFlightT(i, state.length, params, p);
-      const slot = mobileStackSlot(i, y);
+      const slot = mobileStackSlot(i, y, focusSpanOf(params));
 
       if (item.el.hasAttribute("data-rest-lock")) {
         if (spread > 0.001) {
@@ -803,7 +808,8 @@ function initDeck() {
 
       item.el.style.transform = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${stackScale})`;
       item.el.style.opacity = mobile ? String(stackOpacity) : "";
-      item.el.style.pointerEvents = mobile && stackOpacity < 0.16 ? "none" : "";
+      item.el.style.pointerEvents =
+        mobile && !(stackOpacity >= 0.999 && slot <= 0.02) ? "none" : "";
       if (mobile) {
         // Current/earlier cards stay in front while they fade, next sits underneath.
         item.el.style.zIndex = String(state.length - i);
@@ -836,8 +842,8 @@ function initDeck() {
 
     const params = getParams();
     const target = (() => {
+      if (isMobile()) return clamp(index * focusSpanOf(params), 0, deckMax());
       const y = scrollYForCard(index, state.length, params);
-      if (isMobile()) return clamp(y, 0, deckMax());
       const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
       return clamp(y, 0, maxTop || maxProgress(state.length, params));
     })();
