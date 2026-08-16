@@ -748,7 +748,7 @@ function initDeck() {
       let tossY;
       let stackScale = 1;
       if (mobile) {
-        const lift = Number.isFinite(Number(params.stackLift)) ? Number(params.stackLift) : 8;
+        const lift = Number.isFinite(Number(params.stackLift)) ? Number(params.stackLift) : 3;
         const rear = clamp(Number(params.rearScale) || 0.55, 0.2, 1);
         const curve = Math.max(0.2, Number(params.scaleProgress) || 1);
         if (slot >= 0) {

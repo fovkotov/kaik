@@ -57,15 +57,15 @@ export const MOBILE = {
   rotateYBase: 0,
   rotateYStep: 0,
   rotateXAmt: 3,
-  fanScale: 0.2,
+  fanScale: 0.05,
   /** Multiplier on each card's data-base-rotate. 0 = straight, 1 = authored, >1 = more twist. */
-  cardRotate: 1,
+  cardRotate: 1.7,
   /** Y lift per waiting slot (px). 0 = flat pile, higher = rear cards sit up. */
-  stackLift: 8,
+  stackLift: 3,
   /** Scale of the furthest waiting card (slot ≥ 5). Front is always 1. */
   rearScale: 0.55,
   /** Size curve back → front. 1 = linear; >1 front stays large longer. */
-  scaleProgress: 1.05,
+  scaleProgress: 0.6,
 
   deckLeftPct: 50,
   deckScale: 1,
@@ -85,7 +85,7 @@ export const MOBILE = {
   hoverLift: 30,
   hoverLerp: 0.2,
   /** Higher = less finger travel per card (faster stack). */
-  dragSensitivity: 1.05,
+  dragSensitivity: 2.85,
 
   /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
   worksShiftX: 0,
@@ -97,8 +97,9 @@ const DESKTOP_DEFAULTS = { ...DESKTOP };
 const MOBILE_DEFAULTS = { ...MOBILE };
 
 export const MOBILE_MQ = "(max-width: 900px)";
-const STORAGE_KEY = "kaik-deck-tweaks-v8";
+const STORAGE_KEY = "kaik-deck-tweaks-v9";
 const LEGACY_STORAGE_KEYS = [
+  "kaik-deck-tweaks-v8",
   "kaik-deck-tweaks-v7",
   "kaik-deck-tweaks-v6",
   "kaik-deck-tweaks-v5",
@@ -284,7 +285,7 @@ const STRIP_FIELDS = [
   { key: "fanScale", label: "веер", min: 0, max: 2, step: 0.05 },
   { key: "stackLift", label: "разложенность вверх", min: 0, max: 48, step: 1 },
   { key: "rearScale", label: "размер задней", min: 0.25, max: 1, step: 0.01 },
-  { key: "scaleProgress", label: "прогрессия размера", min: 0.3, max: 3, step: 0.05 },
+      { key: "scaleProgress", label: "прогрессия размера", min: 0.2, max: 3, step: 0.05 },
   { key: "dragSensitivity", label: "скорость скролла", min: 0.15, max: 4, step: 0.05 },
 ];
 
@@ -333,7 +334,7 @@ const FIELDS = [
       { key: "fanScale", label: "веер", min: 0, max: 2, step: 0.05, mobileOnly: true },
       { key: "stackLift", label: "разложенность вверх", min: 0, max: 48, step: 1, mobileOnly: true },
       { key: "rearScale", label: "размер задней", min: 0.25, max: 1, step: 0.01, mobileOnly: true },
-      { key: "scaleProgress", label: "прогрессия размера", min: 0.3, max: 3, step: 0.05, mobileOnly: true },
+      { key: "scaleProgress", label: "прогрессия размера", min: 0.2, max: 3, step: 0.05, mobileOnly: true },
       { key: "tipScale", label: "поворот кончика", min: 0, max: 12, step: 0.05 },
       { key: "rotateXAmt", label: "наклон rotateX (°)", min: 0, max: 120, step: 0.5 },
       { key: "deckLeftPct", label: "стопка слева %", min: 0, max: 100, step: 0.5, mobileOnly: true },
@@ -425,7 +426,7 @@ function loadSaved() {
       }
       applyEditMode(data);
     } else {
-      // v8 drops saved mobile so phones pick up the tuned defaults.
+      // v9 drops saved mobile so phones pick up the tuned defaults.
       // Desktop + editMode migrate from older keys when the desktop rev still matches.
       persist = true;
       for (const key of LEGACY_STORAGE_KEYS) {
