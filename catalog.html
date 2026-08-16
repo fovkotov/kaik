@@ -36,6 +36,7 @@
         locale = locale || "en";
         document.documentElement.lang = locale;
         document.documentElement.setAttribute("data-locale", locale);
+        document.documentElement.classList.toggle("lang-ru", locale === "ru");
       })();
     </script>
   </head>

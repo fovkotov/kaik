@@ -6,10 +6,13 @@ const WORK_SHEETS = new Set(["yan", "polina", "alena"]);
 /** @type {WeakMap<HTMLElement, { dispose: () => void, sync: () => void, track: HTMLElement }>} */
 const attached = new WeakMap();
 
-/** Pink overlay bar only on history, program, and yan/polina/alena work sheets. */
+/** Pink overlay bar on history, program, student works, and yan/polina/alena work sheets. */
 export function allowsFocusScrollbar(card) {
   if (!(card instanceof HTMLElement)) return false;
   if (card.hasAttribute("data-program-card")) return true;
+  if (card.hasAttribute("data-works-card") || card.querySelector("article.works-card, .works-card")) {
+    return true;
+  }
   if (card.hasAttribute("data-history-card") || card.querySelector(".history-card")) return true;
   const who = (card.getAttribute("data-work-student") || "").toLowerCase();
   if (
@@ -23,7 +26,8 @@ export function allowsFocusScrollbar(card) {
 
 function metrics(card) {
   const view = card.clientHeight;
-  const full = card.scrollHeight;
+  const maxScroll = Math.max(0, card.scrollHeight - card.clientHeight);
+  const full = view + maxScroll;
   const rail = Math.max(0, view - INSET * 2);
   const thumbH = Math.min(rail, Math.max(MIN_THUMB, (view / Math.max(full, 1)) * rail));
   return {
@@ -32,8 +36,18 @@ function metrics(card) {
     top: card.scrollTop,
     thumbH,
     maxThumb: Math.max(0, rail - thumbH),
-    maxScroll: Math.max(0, full - view),
+    maxScroll,
   };
+}
+
+function thumbOffset(m) {
+  return INSET + (m.maxScroll > 0 ? (m.top / m.maxScroll) * m.maxThumb : 0);
+}
+
+function paintThumb(thumb, m) {
+  const thumbTop = thumbOffset(m);
+  thumb.style.transform = `translateY(${thumbTop}px)`;
+  return thumbTop;
 }
 
 function layout(card, track, thumb) {
@@ -44,16 +58,13 @@ function layout(card, track, thumb) {
   // During the fly, overflow-y is still hidden — still paint the rail.
   const show = open && (!scrolling || overflows);
 
-  const thumbTop = INSET + (m.maxScroll > 0 ? (m.top / m.maxScroll) * m.maxThumb : 0);
   track.hidden = !show;
-  if (!show) return { ...m, thumbTop };
+  if (!show) return { ...m, thumbTop: thumbOffset(m) };
 
-  track.style.top = `${m.top}px`;
-  track.style.height = `${m.view}px`;
-
+  // Sticky host stays in the visible scrollport; only the rail height is layout.
+  track.style.setProperty("--focus-view", `${m.view}px`);
   thumb.style.height = `${m.thumbH}px`;
-  thumb.style.transform = `translateY(${thumbTop}px)`;
-  return { ...m, thumbTop };
+  return { ...m, thumbTop: paintThumb(thumb, m) };
 }
 
 /**
@@ -75,7 +86,7 @@ export function mountFocusScrollbar(card) {
   const thumb = document.createElement("div");
   thumb.setAttribute("data-focus-scroll-thumb", "");
   track.appendChild(thumb);
-  card.appendChild(track);
+  card.prepend(track);
 
   let drag = null;
   let raf = 0;
@@ -106,7 +117,9 @@ export function mountFocusScrollbar(card) {
     }
     window.clearTimeout(wheelTimer);
     wheelTimer = window.setTimeout(endWheel, 140);
-    schedule();
+    // Same frame as the scroll, not rAF — rAF left the thumb one tick behind.
+    const m = metrics(card);
+    last = { ...m, thumbTop: paintThumb(thumb, m) };
   };
 
   const onScrollEnd = () => {
@@ -116,19 +129,20 @@ export function mountFocusScrollbar(card) {
 
   const scrollFromClientY = (clientY, grabOffset) => {
     const m = metrics(card);
-    const rect = track.getBoundingClientRect();
-    const y = clientY - rect.top - INSET - grabOffset;
+    const origin = card.getBoundingClientRect().top;
+    const y = clientY - origin - INSET - grabOffset;
     const ratio = m.maxThumb > 0 ? y / m.maxThumb : 0;
     card.scrollTop = Math.min(m.maxScroll, Math.max(0, ratio * m.maxScroll));
-    schedule();
+    const next = metrics(card);
+    last = { ...next, thumbTop: paintThumb(thumb, next) };
   };
 
   const onPointerDown = (event) => {
     if (event.button != null && event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    const rect = track.getBoundingClientRect();
-    const grabOffset = event.clientY - (rect.top + last.thumbTop);
+    const origin = card.getBoundingClientRect().top;
+    const grabOffset = event.clientY - (origin + last.thumbTop);
     drag = { pointerId: event.pointerId, grabOffset };
     thumb.setPointerCapture(event.pointerId);
     track.classList.add("is-dragging");

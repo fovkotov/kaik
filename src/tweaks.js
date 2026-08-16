@@ -63,9 +63,9 @@ export const MOBILE = {
   /** Y lift per waiting slot (px). 0 = flat pile, higher = rear cards sit up. */
   stackLift: 3,
   /** Scale of the furthest waiting card (slot ≥ 5). Front is always 1. */
-  rearScale: 0.55,
+  rearScale: 0.41,
   /** Size curve back → front. 1 = linear; >1 front stays large longer. */
-  scaleProgress: 0.6,
+  scaleProgress: 0.5,
 
   deckLeftPct: 50,
   deckScale: 1,
@@ -85,9 +85,19 @@ export const MOBILE = {
   hoverLift: 30,
   hoverLerp: 0.2,
   /** Higher = less finger travel per card (faster stack). */
-  dragSensitivity: 2.85,
+  dragSensitivity: 3.35,
   /** Progress units the current card stays in focus (1 = one unit per card). */
-  focusSpan: 1,
+  focusSpan: 1.25,
+  /** Mobile stack exit: fade the leaving card, or fly it off to the left. */
+  viewMode: "fly",
+  /** Fly-left exit speed. 1 = current span; higher = leaves in less scroll. */
+  flySpeed: 0.25,
+  /** Peak toward-camera scale on fly-left (hold at end; never shrinks). */
+  flyScale: 1.1,
+  /** Fly-left arc peak Y in px (shallow dip). */
+  flyArcY: 8,
+  /** Fly-left distance as a multiple of the natural leave (viewport + card). */
+  flyExitX: 0.9,
 
   /** Centered near-full-width card: a desktop X nudge would overflow the iframe. */
   worksShiftX: 0,
@@ -99,8 +109,12 @@ const DESKTOP_DEFAULTS = { ...DESKTOP };
 const MOBILE_DEFAULTS = { ...MOBILE };
 
 export const MOBILE_MQ = "(max-width: 900px)";
-const STORAGE_KEY = "kaik-deck-tweaks-v10";
+const STORAGE_KEY = "kaik-deck-tweaks-v14";
 const LEGACY_STORAGE_KEYS = [
+  "kaik-deck-tweaks-v13",
+  "kaik-deck-tweaks-v12",
+  "kaik-deck-tweaks-v11",
+  "kaik-deck-tweaks-v10",
   "kaik-deck-tweaks-v9",
   "kaik-deck-tweaks-v8",
   "kaik-deck-tweaks-v7",
@@ -118,6 +132,10 @@ let editMode = "mobile";
 
 export function isMobile() {
   return window.matchMedia(MOBILE_MQ).matches;
+}
+
+export function normalizeViewMode(value) {
+  return value === "fly" ? "fly" : "fade";
 }
 
 export function getParams() {
@@ -237,6 +255,7 @@ export function applyDeckParams() {
   const mobile = isMobile();
   const scale = Number(p.deckScale);
   document.documentElement.classList.toggle("is-mobile", mobile);
+  document.documentElement.dataset.viewMode = mobile ? normalizeViewMode(p.viewMode) : "fade";
   document.documentElement.style.setProperty(
     "--deck-scale",
     String(Number.isFinite(scale) ? scale : 1),
@@ -291,6 +310,10 @@ const STRIP_FIELDS = [
   { key: "scaleProgress", label: "прогрессия размера", min: 0.2, max: 3, step: 0.05 },
   { key: "dragSensitivity", label: "скорость скролла", min: 0.15, max: 4, step: 0.05 },
   { key: "focusSpan", label: "фокус карточки", min: 0.25, max: 4, step: 0.05 },
+  { key: "flySpeed", label: "скорость улёта", min: 0.25, max: 4, step: 0.05 },
+  { key: "flyScale", label: "масштаб налёта", min: 1, max: 1.8, step: 0.01 },
+  { key: "flyArcY", label: "дуга Y", min: 0, max: 80, step: 1 },
+  { key: "flyExitX", label: "вылет X", min: 0.4, max: 2.5, step: 0.05 },
 ];
 
 const FIELDS = [
@@ -347,6 +370,48 @@ const FIELDS = [
       { key: "stackLift", label: "разложенность вверх", min: 0, max: 48, step: 1, mobileOnly: true },
       { key: "rearScale", label: "размер задней", min: 0.25, max: 1, step: 0.01, mobileOnly: true },
       { key: "scaleProgress", label: "прогрессия размера", min: 0.2, max: 3, step: 0.05, mobileOnly: true },
+      {
+        key: "viewMode",
+        label: "уход карточки",
+        type: "select",
+        mobileOnly: true,
+        options: [
+          { value: "fade", label: "затухание" },
+          { value: "fly", label: "улет влево" },
+        ],
+      },
+      {
+        key: "flySpeed",
+        label: "скорость улёта",
+        min: 0.25,
+        max: 4,
+        step: 0.05,
+        mobileOnly: true,
+      },
+      {
+        key: "flyScale",
+        label: "масштаб налёта",
+        min: 1,
+        max: 1.8,
+        step: 0.01,
+        mobileOnly: true,
+      },
+      {
+        key: "flyArcY",
+        label: "дуга Y",
+        min: 0,
+        max: 80,
+        step: 1,
+        mobileOnly: true,
+      },
+      {
+        key: "flyExitX",
+        label: "вылет X",
+        min: 0.4,
+        max: 2.5,
+        step: 0.05,
+        mobileOnly: true,
+      },
       { key: "tipScale", label: "поворот кончика", min: 0, max: 12, step: 0.05 },
       { key: "rotateXAmt", label: "наклон rotateX (°)", min: 0, max: 120, step: 0.5 },
       { key: "deckLeftPct", label: "стопка слева %", min: 0, max: 100, step: 0.5, mobileOnly: true },
@@ -395,7 +460,8 @@ function isStaleMobileSnapshot(mobile) {
       mobile.speedStep === 0.28 &&
       mobile.dragSensitivity === 0.35) ||
     (mobile.tipScale === 0.12 && mobile.fanScale === 0.42 && mobile.peekPx === 6) ||
-    (mobile.speedMin === 0.28 && mobile.speedStep === 0.075)
+    (mobile.speedMin === 0.28 && mobile.speedStep === 0.075) ||
+    (mobile.flyScale === 1.28 && mobile.flyArcY === 28 && mobile.dragSensitivity === 2.85)
   );
 }
 
@@ -414,9 +480,14 @@ function applyMobileSaved(mobile) {
     "cardRotate",
     "dragSensitivity",
     "focusSpan",
+    "flySpeed",
+    "flyScale",
+    "flyArcY",
+    "flyExitX",
   ]) {
     if (!Number.isFinite(Number(MOBILE[key]))) MOBILE[key] = MOBILE_DEFAULTS[key];
   }
+  MOBILE.viewMode = normalizeViewMode(MOBILE.viewMode);
 }
 
 function applyEditMode(data) {
@@ -439,8 +510,7 @@ function loadSaved() {
       }
       applyEditMode(data);
     } else {
-      // v10 drops saved mobile so phones pick up the tuned defaults.
-      // Desktop + editMode migrate from older keys when the desktop rev still matches.
+      // v14: new mobile fly defaults. Do not carry v13 mobile; desktop migrates as usual.
       persist = true;
       for (const key of LEGACY_STORAGE_KEYS) {
         const legacyRaw = storage.getItem(key);
@@ -523,11 +593,14 @@ export function initTweaks(onChange) {
   reopen.setAttribute("aria-hidden", "true");
 
   const strip = document.createElement("aside");
-  strip.className = "deck-tune";
+  strip.className = "deck-tune is-collapsed";
   strip.dataset.deckTune = "";
   strip.innerHTML = `
     <div class="deck-tune__bar">
-      <span class="deck-tune__title">стопка</span>
+      <div class="deck-tune__views" role="tablist" aria-label="Режим стопки">
+        <button type="button" class="deck-tune__view" data-view-mode="fade" role="tab">затухание</button>
+        <button type="button" class="deck-tune__view" data-view-mode="fly" role="tab">улет влево</button>
+      </div>
       <button type="button" class="deck-tune__reset" data-deck-tune-copy>JSON</button>
       <button type="button" class="deck-tune__reset" data-deck-tune-reset>сброс</button>
       <button type="button" class="deck-tune__hide" data-deck-tune-hide aria-expanded="true">
@@ -535,10 +608,6 @@ export function initTweaks(onChange) {
       </button>
     </div>
     <div class="deck-tune__body" data-deck-tune-body></div>
-    <button type="button" class="deck-tune__tab" data-deck-tune-open aria-label="Показать настройки стопки">
-      стопка
-      <span class="deck-tune__chevron" aria-hidden="true"></span>
-    </button>
   `;
   const stripBody = strip.querySelector("[data-deck-tune-body]");
 
@@ -637,6 +706,15 @@ export function initTweaks(onChange) {
     if (current) current.textContent = getEditLabel();
   }
 
+  function syncViewButtons() {
+    const mode = normalizeViewMode(MOBILE.viewMode);
+    strip.querySelectorAll("[data-view-mode]").forEach((btn) => {
+      const on = btn.getAttribute("data-view-mode") === mode;
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-selected", String(on));
+    });
+  }
+
   function readUiState() {
     try {
       return JSON.parse(storage.getItem(UI_STORAGE_KEY) || "{}");
@@ -683,13 +761,14 @@ export function initTweaks(onChange) {
   buildFields();
   buildStrip();
   syncModeButtons();
+  syncViewButtons();
   document.body.append(root);
   document.body.append(reopen);
   document.body.append(strip);
 
   const ui = readUiState();
   if (ui.collapsed === true || (ui.collapsed == null && isMobile())) setCollapsed(true);
-  setStripCollapsed(ui.stripCollapsed === true);
+  setStripCollapsed(true);
   const wantOpen = (() => {
     try {
       return new URLSearchParams(window.location.search).has("tweaks");
@@ -720,7 +799,11 @@ export function initTweaks(onChange) {
     const el = event.target;
     if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement)) return;
     if (!applyParamInput(el, getEditTarget())) return;
-    if (getEditTarget() === MOBILE) buildStrip();
+    if (getEditTarget() === MOBILE) {
+      if (el.dataset.param === "viewMode") MOBILE.viewMode = normalizeViewMode(el.value);
+      buildStrip();
+      syncViewButtons();
+    }
     notify();
   });
 
@@ -766,7 +849,9 @@ export function initTweaks(onChange) {
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || event.target?.isContentEditable) {
       return;
     }
-    setHidden(!root.classList.contains("is-hidden"));
+    const nextHidden = !root.classList.contains("is-hidden");
+    setHidden(nextHidden);
+    if (!nextHidden) setCollapsed(false);
   });
 
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
@@ -782,7 +867,19 @@ export function initTweaks(onChange) {
     Object.assign(getEditTarget(), getEditDefaults());
     buildFields();
     buildStrip();
+    syncViewButtons();
     notify();
+  });
+
+  strip.querySelectorAll("[data-view-mode]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      MOBILE.viewMode = normalizeViewMode(btn.getAttribute("data-view-mode"));
+      syncViewButtons();
+      buildFields();
+      notify();
+    });
   });
 
   strip.querySelector("[data-deck-tune-reset]").addEventListener("click", (event) => {
@@ -791,6 +888,7 @@ export function initTweaks(onChange) {
     Object.assign(MOBILE, MOBILE_DEFAULTS);
     buildFields();
     buildStrip();
+    syncViewButtons();
     notify();
   });
 
@@ -798,12 +896,6 @@ export function initTweaks(onChange) {
     event.preventDefault();
     event.stopPropagation();
     setStripCollapsed(true);
-  });
-
-  strip.querySelector("[data-deck-tune-open]").addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setStripCollapsed(false);
   });
 
   function showJsonFallback(text) {

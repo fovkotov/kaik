@@ -5,6 +5,7 @@
  */
 
 import { safeStorage } from "./embed.js";
+import { glueHangingPrepositions } from "./hanging-prepositions.js";
 
 export const SUPPORTED = ["en", "ru"];
 export const DEFAULT_LOCALE = "en";
@@ -94,6 +95,8 @@ const dictionaries = {
     "format.workshops.note": "we talk on Mondays and Thursdays in Zoom and draw together",
     "format.videos": "recorded videos",
     "format.videos.note": "about history, materials, typography, and so on",
+    "format.sound.on": "Sound on",
+    "format.sound.off": "Sound off",
     "author.title": "course author",
     "author.name": "anok regular",
     "author.open": "anok regular — open profile",
@@ -149,6 +152,8 @@ const dictionaries = {
     "progress.alena": "alena — open Instagram",
     "work.open": "Open student progress",
     "work.close": "Close student progress",
+    "work.prev": "Previous student",
+    "work.next": "Next student",
     "works.title": "student works",
     "works.open": "Open student works",
     "works.close": "Close student works",
@@ -170,6 +175,8 @@ const dictionaries = {
     "faq.more.a": "Ask them here: ",
     "card.open": "Open card",
     "card.close": "Close card",
+    "illust.open": "open me",
+    "illust.close": "close",
     "history.open": "Open the lettering history",
     "history.close": "Close the lettering history",
     "history.prev": "Previous image",
@@ -301,6 +308,8 @@ const dictionaries = {
     "format.workshops.note": "говорим по понедельникам и четвергам в Zoom и рисуем вместе",
     "format.videos": "записанных видео",
     "format.videos.note": "про историю, материалы, типографику и так далее",
+    "format.sound.on": "Включить звук",
+    "format.sound.off": "Выключить звук",
     "author.title": "автор курса",
     "author.name": "anok regular",
     "author.open": "anok regular — открыть профиль",
@@ -356,6 +365,8 @@ const dictionaries = {
     "progress.alena": "alena — открыть Instagram",
     "work.open": "Открыть прогресс студента",
     "work.close": "Закрыть прогресс студента",
+    "work.prev": "Предыдущий студент",
+    "work.next": "Следующий студент",
     "works.title": "student works",
     "works.open": "Открыть студенческие работы",
     "works.close": "Закрыть студенческие работы",
@@ -377,6 +388,8 @@ const dictionaries = {
     "faq.more.a": "Задавайте их сюда: ",
     "card.open": "Открыть карточку",
     "card.close": "Закрыть карточку",
+    "illust.open": "open me",
+    "illust.close": "close",
     "history.open": "Открыть историю леттеринга",
     "history.close": "Закрыть историю леттеринга",
     "history.prev": "Предыдущее изображение",
@@ -384,7 +397,7 @@ const dictionaries = {
     "history.kicker": "если тебе всё ещё скучно...",
     "history.title.1": "Очень краткая визуальная",
     "history.title.2": "история ",
-    "history.title.3": "леттер(-инга).",
+    "history.title.3": "леттеринга.",
     "history.p1": "Как виду, людям нужно общение. Люди также любят красивое. Леттеринг, или искусство рисовать букву, рождается из этих двух потребностей.",
     "history.cap.mielot": "↳ Писец Жан Миело в скриптории (секретарь герцога), между 1450 и 1460.",
     "history.p2": "Самые старые намеренно выстроенные буквы — из римских времён. Многое утрачено, но древнейшее осталось в камне. Сопротивление материала инструменту упрощает штрих и выпрямляет линии.",
@@ -476,6 +489,7 @@ export function t(key, locale = getLocale()) {
 export function applyTranslations(locale = getLocale()) {
   document.documentElement.lang = locale;
   document.documentElement.setAttribute("data-locale", locale);
+  document.documentElement.classList.toggle("lang-ru", locale === "ru");
   document.documentElement.classList.add("i18n-ready");
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
@@ -497,6 +511,7 @@ export function applyTranslations(locale = getLocale()) {
   });
 
   document.dispatchEvent(new CustomEvent("kaik:translated", { detail: { locale } }));
+  glueHangingPrepositions(document.body);
 }
 
 export function boot() {

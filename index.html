@@ -37,6 +37,7 @@
         locale = locale || "en";
         document.documentElement.lang = locale;
         document.documentElement.setAttribute("data-locale", locale);
+        document.documentElement.classList.toggle("lang-ru", locale === "ru");
       })();
     </script>
   </head>
@@ -122,22 +123,45 @@ to 12 october</p>
                 <p class="format-card__label" data-i18n="format.workshops">online workshops</p>
                 <div class="format-card__workshop">
                   <div class="format-card__media">
-                    <img
-                      class="format-card__photo"
-                      src="/assets/cards/02-workshop.png"
-                      alt=""
-                      width="3456"
-                      height="2234"
+                    <video
+                      class="format-card__video"
+                      src="/assets/cards/format/workshop.mp4"
+                      poster="/assets/cards/02-workshop.png"
+                      muted
+                      loop
+                      autoplay
+                      playsinline
+                      webkit-playsinline
+                      preload="auto"
+                      disablepictureinpicture
+                      controlslist="nodownload nofullscreen noremoteplayback"
                       draggable="false"
-                    />
-                    <img
+                    ></video>
+                    <button
+                      type="button"
                       class="format-card__mute"
-                      src="/assets/cards/02-mute.png"
-                      alt=""
-                      width="58"
-                      height="58"
-                      draggable="false"
-                    />
+                      data-format-mute
+                      data-i18n-aria="format.sound.on"
+                      aria-label="Sound on"
+                      aria-pressed="false"
+                    >
+                      <img
+                        class="format-card__mute-icon format-card__mute-icon--off"
+                        src="/assets/cards/format/mute.svg"
+                        alt=""
+                        width="31"
+                        height="31"
+                        draggable="false"
+                      />
+                      <img
+                        class="format-card__mute-icon format-card__mute-icon--on"
+                        src="/assets/cards/format/unmute.svg"
+                        alt=""
+                        width="31"
+                        height="31"
+                        draggable="false"
+                      />
+                    </button>
                   </div>
                   <p class="format-card__note" data-i18n="format.workshops.note">
                     we talk on Mondays and Thursdays in Zoom and draw together
@@ -289,6 +313,17 @@ to 12 october</p>
         style="--card-color: #2bb673; --z: 7"
       >
         <div class="program-card">
+          <div class="card-illust card-illust--program" data-fly-illust-close aria-hidden="true">
+            <img
+              class="card-illust__art"
+              src="/assets/cards/overlays/program-dog.svg"
+              alt=""
+              width="595"
+              height="277"
+              draggable="false"
+            />
+            <span class="card-illust__cue" data-i18n="illust.open">open me</span>
+          </div>
           <p class="program-card__title" data-i18n="program.title">program</p>
           <div class="program-card__sheet">
             <section class="program-card__week">
@@ -516,6 +551,14 @@ to 12 october</p>
             </div>
           </div>
         </div>
+        </div>
+        <div class="work-card__nav" data-work-student-nav>
+          <button type="button" class="work-card__nav-btn work-card__nav-btn--prev" data-work-student-prev data-i18n-aria="work.prev" aria-label="Previous student">
+            <img class="work-card__nav-chevron" src="/assets/cards/work/nav-chevron.svg" alt="" width="20" height="20" draggable="false" />
+          </button>
+          <button type="button" class="work-card__nav-btn work-card__nav-btn--next" data-work-student-next data-i18n-aria="work.next" aria-label="Next student">
+            <img class="work-card__nav-chevron" src="/assets/cards/work/nav-chevron.svg" alt="" width="20" height="20" draggable="false" />
+          </button>
         </div>
         <div class="work-card__full work-card__full--alena">
           <header class="work-card__head">
@@ -1085,6 +1128,17 @@ to 12 october</p>
           </p>
         </div>
           </div>
+        <div class="card-illust card-illust--works" data-fly-illust-close aria-hidden="true">
+          <img
+            class="card-illust__art"
+            src="/assets/cards/overlays/works-key.svg"
+            alt=""
+            width="449"
+            height="176"
+            draggable="false"
+          />
+          <span class="card-illust__cue" data-i18n="illust.open">open me</span>
+        </div>
         </div>
       </article>
 
@@ -1099,6 +1153,24 @@ to 12 october</p>
         style="--card-color: #fed301; --z: 4"
       >
         <div class="exercises-card">
+          <div class="card-illust card-illust--exercises" aria-hidden="true">
+            <img
+              class="card-illust__art card-illust__art--tooth"
+              src="/assets/cards/overlays/exercises-tooth.svg"
+              alt=""
+              width="251"
+              height="311"
+              draggable="false"
+            />
+            <img
+              class="card-illust__art card-illust__art--cake"
+              src="/assets/cards/overlays/exercises-cake.svg"
+              alt=""
+              width="296"
+              height="300"
+              draggable="false"
+            />
+          </div>
           <p class="exercises-card__title" data-i18n="exercises.title">
             three exercises to create beautiful letters
           </p>
@@ -1164,28 +1236,61 @@ to 12 october</p>
         style="--card-color: #9d9d9d; --z: 2"
       >
         <div class="faq-card">
+          <div class="card-illust card-illust--faq" aria-hidden="true">
+            <img
+              class="card-illust__art card-illust__art--drop"
+              src="/assets/cards/overlays/faq-drop.svg"
+              alt=""
+              width="377"
+              height="348"
+              draggable="false"
+            />
+            <img
+              class="card-illust__art card-illust__art--frog"
+              src="/assets/cards/overlays/faq-frog.svg"
+              alt=""
+              width="227"
+              height="210"
+              draggable="false"
+            />
+          </div>
           <p class="faq-card__title" data-i18n="faq.title">questions and answers</p>
           <div class="faq-card__list">
             <div class="faq-card__item">
-              <p class="faq-card__q" data-i18n="faq.tablet.q">Do I need a graphics tablet?</p>
-              <p class="faq-card__a" data-i18n="faq.tablet.a">
-                No, a graphics tablet is not required. But if you have one, it will be more convenient to work with.
-              </p>
-            </div>
-            <div class="faq-card__item">
-              <p class="faq-card__q" data-i18n="faq.need.q">What will I need?</p>
-              <div class="faq-card__a faq-card__a--list">
-                <p data-i18n="faq.need.tools">Adobe Illustrator, Adobe Photoshop, Figma</p>
-                <p data-i18n="faq.need.materials">
-                  Materials for making letters: paper, pencils, pens, markers, etc.
+              <div class="faq-card__num-wrap">
+                <p class="faq-card__num">1</p>
+              </div>
+              <div class="faq-card__body">
+                <p class="faq-card__q" data-i18n="faq.tablet.q">Do I need a graphics tablet?</p>
+                <p class="faq-card__a" data-i18n="faq.tablet.a">
+                  No, a graphics tablet is not required. But if you have one, it will be more convenient to work with.
                 </p>
               </div>
             </div>
             <div class="faq-card__item">
-              <p class="faq-card__q" data-i18n="faq.more.q">Still have questions?</p>
-              <p class="faq-card__a faq-card__a--wide">
-                <span data-i18n="faq.more.a">Ask them here: </span><a href="https://t.me/vanokregular" target="_top" rel="noopener noreferrer">@vanokregular</a>
-              </p>
+              <div class="faq-card__num-wrap">
+                <p class="faq-card__num">2</p>
+              </div>
+              <div class="faq-card__body">
+                <p class="faq-card__q" data-i18n="faq.need.q">What will I need?</p>
+                <div class="faq-card__a faq-card__a--list">
+                  <p data-i18n="faq.need.tools">Adobe Illustrator, Adobe Photoshop, Figma</p>
+                  <p data-i18n="faq.need.materials">
+                    Materials for making letters: paper, pencils, pens, markers, etc.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="faq-card__item">
+              <div class="faq-card__num-wrap">
+                <p class="faq-card__num">3</p>
+              </div>
+              <div class="faq-card__body">
+                <p class="faq-card__q" data-i18n="faq.more.q">Still have questions?</p>
+                <p class="faq-card__a faq-card__a--wide">
+                  <span data-i18n="faq.more.a">Ask them here: </span><a href="https://t.me/vanokregular" target="_top" rel="noopener noreferrer">@vanokregular</a>
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@
  * give the iframe a real height (typically 100vh of the host page).
  */
 
+import { initHangingPrepositions } from "./hanging-prepositions.js";
+
 const SOURCE = "kaik-course";
 
 function memoryStore() {
@@ -160,5 +162,6 @@ export function initEmbed() {
   document.addEventListener("click", rewriteExternalLinks, true);
   document.addEventListener("click", scrollHashIntoView);
 
+  initHangingPrepositions();
   notifyParent("ready", size);
 }

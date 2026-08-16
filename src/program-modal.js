@@ -1,5 +1,5 @@
 import { t } from "./scriptik.js";
-import { applyDeckParams } from "./tweaks.js";
+import { applyDeckParams, isMobile } from "./tweaks.js";
 import {
   fadeFocusScrollbar,
   mountFocusScrollbar,
@@ -8,14 +8,55 @@ import {
 } from "./focus-scrollbar.js";
 
 const FOCUS_SEL = "[data-card]";
-const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-open-program], [data-fly-close], [data-work-ig], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
-const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], input, textarea, select";
+  const FOCUS_IGNORE =
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  const SIDE_CHROME =
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], input, textarea, select";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
 const TYPING_SEL = "input, textarea, select, [contenteditable='true']";
+const TOP_GAP = 28;
+const BOTTOM_GAP = 28;
+const OPEN_GUTTER = 48;
+const WORKS_OPEN_SCALE = 1.16;
+const A4_RATIO = 210 / 297;
+
+/**
+ * Desktop focus dest in iframe-visual pixels.
+ * Same stack rectangle, height-fit to `--frame-h` minus gutter; width follows ratio.
+ * destBox converts this through deck scale into `--fly-w` / `--fly-h`.
+ */
+export function desktopFocusDestVisual({ frameW, frameH, cardW, cardH, works = false }) {
+  const maxW = Math.max(0, frameW - OPEN_GUTTER);
+  const maxH = Math.max(0, frameH - TOP_GAP - BOTTOM_GAP);
+  const ratio = cardW > 0 && cardH > 0 ? cardW / cardH : A4_RATIO;
+
+  let height = maxH;
+  let width = height * ratio;
+
+  if (works) {
+    width = height;
+    const grown = height * WORKS_OPEN_SCALE;
+    if (grown <= maxH && grown <= maxW) {
+      width = grown;
+      height = grown;
+    }
+  }
+
+  if (width > maxW && width > 0) {
+    const scale = maxW / width;
+    width = maxW;
+    height *= scale;
+  }
+
+  const side = OPEN_GUTTER / 2;
+  let left = (frameW - width) / 2;
+  if (left < side) left = side;
+  if (left + width > frameW - side) left = Math.max(side, frameW - side - width);
+
+  return { left, top: TOP_GAP, width, height, rotate: 0 };
+}
 
 export function initProgramModal() {
   const cards = [...new Set([...document.querySelectorAll(FOCUS_SEL)])];
@@ -28,11 +69,8 @@ export function initProgramModal() {
 
   const FLY_MS = 920;
   const FLY_EASE = "cubic-bezier(0.22, 1, 0.32, 1)";
-  const TOP_GAP = 28;
-  const OPEN_W = 680;
-  const OPEN_GUTTER = 48;
-  const OPEN_GUTTER_NARROW = 32;
-  const WORKS_OPEN_SCALE = 1.16;
+  const EXPAND_MS = 500;
+  const EXPAND_EASE = "cubic-bezier(0.23, 1, 0.32, 1)";
   const ORIGIN_X = 0.5;
   const ORIGIN_Y = 0.55;
 
@@ -42,6 +80,11 @@ export function initProgramModal() {
   let card = null;
   let rest = null;
   let restTransform = "";
+  /** Deck-local visual box of the tapped card — close shrinks back here. */
+  let fromLocal = null;
+  let fromRadius = "2px";
+  /** Last close-frame |dest − current| in px (max of left/top/width/height). */
+  let lastHandoffPx = 0;
   let start = null;
   let flyTimer = 0;
   /** @type {((event: TransitionEvent) => void) | null} */
@@ -50,7 +93,7 @@ export function initProgramModal() {
   /** @type {(() => void) | null} */
   let closeAfter = null;
   /** Deck poses at the moment focus opened — reused so a switch can return home. */
-  /** @type {Map<HTMLElement, { rest: object, restTransform: string }>} */
+  /** @type {Map<HTMLElement, { rest: object, restTransform: string, layout: object, fromFixed: object }>} */
   let poses = new Map();
   /** Cards flying back to a sibling slot while another card stays focused. */
   /** @type {Map<HTMLElement, { gen: number, timer: number, onEnd: ((event: TransitionEvent) => void) | null }>} */
@@ -78,6 +121,49 @@ export function initProgramModal() {
     } catch {
       return 0;
     }
+  }
+
+  function readTransform2d(tf) {
+    if (!tf || tf === "none") return { x: 0, y: 0, rotate: 0, scale: 1 };
+    try {
+      const matrix = new DOMMatrix(tf);
+      return {
+        x: matrix.e,
+        y: matrix.f,
+        rotate: (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI,
+        scale: Math.hypot(matrix.a, matrix.b) || 1,
+      };
+    } catch {
+      return { x: 0, y: 0, rotate: 0, scale: 1 };
+    }
+  }
+
+  function cardLayout(el) {
+    return {
+      left: el.offsetLeft,
+      top: el.offsetTop,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+    };
+  }
+
+  /**
+   * Unrotated iframe-fixed box of a live in-deck card.
+   * AABB center + layout size, so close can tween to the painted stack pose
+   * (including −1deg program tilt) without measuring the fullscreen node.
+   */
+  function captureFixedHome(el) {
+    const width = el.offsetWidth;
+    const height = el.offsetHeight;
+    const rect = el.getBoundingClientRect();
+    return {
+      left: rect.left + rect.width / 2 - width / 2,
+      top: rect.top + rect.height / 2 - height / 2,
+      width,
+      height,
+      rotate: readVisualRotate(el),
+      radius: getComputedStyle(el).borderRadius || "2px",
+    };
   }
 
   /** Deck scale + origin so iframe-visual boxes can be expressed in card local space. */
@@ -154,54 +240,195 @@ export function initProgramModal() {
     };
   }
 
-  function openWidth() {
-    const host = card;
-    const raw = host
-      ? getComputedStyle(host).getPropertyValue("--focus-open-w").trim() ||
-        getComputedStyle(host).getPropertyValue("--program-open-w").trim()
-      : "";
-    const parsed = Number.parseFloat(raw);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    const { w: vw } = frameSize();
-    const gutter = window.matchMedia("(max-width: 900px)").matches
-      ? OPEN_GUTTER_NARROW
-      : OPEN_GUTTER;
-    return Math.min(OPEN_W, Math.max(0, vw - gutter));
+  function stackCardSize(from) {
+    if (from?.width > 0 && from?.height > 0) {
+      return { w: from.width, h: from.height };
+    }
+    const root = getComputedStyle(document.documentElement);
+    if (card?.hasAttribute("data-works-card")) {
+      const side =
+        Number.parseFloat(getComputedStyle(card).getPropertyValue("--works-side")) ||
+        Number.parseFloat(root.getPropertyValue("--stack-card-h")) ||
+        0;
+      return { w: side, h: side };
+    }
+    return {
+      w: Number.parseFloat(root.getPropertyValue("--stack-card-w")) || 0,
+      h: Number.parseFloat(root.getPropertyValue("--stack-card-h")) || 0,
+    };
   }
 
   function destVisual(from) {
     const { w: vw, h: vh } = frameSize();
-    const mobile = window.matchMedia("(max-width: 900px)").matches;
-    if (mobile) {
+    if (isMobile()) {
       return { left: 0, top: 0, width: vw, height: vh, rotate: 0 };
     }
-    const gutter = OPEN_GUTTER;
-    const side = gutter / 2;
-    const topGap = TOP_GAP;
-    const bottomGap = 28;
-    const { scaleX, scaleY } = deckSpace();
-    const maxW = Math.max(0, vw - gutter);
-    const maxH = Math.max(0, vh - topGap - bottomGap);
-    let width = Math.min(openWidth(), maxW);
-    let height = Math.max((from?.height ?? 0) * scaleY, maxH);
-    if (card?.hasAttribute("data-works-card")) {
-      const foldedVisual = Math.max((from?.width ?? 0) * scaleX, (from?.height ?? 0) * scaleY);
-      const grown = foldedVisual > 0 ? foldedVisual * WORKS_OPEN_SCALE : 0;
-      // Square works card is already wider than A4 — never cap at the 680 program dest.
-      // Dest is a tall column; inner 64:20 --u uses layout width (cqw/842), not this height.
-      width = Math.min(maxW, Math.max(foldedVisual, grown));
-      if (width <= 0) width = Math.min(maxW, maxH * 0.72);
-      height = maxH;
-    }
-    let left = (vw - width) / 2;
-    if (left < side) left = side;
-    if (left + width > vw - side) left = Math.max(side, vw - side - width);
-    const top = topGap;
-    return { left, top, width, height, rotate: 0 };
+    const size = stackCardSize(from);
+    return desktopFocusDestVisual({
+      frameW: vw,
+      frameH: vh,
+      cardW: size.w,
+      cardH: size.h,
+      works: Boolean(card?.hasAttribute("data-works-card")),
+    });
   }
 
   function destBox(from) {
     return visualBoxToCardSpace(destVisual(from));
+  }
+
+  /** Mobile fullscreen: the tapped node is the surface (no clone). */
+  function useExpand() {
+    return isMobile();
+  }
+
+  function visualToLocalBox(rect) {
+    const tl = visualToDeckLocal(rect.left, rect.top);
+    const br = visualToDeckLocal(rect.left + rect.width, rect.top + rect.height);
+    return {
+      left: tl.x,
+      top: tl.y,
+      width: br.x - tl.x,
+      height: br.y - tl.y,
+    };
+  }
+
+  function captureExpandFrom(el) {
+    const tf = readTransform2d(el.style.transform);
+    return {
+      left: el.offsetLeft,
+      top: el.offsetTop,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+      x: tf.x,
+      y: tf.y,
+      rotate: tf.rotate,
+      scale: tf.scale,
+      radius: getComputedStyle(el).borderRadius || "2px",
+    };
+  }
+
+  function poseTransform(pose) {
+    const scale = pose.scale ?? 1;
+    return `translate3d(${pose.x}px, ${pose.y}px, 0) rotateZ(${pose.rotate ?? 0}deg) rotateY(0deg) rotateX(0deg) scale(${scale})`;
+  }
+
+  /** Fullscreen dest in the same translate3d + rotateZ model as the stack. */
+  function expandOpenPose(from) {
+    const { w: vw, h: vh } = frameSize();
+    const dest = visualToLocalBox({ left: 0, top: 0, width: vw, height: vh });
+    return {
+      x: dest.left - from.left,
+      y: dest.top - from.top,
+      rotate: 0,
+      scale: 1,
+      width: dest.width,
+      height: dest.height,
+      radius: "0px",
+    };
+  }
+
+  function expandClosePose() {
+    const saved = card ? poses.get(card) : null;
+    const tf = readTransform2d(saved?.restTransform ?? restTransform);
+    const from = fromLocal;
+    return {
+      x: tf.x,
+      y: tf.y,
+      rotate: tf.rotate,
+      scale: tf.scale,
+      width: from?.width || saved?.layout?.width || 0,
+      height: from?.height || saved?.layout?.height || 0,
+      radius: fromRadius || saved?.fromFixed?.radius || "2px",
+    };
+  }
+
+  /**
+   * Stay in-deck: default left/top/margin, animate width/height + the stack's
+   * translate3d/rotateZ. Margin is frozen at the stacked size so the layout
+   * origin does not move while --card-w tracks --fly-w for type.
+   */
+  function applyExpandPose(el, pose, withTransition) {
+    const stackW = fromLocal?.width || pose.width;
+    const stackH = fromLocal?.height || pose.height;
+    el.style.position = "";
+    el.style.right = "";
+    el.style.marginLeft = `${-stackW / 2}px`;
+    el.style.marginTop = `${-stackH / 2}px`;
+    el.style.marginRight = "0";
+    el.style.marginBottom = "0";
+    el.style.width = `${pose.width}px`;
+    el.style.height = `${pose.height}px`;
+    el.style.zIndex = "50";
+    el.style.transformOrigin = "50% 50%";
+    el.style.transform = poseTransform(pose);
+    el.style.setProperty("--fly-w", `${pose.width}px`);
+    el.style.setProperty("--fly-h", `${pose.height}px`);
+    el.style.setProperty("--fly-rot", `${pose.rotate ?? 0}deg`);
+    el.style.setProperty("--fly-ms", withTransition && !reduceMotion() ? `${EXPAND_MS}ms` : "0ms");
+    el.style.setProperty("--fly-ease", EXPAND_EASE);
+    el.style.setProperty("--card-w", `${pose.width}px`);
+    if (pose.radius != null) el.style.borderRadius = pose.radius;
+    el.style.willChange = withTransition ? "transform, width, height" : "";
+  }
+
+  function clearExpandHost(el) {
+    el.removeAttribute("data-expand-host");
+    el.removeAttribute("data-expand-settled");
+    el.removeAttribute("data-body-grow");
+    el.style.position = "";
+    el.style.zIndex = "";
+    el.style.transformOrigin = "";
+    el.style.borderRadius = "";
+    el.style.willChange = "";
+    el.style.marginLeft = "";
+    el.style.marginTop = "";
+    el.style.marginRight = "";
+    el.style.marginBottom = "";
+  }
+
+  /**
+   * Close dest in iframe-fixed pixels — the painted stack card, not the
+   * fullscreen node and not capturePose's in-deck left/top.
+   * Snapshot was taken while the card was still in the deck.
+   */
+  function landingBox() {
+    const saved = card ? poses.get(card) : null;
+    const radius = fromRadius || saved?.fromFixed?.radius || "2px";
+    const home = saved?.fromFixed;
+    if (home && home.width > 0 && home.height > 0) {
+      return { ...home, radius };
+    }
+    const layout = saved?.layout;
+    const tfSrc = saved?.restTransform ?? restTransform;
+    if (layout && layout.width > 0) {
+      const tf = readTransform2d(tfSrc);
+      const vis = deckLocalToVisual(layout.left, layout.top);
+      const { scaleX, scaleY } = deckSpace();
+      return {
+        left: vis.x + tf.x * scaleX,
+        top: vis.y + tf.y * scaleY,
+        width: layout.width,
+        height: layout.height,
+        rotate: tf.rotate,
+        radius,
+      };
+    }
+    const size = stackCardSize(rest);
+    if (rest && (rest.width > 0 || size.w > 0)) {
+      return {
+        left: rest.left,
+        top: rest.top,
+        width: size.w || rest.width,
+        height: size.h || rest.height,
+        rotate: rest.rotate ?? 0,
+        radius,
+      };
+    }
+    if (fromLocal) {
+      return { ...fromLocal, rotate: fromLocal.rotate ?? 0, radius };
+    }
+    return { ...expandDest(), rotate: 0, radius };
   }
 
   function deckLocalToVisual(x, y) {
@@ -298,12 +525,16 @@ export function initProgramModal() {
 
   function flyEnded(event, host) {
     if (event.target !== host) return false;
+    if (host.hasAttribute("data-expand-host")) {
+      return event.propertyName === "transform" || event.propertyName === "width";
+    }
     return (
       event.propertyName === "top" ||
       event.propertyName === "left" ||
       event.propertyName === "height" ||
       event.propertyName === "width" ||
       event.propertyName === "transform" ||
+      event.propertyName === "border-radius" ||
       event.propertyName === "--fly-w" ||
       event.propertyName === "--fly-rot"
     );
@@ -313,12 +544,35 @@ export function initProgramModal() {
     event.stopPropagation();
   }
 
+  function resetCardScroll(el) {
+    if (!el) return;
+    el.scrollTop = 0;
+    const sheet = el.querySelector(".program-card__sheet");
+    if (sheet) sheet.scrollTop = 0;
+    const works = el.querySelector(".works-card");
+    if (works) works.scrollTop = 0;
+  }
+
+  function persistIllust(el) {
+    return Boolean(el?.hasAttribute("data-works-card") || el?.hasAttribute("data-program-card"));
+  }
+
+  function setIllustOut(el, hidden) {
+    if (!el) return;
+    // Key + dachshund stay painted through expand (they are the close control).
+    if (hidden && persistIllust(el)) {
+      el.removeAttribute("data-illust-out");
+      return;
+    }
+    if (hidden) el.setAttribute("data-illust-out", "");
+    else el.removeAttribute("data-illust-out");
+  }
+
   function lockCard() {
     if (!card) return;
-    card.classList.remove("is-hovered", "is-fly-pinned");
-    card.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true }));
     card.setAttribute("data-fly-lock", "");
     card.setAttribute("data-focus-open", "");
+    card.classList.remove("is-hovered", "is-fly-pinned");
     card.classList.add("is-program-open");
     if (card.hasAttribute("data-work-student")) {
       card.getBoundingClientRect();
@@ -346,6 +600,7 @@ export function initProgramModal() {
     el.style.margin = "";
     el.style.width = "";
     el.style.height = "";
+    el.style.removeProperty("--card-w");
   }
 
   function releaseCard(keepDeck) {
@@ -354,15 +609,113 @@ export function initProgramModal() {
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
     card.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+    clearExpandHost(card);
     card.style.transform = restTransform;
     clearFlyBox(card);
+    setIllustOut(card, false);
     restTransform = "";
+    fromLocal = null;
+    fromRadius = "2px";
     card.removeAttribute("data-fly-lock");
     card.removeAttribute("data-focus-open");
     card.removeAttribute("data-work-student");
     card.setAttribute("data-rest-lock", "");
     applyDeckParams();
     if (!keepDeck && !closeAfter) deck.removeAttribute("data-program-open");
+  }
+
+  function rectMismatch(a, b) {
+    return Math.max(
+      Math.abs(a.left - b.left),
+      Math.abs(a.top - b.top),
+      Math.abs(a.width - b.width),
+      Math.abs(a.height - b.height),
+    );
+  }
+
+  function measureStackDest(host, home) {
+    const clone = host.cloneNode(false);
+    clone.className = host.className;
+    clone.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+    ["data-expand-host", "data-expand-settled", "data-body-grow", "data-fly-lock", "data-focus-open"].forEach(
+      (name) => clone.removeAttribute(name),
+    );
+    clone.setAttribute("data-rest-lock", "");
+    clone.style.cssText = "";
+    clone.style.transform = home;
+    clone.style.visibility = "hidden";
+    clone.style.pointerEvents = "none";
+    clone.setAttribute("aria-hidden", "true");
+    host.parentNode?.insertBefore(clone, host.nextSibling);
+    const rect = clone.getBoundingClientRect();
+    clone.remove();
+    return rect;
+  }
+
+  function commitExpandRelease(host, home) {
+    unmountFocusScrollbar(host);
+    host.removeEventListener("wheel", trapCardScroll);
+    host.removeEventListener("touchmove", trapCardScroll);
+    host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+    clearExpandHost(host);
+    clearFlyBox(host);
+    setIllustOut(host, false);
+    host.style.transform = home;
+    host.removeAttribute("data-fly-lock");
+    host.removeAttribute("data-focus-open");
+    host.removeAttribute("data-work-student");
+    host.setAttribute("data-rest-lock", "");
+    applyDeckParams();
+    host.style.transition = "";
+    restTransform = "";
+    fromLocal = null;
+    fromRadius = "2px";
+    if (!closeAfter) deck.removeAttribute("data-program-open");
+  }
+
+  /**
+   * Close already landed on the live stack matrix. Drop expand chrome in the
+   * same frame — no position:fixed ↔ relative swap, no leftover invert.
+   * Returns false if dest rect still disagrees (one more frame, don't idle yet).
+   */
+  function finishExpandClose(attempt = 0) {
+    if (!card) return true;
+    const host = card;
+    const home = restTransform || "";
+    const closePose = expandClosePose();
+
+    host.style.setProperty("--fly-ms", "0ms");
+    host.style.transition = "none";
+    applyExpandPose(host, closePose, false);
+    host.style.transform = home;
+
+    const current = host.getBoundingClientRect();
+    const dest = measureStackDest(host, home);
+    lastHandoffPx = rectMismatch(current, dest);
+
+    if (lastHandoffPx > 0.5 && attempt < 1) {
+      requestAnimationFrame(() => {
+        if (card !== host || phase !== "closing") return;
+        if (finishExpandClose(attempt + 1)) completeClose();
+      });
+      return false;
+    }
+
+    commitExpandRelease(host, home);
+    const after = host.getBoundingClientRect();
+    lastHandoffPx = rectMismatch(current, after);
+    return true;
+  }
+
+  function completeClose() {
+    phase = "idle";
+    rest = null;
+    poses = new Map();
+    const next = closeAfter;
+    closeAfter = null;
+    card = null;
+    syncAria();
+    next?.();
   }
 
   function afterFly(fn) {
@@ -396,33 +749,39 @@ export function initProgramModal() {
       finish();
     };
     host.addEventListener("transitionend", flyOnEnd);
-    flyTimer = window.setTimeout(finish, FLY_MS);
+    const ms = Number.parseFloat(host.style.getPropertyValue("--fly-ms"));
+    const dur = Number.isFinite(ms) ? ms : FLY_MS;
+    flyTimer = window.setTimeout(finish, dur + 48);
+  }
+
+  function onFlySettled() {
+    if (phase === "opening") {
+      phase = "open";
+      if (card) {
+        card.style.setProperty("--fly-ms", "0ms");
+        if (card.hasAttribute("data-expand-host")) {
+          card.style.borderRadius = "0px";
+          card.setAttribute("data-expand-settled", "");
+        }
+        card.classList.add("is-program-scroll");
+        syncFocusScrollbar(card);
+      }
+      syncAria();
+      return;
+    }
+    if (phase !== "closing") return;
+    if (card?.hasAttribute("data-expand-host")) {
+      if (!finishExpandClose()) return;
+    } else {
+      releaseCard();
+    }
+    completeClose();
   }
 
   function playFly(nextBox, immediate) {
     const run = () => {
       pin(nextBox, !reduceMotion());
-      afterFly(() => {
-        if (phase === "opening") {
-          phase = "open";
-          if (card) {
-            card.classList.add("is-program-scroll");
-            syncFocusScrollbar(card);
-          }
-          syncAria();
-          return;
-        }
-        if (phase !== "closing") return;
-        releaseCard();
-        phase = "idle";
-        rest = null;
-        poses = new Map();
-        const next = closeAfter;
-        closeAfter = null;
-        card = null;
-        syncAria();
-        next?.();
-      });
+      afterFly(onFlySettled);
     };
     if (reduceMotion() || immediate) {
       run();
@@ -431,18 +790,83 @@ export function initProgramModal() {
     requestAnimationFrame(() => requestAnimationFrame(run));
   }
 
+  function expandDest() {
+    const { w, h } = frameSize();
+    return visualToLocalBox({ left: 0, top: 0, width: w, height: h });
+  }
+
+  function startExpandOpen() {
+    if (!card) {
+      onFlySettled();
+      return;
+    }
+    const origin = {
+      x: fromLocal?.x ?? 0,
+      y: fromLocal?.y ?? 0,
+      rotate: fromLocal?.rotate ?? 0,
+      scale: fromLocal?.scale ?? 1,
+      width: fromLocal?.width ?? card.offsetWidth,
+      height: fromLocal?.height ?? card.offsetHeight,
+      radius: fromRadius,
+    };
+    const dest = expandOpenPose(fromLocal || origin);
+    const retarget =
+      card.hasAttribute("data-expand-settled") ||
+      card.style.getPropertyValue("--fly-w") !== "";
+    if (!retarget) {
+      applyExpandPose(card, origin, false);
+      card.getBoundingClientRect();
+    }
+    card.setAttribute("data-body-grow", "");
+    if (reduceMotion()) {
+      applyExpandPose(card, dest, false);
+      onFlySettled();
+      return;
+    }
+    applyExpandPose(card, dest, true);
+    afterFly(onFlySettled);
+  }
+
+  function startExpandClose() {
+    if (!card) {
+      onFlySettled();
+      return;
+    }
+    const origin = expandClosePose();
+    card.removeAttribute("data-expand-settled");
+    card.removeAttribute("data-body-grow");
+    if (reduceMotion()) {
+      applyExpandPose(card, origin, false);
+      setIllustOut(card, false);
+      onFlySettled();
+      return;
+    }
+    applyExpandPose(card, origin, true);
+    setIllustOut(card, false);
+    afterFly(onFlySettled);
+  }
+
   function snapshotPoses() {
     if (poses.size) return;
     cards.forEach((el) => {
       poses.set(el, {
         rest: capturePose(el),
         restTransform: el.style.transform,
+        layout: cardLayout(el),
+        fromFixed: captureFixedHome(el),
       });
     });
   }
 
   function rememberPose(el, nextRest, nextTransform) {
-    poses.set(el, { rest: nextRest, restTransform: nextTransform });
+    const prev = poses.get(el);
+    const fixed = getComputedStyle(el).position === "fixed";
+    poses.set(el, {
+      rest: nextRest,
+      restTransform: nextTransform,
+      layout: fixed && prev?.layout ? prev.layout : cardLayout(el),
+      fromFixed: fixed && prev?.fromFixed ? prev.fromFixed : captureFixedHome(el),
+    });
   }
 
   /** Park at the --fly-* landing. Do not hand off to a second transform. */
@@ -453,6 +877,7 @@ export function initProgramModal() {
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
     el.classList.add("is-fly-pinned");
     el.style.setProperty("--fly-ms", "0ms");
+    setIllustOut(el, false);
     el.removeAttribute("data-fly-lock");
     el.removeAttribute("data-focus-open");
     el.removeAttribute("data-work-student");
@@ -466,6 +891,7 @@ export function initProgramModal() {
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     el.style.transform = restTf;
     clearFlyBox(el);
+    setIllustOut(el, false);
     el.removeAttribute("data-fly-lock");
     el.removeAttribute("data-focus-open");
     el.removeAttribute("data-work-student");
@@ -493,6 +919,7 @@ export function initProgramModal() {
       else settleRetire(el);
     };
     pinEl(el, rec.box, !reduceMotion());
+    setIllustOut(el, false);
     if (reduceMotion()) {
       finish();
       return;
@@ -525,6 +952,26 @@ export function initProgramModal() {
     rest = saved?.rest ?? capturePose(card);
     restTransform = saved?.restTransform ?? card.style.transform;
     if (!saved) rememberPose(card, rest, restTransform);
+    if (useExpand()) {
+      const shot = captureExpandFrom(card);
+      fromLocal = shot;
+      fromRadius = shot.radius;
+      applyExpandPose(card, {
+        x: shot.x,
+        y: shot.y,
+        rotate: shot.rotate,
+        scale: shot.scale,
+        width: shot.width,
+        height: shot.height,
+        radius: shot.radius,
+      }, false);
+      card.setAttribute("data-expand-host", "");
+      card.style.setProperty("--fly-ms", "0ms");
+      lockCard();
+      syncAria();
+      startExpandOpen();
+      return;
+    }
     pin(rest, false);
     lockCard();
     card.getBoundingClientRect();
@@ -540,7 +987,7 @@ export function initProgramModal() {
     phase = "closing";
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
-    if (card) card.scrollTop = 0;
+    resetCardScroll(card);
     fadeFocusScrollbar(card, false);
     card?.classList.remove("is-work-open", "is-program-scroll");
     cards.forEach((el) => {
@@ -549,7 +996,22 @@ export function initProgramModal() {
     });
     if (!closeAfter) deck.removeAttribute("data-program-open");
     syncAria();
+    if (card?.hasAttribute("data-expand-host")) {
+      startExpandClose();
+      return;
+    }
     playFly(rest ?? (card ? capturePose(card) : destBox()), true);
+  }
+
+  function demoteExpand(el) {
+    if (!el.hasAttribute("data-expand-host")) return;
+    const local = {
+      ...visualToLocalBox(el.getBoundingClientRect()),
+      rotate: readVisualRotate(el),
+    };
+    clearExpandHost(el);
+    el.style.borderRadius = "";
+    pinEl(el, local, false);
   }
 
   function switchFocus(target) {
@@ -565,23 +1027,41 @@ export function initProgramModal() {
     flyGen += 1;
     closeAfter = null;
 
-    outgoingEl.scrollTop = 0;
+    resetCardScroll(outgoingEl);
     fadeFocusScrollbar(outgoingEl, false);
     outgoingEl.classList.remove("is-work-open", "is-program-scroll");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);
     outgoingEl.removeAttribute("data-focus-open");
     outgoingEl.removeAttribute("data-work-student");
+    demoteExpand(outgoingEl);
 
     cancelRetire(target);
-    const fromVisual = capturePose(target);
+    const expand = useExpand();
+    const fromVisual = expand ? captureExpandFrom(target) : capturePose(target);
     const inSaved = poses.get(target);
     card = target;
-    rest = inSaved?.rest ?? fromVisual;
+    rest = inSaved?.rest ?? (expand ? capturePose(target) : fromVisual);
     restTransform = inSaved?.restTransform ?? target.style.transform;
     if (!inSaved) rememberPose(target, rest, restTransform);
 
-    pin(fromVisual, false);
+    if (expand) {
+      fromLocal = fromVisual;
+      fromRadius = fromVisual.radius;
+      applyExpandPose(card, {
+        x: fromVisual.x,
+        y: fromVisual.y,
+        rotate: fromVisual.rotate,
+        scale: fromVisual.scale,
+        width: fromVisual.width,
+        height: fromVisual.height,
+        radius: fromVisual.radius,
+      }, false);
+      card.setAttribute("data-expand-host", "");
+      card.style.setProperty("--fly-ms", "0ms");
+    } else {
+      pin(fromVisual, false);
+    }
     lockCard();
     outgoingEl.removeAttribute("data-fly-lock");
     card.getBoundingClientRect();
@@ -603,7 +1083,8 @@ export function initProgramModal() {
 
     phase = "opening";
     syncAria();
-    playFly(dest);
+    if (expand) startExpandOpen();
+    else playFly(dest);
   }
 
   function focusCard(target) {
@@ -641,6 +1122,101 @@ export function initProgramModal() {
     return Boolean(el.closest(TYPING_SEL));
   }
 
+  /** Program, works, history, or a yan/polina/alena suitcase — not the progress wrapper. */
+  function canOpenOnMobile(el, sheet) {
+    if (el.hasAttribute("data-program-card")) return true;
+    if (el.hasAttribute("data-works-card")) return true;
+    if (el.hasAttribute("data-history-card") || el.querySelector(".history-card")) return true;
+    if (el.hasAttribute("data-work-card")) return Boolean(sheet);
+    return false;
+  }
+
+  /** Topmost still-visible card under the point (skips fully gone / inert). */
+  function topVisibleCard(x, y) {
+    const hits = document.elementsFromPoint(x, y);
+    for (const node of hits) {
+      if (!(node instanceof Element)) continue;
+      const host = node.closest(FOCUS_SEL);
+      if (!host || !cards.includes(host)) continue;
+      if (host.classList.contains("is-stack-inert")) continue;
+      return host;
+    }
+    return null;
+  }
+
+  function eventEl(event) {
+    const target = event.target;
+    if (target instanceof Element) return target;
+    return target instanceof Node ? target.parentElement : null;
+  }
+
+  /**
+   * Which card should open from this tap.
+   * Mobile: topmost visible card under the finger; only the allowed set opens.
+   * Desktop: keep the existing openable set (any focus card).
+   */
+  function resolveOpenTarget(event, fallbackEl) {
+    const raw = eventEl(event);
+    const sheet = raw?.closest?.(WORK_OPEN) || null;
+    const mobile = isMobile();
+    const cardEl = mobile
+      ? topVisibleCard(event.clientX, event.clientY)
+      : fallbackEl || raw?.closest?.(FOCUS_SEL);
+    if (!cardEl || !cards.includes(cardEl)) return null;
+    if (mobile && cardEl !== topVisibleCard(event.clientX, event.clientY)) return null;
+    const workSheet = cardEl.hasAttribute("data-work-card") ? sheet : null;
+    if (mobile && !canOpenOnMobile(cardEl, workSheet)) return null;
+    return { card: cardEl, sheet: workSheet };
+  }
+
+  function applyWorkSheet(host, sheet) {
+    if (!host || !sheet) return;
+    host.setAttribute("data-work-student", sheet.getAttribute("data-work-open") || "");
+  }
+
+  function workStudentIds(host) {
+    const root = host || card;
+    if (!root?.hasAttribute("data-work-card")) return [];
+    return [...root.querySelectorAll(WORK_OPEN)]
+      .map((sheet) => sheet.getAttribute("data-work-open") || "")
+      .filter(Boolean);
+  }
+
+  function switchWorkStudent(dir) {
+    if (!card?.hasAttribute("data-work-card")) return;
+    if (phase !== "open" && phase !== "opening") return;
+    const list = workStudentIds(card);
+    if (list.length < 2) return;
+    const cur = card.getAttribute("data-work-student") || "";
+    const idx = list.indexOf(cur);
+    if (idx < 0) return;
+    const next = list[(idx + dir + list.length) % list.length];
+    if (!next || next === cur) return;
+    card.classList.add("is-work-switch");
+    void card.offsetWidth;
+    card.setAttribute("data-work-student", next);
+    card.scrollTop = 0;
+    card.classList.add("is-work-open");
+    requestAnimationFrame(() => {
+      card?.classList.remove("is-work-switch");
+      syncFocusScrollbar(card);
+    });
+  }
+
+  function openFromTarget(target) {
+    if (!target) return;
+    const { card: next, sheet } = target;
+    applyWorkSheet(next, sheet);
+    if (next === card && (phase === "open" || phase === "opening")) {
+      if (sheet) {
+        next.classList.add("is-work-open");
+        mountFocusScrollbar(next);
+      }
+      return;
+    }
+    focusCard(next);
+  }
+
   function labelKey(el, expanded) {
     if (el.hasAttribute("data-program-card")) return expanded ? "program.close" : "program.open";
     if (el.hasAttribute("data-work-card")) return expanded ? "work.close" : "work.open";
@@ -649,13 +1225,37 @@ export function initProgramModal() {
     return expanded ? "card.close" : "card.open";
   }
 
+  function overlayCloseCard(el) {
+    return Boolean(el?.hasAttribute("data-program-card"));
+  }
+
   function syncCloseBtn() {
     if (!closeBtn) return;
     const mobile = window.matchMedia("(max-width: 900px)").matches;
     const expanded = phase === "open" || phase === "opening";
-    const show = mobile && expanded && card;
+    const show = mobile && expanded && card && !overlayCloseCard(card);
     closeBtn.hidden = !show;
     if (show && card) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
+  }
+
+  function syncIllustClose() {
+    document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
+      const host = illust.closest(FOCUS_SEL);
+      const active = host === card && (phase === "open" || phase === "opening");
+      illust.setAttribute("aria-hidden", active ? "false" : "true");
+      if (active) {
+        illust.setAttribute("role", "button");
+        illust.setAttribute("aria-label", t(labelKey(host, true)));
+      } else {
+        illust.removeAttribute("role");
+        illust.removeAttribute("aria-label");
+      }
+      const cue = illust.querySelector(".card-illust__cue");
+      if (!cue) return;
+      const key = active ? "illust.close" : "illust.open";
+      cue.setAttribute("data-i18n", key);
+      cue.textContent = t(key);
+    });
   }
 
   function syncAria() {
@@ -666,6 +1266,7 @@ export function initProgramModal() {
       el.setAttribute("aria-label", t(labelKey(el, isThis)));
     });
     syncCloseBtn();
+    syncIllustClose();
   }
 
   syncAria();
@@ -673,6 +1274,14 @@ export function initProgramModal() {
   cards.forEach((el) => {
     el.addEventListener("pointerdown", (event) => {
       start = { x: event.clientX, y: event.clientY };
+      if (el.classList.contains("is-program-open")) {
+        const top = el.scrollTop;
+        const left = el.scrollLeft;
+        requestAnimationFrame(() => {
+          if (el.scrollTop !== top) el.scrollTop = top;
+          if (el.scrollLeft !== left) el.scrollLeft = left;
+        });
+      }
       // Let the deck capture a vertical swipe. Only real controls keep the event.
       if (event.target.closest?.(FOCUS_IGNORE) || event.target.closest?.(WORK_IG)) {
         event.stopPropagation();
@@ -684,40 +1293,21 @@ export function initProgramModal() {
         event.stopPropagation();
         return;
       }
+      if (event.target.closest?.(FOCUS_IGNORE) && !event.target.closest?.(WORK_OPEN)) {
+        event.stopPropagation();
+        return;
+      }
       const moved =
         start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > DRAG_CLICK_PX;
-      const sheet = el.hasAttribute("data-work-card")
-        ? event.target.closest?.(WORK_OPEN)
-        : null;
-      if (sheet) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (moved) return;
-        el.setAttribute("data-work-student", sheet.getAttribute("data-work-open") || "");
-        if (phase === "idle") {
-          openFocus(el);
-          return;
-        }
-        if (el === card && (phase === "open" || phase === "opening")) {
-          el.classList.add("is-work-open");
-          mountFocusScrollbar(el);
-          return;
-        }
-        focusCard(el);
+      const target = resolveOpenTarget(event, el);
+      if (!target) return;
+      if (target.card === card && (phase === "open" || phase === "opening") && !target.sheet) {
         return;
       }
-      if (event.target.closest?.(FOCUS_IGNORE)) {
-        event.stopPropagation();
-        return;
-      }
+      event.preventDefault();
       event.stopPropagation();
       if (moved) return;
-      if (el === card && (phase === "open" || phase === "opening")) return;
-      if (phase === "open" || phase === "opening" || phase === "closing") {
-        focusCard(el);
-        return;
-      }
-      openFocus(el);
+      openFromTarget(target);
     });
   });
 
@@ -730,25 +1320,26 @@ export function initProgramModal() {
       event.preventDefault();
       event.stopPropagation();
       if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > DRAG_CLICK_PX) return;
-      const host = sheet.closest("[data-work-card]");
-      if (!host) return;
-      host.setAttribute("data-work-student", sheet.getAttribute("data-work-open") || "");
-      if (phase === "idle") {
-        openFocus(host);
-        return;
-      }
-      if (host === card && (phase === "open" || phase === "opening")) {
-        host.classList.add("is-work-open");
-        mountFocusScrollbar(host);
-        return;
-      }
-      focusCard(host);
+      const target = resolveOpenTarget(event, sheet.closest("[data-work-card]"));
+      if (!target?.sheet) return;
+      openFromTarget(target);
     });
   });
 
   document.querySelectorAll(WORK_IG).forEach((ig) => {
     ig.addEventListener("click", (event) => {
       event.stopPropagation();
+    });
+  });
+
+  document.querySelectorAll("[data-work-student-prev], [data-work-student-next]").forEach((btn) => {
+    btn.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      switchWorkStudent(btn.hasAttribute("data-work-student-prev") ? -1 : 1);
     });
   });
 
@@ -768,22 +1359,20 @@ export function initProgramModal() {
       if (phase !== "open" && phase !== "opening") return;
       const target = event.target;
       if (!(target instanceof Node)) return;
-      if (card?.contains(target)) return;
       const hit = target instanceof Element ? target : target.parentElement;
       if (hit?.closest?.(SIDE_CHROME)) return;
-      const hitCard = hit?.closest?.(FOCUS_SEL);
-      if (hitCard && hitCard !== card) {
-        if (hit.closest?.(WORK_IG)) return;
-        if (hit.closest?.(FOCUS_IGNORE) && !hit.closest?.(WORK_OPEN)) return;
+      if (hit?.closest?.(WORK_IG)) return;
+      if (hit?.closest?.(FOCUS_IGNORE) && !hit.closest?.(WORK_OPEN)) return;
+
+      const resolved = resolveOpenTarget(event, hit?.closest?.(FOCUS_SEL));
+      if (resolved?.card === card) return;
+      if (resolved?.card && resolved.card !== card) {
         event.preventDefault();
         event.stopPropagation();
-        const sheet = hit.closest?.(WORK_OPEN);
-        if (sheet && hitCard.hasAttribute("data-work-card")) {
-          hitCard.setAttribute("data-work-student", sheet.getAttribute("data-work-open") || "");
-        }
-        focusCard(hitCard);
+        openFromTarget(resolved);
         return;
       }
+      if (card?.contains(target)) return;
       event.preventDefault();
       event.stopPropagation();
       closeFocus();
@@ -796,6 +1385,16 @@ export function initProgramModal() {
     event.stopPropagation();
     if (phase !== "open" && phase !== "opening") return;
     closeFocus();
+  });
+
+  document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
+    illust.addEventListener("click", (event) => {
+      const host = illust.closest(FOCUS_SEL);
+      if (host !== card || (phase !== "open" && phase !== "opening")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeFocus();
+    });
   });
 
   window.addEventListener("keydown", (event) => {
@@ -817,7 +1416,16 @@ export function initProgramModal() {
 
   const onFrameResize = () => {
     if (phase !== "open") return;
-    pin(destBox(rest), false);
+    if (card?.hasAttribute("data-expand-host")) {
+      applyExpandPose(card, expandOpenPose(fromLocal || captureExpandFrom(card)), false);
+      card.style.borderRadius = "0px";
+      const size = stackCardSize(rest);
+      if (rest && size.w > 0 && size.h > 0) {
+        rest = { ...rest, width: size.w, height: size.h };
+      }
+    } else {
+      pin(destBox(rest), false);
+    }
     syncFocusScrollbar(card);
   };
   window.addEventListener("resize", onFrameResize, { passive: true });
@@ -832,5 +1440,6 @@ export function initProgramModal() {
       Boolean(card?.hasAttribute("data-program-card") && (phase === "open" || phase === "opening")),
     isWorksFocused: () =>
       Boolean(card?.hasAttribute("data-works-card") && (phase === "open" || phase === "opening")),
+    lastHandoffPx: () => lastHandoffPx,
   };
 }

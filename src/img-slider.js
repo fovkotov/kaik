@@ -2,12 +2,35 @@ const SLIDE = "[data-img-slider-slide]";
 const PREV = "[data-img-slider-prev]";
 const NEXT = "[data-img-slider-next]";
 const IGNORE = "button, a, [data-img-slider-dot], [data-img-slider-dots]";
+const COARSE = window.matchMedia("(pointer: coarse)");
 
 const AXIS_PX = 8;
 const COMMIT_RATIO = 0.22;
-const DECEL = 0.998;
+const FLICK_VEL = 500;
 const SPRING_RESPONSE = 0.4;
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+/** Only one gallery may track a swipe. Extra fingers / sibling sliders are ignored. */
+let activeSlider = null;
+
+function setSliderBusy(on) {
+  document.documentElement.classList.toggle("is-img-slider-busy", on);
+}
+
+function claimSlider(root) {
+  if (activeSlider && activeSlider !== root) return false;
+  activeSlider = root;
+  root.classList.add("is-armed");
+  setSliderBusy(true);
+  return true;
+}
+
+function releaseSlider(root) {
+  if (activeSlider !== root) return;
+  activeSlider = null;
+  root.classList.remove("is-armed", "is-dragging");
+  setSliderBusy(false);
+}
 
 function slideImages(slide) {
   return [...slide.querySelectorAll("img")].filter(
@@ -43,10 +66,6 @@ function whenReady(img) {
   });
 }
 
-function project(velocity, decelerationRate = DECEL) {
-  return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate);
-}
-
 function sampleVel(samples) {
   if (samples.length < 2) return 0;
   const a = samples[0];
@@ -79,6 +98,8 @@ function bindSlider(root) {
 
   const widthOf = () => root.clientWidth || 1;
 
+  const wrapIndex = (next) => (next + slides.length) % slides.length;
+
   const paint = (offset) => {
     const w = widthOf();
     const n = slides.length;
@@ -88,16 +109,15 @@ function bindSlider(root) {
     });
   };
 
-  const syncDots = () => {
-    slides.forEach((slide, i) => slide.classList.toggle("is-active", i === index));
+  const syncDots = (active = index) => {
+    const current = wrapIndex(active);
+    slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
     dots.forEach((dot, i) => {
-      const on = i === index;
+      const on = i === current;
       dot.classList.toggle("is-active", on);
       dot.setAttribute("aria-current", on ? "true" : "false");
     });
   };
-
-  const wrapIndex = (next) => (next + slides.length) % slides.length;
 
   const shortestSteps = (from, to) => {
     let delta = to - from;
@@ -158,7 +178,15 @@ function bindSlider(root) {
     raf = requestAnimationFrame(step);
   };
 
+  const committedSteps = (vel = 0) => {
+    const w = widthOf();
+    if (Math.abs(shift) > w * COMMIT_RATIO) return shift < 0 ? 1 : -1;
+    if (Math.abs(vel) > FLICK_VEL) return vel < 0 ? 1 : -1;
+    return 0;
+  };
+
   const settleShift = (dest, vel, nextIndex) => {
+    syncDots(nextIndex);
     springTo(dest, vel, () => finishIndex(nextIndex));
   };
 
@@ -173,15 +201,8 @@ function bindSlider(root) {
   };
 
   const commitFromRelease = (vel) => {
-    const w = widthOf();
-    const projected = shift + project(vel);
-    let steps = Math.round(-projected / w);
-    if (!steps && Math.abs(shift) > w * COMMIT_RATIO) {
-      steps = shift < 0 ? 1 : -1;
-    }
-    const max = slides.length - 1;
-    steps = Math.max(-max, Math.min(max, steps));
-    settleShift(-steps * w, vel, index + steps);
+    const steps = committedSteps(vel);
+    settleShift(-steps * widthOf(), 0, index + steps);
   };
 
   const holdFocus = (event) => {
@@ -232,8 +253,30 @@ function bindSlider(root) {
   bindNav(PREV, -1);
   bindNav(NEXT, 1);
 
+  /** Mouse / fine pointer: arrows only. Touch keeps swipe-to-change. */
+  const allowSwipe = (event) => {
+    if (event.pointerType === "mouse") return false;
+    return event.pointerType === "touch" || COARSE.matches;
+  };
+
   const releaseDeck = () => {
     document.dispatchEvent(new CustomEvent("kaik:cancel-deck-drag"));
+  };
+
+  const capturePointer = (id) => {
+    try {
+      root.setPointerCapture(id);
+    } catch {
+      // ignore
+    }
+  };
+
+  const releasePointer = (id) => {
+    try {
+      if (id != null && root.hasPointerCapture?.(id)) root.releasePointerCapture(id);
+    } catch {
+      // ignore
+    }
   };
 
   const endGesture = (event, cancelled) => {
@@ -241,15 +284,11 @@ function bindSlider(root) {
     const axis = gesture.axis;
     const id = gesture.id;
     gesture = null;
-    root.classList.remove("is-dragging");
-    try {
-      if (root.hasPointerCapture?.(id)) root.releasePointerCapture(id);
-    } catch {
-      // ignore
-    }
+    releasePointer(id);
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     window.removeEventListener("pointercancel", onCancel);
+    releaseSlider(root);
     if (axis !== "x") {
       if (Math.abs(shift) > 1) commitFromRelease(0);
       return;
@@ -275,11 +314,7 @@ function bindSlider(root) {
         didSlide = true;
         root.classList.add("is-dragging");
         releaseDeck();
-        try {
-          root.setPointerCapture(event.pointerId);
-        } catch {
-          // ignore
-        }
+        capturePointer(event.pointerId);
       } else {
         gesture.axis = "y";
         return;
@@ -296,27 +331,50 @@ function bindSlider(root) {
     if (gestureSamples.length > 5) gestureSamples.shift();
     if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
     paint(shift);
+    syncDots(index + committedSteps(0));
   };
 
   const onUp = (event) => endGesture(event, false);
   const onCancel = (event) => endGesture(event, true);
 
-  root.addEventListener("pointerdown", (event) => {
-    if (event.button && event.button !== 0) return;
-    if (event.target.closest?.(IGNORE)) return;
-    cancelSpring();
-    didSlide = Math.abs(shift) > 4;
-    gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
-    gesture = {
-      id: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      origin: shift,
-      axis: null,
-    };
-    window.addEventListener("pointermove", onMove, { passive: false });
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onCancel);
+  root.addEventListener("dragstart", (event) => {
+    event.preventDefault();
+  });
+
+  root.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (gesture && event.pointerId !== gesture.id) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (!allowSwipe(event)) return;
+      if (event.isPrimary === false) return;
+      if (event.button && event.button !== 0) return;
+      if (event.target.closest?.(IGNORE)) return;
+      if (gesture) return;
+      if (!claimSlider(root)) return;
+      cancelSpring();
+      didSlide = Math.abs(shift) > 4;
+      gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
+      gesture = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        origin: shift,
+        axis: null,
+      };
+      window.addEventListener("pointermove", onMove, { passive: false });
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+    },
+    true,
+  );
+
+  root.addEventListener("lostpointercapture", (event) => {
+    if (!gesture || event.pointerId !== gesture.id) return;
+    endGesture(event, true);
   });
 
   root.addEventListener(
@@ -333,6 +391,10 @@ function bindSlider(root) {
   finishIndex(0);
 
   const images = slides.flatMap(slideImages);
+  images.forEach((img) => {
+    img.draggable = false;
+    img.setAttribute("draggable", "false");
+  });
   const refresh = () => {
     measureTrack(root);
     paint(shift);
