@@ -260,7 +260,8 @@ a {
   touch-action: manipulation;
 }
 
-.panel__dropcap .dropcap svg {
+.panel__dropcap .dropcap svg,
+.panel__dropcap .dropcap img {
   display: block;
   width: auto;
   height: var(--panel-dropcap-h);
@@ -554,7 +555,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   will-change: transform, filter;
 }
 
-.dropcap svg {
+.dropcap svg,
+.dropcap img {
   height: 100%;
   width: auto;
   max-width: none;
@@ -3386,7 +3388,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .panel__dropcap .dropcap,
-  .panel__dropcap .dropcap svg {
+  .panel__dropcap .dropcap svg,
+  .panel__dropcap .dropcap img {
     width: auto;
     height: var(--panel-lockup-glyph-h);
     max-width: none;

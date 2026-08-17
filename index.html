@@ -22,6 +22,19 @@
           transform: translate3d(100vw, 0, 0);
         }
       }
+      /* Size the HTML dropcap before styles.css so the L is not a 368px flash. */
+      .panel__dropcap .dropcap img,
+      .panel__dropcap .dropcap svg {
+        display: block;
+        width: auto;
+        height: 76px;
+      }
+      @media (min-width: 901px) {
+        .panel__dropcap .dropcap img,
+        .panel__dropcap .dropcap svg {
+          height: 96.499px;
+        }
+      }
     </style>
     <link rel="stylesheet" href="/src/styles.css" />
     <script>
@@ -68,7 +81,31 @@
             data-dropcap="L"
             data-dropcap-en="L"
             data-dropcap-ru="Э"
-          ></span>
+          >
+            <button
+              type="button"
+              class="dropcap"
+              data-slot="dropcap-0"
+              data-letter-id="ltr_d094952c"
+              data-char="L"
+              aria-label="Drop cap L"
+            >
+              <span class="dropcap__swap" aria-hidden="true">
+                <span class="dropcap__glyph">
+                  <img
+                    src="/letters/ltr_d094952c.svg"
+                    alt=""
+                    width="368"
+                    height="459"
+                    decoding="async"
+                    fetchpriority="high"
+                    loading="eager"
+                    draggable="false"
+                  />
+                </span>
+              </span>
+            </button>
+          </span>
           <div class="panel__copy">
             <p class="panel__title" data-i18n="title">ETTER II</p>
             <p class="panel__dates" data-i18n="dates">from 31 avgust

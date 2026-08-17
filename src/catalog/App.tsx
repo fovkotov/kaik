@@ -149,7 +149,7 @@ export function CatalogApp() {
   useEffect(() => {
     let alive = true;
     const pull = () => {
-      loadCatalog().then((data) => {
+      loadCatalog({ bust: true }).then((data) => {
         if (!alive) return;
         setCatalog((current) => (sameCatalog(current, data) ? current : (data as Catalog)));
       });

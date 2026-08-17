@@ -17,16 +17,30 @@ function hydrate(data) {
   };
 }
 
-export async function loadCatalog() {
-  try {
-    const res = await fetch(`${CATALOG_URL}?t=${Date.now()}`, {
-      cache: "no-store",
+let inflightCatalog = null;
+
+export async function loadCatalog({ bust = false } = {}) {
+  if (!bust && inflightCatalog) return inflightCatalog;
+
+  const req = (async () => {
+    try {
+      const res = await fetch(bust ? `${CATALOG_URL}?t=${Date.now()}` : CATALOG_URL, {
+        cache: bust ? "no-store" : "default",
+      });
+      if (!res.ok) return emptyCatalog();
+      return hydrate(await res.json());
+    } catch {
+      return emptyCatalog();
+    }
+  })();
+
+  if (!bust) {
+    inflightCatalog = req;
+    req.finally(() => {
+      if (inflightCatalog === req) inflightCatalog = null;
     });
-    if (!res.ok) return emptyCatalog();
-    return hydrate(await res.json());
-  } catch {
-    return emptyCatalog();
   }
+  return req;
 }
 
 export function allEntries(catalog) {

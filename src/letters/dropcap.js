@@ -119,7 +119,8 @@ async function fetchSvg(entry) {
   const stamp = svgStamp(entry);
   const key = `${entry.id}:${stamp}`;
   if (svgCache.has(key)) return svgCache.get(key);
-  const res = await fetch(`${publicUrl(`letters/${entry.file}`)}?t=${stamp}`);
+  /* Same URL as <link rel="preload"> / first-paint <img> — no cache-bust query. */
+  const res = await fetch(publicUrl(`letters/${entry.file}`));
   if (!res.ok) throw new Error("SVG missing");
   const text = await res.text();
   svgCache.set(key, text);
@@ -543,8 +544,11 @@ function syncHostRest(host, button, rest) {
   host.append(document.createTextNode(rest));
 }
 
+/** Kick the catalog fetch as soon as this module evaluates — before deck/modals. */
+const catalogReady = loadCatalog();
+
 export async function initDropcaps() {
-  let catalog = await loadCatalog();
+  let catalog = await catalogReady;
   const hosts = [...document.querySelectorAll("[data-dropcap]")];
   if (!hosts.length) return;
 
@@ -618,10 +622,6 @@ export async function initDropcaps() {
         const char = explicit || normalizeChar(first);
         const matched = char ? lettersForChar(catalog, char) : [];
         const pool = matched.length ? matched : allLetters(catalog);
-        if (!pool.length) {
-          if (source) host.textContent = source;
-          return;
-        }
 
         const slot = host.id || `dropcap-${index}`;
         let button = host.querySelector(".dropcap");
@@ -629,6 +629,17 @@ export async function initDropcaps() {
         const paintedChar = button?.dataset.char;
         const currentId = button?.dataset.letterId;
         const currentEntry = currentId ? letterById(catalog, currentId) : null;
+
+        if (!pool.length) {
+          /* Keep the HTML first-paint glyph; never leave a hole if catalog fails. */
+          if (hadGlyph) {
+            bindButton(button);
+            return;
+          }
+          if (source) host.textContent = source;
+          return;
+        }
+
         const last =
           paintedChar && (!char || paintedChar === char)
             ? currentId || lastMap()[slot]
@@ -652,25 +663,18 @@ export async function initDropcaps() {
           if (swap) swap.style.transform = "";
           button.classList.remove("is-scrubbing");
           syncHostRest(host, button, rest);
+          bindButton(button);
         }
 
         if (gen !== mountGen) return;
 
         const sameChar = Boolean(button.dataset.char && button.dataset.char === char);
-        const stamp = currentEntry ? svgStamp(currentEntry) : "";
-        const sameStamp = Boolean(stamp && stamp === button.dataset.svgStamp);
         const cyclePool = clickPool(catalog, char);
+        const keepHtmlGlyph =
+          hadGlyph && (sameChar || !matched.length || !paintedChar);
 
-        if (hadGlyph && sameChar && currentEntry && sameStamp) {
-          remember(slot, currentId);
-          attachRuntime(button, cyclePool);
-          return;
-        }
-
-        if (hadGlyph && sameChar && currentEntry && !sameStamp) {
-          await paintGlyph(button, currentEntry, { animate });
-          if (gen !== mountGen) return;
-          remember(slot, currentEntry.id);
+        if (keepHtmlGlyph) {
+          remember(slot, currentId || currentEntry?.id || pool[0]?.id);
           attachRuntime(button, cyclePool);
           return;
         }
@@ -680,6 +684,10 @@ export async function initDropcaps() {
         });
         if (gen !== mountGen) return;
         if (!entry) {
+          if (hadGlyph) {
+            attachRuntime(button, cyclePool);
+            return;
+          }
           host.textContent = source;
           return;
         }
@@ -695,7 +703,7 @@ export async function initDropcaps() {
     mount({ animate: true });
   });
   subscribeCatalog(async () => {
-    const next = await loadCatalog();
+    const next = await loadCatalog({ bust: true });
     if (sameCatalog(catalog, next)) return;
     catalog = next;
     hidePopover();
