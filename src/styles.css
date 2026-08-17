@@ -1893,6 +1893,7 @@ img.works-card__piece {
   align-items: stretch;
   gap: calc(48 * var(--u));
   padding: calc(40 * var(--u)) calc(48 * var(--u));
+  overflow-x: hidden;
   color: var(--work-ink);
   font-family: var(--font);
   font-weight: 700;
@@ -2086,14 +2087,15 @@ img.works-card__piece {
 .work-card__mark {
   position: relative;
   width: 100%;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
 .work-card__mark img {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
-  max-width: none;
   pointer-events: none;
   user-select: none;
 }
@@ -2111,41 +2113,25 @@ img.works-card__piece {
   object-fit: contain;
 }
 
-.work-card__mark--mind {
-  height: calc(97.613 * var(--u));
-}
-
 .work-card__mark--mind img {
-  position: absolute;
+  position: static;
+  width: 100%;
   height: auto;
-}
-
-.work-card__mark--mind-w {
-  left: 0;
-  top: calc(7.46 * var(--u));
-  width: calc(223.147 * var(--u));
-}
-
-.work-card__mark--mind-d {
-  left: calc(223.15 * var(--u));
-  top: calc(7.06 * var(--u));
-  width: calc(60.316 * var(--u));
-}
-
-.work-card__mark--mind-n {
-  left: calc(289.6 * var(--u));
-  top: calc(6.39 * var(--u));
-  width: calc(163.926 * var(--u));
-}
-
-.work-card__mark--mind-i {
-  left: calc(459.67 * var(--u));
-  top: 0;
-  width: calc(153.328 * var(--u));
 }
 
 .work-card__mark--kaik {
   height: calc(169 * var(--u));
+  overflow: hidden;
+}
+
+.work-card__mark--design {
+  height: calc(298 * var(--u));
+  overflow: hidden;
+}
+
+.work-card__mark--letter {
+  height: calc(228 * var(--u));
+  overflow: hidden;
 }
 
 .work-card__mark--kaik img,

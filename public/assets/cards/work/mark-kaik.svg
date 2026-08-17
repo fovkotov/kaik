@@ -1,7 +1,5 @@
 <svg width="613" height="169" viewBox="0 0 613 169" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="613" height="169" fill="#C8C8C8"/>
-<g id="Frame 934" filter="url(#filter0_d_0_1)">
-<rect width="709" height="7235.83" transform="translate(-48 -4241.95)" fill="white"/>
+<g id="Frame 934">
 <g id="Frame 943">
 <g id="Frame 942">
 <g id="Frame 967">
@@ -25,16 +23,4 @@
 </g>
 </g>
 </g>
-<defs>
-<filter id="filter0_d_0_1" x="-51.1409" y="-4241.95" width="715.282" height="7242.11" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-<feFlood flood-opacity="0" result="BackgroundImageFix"/>
-<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-<feOffset dy="3.14088"/>
-<feGaussianBlur stdDeviation="1.57044"/>
-<feComposite in2="hardAlpha" operator="out"/>
-<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
-<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
-<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
-</filter>
-</defs>
 </svg>
