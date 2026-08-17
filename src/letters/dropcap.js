@@ -14,7 +14,6 @@ import { svgToInline } from "./svg.js";
 import { sameCatalog, subscribeCatalog } from "./live.js";
 
 const LAST_KEY = "kaik-dropcap-last";
-const CYCLE_MS = 3200;
 const SPIN_OUT_DEG = 450;
 const SPIN_IN_FROM_DEG = -90;
 const EASE_IN = "cubic-bezier(0.55, 0.055, 0.675, 0.19)";
@@ -29,7 +28,7 @@ const svgCache = new Map();
 const session = safeSessionStorage();
 const reduceMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-/** Fine pointer only — iOS sticky :hover / synthetic mouseenter must not pause idle. */
+/** Fine pointer only — iOS sticky :hover / synthetic mouseenter must not open the popover. */
 const canHoverPause = () =>
   window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
@@ -238,7 +237,7 @@ async function makeGlyph(button, entry) {
   return glyph;
 }
 
-/** Drop in-flight idle spin so scroll-scrub can take over without clearing swap rotateY. */
+/** Drop in-flight click spin so scroll-scrub can take over without clearing swap rotateY. */
 function abortCycleSpin(button) {
   button._paintGen = (button._paintGen || 0) + 1;
   stopSpin(button);
@@ -291,12 +290,6 @@ async function paintGlyph(button, entry, { animate = false } = {}) {
   button.classList.remove("is-spinning");
 }
 
-function nextInPool(pool, currentId) {
-  if (pool.length < 2) return null;
-  const i = pool.findIndex((item) => item.id === currentId);
-  return pool[(i + 1) % pool.length];
-}
-
 function stepInPool(pool, currentId, steps) {
   if (!pool.length || !steps) return null;
   const i = pool.findIndex((item) => item.id === currentId);
@@ -331,83 +324,6 @@ async function paintFromPool(button, pool, excludeId, { animate = false } = {}) 
     }
   }
   return null;
-}
-
-function startCycle(button, pool) {
-  if (pool.length < 2) return { stop() {}, hold() {}, kick() {} };
-
-  let timer = 0;
-  let hovering = false;
-  let busy = false;
-  let paused = false;
-
-  const stop = () => {
-    window.clearTimeout(timer);
-    timer = 0;
-  };
-
-  const schedule = () => {
-    stop();
-    if (paused || hovering || document.hidden || busy) return;
-    timer = window.setTimeout(tick, CYCLE_MS);
-  };
-
-  const tick = async () => {
-    if (paused || hovering || document.hidden || busy) return;
-    const next = nextInPool(pool, button.dataset.letterId);
-    if (!next || next.id === button.dataset.letterId) {
-      schedule();
-      return;
-    }
-    busy = true;
-    try {
-      await paintGlyph(button, next, { animate: true });
-      if (button.dataset.letterId === next.id) remember(button.dataset.slot, next.id);
-    } catch {
-      /* keep current glyph */
-    } finally {
-      busy = false;
-      if (!paused) schedule();
-    }
-  };
-
-  const onVis = () => {
-    if (document.hidden) stop();
-    else schedule();
-  };
-
-  button.addEventListener("pointerenter", (event) => {
-    if (!canHoverPause() || event.pointerType === "touch") return;
-    hovering = true;
-    stop();
-  });
-
-  button.addEventListener("pointerleave", (event) => {
-    if (!canHoverPause() || event.pointerType === "touch") return;
-    hovering = false;
-    schedule();
-  });
-
-  document.addEventListener("visibilitychange", onVis);
-  schedule();
-
-  return {
-    stop() {
-      paused = true;
-      hovering = false;
-      stop();
-      document.removeEventListener("visibilitychange", onVis);
-    },
-    hold() {
-      paused = true;
-      stop();
-    },
-    kick() {
-      paused = false;
-      if (!canHoverPause()) hovering = false;
-      schedule();
-    },
-  };
 }
 
 function visualSpinDeg(state) {
@@ -462,7 +378,6 @@ function createScrubber() {
       const swap = state.button.querySelector(".dropcap__swap");
       if (swap) swap.style.transform = "";
       state.button.classList.remove("is-scrubbing");
-      state.cycle.kick();
     }
   };
 
@@ -559,7 +474,6 @@ function createScrubber() {
       scrubbing = true;
       for (const state of scrubs) {
         if (state.clicking) continue;
-        state.cycle.hold();
         abortCycleSpin(state.button);
         state.button.classList.add("is-scrubbing");
         rebaseVisual(state);
@@ -579,7 +493,7 @@ function createScrubber() {
       settleTimer = window.setTimeout(unwindToRest, SCRUB_SETTLE_MS);
       return;
     }
-    /* Stuck `active` / iframe jitter must not refresh settle — idle has to resume. */
+    /* Stuck `active` / iframe jitter must not refresh settle. */
     if (scrubbing && !settleTimer) {
       settleTimer = window.setTimeout(unwindToRest, SCRUB_SETTLE_MS);
     }
@@ -588,11 +502,10 @@ function createScrubber() {
   document.addEventListener("kaik:deck-progress", onDeckProgress);
 
   return {
-    add(button, pool, cycle) {
+    add(button, pool) {
       scrubs.push({
         button,
         pool,
-        cycle,
         accum: 0,
         display: 0,
         turns: 0,
@@ -638,7 +551,6 @@ export async function initDropcaps() {
   ensurePopover();
 
   let mountGen = 0;
-  const cycles = [];
   const scrubber = createScrubber();
   const runtime = new WeakMap();
 
@@ -665,7 +577,6 @@ export async function initDropcaps() {
       if (!state) return;
       const scrub = scrubber.reset(button);
       if (scrub) scrub.clicking = true;
-      state.cycle.hold();
       const prevId = button.dataset.letterId;
       const next = await paintFromPool(button, state.cyclePool, prevId, {
         animate: true,
@@ -675,20 +586,16 @@ export async function initDropcaps() {
         if (!isMobile()) showPopover(button, next);
       }
       if (scrub) scrub.clicking = false;
-      runtime.get(button)?.cycle.kick();
     });
   };
 
   const attachRuntime = (button, cyclePool) => {
-    const cycle = startCycle(button, cyclePool);
-    cycles.push(cycle);
-    scrubber.add(button, cyclePool, cycle);
-    runtime.set(button, { cycle, cyclePool });
+    scrubber.add(button, cyclePool);
+    runtime.set(button, { cyclePool });
   };
 
   const mount = async ({ animate = false } = {}) => {
     const gen = ++mountGen;
-    cycles.splice(0).forEach((cycle) => cycle.stop());
     scrubber.clear();
     await Promise.all(
       hosts.map(async (host, index) => {
