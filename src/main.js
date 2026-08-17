@@ -1,6 +1,5 @@
 import { getScrollRoot, getViewportSize, initEmbed } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
-import { initSoundSettings } from "./sound-settings.js";
 import { initTickClicks } from "./tick-clicks.js";
 import { initImgSliders } from "./img-slider.js";
 import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
@@ -14,7 +13,7 @@ import {
   markIntroReady,
   playTextIntro,
 } from "./intro.js";
-import { initTextAppear, revealCardFace } from "./text-appear.js";
+import { initTextAppear } from "./text-appear.js";
 import {
   MOBILE_MQ,
   applyDeckParams,
@@ -557,7 +556,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
@@ -653,7 +652,7 @@ function initDeck() {
     "wheel",
     (event) => {
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -684,7 +683,7 @@ function initDeck() {
     (event) => {
       if (!isMobile()) return;
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -721,7 +720,9 @@ function initDeck() {
 
   if (isMobile()) root.scrollTop = 0;
 
-  let deckIntro = canPlayCardIntro() ? createDeckIntro(state.length) : null;
+  let deckIntro = canPlayCardIntro()
+    ? createDeckIntro(state.length, { frontFirst: isMobile() })
+    : null;
   if (!deckIntro) {
     markIntroReady();
     if (canPlayTextIntro()) playTextIntro();
@@ -981,9 +982,8 @@ function initDeck() {
       const worksR = worksCard ? Number(params.worksRotate) || 0 : 0;
       const programCard = item.el.hasAttribute("data-program-card");
 
-      const arrive = deckIntro && !flyLocked ? deckIntro.progress(i, now) : 1;
       const introX = deckIntro && !flyLocked && !mobile ? deckIntro.shift(i, now, vw) : 0;
-      const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, vh) : 0;
+      const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, -vh) : 0;
       const x = scrollX + parallaxX + spreadX + worksX + introX;
       const yPos = scrollY + parallaxY - item.hover * params.hoverLift + spreadY + worksY + introY;
 
@@ -1007,10 +1007,7 @@ function initDeck() {
         t * params.rotateXAmt * (i % 2 === 0 ? -1 : 1) + cursorRotX;
 
       item.el.style.transform = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${stackScale})`;
-      item.el.style.opacity = mobile ? String(lerp(0.28, stackOpacity, arrive)) : "";
-      if (mobile && !flyLocked && arrive > 0.72 && slot < 0.4 && slot > -0.25) {
-        revealCardFace(item.el);
-      }
+      item.el.style.opacity = mobile ? String(stackOpacity) : "";
       // Peeking rear cards and still-visible leaving cards stay hittable.
       // Only a fully gone card (opacity 0) is inert, so the tap hits the
       // topmost painted card under the finger instead of falling through.
@@ -1029,7 +1026,7 @@ function initDeck() {
     });
 
     if (deckIntro && !deckIntro.armed) {
-      deckIntro.armed = true;
+      deckIntro.arm(now);
       markIntroReady();
     }
     if (deckIntro?.done(now)) {
@@ -1156,7 +1153,6 @@ function bindWorkNav(programApi) {
 initEmbed();
 initLocale();
 initTweaks();
-initSoundSettings();
 initTickClicks();
 initDeck();
 initTextAppear();

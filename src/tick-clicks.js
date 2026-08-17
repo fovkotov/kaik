@@ -1,9 +1,5 @@
-import { playSound } from "./lib/sound-engine.ts";
-import { drop003Sound } from "./lib/drop-003.ts";
-
-/** Controls that already play press/click/tap/select/toggle, soundcn, or wiki preview. */
-const ALREADY_SOUNDING =
-  "[data-sound-play], [data-sound-cn], [data-sound-wiki], [data-sound-snd], [data-sound-open], [data-sound-close], [data-sound-settings] button, [data-sound-settings] a, [data-sound-settings] [role='button']";
+import { playWikiSound } from "./lib/wiki-sounds.js";
+import { getActionVolume } from "./lib/sound-volume.js";
 
 const STEP_KEYS = new Set([
   "ArrowLeft",
@@ -68,7 +64,9 @@ function reduced() {
 
 function playAction() {
   if (reduced()) return;
-  playSound(drop003Sound.dataUri, { volume: 0.5 }).catch(() => {});
+  const volume = getActionVolume();
+  if (volume <= 0) return;
+  playWikiSound("pop", { volume });
 }
 
 export function initTickClicks() {
@@ -79,7 +77,6 @@ export function initTickClicks() {
       if (event.button !== 0) return;
       const target = clickTarget(event);
       if (!target) return;
-      if (target.closest(ALREADY_SOUNDING)) return;
       if (isDisabledControl(target)) return;
       playAction();
     },
@@ -95,6 +92,7 @@ export function initTickClicks() {
       const target = clickTarget(event);
       if (target && isTextEntry(target)) return;
       if (target && isDisabledControl(target)) return;
+      if (target?.closest?.("input[type='range']")) return;
       playAction();
     },
     true,

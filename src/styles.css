@@ -44,7 +44,7 @@
   src: url("/fonts/sf-pro-rounded-bold.otf") format("opentype");
   font-weight: 100 900;
   font-style: normal;
-  font-display: block;
+  font-display: swap;
 }
 
 :root {
@@ -208,6 +208,7 @@ a {
   height: var(--panel-lockup-h);
   overflow: visible;
   pointer-events: none;
+  transform-style: preserve-3d;
 }
 
 .panel__chrome {
@@ -229,6 +230,7 @@ a {
   height: 100%;
   flex-shrink: 0;
   overflow: visible;
+  transform-style: preserve-3d;
 }
 
 .panel__dropcap {
@@ -245,6 +247,7 @@ a {
   align-items: flex-start;
   overflow: visible;
   pointer-events: none;
+  transform-style: preserve-3d;
 }
 
 .panel__dropcap .dropcap {
@@ -389,10 +392,32 @@ html:not(.i18n-ready) [data-i18n] {
   visibility: hidden;
 }
 
-/* Cards wait for intro pose; panel copy stays hidden until the stack has landed. */
+/* Card copy is already in the HTML — show it on first paint, stack or fullscreen. */
+html:not(.i18n-ready) [data-card] [data-i18n] {
+  visibility: visible;
+}
+
+[data-card] .program-card__week-title,
+[data-card] .program-card__name,
+[data-card] .program-card__when,
+[data-card] .program-card__kind,
+[data-card] .faq-card__q,
+[data-card] .faq-card__a,
+[data-card] .progress-card__who,
+[data-card] .history-card__text,
+[data-card] .history-card__caption,
+[data-card] .history-card__book-cap,
+[data-card] .exercises-card__text,
+[data-card] .format-card__note {
+  opacity: 1;
+}
+
+/* Cards wait for intro pose; panel copy stays hidden until the stack has landed.
+   `--frame-h` is `100%` until JS — in `translate()` that % is the card’s own
+   height, so the stack sat on-screen. Use 100vh / 100vw (iframe viewport). */
 @media (min-width: 901px) {
-  html:not(.intro-ready) .deck .card {
-    opacity: 0;
+  html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
+    transform: translate3d(100vw, 0, 0);
   }
 
   html:not(.intro-text) .panel__lockup,
@@ -403,41 +428,14 @@ html:not(.i18n-ready) [data-i18n] {
 }
 
 @media (min-width: 901px) and (prefers-reduced-motion: reduce) {
-  html:not(.intro-ready) .deck .card {
-    opacity: 1;
+  html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
+    transform: none;
   }
 }
 
 @media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
   html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
-    opacity: 0.28;
-    transform: translate3d(0, 100vh, 0);
-  }
-
-  [data-card] .format-card__label:not([data-msf-done]),
-  [data-card] .format-card__note:not([data-msf-done]),
-  [data-card] .author-card__title:not([data-msf-done]),
-  [data-card] .author-card__name:not([data-msf-done]),
-  [data-card] .program-card__title:not([data-msf-done]),
-  [data-card] .program-card__week-title:not([data-msf-done]),
-  [data-card] .program-card__name:not([data-msf-done]),
-  [data-card] .program-card__when:not([data-msf-done]),
-  [data-card] .program-card__kind:not([data-msf-done]),
-  [data-card] .progress-card__title:not([data-msf-done]),
-  [data-card] .progress-card__who:not([data-msf-done]),
-  [data-card] .works-card__title:not([data-msf-done]),
-  [data-card] .exercises-card__title:not([data-msf-done]),
-  [data-card] .exercises-card__text:not([data-msf-done]),
-  [data-card] .preview-card__title:not([data-msf-done]),
-  [data-card] .faq-card__title:not([data-msf-done]),
-  [data-card] .faq-card__q:not([data-msf-done]),
-  [data-card] .faq-card__a:not([data-msf-done]),
-  [data-card] .history-card__kicker:not([data-msf-done]),
-  [data-card] .history-card__title:not([data-msf-done]),
-  [data-card] .history-card__text:not([data-msf-done]),
-  [data-card] .history-card__caption:not([data-msf-done]),
-  [data-card] .history-card__book-cap:not([data-msf-done]) {
-    opacity: 0;
+    transform: translate3d(0, -100vh, 0);
   }
 }
 
@@ -522,6 +520,7 @@ html:not(.i18n-ready) [data-i18n] {
   flex-shrink: 0;
   overflow: visible;
   perspective: var(--dropcap-spin-perspective);
+  transform-style: preserve-3d;
 }
 
 .dropcap__swap {
@@ -1349,12 +1348,12 @@ img.works-card__piece {
 
 .preview-card {
   --u: calc(var(--card-w) / 595);
-  --preview-ink: #06dc68;
+  --preview-ink: #c7f0ff;
   position: relative;
   z-index: 1;
   width: 100%;
   height: 100%;
-  background: #b6d9c1;
+  background: #b28753;
   color: var(--preview-ink);
   font-family: var(--font);
   font-weight: 700;
@@ -1363,6 +1362,7 @@ img.works-card__piece {
 
 .preview-card__title {
   position: absolute;
+  z-index: 3;
   top: calc(2 * var(--u));
   left: 50%;
   transform: translateX(-50%);
@@ -1374,26 +1374,6 @@ img.works-card__piece {
   overflow-wrap: break-word;
   color: var(--preview-ink);
   pointer-events: none;
-}
-
-.preview-card__play {
-  position: absolute;
-  left: calc(271.394 * var(--u));
-  top: calc(395 * var(--u));
-  width: calc(53 * var(--u));
-  height: calc(53 * var(--u));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.preview-card__play img {
-  width: calc(44.515 * var(--u));
-  height: calc(44.515 * var(--u));
-  display: block;
-  pointer-events: none;
-  user-select: none;
 }
 
 .faq-card {
@@ -1496,7 +1476,8 @@ img.works-card__piece {
 
 .card-illust--program,
 .card-illust--exercises,
-.card-illust--faq {
+.card-illust--faq,
+.card-illust--preview {
   display: block;
   position: absolute;
   inset: 0;
@@ -1561,6 +1542,15 @@ img.works-card__piece {
 
 .card-illust--faq .card-illust__art--frog {
   display: none;
+}
+
+/* Figma 98:102 — 562×316 staff silhouettes at (16, 511) on 595×842. */
+.card-illust--preview .card-illust__art {
+  left: calc(16 * var(--u));
+  top: calc(511 * var(--u));
+  width: calc(562 * var(--u));
+  height: calc(316 * var(--u));
+  object-fit: fill;
 }
 
 .progress-card {
@@ -2411,7 +2401,7 @@ img.works-card__piece {
   user-select: none;
   -webkit-user-select: none;
   -webkit-user-drag: none;
-  cursor: default;
+  cursor: pointer;
 }
 
 @media (pointer: coarse) {
@@ -2422,7 +2412,7 @@ img.works-card__piece {
 
 @media (min-width: 901px) {
   .img-slider {
-    cursor: default;
+    cursor: pointer;
   }
 }
 
@@ -2699,6 +2689,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
    JS drives width/height + translate3d/rotateZ (inline transform wins).
    No position:fixed ↔ relative swap at close. */
 .card.is-program-open[data-expand-host] {
+  --card-w: var(--fly-w);
   position: absolute;
   left: 50%;
   right: auto;
@@ -2907,7 +2898,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   max-width: 100%;
 }
 
-.card.is-program-open .program-card__sheet {
+.card.is-program-open[data-expand-settled] .program-card__sheet,
+.card.is-program-open.is-program-scroll .program-card__sheet {
   flex: 0 0 auto;
   min-height: auto;
   height: auto;
@@ -3439,12 +3431,17 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     letter-spacing: 0;
   }
 
-  /* Figma 76:864 — 4px top inset before the first text. */
+  /* Figma 76:864 — 4px top inset before the first text.
+     Preview title size is 16px (98:106), same as the shared 76:864 rule. */
   .author-card__title,
   .preview-card__title,
   .faq-card__title,
   .history-card__kicker {
     top: 4px;
+  }
+
+  .preview-card__title {
+    width: calc(270.811 * var(--card-w) / 318);
   }
 
   .works-card {
@@ -3816,23 +3813,42 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     border-radius: 0;
   }
 
-  .card.is-program-open .history-card,
-  .card.is-program-open .work-card,
-  .card.is-program-open .format-card,
-  .card.is-program-open .author-card,
-  .card.is-program-open .preview-card,
-  .card.is-program-open .progress-card,
-  .card.is-program-open .exercises-card,
-  .card.is-program-open .faq-card,
-  .card.is-program-open .works-card {
+  .card.is-program-open .program-card__sheet,
+  .card.is-program-open[data-works-card] .works-card__list {
+    transition: padding-bottom var(--fly-ms, 0ms) var(--fly-ease, var(--ease-out));
+  }
+
+  .card.is-program-open[data-body-grow] .history-card,
+  .card.is-program-open[data-expand-settled] .history-card,
+  .card.is-program-open[data-body-grow] .work-card,
+  .card.is-program-open[data-expand-settled] .work-card,
+  .card.is-program-open[data-body-grow] .format-card,
+  .card.is-program-open[data-expand-settled] .format-card,
+  .card.is-program-open[data-body-grow] .author-card,
+  .card.is-program-open[data-expand-settled] .author-card,
+  .card.is-program-open[data-body-grow] .preview-card,
+  .card.is-program-open[data-expand-settled] .preview-card,
+  .card.is-program-open[data-body-grow] .progress-card,
+  .card.is-program-open[data-expand-settled] .progress-card,
+  .card.is-program-open[data-body-grow] .exercises-card,
+  .card.is-program-open[data-expand-settled] .exercises-card,
+  .card.is-program-open[data-body-grow] .faq-card,
+  .card.is-program-open[data-expand-settled] .faq-card {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
-  .card.is-program-open .program-card__sheet {
+  .card.is-program-open[data-works-card][data-body-grow] .works-card__list,
+  .card.is-program-open[data-works-card][data-expand-settled] .works-card__list {
+    padding-bottom: calc(var(--works-key-h) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .card.is-program-open[data-body-grow] .program-card__sheet,
+  .card.is-program-open[data-expand-settled] .program-card__sheet {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
-  .card.is-program-open[data-program-card] .program-card__sheet {
+  .card.is-program-open[data-program-card][data-body-grow] .program-card__sheet,
+  .card.is-program-open[data-program-card][data-expand-settled] .program-card__sheet {
     padding-bottom: calc(276.539 * var(--u) + env(safe-area-inset-bottom, 0px));
   }
 
@@ -3841,8 +3857,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     width: 100%;
   }
 
-  .card.is-program-open[data-works-card] {
-    --works-key-h: calc(var(--fly-w, var(--card-w)) * 176 / 449);
+  .card[data-works-card] {
+    --works-key-h: calc(var(--card-w) * 176 / 449);
   }
 
   .fly-close:not([hidden]) {
@@ -3859,6 +3875,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     z-index: 4;
     pointer-events: none;
     user-select: none;
+  }
+
+  .card-illust--preview {
+    z-index: 2;
   }
 
   .card-illust__art {
@@ -3945,64 +3965,61 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     filter: none;
   }
 
-  /* Keep persist overlays' containing block at the visible card during morph. */
-  .card.is-program-open[data-program-card][data-expand-host]:not([data-expand-settled]) .program-card,
-  .card.is-program-open[data-works-card][data-expand-host]:not([data-expand-settled]) .works-card {
+  /* Face stays the fullscreen chrome. The transformed card must not scroll —
+     overflow+transform makes position:fixed descendants scroll with content. */
+  .card.is-program-open[data-expand-host][data-program-card],
+  .card.is-program-open[data-expand-host][data-works-card],
+  .card.is-program-open[data-expand-host][data-program-card].is-program-scroll,
+  .card.is-program-open[data-expand-host][data-works-card].is-program-scroll {
+    overflow: hidden;
+    touch-action: auto;
+  }
+
+  .card.is-program-open[data-program-card][data-expand-host] .program-card,
+  .card.is-program-open[data-works-card][data-expand-host] .works-card,
+  .card.is-program-open[data-expand-settled][data-program-card] .program-card,
+  .card.is-program-open.is-program-scroll[data-program-card] .program-card,
+  .card.is-program-open[data-expand-settled][data-works-card] .works-card,
+  .card.is-program-open.is-program-scroll[data-works-card] .works-card {
     height: 100%;
     min-height: 0;
     overflow: hidden;
   }
 
-  /* Pin persist overlays to the morphing card bottom (not --fly-h, which is
-     already fullscreen while the card is still stack-sized → art clipped). */
-  .card.is-program-open[data-expand-host]:not([data-expand-settled]) .card-illust--program,
-  .card.is-program-open[data-expand-host]:not([data-expand-settled]) .card-illust--works {
+  /* Same absolute inset-0 box as the closed face — never swap to fixed/sticky. */
+  .card.is-program-open[data-expand-host][data-program-card] .card-illust--program,
+  .card.is-program-open[data-expand-host][data-works-card] .card-illust--works {
     position: absolute;
-    inset: auto;
-    left: 0;
-    right: 0;
-    top: auto;
-    bottom: 0;
-    width: 100%;
-    margin: 0;
-    z-index: 6;
-  }
-
-  .card.is-program-open[data-expand-host]:not([data-expand-settled]) .card-illust--works {
-    height: var(--works-key-h);
-  }
-
-  .card.is-program-open[data-expand-host]:not([data-expand-settled]) .card-illust--program {
-    height: calc(276.539 * var(--u));
-  }
-
-  /* Open works: key sits in the article flow and scrolls with the list. */
-  .card.is-program-open[data-works-card] .card-illust--works {
-    position: relative;
-    inset: auto;
-    left: auto;
-    right: auto;
-    top: auto;
-    bottom: auto;
-    width: 100%;
-    height: var(--works-key-h);
+    inset: 0;
+    width: auto;
+    height: auto;
     margin: 0;
     z-index: 6;
     pointer-events: none;
     opacity: 1;
     filter: none;
-    flex-shrink: 0;
   }
 
-  .card.is-program-open[data-program-card] .card-illust--program {
-    position: sticky;
-    top: calc(var(--fly-h) - 276.539 * var(--u));
-    left: 0;
-    width: 100%;
-    height: calc(276.539 * var(--u));
-    margin-bottom: calc(-276.539 * var(--u));
-    z-index: 6;
+  .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet,
+  .card.is-program-open[data-expand-host][data-works-card] .works-card__list {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-anchor: none;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet::-webkit-scrollbar,
+  .card.is-program-open[data-expand-host][data-works-card] .works-card__list::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
@@ -4013,31 +4030,23 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     cursor: pointer;
   }
 
-  /* Vector.svg 449×176 — key on student works. */
+  /* Vector.svg 449×176 — key flush to the iframe/card bottom. Height is
+     width-based so a fullscreen overlay cannot stretch it mid-screen. */
   .card-illust--works .card-illust__art {
     left: 50%;
+    top: auto;
     bottom: 0;
     width: calc(449 / 450 * 100%);
-    height: calc(176 / 450 * 100%);
+    height: var(--works-key-h);
     transform: translateX(-50%);
-  }
-
-  .card.is-program-open[data-works-card] .card-illust--works .card-illust__art {
-    width: calc(449 / 450 * 100%);
-    height: 100%;
-    object-fit: contain;
-    object-position: bottom center;
+    object-fit: fill;
   }
 
   .card-illust--works .card-illust__cue {
     left: calc(50% - 23.811%);
-    top: calc(50% + 28.222%);
+    top: auto;
+    bottom: calc(var(--works-key-h) * 98 / 176);
     transform: translateX(-50%);
-  }
-
-  /* Same left as «open me»; overlay is the key strip, not the full fly box. */
-  .card.is-program-open[data-works-card] .card-illust--works .card-illust__cue {
-    top: calc((0.78222 - (1 - 176 / 450)) / (176 / 450) * 100%);
   }
 
   /* Figma 76:1528 — tooth sits in the flex gap under the title (150×186
@@ -4073,7 +4082,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   /* Figma 76:1543 — frog in a broken circle, 227.3×209.9 at (45.3, 34.2)
-     on 318×449. In-flow under the title so 1/2/3 never run under it. */
+     on 318×449. In-flow under the title so 1/2/3 never run under it.
+     +16px top so the circle sits a little lower under the title. */
   .card-illust--faq {
     order: 2;
     position: relative;
@@ -4082,6 +4092,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     width: 71.48%;
     flex-shrink: 0;
     aspect-ratio: 227.306 / 209.916;
+    margin-top: 16px;
     pointer-events: none;
   }
 
@@ -4097,6 +4108,18 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     width: 100%;
     height: 100%;
     object-fit: contain;
+  }
+
+  /* Figma 98:106 — 304×171 at (7, 269) on 318×450. Width-based so
+     open (height: auto) does not collapse the SVG. */
+  .card-illust--preview .card-illust__art {
+    left: calc(7 * var(--card-w) / 318);
+    top: calc(269 * var(--card-w) / 318);
+    right: auto;
+    bottom: auto;
+    width: calc(304 * var(--card-w) / 318);
+    height: calc(171 * var(--card-w) / 318);
+    object-fit: fill;
   }
 
   .program-card {
@@ -4766,126 +4789,3 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 }
 
-.sound-settings {
-  position: fixed;
-  left: 10px;
-  bottom: 10px;
-  z-index: 400;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  pointer-events: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.35;
-  color: rgba(0, 0, 0, 0.78);
-}
-
-.sound-settings__fab,
-.sound-settings__close,
-.sound-settings__item {
-  pointer-events: auto;
-  font: inherit;
-  cursor: pointer;
-}
-
-.sound-settings__fab,
-.sound-settings__panel {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-}
-
-.sound-settings__fab {
-  padding: 0.45rem 0.7rem;
-  border-radius: 8px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.sound-settings__fab:hover {
-  background: #fff;
-}
-
-.sound-settings__panel {
-  pointer-events: auto;
-  width: min(280px, calc(var(--frame-w) - 20px));
-  max-height: min(420px, calc(var(--frame-h) - 72px));
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  border-radius: 8px;
-  padding: 0.55rem 0.6rem 0.7rem;
-}
-
-.sound-settings__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.sound-settings__title {
-  margin: 0;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.sound-settings__close {
-  padding: 0.2rem 0.45rem;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.06);
-}
-
-.sound-settings__hint,
-.sound-settings__group {
-  margin: 0 0 8px;
-  opacity: 0.5;
-}
-
-.sound-settings__group {
-  margin: 12px 0 6px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.sound-settings__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 4px;
-}
-
-.sound-settings__item {
-  display: grid;
-  width: 100%;
-  text-align: left;
-  gap: 1px;
-  padding: 0.4rem 0.5rem;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.sound-settings__item:hover {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.sound-settings__name {
-  font-weight: 700;
-}
-
-.sound-settings__desc {
-  opacity: 0.55;
-}
-
-@media (max-width: 900px) {
-  .sound-settings {
-    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  }
-}

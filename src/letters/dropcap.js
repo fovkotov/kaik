@@ -11,6 +11,7 @@ import {
 } from "./catalog.js";
 import { firstGrapheme, normalizeChar } from "./shared.js";
 import { svgToInline } from "./svg.js";
+import { sameCatalog, subscribeCatalog } from "./live.js";
 
 const LAST_KEY = "kaik-dropcap-last";
 const CYCLE_MS = 3200;
@@ -36,7 +37,7 @@ function spinTokens(button) {
   const css = getComputedStyle(button);
   const ms = (name, fallback) => {
     const n = parseFloat(css.getPropertyValue(name));
-    return Number.isFinite(n) ? n : fallback;
+    return Number.isFinite(n) && n > 0 ? n : fallback;
   };
   return {
     outMs: ms("--dropcap-spin-out", 300),
@@ -73,6 +74,28 @@ async function waitAnim(anim) {
   } catch {
     /* cancelled — interrupt */
   }
+}
+
+/** Parent lockup WAAPI transform flattens child rotateY — spin only after intro cancels it. */
+function waitForIntroDone() {
+  if (document.documentElement.classList.contains("intro-done")) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const finish = () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+      resolve();
+    };
+    const observer = new MutationObserver(() => {
+      if (document.documentElement.classList.contains("intro-done")) finish();
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    const timer = window.setTimeout(finish, 5000);
+  });
 }
 
 function lastMap() {
@@ -195,6 +218,7 @@ function sizeSvg(button, svg) {
 function applyMeta(button, entry) {
   button.dataset.letterId = entry.id;
   button.dataset.char = entry.char;
+  button.dataset.svgStamp = svgStamp(entry);
   button.setAttribute(
     "aria-label",
     locale() === "ru"
@@ -239,6 +263,11 @@ async function paintGlyph(button, entry, { animate = false } = {}) {
     swap.replaceChildren(glyph);
     applyMeta(button, entry);
     return;
+  }
+
+  if (!document.documentElement.classList.contains("intro-done")) {
+    await waitForIntroDone();
+    if (button._paintGen !== gen || !button.isConnected || !current.isConnected) return;
   }
 
   stopSpin(button);
@@ -595,8 +624,14 @@ function createScrubber() {
   };
 }
 
+function syncHostRest(host, button, rest) {
+  const leftover = [...host.childNodes].filter((node) => node !== button);
+  leftover.forEach((node) => node.remove());
+  host.append(document.createTextNode(rest));
+}
+
 export async function initDropcaps() {
-  const catalog = await loadCatalog();
+  let catalog = await loadCatalog();
   const hosts = [...document.querySelectorAll("[data-dropcap]")];
   if (!hosts.length) return;
 
@@ -605,7 +640,53 @@ export async function initDropcaps() {
   let mountGen = 0;
   const cycles = [];
   const scrubber = createScrubber();
-  const mount = async () => {
+  const runtime = new WeakMap();
+
+  const bound = new WeakSet();
+  const bindButton = (button) => {
+    if (bound.has(button)) return;
+    bound.add(button);
+
+    button.addEventListener("pointerenter", (event) => {
+      if (!canHoverPause() || event.pointerType === "touch") return;
+      const current = letterById(catalog, button.dataset.letterId);
+      if (current) showPopover(button, current);
+    });
+
+    button.addEventListener("pointerleave", (event) => {
+      if (!canHoverPause() || event.pointerType === "touch") return;
+      hidePopover();
+    });
+
+    button.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const state = runtime.get(button);
+      if (!state) return;
+      const scrub = scrubber.reset(button);
+      if (scrub) scrub.clicking = true;
+      state.cycle.hold();
+      const prevId = button.dataset.letterId;
+      const next = await paintFromPool(button, state.cyclePool, prevId, {
+        animate: true,
+      });
+      if (next && next.id !== prevId && button.dataset.letterId === next.id) {
+        remember(button.dataset.slot, next.id);
+        if (!isMobile()) showPopover(button, next);
+      }
+      if (scrub) scrub.clicking = false;
+      runtime.get(button)?.cycle.kick();
+    });
+  };
+
+  const attachRuntime = (button, cyclePool) => {
+    const cycle = startCycle(button, cyclePool);
+    cycles.push(cycle);
+    scrubber.add(button, cyclePool, cycle);
+    runtime.set(button, { cycle, cyclePool });
+  };
+
+  const mount = async ({ animate = false } = {}) => {
     const gen = ++mountGen;
     cycles.splice(0).forEach((cycle) => cycle.stop());
     scrubber.clear();
@@ -636,67 +717,67 @@ export async function initDropcaps() {
         }
 
         const slot = host.id || `dropcap-${index}`;
-        const painted = host.querySelector(".dropcap");
-        const paintedChar = painted?.dataset.char;
+        let button = host.querySelector(".dropcap");
+        const hadGlyph = Boolean(button?.querySelector(".dropcap__glyph"));
+        const paintedChar = button?.dataset.char;
+        const currentId = button?.dataset.letterId;
+        const currentEntry = currentId ? letterById(catalog, currentId) : null;
         const last =
           paintedChar && (!char || paintedChar === char)
-            ? painted?.dataset.letterId || lastMap()[slot]
+            ? currentId || lastMap()[slot]
             : undefined;
 
         const rest =
           char && (!explicit || normalizeChar(first) === char)
             ? source.slice(first.length)
             : source;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "dropcap";
-        button.dataset.slot = slot;
+
+        if (!button) {
+          button = document.createElement("button");
+          button.type = "button";
+          button.className = "dropcap";
+          button.dataset.slot = slot;
+          if (gen !== mountGen) return;
+          host.replaceChildren(button, document.createTextNode(rest));
+          bindButton(button);
+        } else {
+          const swap = button.querySelector(".dropcap__swap");
+          if (swap) swap.style.transform = "";
+          button.classList.remove("is-scrubbing");
+          syncHostRest(host, button, rest);
+        }
 
         if (gen !== mountGen) return;
-        host.replaceChildren(button, document.createTextNode(rest));
-        const entry = await paintFromPool(button, pool, last);
+
+        const sameChar = Boolean(button.dataset.char && button.dataset.char === char);
+        const stamp = currentEntry ? svgStamp(currentEntry) : "";
+        const sameStamp = Boolean(stamp && stamp === button.dataset.svgStamp);
+        const cyclePool = clickPool(catalog, char);
+
+        if (hadGlyph && sameChar && currentEntry && sameStamp) {
+          remember(slot, currentId);
+          attachRuntime(button, cyclePool);
+          return;
+        }
+
+        if (hadGlyph && sameChar && currentEntry && !sameStamp) {
+          await paintGlyph(button, currentEntry, { animate });
+          if (gen !== mountGen) return;
+          remember(slot, currentEntry.id);
+          attachRuntime(button, cyclePool);
+          return;
+        }
+
+        const entry = await paintFromPool(button, pool, last, {
+          animate: animate && hadGlyph,
+        });
         if (gen !== mountGen) return;
         if (!entry) {
           host.textContent = source;
           return;
         }
         remember(slot, entry.id);
-
-        const cyclePool = clickPool(catalog, char);
-        const cycle = startCycle(button, cyclePool);
-        cycles.push(cycle);
-        scrubber.add(button, cyclePool, cycle);
-
-        const currentEntry = () => letterById(catalog, button.dataset.letterId);
-
-        button.addEventListener("pointerenter", (event) => {
-          if (!canHoverPause() || event.pointerType === "touch") return;
-          const current = currentEntry();
-          if (current) showPopover(button, current);
-        });
-
-        button.addEventListener("pointerleave", (event) => {
-          if (!canHoverPause() || event.pointerType === "touch") return;
-          hidePopover();
-        });
-
-        button.addEventListener("click", async (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const scrub = scrubber.reset(button);
-          if (scrub) scrub.clicking = true;
-          cycle.hold();
-          const prevId = button.dataset.letterId;
-          const next = await paintFromPool(button, cyclePool, prevId, {
-            animate: true,
-          });
-          if (next && next.id !== prevId && button.dataset.letterId === next.id) {
-            remember(slot, next.id);
-            if (!isMobile()) showPopover(button, next);
-          }
-          if (scrub) scrub.clicking = false;
-          cycle.kick();
-        });
+        attachRuntime(button, cyclePool);
       }),
     );
   };
@@ -704,7 +785,14 @@ export async function initDropcaps() {
   await mount();
   document.addEventListener("kaik:translated", () => {
     hidePopover();
-    mount();
+    mount({ animate: true });
+  });
+  subscribeCatalog(async () => {
+    const next = await loadCatalog();
+    if (sameCatalog(catalog, next)) return;
+    catalog = next;
+    hidePopover();
+    mount({ animate: true });
   });
 
   document.addEventListener("click", (event) => {

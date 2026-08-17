@@ -1,10 +1,12 @@
 const SLIDE = "[data-img-slider-slide]";
 const PREV = "[data-img-slider-prev]";
 const NEXT = "[data-img-slider-next]";
-const IGNORE = "button, a, [data-img-slider-dot], [data-img-slider-dots]";
+const IGNORE =
+  "button, a, [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-format-mute], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-fly-close]";
 const COARSE = window.matchMedia("(pointer: coarse)");
 
 const AXIS_PX = 8;
+const TAP_PX = AXIS_PX;
 const COMMIT_RATIO = 0.22;
 const FLICK_VEL = 500;
 const SPRING_RESPONSE = 0.4;
@@ -89,11 +91,14 @@ function bindSlider(root) {
   if (slides.length < 2) return;
 
   let index = 0;
+  let pending = 0;
   let shift = 0;
   let velocity = 0;
   let stopSpring = null;
   let gesture = null;
   let didSlide = false;
+  /** Pointer down that may become a tap-to-next (no swipe / no scroll). */
+  let press = null;
   const dots = [];
 
   const widthOf = () => root.clientWidth || 1;
@@ -129,6 +134,7 @@ function bindSlider(root) {
 
   const finishIndex = (next) => {
     index = wrapIndex(next);
+    pending = index;
     shift = 0;
     velocity = 0;
     paint(0);
@@ -186,12 +192,14 @@ function bindSlider(root) {
   };
 
   const settleShift = (dest, vel, nextIndex) => {
+    pending = wrapIndex(nextIndex);
     syncDots(nextIndex);
     springTo(dest, vel, () => finishIndex(nextIndex));
   };
 
   const goTo = (next, vel = 0) => {
     const target = wrapIndex(next);
+    pending = target;
     const steps = shortestSteps(index, target);
     if (!steps && Math.abs(shift) < 0.5) {
       finishIndex(target);
@@ -246,18 +254,20 @@ function bindSlider(root) {
     });
     btn.addEventListener("click", (event) => {
       holdFocus(event);
-      goTo(index + step);
+      goTo(pending + step);
     });
   };
 
   bindNav(PREV, -1);
   bindNav(NEXT, 1);
 
-  /** Mouse / fine pointer: arrows only. Touch keeps swipe-to-change. */
+  /** Mouse: no drag-to-change (wheel scrolls the article). Touch keeps swipe. */
   const allowSwipe = (event) => {
     if (event.pointerType === "mouse") return false;
     return event.pointerType === "touch" || COARSE.matches;
   };
+
+  const articleOpen = () => Boolean(root.closest(".is-program-open"));
 
   const releaseDeck = () => {
     document.dispatchEvent(new CustomEvent("kaik:cancel-deck-drag"));
@@ -279,16 +289,30 @@ function bindSlider(root) {
     }
   };
 
+  const detachPointer = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+  };
+
+  const markPressMoved = (event) => {
+    if (!press || event.pointerId !== press.id || press.moved) return;
+    const dx = event.clientX - press.x;
+    const dy = event.clientY - press.y;
+    if (dx * dx + dy * dy > TAP_PX * TAP_PX) press.moved = true;
+  };
+
   const endGesture = (event, cancelled) => {
     if (!gesture || (event && event.pointerId !== gesture.id)) return;
     const axis = gesture.axis;
     const id = gesture.id;
     gesture = null;
     releasePointer(id);
-    window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerup", onUp);
-    window.removeEventListener("pointercancel", onCancel);
+    detachPointer();
     releaseSlider(root);
+    if (axis === "y" && press && (!event || event.pointerId === press.id)) {
+      press.moved = true;
+    }
     if (axis !== "x") {
       if (Math.abs(shift) > 1) commitFromRelease(0);
       return;
@@ -303,6 +327,7 @@ function bindSlider(root) {
   let gestureSamples = [];
 
   const onMove = (event) => {
+    markPressMoved(event);
     if (!gesture || event.pointerId !== gesture.id) return;
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
@@ -312,11 +337,13 @@ function bindSlider(root) {
       if (Math.abs(dx) > Math.abs(dy) * 1.05) {
         gesture.axis = "x";
         didSlide = true;
+        if (press) press.moved = true;
         root.classList.add("is-dragging");
         releaseDeck();
         capturePointer(event.pointerId);
       } else {
         gesture.axis = "y";
+        if (press) press.moved = true;
         return;
       }
     }
@@ -334,8 +361,22 @@ function bindSlider(root) {
     syncDots(index + committedSteps(0));
   };
 
-  const onUp = (event) => endGesture(event, false);
-  const onCancel = (event) => endGesture(event, true);
+  const onUp = (event) => {
+    if (gesture && event.pointerId === gesture.id) {
+      endGesture(event, false);
+      return;
+    }
+    if (press && event.pointerId === press.id) detachPointer();
+  };
+
+  const onCancel = (event) => {
+    if (press && event.pointerId === press.id) press = null;
+    if (gesture && event.pointerId === gesture.id) {
+      endGesture(event, true);
+      return;
+    }
+    detachPointer();
+  };
 
   root.addEventListener("dragstart", (event) => {
     event.preventDefault();
@@ -349,22 +390,32 @@ function bindSlider(root) {
         event.stopPropagation();
         return;
       }
-      if (!allowSwipe(event)) return;
       if (event.isPrimary === false) return;
       if (event.button && event.button !== 0) return;
       if (event.target.closest?.(IGNORE)) return;
       if (gesture) return;
-      if (!claimSlider(root)) return;
-      cancelSpring();
-      didSlide = Math.abs(shift) > 4;
-      gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
-      gesture = {
+
+      detachPointer();
+      press = {
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
-        origin: shift,
-        axis: null,
+        moved: false,
       };
+
+      if (allowSwipe(event) && claimSlider(root)) {
+        cancelSpring();
+        didSlide = Math.abs(shift) > 4;
+        gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
+        gesture = {
+          id: event.pointerId,
+          x: event.clientX,
+          y: event.clientY,
+          origin: shift,
+          axis: null,
+        };
+      }
+
       window.addEventListener("pointermove", onMove, { passive: false });
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onCancel);
@@ -380,10 +431,23 @@ function bindSlider(root) {
   root.addEventListener(
     "click",
     (event) => {
-      if (!didSlide) return;
+      const swiped = didSlide;
+      const moved = press?.moved;
+      didSlide = false;
+      press = null;
+
+      if (event.target.closest?.(IGNORE)) return;
+      if (swiped || moved) {
+        if (swiped) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        return;
+      }
+      if (!articleOpen()) return;
       event.preventDefault();
       event.stopPropagation();
-      didSlide = false;
+      goTo(pending + 1);
     },
     true,
   );

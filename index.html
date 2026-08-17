@@ -9,6 +9,20 @@
       rel="icon"
       href="https://freight.cargo.site/t/original/i/H2765952418214795329571591071100/kaik_favicon.ico"
     />
+    <style>
+      /* First paint: park the stack off-iframe before JS / Vite CSS. 100vh, not
+         --frame-h (that token is 100% until embed.js; % in translate() is the card). */
+      @media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
+        html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
+          transform: translate3d(0, -100vh, 0);
+        }
+      }
+      @media (min-width: 901px) and (prefers-reduced-motion: no-preference) {
+        html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
+          transform: translate3d(100vw, 0, 0);
+        }
+      }
+    </style>
     <link rel="stylesheet" href="/src/styles.css" />
     <script>
       /* Scriptik boot: lock html lang to the browser (or saved choice) before paint. */
@@ -97,7 +111,7 @@ to 12 october</p>
         data-tip="-18"
         style="--card-color: #ffffff; --z: 10"
       >
-        <img class="card__art" src="/assets/cards/01.png" alt="" draggable="false" />
+        <img class="card__art" src="/assets/cards/01.webp" alt="" draggable="false" />
       </article>
       <article
         class="card"
@@ -126,7 +140,7 @@ to 12 october</p>
                     <video
                       class="format-card__video"
                       src="/assets/cards/format/workshop.mp4"
-                      poster="/assets/cards/02-workshop.png"
+                      poster="/assets/cards/02-workshop.webp"
                       muted
                       loop
                       autoplay
@@ -196,7 +210,7 @@ to 12 october</p>
           <div class="author-card__header">
             <div class="author-card__avatar">
               <img
-                src="/assets/author/avatar.png"
+                src="/assets/author/avatar.webp"
                 alt=""
                 width="157"
                 height="157"
@@ -230,73 +244,73 @@ to 12 october</p>
               class="author-card__shot author-card__shot--cover"
               style="--l: 10.42; --t: 358.73; --w: 245.612; --h: 96.706"
             >
-              <img src="/assets/author/work-la-noche.png" alt="" width="246" height="97" draggable="false" />
+              <img src="/assets/author/work-la-noche.webp" alt="" width="246" height="97" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--cover"
               style="--l: 265.54; --t: 347.04; --w: 319.772; --h: 108.486"
             >
-              <img src="/assets/author/work-el-invierno.png" alt="" width="320" height="108" draggable="false" />
+              <img src="/assets/author/work-el-invierno.webp" alt="" width="320" height="108" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--cover"
               style="--l: 333.57; --t: 168.46; --w: 185.424; --h: 71.041"
             >
-              <img src="/assets/author/work-euphoria.png" alt="" width="185" height="71" draggable="false" />
+              <img src="/assets/author/work-euphoria.webp" alt="" width="185" height="71" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--blue"
               style="--l: 335.69; --t: 71.72; --w: 249.835; --h: 87.152"
             >
-              <img src="/assets/author/work-blue-script.png" alt="" width="250" height="187" draggable="false" />
+              <img src="/assets/author/work-blue-script.webp" alt="" width="250" height="187" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--mushrooms"
               style="--l: 265.54; --t: 253.49; --w: 319.584; --h: 83.009"
             >
-              <img src="/assets/author/work-mushrooms.png" alt="" width="320" height="239" draggable="false" />
+              <img src="/assets/author/work-mushrooms.webp" alt="" width="320" height="239" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--cover"
               style="--l: 10.42; --t: 168.46; --w: 245.921; --h: 183.617"
             >
-              <img src="/assets/author/work-buckle.png" alt="" width="246" height="184" draggable="false" />
+              <img src="/assets/author/work-buckle.webp" alt="" width="246" height="184" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--cover"
               style="--l: 0.85; --t: 58.97; --w: 332.924; --h: 248.578"
             >
-              <img src="/assets/author/work-chrome.png" alt="" width="333" height="249" draggable="false" />
+              <img src="/assets/author/work-chrome.webp" alt="" width="333" height="249" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--cover"
               style="--l: 157.11; --t: -52.64; --w: 171.139; --h: 171.139"
             >
-              <img src="/assets/author/work-wild-east.png" alt="" width="171" height="171" draggable="false" />
+              <img src="/assets/author/work-wild-east.webp" alt="" width="171" height="171" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--cover"
               style="--l: 420.73; --t: -100.48; --w: 164.762; --h: 164.762"
             >
-              <img src="/assets/author/work-grillz.png" alt="" width="165" height="165" draggable="false" />
+              <img src="/assets/author/work-grillz.webp" alt="" width="165" height="165" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--purple"
               style="--l: 7.23; --t: 60.03; --w: 144.502; --h: 58.489"
             >
-              <img src="/assets/author/work-purple.png" alt="" width="145" height="144" draggable="false" />
+              <img src="/assets/author/work-purple.webp" alt="" width="145" height="144" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--cover"
               style="--l: 335.69; --t: -37.76; --w: 76.534; --h: 102.046"
             >
-              <img src="/assets/author/work-mark.png" alt="" width="77" height="102" draggable="false" />
+              <img src="/assets/author/work-mark.webp" alt="" width="77" height="102" draggable="false" />
             </div>
             <div
               class="author-card__shot author-card__shot--teur"
               style="--l: 7.23; --t: 12.2; --w: 143.981; --h: 41.625"
             >
-              <img src="/assets/author/work-teur.png" alt="" width="144" height="142" draggable="false" />
+              <img src="/assets/author/work-teur.webp" alt="" width="144" height="142" draggable="false" />
             </div>
           </div>
         </div>
@@ -484,7 +498,7 @@ to 12 october</p>
                   <img src="/assets/cards/progress/expand.svg" alt="" width="18" height="18" draggable="false" />
                 </span>
                 <div class="progress-card__art progress-card__art--cover" style="--l: 9.268; --t: 120.505; --w: 86.362; --h: 115.149">
-                  <img src="/assets/cards/progress/yan-sketch.jpg" alt="" width="345" height="461" draggable="false" />
+                  <img src="/assets/cards/progress/yan-sketch.webp" alt="" width="345" height="461" draggable="false" />
                 </div>
                 <div class="progress-card__line progress-card__line--yan" style="--l: 10.198; --t: 80.336; --w: 100.421; --h: 20.084">
                   <span class="progress-card__line-fill progress-card__line-fill--yan">
@@ -505,7 +519,7 @@ to 12 october</p>
                   <img src="/assets/cards/progress/expand.svg" alt="" width="18" height="18" draggable="false" />
                 </span>
                 <div class="progress-card__art progress-card__art--cover" style="--l: 14.832; --t: 57.471; --w: 74.157; --h: 98.876">
-                  <img src="/assets/cards/progress/polina-sketch.jpg" alt="" width="297" height="396" draggable="false" />
+                  <img src="/assets/cards/progress/polina-sketch.webp" alt="" width="297" height="396" draggable="false" />
                 </div>
                 <div class="progress-card__art" style="--l: 105.678; --t: 59.943; --w: 244.099; --h: 161.599">
                   <img src="/assets/cards/progress/polina-lettering.svg" alt="" width="244" height="162" draggable="false" />
@@ -533,7 +547,7 @@ to 12 october</p>
                   <img src="/assets/cards/progress/expand.svg" alt="" width="18" height="18" draggable="false" />
                 </span>
                 <div class="progress-card__art progress-card__art--cover" style="--l: 267.585; --t: 59.325; --w: 74.157; --h: 98.876">
-                  <img src="/assets/cards/progress/alena-sketch.jpg" alt="" width="297" height="396" draggable="false" />
+                  <img src="/assets/cards/progress/alena-sketch.webp" alt="" width="297" height="396" draggable="false" />
                 </div>
                 <div class="progress-card__art" style="--l: 19.159; --t: 169.376; --w: 322.578; --h: 64.878">
                   <img src="/assets/cards/progress/alena-lettering.svg" alt="" width="323" height="65" draggable="false" />
@@ -573,14 +587,14 @@ to 12 october</p>
               <span class="work-card__week-title" data-i18n="work.week1">1 week</span>
             </h2>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/w1-hero.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/w1-hero.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
             <div class="work-card__photos">
               <div class="work-card__photo">
-                <img src="/assets/cards/work/w1-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/w1-a.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
               <div class="work-card__photo">
-                <img src="/assets/cards/work/w1-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/w1-b.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
             </div>
           </section>
@@ -589,10 +603,10 @@ to 12 october</p>
               <span class="work-card__week-title" data-i18n="work.week2">2 week</span>
             </h2>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/w2-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/w2-a.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/w2-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/w2-b.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
           </section>
           <section class="work-card__week">
@@ -677,30 +691,30 @@ to 12 october</p>
               <span class="work-card__week-title" data-i18n="work.week1">1 week</span>
             </h2>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/yan/w1-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/yan/w1-a.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
             <div class="work-card__photos">
               <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w1-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/yan/w1-b.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
               <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w1-c.jpg" alt="" width="1200" height="1600" draggable="false" />
-              </div>
-            </div>
-            <div class="work-card__photos">
-              <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w1-d.jpg" alt="" width="1200" height="1600" draggable="false" />
-              </div>
-              <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w1-e.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/yan/w1-c.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
             </div>
             <div class="work-card__photos">
               <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w1-f.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/yan/w1-d.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
               <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w1-g.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/yan/w1-e.webp" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+            </div>
+            <div class="work-card__photos">
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-f.webp" alt="" width="1200" height="1600" draggable="false" />
+              </div>
+              <div class="work-card__photo">
+                <img src="/assets/cards/work/yan/w1-g.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
             </div>
           </section>
@@ -709,21 +723,21 @@ to 12 october</p>
               <span class="work-card__week-title" data-i18n="work.week2">2 week</span>
             </h2>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/yan/w2-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/yan/w2-a.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
             <div class="work-card__photos">
               <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w2-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/yan/w2-b.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
               <div class="work-card__photo">
-                <img src="/assets/cards/work/yan/w2-c.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/yan/w2-c.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
             </div>
             <div class="work-card__photo work-card__photo--wide">
-              <img src="/assets/cards/work/yan/w2-d.jpg" alt="" width="1600" height="1200" draggable="false" />
+              <img src="/assets/cards/work/yan/w2-d.webp" alt="" width="1600" height="1200" draggable="false" />
             </div>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/yan/w2-f.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/yan/w2-f.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
           </section>
           <section class="work-card__week">
@@ -766,18 +780,18 @@ to 12 october</p>
               <span class="work-card__week-title" data-i18n="work.week1">1 week</span>
             </h2>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/polina/w1-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/polina/w1-a.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
             <div class="work-card__photos">
               <div class="work-card__photo">
-                <img src="/assets/cards/work/polina/w1-b.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/polina/w1-b.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
               <div class="work-card__photo">
-                <img src="/assets/cards/work/polina/w1-c.jpg" alt="" width="1200" height="1600" draggable="false" />
+                <img src="/assets/cards/work/polina/w1-c.webp" alt="" width="1200" height="1600" draggable="false" />
               </div>
             </div>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/polina/w1-d.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/polina/w1-d.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
           </section>
           <section class="work-card__week">
@@ -785,7 +799,7 @@ to 12 october</p>
               <span class="work-card__week-title" data-i18n="work.week2">2 week</span>
             </h2>
             <div class="work-card__photo">
-              <img src="/assets/cards/work/polina/w2-a.jpg" alt="" width="1200" height="1600" draggable="false" />
+              <img src="/assets/cards/work/polina/w2-a.webp" alt="" width="1200" height="1600" draggable="false" />
             </div>
           </section>
           <section class="work-card__week">
@@ -835,6 +849,17 @@ to 12 october</p>
         style="--card-color: #9d9d9d; --z: 5"
       >
         <div class="works-card">
+        <div class="card-illust card-illust--works" data-fly-illust-close aria-hidden="true">
+          <img
+            class="card-illust__art"
+            src="/assets/cards/overlays/works-key.svg"
+            alt=""
+            width="449"
+            height="176"
+            draggable="false"
+          />
+          <span class="card-illust__cue" data-i18n="illust.open">open me</span>
+        </div>
           <p class="works-card__title" data-i18n="works.title">student works</p>
           <div class="works-card__list">
         <div class="works-card__item">
@@ -843,7 +868,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Алёна</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenuchotam/" target="_top" rel="noopener noreferrer">@alenuchotam</a>
+            <span class="works-card__ig">@alenuchotam</span>
           </p>
         </div>
         <div class="works-card__item">
@@ -852,7 +877,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Андрей</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/iamprpl/" target="_top" rel="noopener noreferrer">@iamprpl</a>
+            <span class="works-card__ig">@iamprpl</span>
           </p>
         </div>
         <div class="works-card__row">
@@ -862,7 +887,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Кира</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/k1pk1p/" target="_top" rel="noopener noreferrer">@k1pk1p</a>
+            <span class="works-card__ig">@k1pk1p</span>
           </p>
           </div>
           <div class="works-card__col works-card__col--391">
@@ -871,7 +896,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Надя</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+            <span class="works-card__ig">@oh_narcy</span>
           </p>
           </div>
         </div>
@@ -881,7 +906,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Маша</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/mashaaaaaam/" target="_top" rel="noopener noreferrer">@mashaaaaaam</a>
+            <span class="works-card__ig">@mashaaaaaam</span>
           </p>
         </div>
         <div class="works-card__row">
@@ -891,7 +916,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Маша Полина</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/pelagieonmashaaaaaam/" target="_top" rel="noopener noreferrer">@pelagieonmashaaaaaam</a>
+            <span class="works-card__ig">@pelagieonmashaaaaaam</span>
           </p>
           </div>
           <div class="works-card__col works-card__col--389 works-card__tight">
@@ -900,7 +925,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Алёна</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenuchotam/" target="_top" rel="noopener noreferrer">@alenuchotam</a>
+            <span class="works-card__ig">@alenuchotam</span>
           </p>
           </div>
         </div>
@@ -911,7 +936,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Данил</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/fursovdm/" target="_top" rel="noopener noreferrer">@fursovdm</a>
+            <span class="works-card__ig">@fursovdm</span>
           </p>
           </div>
           <div class="works-card__col works-card__col--391 works-card__tight">
@@ -920,7 +945,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Полина</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/pelagieon/" target="_top" rel="noopener noreferrer">@pelagieon</a>
+            <span class="works-card__ig">@pelagieon</span>
           </p>
           </div>
         </div>
@@ -930,7 +955,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Полина</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/pelagieon/" target="_top" rel="noopener noreferrer">@pelagieon</a>
+            <span class="works-card__ig">@pelagieon</span>
           </p>
         </div>
         <div class="works-card__item">
@@ -939,7 +964,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Кира</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/k1pk1p/" target="_top" rel="noopener noreferrer">@k1pk1p</a>
+            <span class="works-card__ig">@k1pk1p</span>
           </p>
         </div>
         <div class="works-card__item">
@@ -959,7 +984,7 @@ to 12 october</p>
           </div>
           <p class="works-card__who">
             <span>Андрей</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/iamprpl/" target="_top" rel="noopener noreferrer">@iamprpl</a>
+            <span class="works-card__ig">@iamprpl</span>
           </p>
         </div>
         <div class="works-card__item">
@@ -968,7 +993,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Рома</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/rameoky/" target="_top" rel="noopener noreferrer">@rameoky</a>
+            <span class="works-card__ig">@rameoky</span>
           </p>
         </div>
         <div class="works-card__row">
@@ -978,7 +1003,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Андрей</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/fovkotov/" target="_top" rel="noopener noreferrer">@fovkotov</a>
+            <span class="works-card__ig">@fovkotov</span>
           </p>
           </div>
           <div class="works-card__col works-card__col--391">
@@ -987,7 +1012,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Надя</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+            <span class="works-card__ig">@oh_narcy</span>
           </p>
           </div>
         </div>
@@ -998,7 +1023,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Ксюша</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dirigible4/" target="_top" rel="noopener noreferrer">@dirigible4</a>
+            <span class="works-card__ig">@dirigible4</span>
           </p>
           </div>
           <div class="works-card__col works-card__col--391">
@@ -1007,7 +1032,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Ксюша —</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dirigible4/" target="_top" rel="noopener noreferrer">@dirigible4</a>
+            <span class="works-card__ig">@dirigible4</span>
           </p>
           </div>
         </div>
@@ -1017,7 +1042,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Богдан</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/Ybludok47/" target="_top" rel="noopener noreferrer">@Ybludok47</a>
+            <span class="works-card__ig">@Ybludok47</span>
           </p>
         </div>
         <div class="works-card__item">
@@ -1026,7 +1051,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Алена</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenapichh/" target="_top" rel="noopener noreferrer">@alenapichh</a>
+            <span class="works-card__ig">@alenapichh</span>
           </p>
         </div>
         <div class="works-card__item">
@@ -1035,7 +1060,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Катя</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/hurujoi/" target="_top" rel="noopener noreferrer">@hurujoi</a>
+            <span class="works-card__ig">@hurujoi</span>
           </p>
         </div>
         <div class="works-card__row">
@@ -1045,7 +1070,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Надя</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+            <span class="works-card__ig">@oh_narcy</span>
           </p>
           </div>
           <div class="works-card__col works-card__col--391">
@@ -1054,7 +1079,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Ян</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/l200kmhinthewronglane/" target="_top" rel="noopener noreferrer">@l200kmhinthewronglane</a>
+            <span class="works-card__ig">@l200kmhinthewronglane</span>
           </p>
           </div>
         </div>
@@ -1064,7 +1089,7 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>Надя</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+            <span class="works-card__ig">@oh_narcy</span>
           </p>
         </div>
         <div class="works-card__row">
@@ -1074,7 +1099,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>Ксюша —</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dirigible4/" target="_top" rel="noopener noreferrer">@dirigible4</a>
+            <span class="works-card__ig">@dirigible4</span>
           </p>
           </div>
           <div class="works-card__col works-card__col--391">
@@ -1083,7 +1108,7 @@ to 12 october</p>
             </div>
             <p class="works-card__who">
             <span>надя +</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/oh_narcy/" target="_top" rel="noopener noreferrer">@oh_narcy</a>
+            <span class="works-card__ig">@oh_narcy</span>
           </p>
           </div>
         </div>
@@ -1115,7 +1140,7 @@ to 12 october</p>
           </div>
           <p class="works-card__who">
             <span>Аня</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/dontcatchbirds/" target="_top" rel="noopener noreferrer">@dontcatchbirds</a>
+            <span class="works-card__ig">@dontcatchbirds</span>
           </p>
         </div>
         <div class="works-card__item">
@@ -1124,21 +1149,10 @@ to 12 october</p>
             </div>
           <p class="works-card__who">
             <span>алёна</span>
-            <a class="works-card__ig" data-work-ig href="https://www.instagram.com/alenuchotam/" target="_top" rel="noopener noreferrer">@alenuchotam</a>
+            <span class="works-card__ig">@alenuchotam</span>
           </p>
         </div>
           </div>
-        <div class="card-illust card-illust--works" data-fly-illust-close aria-hidden="true">
-          <img
-            class="card-illust__art"
-            src="/assets/cards/overlays/works-key.svg"
-            alt=""
-            width="449"
-            height="176"
-            draggable="false"
-          />
-          <span class="card-illust__cue" data-i18n="illust.open">open me</span>
-        </div>
         </div>
       </article>
 
@@ -1210,19 +1224,20 @@ to 12 october</p>
         data-base-x="2"
         data-base-y="-22"
         data-tip="13"
-        style="--card-color: #b6d9c1; --z: 3"
+        style="--card-color: #b28753; --z: 3"
       >
         <div class="preview-card">
-          <p class="preview-card__title" data-i18n="preview.title">final preview</p>
-          <div class="preview-card__play" aria-hidden="true">
+          <div class="card-illust card-illust--preview" aria-hidden="true">
             <img
-              src="/assets/cards/08-play.svg"
+              class="card-illust__art"
+              src="/assets/cards/overlays/preview-staff.svg"
               alt=""
-              width="45"
-              height="45"
+              width="562"
+              height="316"
               draggable="false"
             />
           </div>
+          <p class="preview-card__title" data-i18n="preview.title">a recording of the final review will appear here soon...</p>
         </div>
       </article>
       <article
@@ -1319,7 +1334,7 @@ to 12 october</p>
             </div>
 
             <figure class="history-card__figure" style="--w: 563.733; --h: 473.157">
-              <img src="/assets/cards/history/mielot.jpg" alt="" width="1500" height="1259" draggable="false" />
+              <img src="/assets/cards/history/mielot.webp" alt="" width="1500" height="1259" draggable="false" />
             </figure>
             <p class="history-card__text" data-i18n="history.p1">As a species, people need communication. People also love beautiful things. Lettering, or the Art of Drawing a Letter, emerges from combination of this two existential requirements.</p>
             <p class="history-card__caption" data-i18n="history.cap.mielot">↳ The scribe Jean Mielot in the writing room (secretary of the duke), between 1450 and 1460.</p>
@@ -1327,13 +1342,13 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/trajans-1.jpg" alt="" width="512" height="224" draggable="false" />
+                <img src="/assets/cards/history/trajans-1.webp" alt="" width="512" height="224" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/trajans-2.jpg" alt="" width="2200" height="1471" draggable="false" />
+                <img src="/assets/cards/history/trajans-2.webp" alt="" width="2200" height="1471" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/trajans-3.jpg" alt="" width="1500" height="1117" draggable="false" />
+                <img src="/assets/cards/history/trajans-3.webp" alt="" width="1500" height="1117" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1347,7 +1362,7 @@ to 12 october</p>
             <hr class="history-card__rule" />
 
             <figure class="history-card__figure history-card__figure--center">
-              <img src="/assets/cards/history/roman-tree.jpg" alt="" width="507" height="800" draggable="false" />
+              <img src="/assets/cards/history/roman-tree.webp" alt="" width="507" height="800" draggable="false" />
             </figure>
             <p class="history-card__text" data-i18n="history.p3">From then, Roman letters evolved into many different forms and shapes. They migrated from Italy to the North, East and West, becoming more elaborate and strikingly beautiful.</p>
             <p class="history-card__caption" data-i18n="history.cap.tree">↳ “Family Tree” of the Roman inscriptions development.</p>
@@ -1355,10 +1370,10 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/lindisfarne-1.jpg" alt="" width="2200" height="3072" draggable="false" />
+                <img src="/assets/cards/history/lindisfarne-1.webp" alt="" width="2200" height="3072" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/lindisfarne-2.jpg" alt="" width="1266" height="1797" draggable="false" />
+                <img src="/assets/cards/history/lindisfarne-2.webp" alt="" width="1266" height="1797" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1372,7 +1387,7 @@ to 12 october</p>
             <hr class="history-card__rule" />
 
             <figure class="history-card__figure" style="--w: 563.733; --h: 873.928">
-              <img src="/assets/cards/history/initial-e.jpg" alt="" width="2200" height="3411" draggable="false" />
+              <img src="/assets/cards/history/initial-e.webp" alt="" width="2200" height="3411" draggable="false" />
             </figure>
             <p class="history-card__text" data-i18n="history.p5">Imagination did not stop, and slowly ornamental decorations turned into full-scale paintings inside letters.</p>
             <p class="history-card__caption" data-i18n="history.cap.initial">↳ Inhabited Initial E. Montecassino, Italy. 1153</p>
@@ -1380,16 +1395,16 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/whimsy-1.jpg" alt="" width="2200" height="2304" draggable="false" />
+                <img src="/assets/cards/history/whimsy-1.webp" alt="" width="2200" height="2304" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/whimsy-2.jpg" alt="" width="984" height="1062" draggable="false" />
+                <img src="/assets/cards/history/whimsy-2.webp" alt="" width="984" height="1062" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/chansonnier-1.jpg" alt="" width="1239" height="826" draggable="false" />
+                <img src="/assets/cards/history/chansonnier-1.webp" alt="" width="1239" height="826" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/chansonnier-2.jpg" alt="" width="1280" height="1279" draggable="false" />
+                <img src="/assets/cards/history/chansonnier-2.webp" alt="" width="1280" height="1279" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1402,14 +1417,14 @@ to 12 october</p>
             <hr class="history-card__rule" />
 
             <figure class="history-card__figure" style="--w: 563.733; --h: 743.495">
-              <img src="/assets/cards/history/gutenberg.jpg" alt="" width="1292" height="1704" draggable="false" />
+              <img src="/assets/cards/history/gutenberg.webp" alt="" width="1292" height="1704" draggable="false" />
             </figure>
             <p class="history-card__text" data-i18n="history.p7">Gradually, decorative elements moved from just Capital letters to all vowels and consonants in use. The process was also driven by the invention of the printing press which made book production much faster.</p>
             <p class="history-card__caption" data-i18n="history.cap.gutenberg">↳ Page from the Gutenberg Bible, 1455</p>
             <hr class="history-card__rule" />
 
             <figure class="history-card__figure" style="--w: 563.733; --h: 281.202">
-              <img src="/assets/cards/history/coke.jpg" alt="" width="1295" height="646" draggable="false" />
+              <img src="/assets/cards/history/coke.webp" alt="" width="1295" height="646" draggable="false" />
             </figure>
             <p class="history-card__text" data-i18n="history.p8">Next significant change to the Letter happened after the industrial revolution: it became irreplaceable part of advertising.</p>
             <p class="history-card__caption" data-i18n="history.cap.coke">↳ Coca-Cola lettering by Frank M. Robertson</p>
@@ -1417,13 +1432,13 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/grasset-1.jpg" alt="" width="1598" height="2560" draggable="false" />
+                <img src="/assets/cards/history/grasset-1.webp" alt="" width="1598" height="2560" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/grasset-2.jpg" alt="" width="1807" height="2560" draggable="false" />
+                <img src="/assets/cards/history/grasset-2.webp" alt="" width="1807" height="2560" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/grasset-3.jpg" alt="" width="1830" height="2560" draggable="false" />
+                <img src="/assets/cards/history/grasset-3.webp" alt="" width="1830" height="2560" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1438,19 +1453,19 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/eckmann-1.jpg" alt="" width="1556" height="1920" draggable="false" />
+                <img src="/assets/cards/history/eckmann-1.webp" alt="" width="1556" height="1920" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/eckmann-2.jpg" alt="" width="2200" height="3098" draggable="false" />
+                <img src="/assets/cards/history/eckmann-2.webp" alt="" width="2200" height="3098" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/eckmann-3.jpg" alt="" width="2200" height="1547" draggable="false" />
+                <img src="/assets/cards/history/eckmann-3.webp" alt="" width="2200" height="1547" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/eckmann-4.jpg" alt="" width="442" height="694" draggable="false" />
+                <img src="/assets/cards/history/eckmann-4.webp" alt="" width="442" height="694" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/eckmann-5.jpg" alt="" width="1208" height="810" draggable="false" />
+                <img src="/assets/cards/history/eckmann-5.webp" alt="" width="1208" height="810" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1464,7 +1479,7 @@ to 12 october</p>
             <hr class="history-card__rule" />
 
             <figure class="history-card__figure" style="--w: 563.733; --h: 150.82">
-              <img src="/assets/cards/history/bernhard.jpg" alt="" width="1880" height="503" draggable="false" />
+              <img src="/assets/cards/history/bernhard.webp" alt="" width="1880" height="503" draggable="false" />
             </figure>
             <p class="history-card__text" data-i18n="history.p11">And some more advertisment!</p>
             <p class="history-card__caption" data-i18n="history.cap.bernhard">↳ Lettering for advertising by Lucian Berhard</p>
@@ -1472,16 +1487,16 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/psych-1.jpg" alt="" width="2200" height="3059" draggable="false" />
+                <img src="/assets/cards/history/psych-1.webp" alt="" width="2200" height="3059" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/psych-2.png" alt="" width="848" height="1338" draggable="false" />
+                <img src="/assets/cards/history/psych-2.webp" alt="" width="848" height="1338" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/psych-3.png" alt="" width="1000" height="1283" draggable="false" />
+                <img src="/assets/cards/history/psych-3.webp" alt="" width="1000" height="1283" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/psych-4.jpg" alt="" width="1302" height="1861" draggable="false" />
+                <img src="/assets/cards/history/psych-4.webp" alt="" width="1302" height="1861" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1495,10 +1510,10 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/hofmann.png" alt="" width="721" height="828" draggable="false" />
+                <img src="/assets/cards/history/hofmann.webp" alt="" width="721" height="828" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/nicholson.png" alt="" width="1290" height="852" draggable="false" />
+                <img src="/assets/cards/history/nicholson.webp" alt="" width="1290" height="852" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1513,19 +1528,19 @@ to 12 october</p>
 
             <div class="img-slider" data-img-slider>
               <figure class="img-slider__slide is-active" data-img-slider-slide>
-                <img src="/assets/cards/history/vanok-1.jpg" alt="" width="2200" height="2200" draggable="false" />
+                <img src="/assets/cards/history/vanok-1.webp" alt="" width="2200" height="2200" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/vanok-2.jpg" alt="" width="2200" height="2200" draggable="false" />
+                <img src="/assets/cards/history/vanok-2.webp" alt="" width="2200" height="2200" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/vanok-3.jpg" alt="" width="2200" height="2200" draggable="false" />
+                <img src="/assets/cards/history/vanok-3.webp" alt="" width="2200" height="2200" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/vanok-4.jpg" alt="" width="2200" height="2200" draggable="false" />
+                <img src="/assets/cards/history/vanok-4.webp" alt="" width="2200" height="2200" draggable="false" />
               </figure>
               <figure class="img-slider__slide" data-img-slider-slide>
-                <img src="/assets/cards/history/vanok-5.jpg" alt="" width="2200" height="1643" draggable="false" />
+                <img src="/assets/cards/history/vanok-5.webp" alt="" width="2200" height="1643" draggable="false" />
               </figure>
               <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="Previous">
                 <img class="img-slider__chevron" src="/assets/cards/history/chevron.svg" alt="" width="20" height="20" draggable="false" />
@@ -1544,25 +1559,25 @@ to 12 october</p>
             <div class="history-card__grid">
               <div class="history-card__book">
                 <figure class="history-card__figure" style="--w: 274.398; --h: 203.626">
-                  <img src="/assets/cards/history/book-weinberg.png" alt="" width="951" height="708" draggable="false" />
+                  <img src="/assets/cards/history/book-weinberg.webp" alt="" width="951" height="708" draggable="false" />
                 </figure>
                 <p class="history-card__book-cap" data-i18n="history.book.weinberg">Encyclopedia of Comparative Letterforms, Norman S. Weinberg</p>
               </div>
               <div class="history-card__book">
                 <figure class="history-card__figure" style="--w: 273.256; --h: 314.13">
-                  <img src="/assets/cards/history/hofmann.png" alt="" width="721" height="828" draggable="false" />
+                  <img src="/assets/cards/history/hofmann.webp" alt="" width="721" height="828" draggable="false" />
                 </figure>
                 <p class="history-card__book-cap" data-i18n="history.book.hofmann">Graphic Design Manual, Armin Hofmann</p>
               </div>
               <div class="history-card__book">
                 <figure class="history-card__figure" style="--w: 274.398; --h: 378.695">
-                  <img src="/assets/cards/history/book-gray.jpg" alt="" width="1086" height="1500" draggable="false" />
+                  <img src="/assets/cards/history/book-gray.webp" alt="" width="1086" height="1500" draggable="false" />
                 </figure>
                 <p class="history-card__book-cap" data-i18n="history.book.gray">A History of Lettering, Nicolete Gray</p>
               </div>
               <div class="history-card__book">
                 <figure class="history-card__figure" style="--w: 273.194; --h: 394.836">
-                  <img src="/assets/cards/history/book-letter.jpg" alt="" width="1622" height="2337" draggable="false" />
+                  <img src="/assets/cards/history/book-letter.webp" alt="" width="1622" height="2337" draggable="false" />
                 </figure>
                 <p class="history-card__book-cap" data-i18n="history.book.join">And join LETTER class</p>
               </div>

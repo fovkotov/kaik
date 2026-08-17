@@ -24,16 +24,32 @@ export function allowsFocusScrollbar(card) {
   return false;
 }
 
+/** Inner sheet/list when a transformed expand-host must not be the scroller. */
+export function focusScrollRoot(card) {
+  if (!(card instanceof HTMLElement)) return card;
+  if (card.hasAttribute("data-expand-host")) {
+    if (card.hasAttribute("data-program-card")) {
+      return card.querySelector(".program-card__sheet") || card;
+    }
+    if (card.hasAttribute("data-works-card")) {
+      return card.querySelector(".works-card__list") || card;
+    }
+  }
+  return card;
+}
+
 function metrics(card) {
+  const root = focusScrollRoot(card);
   const view = card.clientHeight;
-  const maxScroll = Math.max(0, card.scrollHeight - card.clientHeight);
-  const full = view + maxScroll;
+  const port = root === card ? view : root.clientHeight;
+  const maxScroll = Math.max(0, root.scrollHeight - port);
+  const full = port + maxScroll;
   const rail = Math.max(0, view - INSET * 2);
-  const thumbH = Math.min(rail, Math.max(MIN_THUMB, (view / Math.max(full, 1)) * rail));
+  const thumbH = Math.min(rail, Math.max(MIN_THUMB, (port / Math.max(full, 1)) * rail));
   return {
     view,
     full,
-    top: card.scrollTop,
+    top: root.scrollTop,
     thumbH,
     maxThumb: Math.max(0, rail - thumbH),
     maxScroll,
@@ -54,7 +70,7 @@ function layout(card, track, thumb) {
   const m = metrics(card);
   const open = card.classList.contains("is-program-open");
   const scrolling = card.classList.contains("is-program-scroll");
-  const overflows = m.full - m.view > OVERFLOW_PX;
+  const overflows = m.maxScroll > OVERFLOW_PX;
   // During the fly, overflow-y is still hidden — still paint the rail.
   const show = open && (!scrolling || overflows);
 
@@ -128,11 +144,12 @@ export function mountFocusScrollbar(card) {
   };
 
   const scrollFromClientY = (clientY, grabOffset) => {
+    const root = focusScrollRoot(card);
     const m = metrics(card);
     const origin = card.getBoundingClientRect().top;
     const y = clientY - origin - INSET - grabOffset;
     const ratio = m.maxThumb > 0 ? y / m.maxThumb : 0;
-    card.scrollTop = Math.min(m.maxScroll, Math.max(0, ratio * m.maxScroll));
+    root.scrollTop = Math.min(m.maxScroll, Math.max(0, ratio * m.maxScroll));
     const next = metrics(card);
     last = { ...next, thumbTop: paintThumb(thumb, next) };
   };
@@ -167,8 +184,11 @@ export function mountFocusScrollbar(card) {
     event.stopPropagation();
   };
 
+  const root = focusScrollRoot(card);
+
   const ro = new ResizeObserver(schedule);
   ro.observe(card);
+  if (root !== card) ro.observe(root);
   [...card.children].forEach((child) => {
     if (child !== track) ro.observe(child);
   });
@@ -176,8 +196,8 @@ export function mountFocusScrollbar(card) {
   const mo = new MutationObserver(schedule);
   mo.observe(card, { attributes: true, attributeFilter: ["class", "data-work-student"] });
 
-  card.addEventListener("scroll", onScroll, { passive: true });
-  card.addEventListener("scrollend", onScrollEnd, { passive: true });
+  root.addEventListener("scroll", onScroll, { passive: true });
+  root.addEventListener("scrollend", onScrollEnd, { passive: true });
   thumb.addEventListener("pointerdown", onPointerDown);
   thumb.addEventListener("pointermove", onPointerMove);
   thumb.addEventListener("pointerup", endDrag);
@@ -197,8 +217,8 @@ export function mountFocusScrollbar(card) {
     card.classList.remove("is-wheel-scrolling");
     ro.disconnect();
     mo.disconnect();
-    card.removeEventListener("scroll", onScroll);
-    card.removeEventListener("scrollend", onScrollEnd);
+    root.removeEventListener("scroll", onScroll);
+    root.removeEventListener("scrollend", onScrollEnd);
     card.removeEventListener("load", schedule, true);
     window.removeEventListener("resize", schedule);
     window.visualViewport?.removeEventListener("resize", schedule);

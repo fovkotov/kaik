@@ -6,6 +6,9 @@ const CARD_EASE = cubicBezierEase(0.23, 1, 0.32, 1);
 const TEXT_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
 const CARD_MS = 1000;
 const CARD_STAGGER_MS = 100;
+/** Mobile deal-from-above: snappier than desktop’s from-the-right. */
+const MOBILE_CARD_MS = 500;
+const MOBILE_CARD_STAGGER_MS = 50;
 /** micro-scale-fade 432ms × 3, after the stack has landed. */
 const TEXT_MS = 1296;
 const TEXT_FROM_SCALE = 0.96;
@@ -57,30 +60,43 @@ export function canPlayCardIntro() {
   return !reducedMotion();
 }
 
-/** Desktop lockup / nav / lang. Mobile card type uses `text-appear.js`. */
+/** Desktop lockup / nav / lang. Stacked mobile cards keep type painted (no inner reveal). */
 export function canPlayTextIntro() {
   return !isMobile();
 }
 
 /**
- * First-load deck offset. Back of stack lands first so the pile deals from below
- * (mobile) or from the right (desktop). Distance is in deck-local px.
+ * First-load deck offset. Distance is in deck-local px.
+ * Desktop: back of stack first, from the right (1000ms / 100ms).
+ * Mobile (`frontFirst`): focus card first, then the ones behind, from above
+ * (500ms ease-out / 50ms stagger). Pass a negative distance for from-above.
+ *
+ * Clock starts on `arm()` (first painted from-state), not at module init —
+ * otherwise a slow first frame skips the front card and it pops in at rest.
  */
-export function createDeckIntro(count) {
-  const t0 = performance.now();
+export function createDeckIntro(count, { frontFirst = false } = {}) {
+  let t0 = 0;
   const n = Math.max(1, count);
-  const lastDelay = (n - 1) * CARD_STAGGER_MS;
+  const duration = frontFirst ? MOBILE_CARD_MS : CARD_MS;
+  const stagger = frontFirst ? MOBILE_CARD_STAGGER_MS : CARD_STAGGER_MS;
+  const lastDelay = (n - 1) * stagger;
   return {
     armed: false,
+    arm(now) {
+      if (this.armed) return;
+      this.armed = true;
+      t0 = now;
+    },
     progress(index, now) {
-      const delay = (n - 1 - index) * CARD_STAGGER_MS;
-      return CARD_EASE(clamp((now - t0 - delay) / CARD_MS, 0, 1));
+      if (!this.armed) return 0;
+      const delay = (frontFirst ? index : n - 1 - index) * stagger;
+      return CARD_EASE(clamp((now - t0 - delay) / duration, 0, 1));
     },
     shift(index, now, distance) {
       return (1 - this.progress(index, now)) * distance;
     },
     done(now) {
-      return now - t0 >= lastDelay + CARD_MS;
+      return this.armed && now - t0 >= lastDelay + duration;
     },
   };
 }
@@ -105,8 +121,8 @@ function animateWhole(el, { delay = 0, scale } = {}) {
   });
   return anim.finished
     .then(() => {
-      clearIntroStyles(el);
       anim.cancel();
+      clearIntroStyles(el);
     })
     .catch(() => {
       clearIntroStyles(el);

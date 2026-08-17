@@ -1,8 +1,8 @@
 import { t } from "./scriptik.js";
-import { revealCardExpand } from "./text-appear.js";
 import { applyDeckParams, isMobile } from "./tweaks.js";
 import {
   fadeFocusScrollbar,
+  focusScrollRoot,
   mountFocusScrollbar,
   syncFocusScrollbar,
   unmountFocusScrollbar,
@@ -10,9 +10,9 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
   const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], input, textarea, select";
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], input, textarea, select";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
@@ -368,7 +368,9 @@ export function initProgramModal() {
     el.style.setProperty("--fly-rot", `${pose.rotate ?? 0}deg`);
     el.style.setProperty("--fly-ms", withTransition && !reduceMotion() ? `${EXPAND_MS}ms` : "0ms");
     el.style.setProperty("--fly-ease", EXPAND_EASE);
-    el.style.setProperty("--card-w", `${pose.width}px`);
+    // --card-w follows interpolating --fly-w via CSS. Setting it inline
+    // to dest width snaps --u paddings/type while the box is still stacked.
+    el.style.removeProperty("--card-w");
     if (pose.radius != null) el.style.borderRadius = pose.radius;
     el.style.willChange = withTransition ? "transform, width, height" : "";
   }
@@ -552,6 +554,8 @@ export function initProgramModal() {
     if (sheet) sheet.scrollTop = 0;
     const works = el.querySelector(".works-card");
     if (works) works.scrollTop = 0;
+    const worksList = el.querySelector(".works-card__list");
+    if (worksList) worksList.scrollTop = 0;
   }
 
   function persistIllust(el) {
@@ -759,14 +763,15 @@ export function initProgramModal() {
     if (phase === "opening") {
       phase = "open";
       if (card) {
-        card.style.setProperty("--fly-ms", "0ms");
         if (card.hasAttribute("data-expand-host")) {
           card.style.borderRadius = "0px";
           card.setAttribute("data-expand-settled", "");
         }
         card.classList.add("is-program-scroll");
+        // Overlay pin (absolute → fixed, same inset 0) must not restart
+        // width/type with a leftover duration. Zero after the scheme swap.
+        card.style.setProperty("--fly-ms", "0ms");
         syncFocusScrollbar(card);
-        if (isMobile()) revealCardExpand(card);
       }
       syncAria();
       return;
@@ -819,12 +824,18 @@ export function initProgramModal() {
       applyExpandPose(card, origin, false);
       card.getBoundingClientRect();
     }
-    card.setAttribute("data-body-grow", "");
     if (reduceMotion()) {
+      card.setAttribute("data-body-grow", "");
       applyExpandPose(card, dest, false);
       onFlySettled();
       return;
     }
+    // Arm duration before body-grow so padding/type tween with the box,
+    // not as a 0ms snap from onFlySettled's leftover --fly-ms: 0.
+    card.style.setProperty("--fly-ms", `${EXPAND_MS}ms`);
+    card.style.setProperty("--fly-ease", EXPAND_EASE);
+    card.getBoundingClientRect();
+    card.setAttribute("data-body-grow", "");
     applyExpandPose(card, dest, true);
     afterFly(onFlySettled);
   }
@@ -835,14 +846,19 @@ export function initProgramModal() {
       return;
     }
     const origin = expandClosePose();
-    card.removeAttribute("data-expand-settled");
-    card.removeAttribute("data-body-grow");
     if (reduceMotion()) {
+      card.removeAttribute("data-expand-settled");
+      card.removeAttribute("data-body-grow");
       applyExpandPose(card, origin, false);
       setIllustOut(card, false);
       onFlySettled();
       return;
     }
+    card.style.setProperty("--fly-ms", `${EXPAND_MS}ms`);
+    card.style.setProperty("--fly-ease", EXPAND_EASE);
+    card.getBoundingClientRect();
+    card.removeAttribute("data-expand-settled");
+    card.removeAttribute("data-body-grow");
     applyExpandPose(card, origin, true);
     setIllustOut(card, false);
     afterFly(onFlySettled);
@@ -1228,7 +1244,7 @@ export function initProgramModal() {
   }
 
   function overlayCloseCard(el) {
-    return Boolean(el?.hasAttribute("data-program-card"));
+    return persistIllust(el);
   }
 
   function syncCloseBtn() {
@@ -1277,11 +1293,12 @@ export function initProgramModal() {
     el.addEventListener("pointerdown", (event) => {
       start = { x: event.clientX, y: event.clientY };
       if (el.classList.contains("is-program-open")) {
-        const top = el.scrollTop;
-        const left = el.scrollLeft;
+        const root = focusScrollRoot(el);
+        const top = root.scrollTop;
+        const left = root.scrollLeft;
         requestAnimationFrame(() => {
-          if (el.scrollTop !== top) el.scrollTop = top;
-          if (el.scrollLeft !== left) el.scrollLeft = left;
+          if (root.scrollTop !== top) root.scrollTop = top;
+          if (root.scrollLeft !== left) root.scrollLeft = left;
         });
       }
       // Let the deck capture a vertical swipe. Only real controls keep the event.

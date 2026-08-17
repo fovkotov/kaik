@@ -6,6 +6,8 @@
 
 let audioContext = null;
 
+let outputVolume = 1;
+
 function getAudioContext() {
   if (!audioContext) {
     audioContext = new AudioContext();
@@ -14,6 +16,14 @@ function getAudioContext() {
     audioContext.resume();
   }
   return audioContext;
+}
+
+function getDestination(ctx) {
+  if (outputVolume === 1) return ctx.destination;
+  const master = ctx.createGain();
+  master.gain.value = outputVolume;
+  master.connect(ctx.destination);
+  return master;
 }
 
 function reduced() {
@@ -43,7 +53,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getDestination(ctx));
     noise.start(t);
   },
 
@@ -62,7 +72,7 @@ const sounds = {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getDestination(ctx));
     osc.start(t);
     osc.stop(t + 0.05);
   },
@@ -89,7 +99,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getDestination(ctx));
     noise.start(t);
 
     const osc = ctx.createOscillator();
@@ -100,7 +110,7 @@ const sounds = {
     oscGain.gain.setValueAtTime(0.15, t);
     oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
     osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
+    oscGain.connect(getDestination(ctx));
     osc.start(t);
     osc.stop(t + 0.04);
   },
@@ -126,7 +136,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getDestination(ctx));
     noise.start(t);
   },
 
@@ -154,7 +164,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getDestination(ctx));
     noise.start(t);
   },
 
@@ -189,7 +199,7 @@ const sounds = {
       osc.connect(gain);
       osc2.connect(gain);
       gain.connect(filter);
-      filter.connect(ctx.destination);
+      filter.connect(getDestination(ctx));
 
       osc.start(start);
       osc2.start(start);
@@ -205,7 +215,7 @@ const sounds = {
     shimmerGain.gain.linearRampToValueAtTime(0.15, t + 0.26);
     shimmerGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
     shimmer.connect(shimmerGain);
-    shimmerGain.connect(ctx.destination);
+    shimmerGain.connect(getDestination(ctx));
     shimmer.start(t + 0.24);
     shimmer.stop(t + 0.45);
   },
@@ -232,7 +242,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getDestination(ctx));
     noise.start(t);
 
     const osc = ctx.createOscillator();
@@ -243,7 +253,7 @@ const sounds = {
     oscGain.gain.setValueAtTime(0.25, t);
     oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
     osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
+    oscGain.connect(getDestination(ctx));
     osc.start(t);
     osc.stop(t + 0.06);
   },
@@ -286,7 +296,7 @@ const sounds = {
     osc2.connect(distortion);
     distortion.connect(gain);
     gain.connect(filter);
-    filter.connect(ctx.destination);
+    filter.connect(getDestination(ctx));
 
     osc1.start(t);
     osc2.start(t);
@@ -318,7 +328,7 @@ const sounds = {
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(getDestination(ctx));
 
       osc.start(start);
       osc.stop(start + 0.12);
@@ -326,13 +336,19 @@ const sounds = {
   },
 };
 
-export function playWikiSound(name) {
+export function playWikiSound(name, options = {}) {
   if (reduced()) return;
   const play = sounds[name];
   if (!play) return;
+  const volume = options.volume ?? 1;
+  if (volume <= 0) return;
+  const prev = outputVolume;
+  outputVolume = volume;
   try {
     play();
   } catch {
     // Web Audio failures are silent, matching ui-sounds.js.
+  } finally {
+    outputVolume = prev;
   }
 }
