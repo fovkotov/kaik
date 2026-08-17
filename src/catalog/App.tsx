@@ -6,6 +6,7 @@ import {
   loadCatalog,
   uniqueValues,
 } from "@/letters/catalog.js";
+import { sameCatalog, subscribeCatalog } from "@/letters/live.js";
 import { svgToInline } from "@/letters/svg.js";
 import {
   CONSTRUCTIONS,
@@ -29,10 +30,13 @@ type Work = {
   stream: string;
   construction: string;
   family: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type Catalog = {
   letters: Work[];
+  updatedAt?: string | null;
 };
 
 const glyphCache = new Map<string, string>();
@@ -83,20 +87,26 @@ function Glyph({ html, className }: { html: string; className?: string }) {
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
+function glyphStamp(item: Work) {
+  return item.updatedAt || item.createdAt || "";
+}
+
 function WorkGlyph({ item, className }: { item: Work; className?: string }) {
-  const [html, setHtml] = useState(() => glyphCache.get(item.id) || "");
+  const stamp = glyphStamp(item);
+  const cacheKey = `${item.id}:${stamp}`;
+  const [html, setHtml] = useState(() => glyphCache.get(cacheKey) || "");
 
   useEffect(() => {
-    if (glyphCache.has(item.id)) {
-      setHtml(glyphCache.get(item.id) || "");
+    if (glyphCache.has(cacheKey)) {
+      setHtml(glyphCache.get(cacheKey) || "");
       return;
     }
     let alive = true;
-    fetch(publicUrl(`letters/${item.file}`))
+    fetch(`${publicUrl(`letters/${item.file}`)}?t=${encodeURIComponent(stamp)}`)
       .then((res) => res.text())
       .then((svg) => {
         const inline = svgToInline(svg, item.id);
-        glyphCache.set(item.id, inline);
+        glyphCache.set(cacheKey, inline);
         if (alive) setHtml(inline);
       })
       .catch(() => {
@@ -105,7 +115,7 @@ function WorkGlyph({ item, className }: { item: Work; className?: string }) {
     return () => {
       alive = false;
     };
-  }, [item]);
+  }, [cacheKey, item.file, item.id, stamp]);
 
   if (!html) {
     return <span>{entryLabel(item) || item.char}</span>;
@@ -138,11 +148,17 @@ export function CatalogApp() {
 
   useEffect(() => {
     let alive = true;
-    loadCatalog().then((data) => {
-      if (alive) setCatalog(data as Catalog);
-    });
+    const pull = () => {
+      loadCatalog().then((data) => {
+        if (!alive) return;
+        setCatalog((current) => (sameCatalog(current, data) ? current : (data as Catalog)));
+      });
+    };
+    pull();
+    const stop = subscribeCatalog(pull);
     return () => {
       alive = false;
+      stop();
     };
   }, []);
 

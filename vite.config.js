@@ -76,6 +76,10 @@ export default defineConfig({
     open: true,
     cors: true,
     headers: embedHeaders,
+    // Saving letters writes public/letters/* — don't full-reload catalog/admin (scroll jumps).
+    watch: {
+      ignored: ["**/public/letters/**"],
+    },
   },
   preview: {
     cors: true,

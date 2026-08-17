@@ -1,4 +1,5 @@
 import { t } from "./scriptik.js";
+import { revealCardExpand } from "./text-appear.js";
 import { applyDeckParams, isMobile } from "./tweaks.js";
 import {
   fadeFocusScrollbar,
@@ -9,9 +10,9 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
   const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], input, textarea, select";
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], input, textarea, select";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
@@ -765,6 +766,7 @@ export function initProgramModal() {
         }
         card.classList.add("is-program-scroll");
         syncFocusScrollbar(card);
+        if (isMobile()) revealCardExpand(card);
       }
       syncAria();
       return;

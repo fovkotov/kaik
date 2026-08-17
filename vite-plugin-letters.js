@@ -148,9 +148,16 @@ function applyPartial(entry, body) {
   return next;
 }
 
+const LETTERS_CATALOG_EVENT = "letters-catalog";
+
 export function lettersAdminPlugin() {
   let root = process.cwd();
+  let viteServer = null;
   let chain = Promise.resolve();
+
+  function notifyCatalog() {
+    viteServer?.ws.send({ type: "custom", event: LETTERS_CATALOG_EVENT });
+  }
 
   const serial = (fn) => {
     const run = chain.then(fn, fn);
@@ -181,6 +188,7 @@ export function lettersAdminPlugin() {
     const { catalogPath } = paths();
     catalog.updatedAt = new Date().toISOString();
     await fs.writeFile(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
+    notifyCatalog();
     return catalog;
   }
 
@@ -189,7 +197,21 @@ export function lettersAdminPlugin() {
     configResolved(config) {
       root = config.root;
     },
+    handleHotUpdate(ctx) {
+      if (ctx.file.includes(`${path.sep}public${path.sep}letters${path.sep}`)) {
+        notifyCatalog();
+        return [];
+      }
+    },
     configureServer(server) {
+      viteServer = server;
+      const lettersDir = path.join(root, "public", "letters");
+      const ignoreLetters = (file) => {
+        if (file.startsWith(lettersDir)) server.watcher.unwatch(file);
+      };
+      server.watcher.unwatch(path.join(lettersDir, "**"));
+      server.watcher.on("add", ignoreLetters);
+      server.watcher.on("change", ignoreLetters);
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split("?")[0] || "";
 
@@ -306,6 +328,20 @@ export function lettersAdminPlugin() {
               const body = await readBody(req);
               const entry = current.letters[index];
               Object.assign(entry, fieldsFromBody(body, entry));
+
+              if (typeof body.svg === "string" && body.svg.trim()) {
+                const svg = sanitizeSvg(body.svg);
+                const { dir } = paths();
+                const file = entry.file || `${entry.id}.svg`;
+                await fs.mkdir(dir, { recursive: true });
+                await fs.writeFile(path.join(dir, file), svg, "utf8");
+                entry.file = file;
+                entry.updatedAt = new Date().toISOString();
+                if (body.filename) {
+                  entry.originalName = String(body.filename);
+                }
+              }
+
               return writeCatalog(current);
             });
 

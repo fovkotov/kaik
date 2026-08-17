@@ -89,12 +89,18 @@ function remember(slot, id) {
   session.setItem(LAST_KEY, JSON.stringify(map));
 }
 
+function svgStamp(entry) {
+  return entry?.updatedAt || entry?.createdAt || "";
+}
+
 async function fetchSvg(entry) {
-  if (svgCache.has(entry.id)) return svgCache.get(entry.id);
-  const res = await fetch(`${publicUrl(`letters/${entry.file}`)}?t=${entry.createdAt || ""}`);
+  const stamp = svgStamp(entry);
+  const key = `${entry.id}:${stamp}`;
+  if (svgCache.has(key)) return svgCache.get(key);
+  const res = await fetch(`${publicUrl(`letters/${entry.file}`)}?t=${stamp}`);
   if (!res.ok) throw new Error("SVG missing");
   const text = await res.text();
-  svgCache.set(entry.id, text);
+  svgCache.set(key, text);
   return text;
 }
 

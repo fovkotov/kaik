@@ -4,11 +4,16 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type MouseEvent,
-  type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { FileUpIcon, Trash2Icon, TypeIcon, UploadIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  FileUpIcon,
+  Trash2Icon,
+  TypeIcon,
+  UploadIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,9 +37,7 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -55,6 +58,7 @@ import {
   loadCatalog,
   uniqueValues,
 } from "@/letters/catalog.js";
+import { sameCatalog, subscribeCatalog } from "@/letters/live.js";
 import { inferCharFromFilename, normalizeChar } from "@/letters/shared.js";
 import { sanitizeSvg, svgToInline } from "@/letters/svg.js";
 import {
@@ -81,6 +85,7 @@ type Work = {
   family: string;
   originalName: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 type Catalog = {
@@ -99,12 +104,6 @@ type InboxItem = {
   text: string;
   author: string;
   stream: string;
-  construction: string;
-  family: string;
-};
-
-type Tagged = {
-  kind: Kind;
   construction: string;
   family: string;
 };
@@ -162,12 +161,17 @@ function Glyph({ html, className }: { html: string; className?: string }) {
   );
 }
 
+function glyphStamp(item: { updatedAt?: string; createdAt?: string }) {
+  return item.updatedAt || item.createdAt || "";
+}
+
 function CatalogGlyph({ item }: { item: Work }) {
   const [html, setHtml] = useState("");
+  const stamp = glyphStamp(item);
 
   useEffect(() => {
     let alive = true;
-    fetch(publicUrl(`letters/${item.file}`))
+    fetch(`${publicUrl(`letters/${item.file}`)}?t=${encodeURIComponent(stamp)}`)
       .then((res) => res.text())
       .then((svg) => {
         if (alive) setHtml(svgToInline(svg, item.id));
@@ -178,7 +182,7 @@ function CatalogGlyph({ item }: { item: Work }) {
     return () => {
       alive = false;
     };
-  }, [item]);
+  }, [item.id, item.file, stamp]);
 
   if (!html) {
     return <span className="text-2xl font-medium">{item.char || item.text}</span>;
@@ -247,83 +251,6 @@ function TagSelect({
   );
 }
 
-function sharedField<K extends keyof Tagged>(items: Tagged[], key: K): Tagged[K] | undefined {
-  if (!items.length) return undefined;
-  const first = items[0][key];
-  return items.every((item) => item[key] === first) ? first : undefined;
-}
-
-function nextSelection(current: Set<string>, id: string, ordered: string[], range: boolean) {
-  if (range) {
-    const from = ordered.indexOf(id);
-    const anchors = [...current].map((item) => ordered.indexOf(item)).filter((index) => index >= 0);
-    const start = anchors.length ? Math.min(...anchors) : from;
-    if (from >= 0 && start >= 0) {
-      const next = new Set(current);
-      const [a, b] = start < from ? [start, from] : [from, start];
-      for (let i = a; i <= b; i++) next.add(ordered[i]);
-      return next;
-    }
-  }
-  const next = new Set(current);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  return next;
-}
-
-function ChipSection({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <section className="grid gap-2">
-      <h3 className="text-xs font-medium text-muted-foreground">{label}</h3>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
-    </section>
-  );
-}
-
-function FilterChips({
-  label,
-  value,
-  options,
-  prefix,
-  copy,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  value: string | undefined;
-  options: readonly string[];
-  prefix: string;
-  copy: (key: string) => string;
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <ChipSection label={label}>
-      <Button
-        type="button"
-        size="sm"
-        variant={value === "" ? "default" : "outline"}
-        disabled={disabled}
-        onClick={() => onChange("")}
-      >
-        {copy("admin.none")}
-      </Button>
-      {options.map((id) => (
-        <Button
-          key={id}
-          type="button"
-          size="sm"
-          variant={value === id ? "default" : "outline"}
-          disabled={disabled}
-          onClick={() => onChange(id)}
-        >
-          {copy(`${prefix}${id}`)}
-        </Button>
-      ))}
-    </ChipSection>
-  );
-}
-
 function inboxReady(item: InboxItem) {
   if (!item.author.trim() || !item.stream.trim()) return false;
   if (item.kind === KIND_WORD) return Boolean(item.text.trim());
@@ -339,8 +266,6 @@ export function AdminApp() {
   const [bulkStream, setBulkStream] = useState("");
   const [bulkKind, setBulkKind] = useState<Kind>(KIND_LETTER);
   const [catalogKind, setCatalogKind] = useState<Kind>(KIND_LETTER);
-  const [selectedInbox, setSelectedInbox] = useState<Set<string>>(() => new Set());
-  const [selectedCatalog, setSelectedCatalog] = useState<Set<string>>(() => new Set());
   const [hot, setHot] = useState(false);
   const [editing, setEditing] = useState<Work | null>(null);
   const [editDraft, setEditDraft] = useState({
@@ -353,39 +278,49 @@ export function AdminApp() {
     family: "",
   });
   const [editGlyph, setEditGlyph] = useState("");
+  const [editSvg, setEditSvg] = useState<string | null>(null);
+  const [editSvgName, setEditSvgName] = useState("");
+  const [editHot, setEditHot] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+  const editSvgRef = useRef<string | null>(null);
   const dragDepth = useRef(0);
+  editSvgRef.current = editSvg;
 
   const copy = (key: string) => t(key, locale);
 
   useEffect(() => {
     let alive = true;
-    (async () => {
+    async function pull() {
       try {
         const data = await lettersApi("");
         if (!alive) return;
-        setCatalog(data);
+        setCatalog((current) => (sameCatalog(current, data) ? current : data));
         setWritable(true);
       } catch {
         const data = (await loadCatalog()) as Catalog;
         if (!alive) return;
-        setCatalog(data);
+        setCatalog((current) => (sameCatalog(current, data) ? current : data));
         setWritable(false);
       }
-    })();
+    }
+    pull();
+    const stop = subscribeCatalog(pull);
     return () => {
       alive = false;
+      stop();
     };
   }, []);
 
   useEffect(() => {
     if (!editing) return;
     let alive = true;
-    fetch(publicUrl(`letters/${editing.file}`))
+    const stamp = glyphStamp(editing);
+    fetch(`${publicUrl(`letters/${editing.file}`)}?t=${encodeURIComponent(stamp)}`)
       .then((res) => res.text())
       .then((svg) => {
-        if (alive) setEditGlyph(svgToInline(svg, editing.id));
+        if (alive && !editSvgRef.current) setEditGlyph(svgToInline(svg, editing.id));
       })
       .catch(() => {
         if (alive) setEditGlyph("");
@@ -413,62 +348,10 @@ export function AdminApp() {
     [catalogKind, words, groups],
   );
 
-  const selectedInboxItems = useMemo(
-    () => inbox.filter((item) => selectedInbox.has(item.key)),
-    [inbox, selectedInbox],
-  );
-  const selectedCatalogItems = useMemo(
-    () => catalog.letters.filter((item) => selectedCatalog.has(item.id)) as Work[],
-    [catalog, selectedCatalog],
-  );
-  const selectedTagged: Tagged[] = useMemo(
-    () => [...selectedInboxItems, ...selectedCatalogItems],
-    [selectedInboxItems, selectedCatalogItems],
-  );
-  const selectedCount = selectedTagged.length;
-  const sharedKind = sharedField(selectedTagged, "kind");
-  const sharedConstruction = sharedField(selectedTagged, "construction");
-  const sharedFamily = sharedField(selectedTagged, "family");
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setSelectedInbox(new Set());
-        setSelectedCatalog(new Set());
-        return;
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
-        const target = event.target as HTMLElement | null;
-        if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
-        event.preventDefault();
-        setSelectedInbox(new Set(inbox.map((item) => item.key)));
-        setSelectedCatalog(new Set(visualCatalogIds));
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [inbox, visualCatalogIds]);
-
   function changeLocale(next: string) {
     if (next !== "en" && next !== "ru") return;
     persistLocale(next);
     setLocaleState(next);
-  }
-
-  function pickInbox(event: MouseEvent, key: string) {
-    setSelectedInbox((current) =>
-      nextSelection(
-        current,
-        key,
-        inbox.map((item) => item.key),
-        event.shiftKey,
-      ),
-    );
-  }
-
-  function pickCatalog(event: MouseEvent, id: string) {
-    if (event.detail > 1) return;
-    setSelectedCatalog((current) => nextSelection(current, id, visualCatalogIds, event.shiftKey));
   }
 
   function openEditor(item: Work) {
@@ -483,52 +366,57 @@ export function AdminApp() {
       family: item.family || "",
     });
     setEditGlyph("");
+    setEditSvg(null);
+    setEditSvgName("");
+    setEditHot(false);
   }
 
-  function toggleGroup(items: Work[]) {
-    const ids = items.map((item) => item.id);
-    setSelectedCatalog((current) => {
-      const allOn = ids.every((id) => current.has(id));
-      const next = new Set(current);
-      if (allOn) ids.forEach((id) => next.delete(id));
-      else ids.forEach((id) => next.add(id));
-      return next;
-    });
+  function goEdit(delta: number) {
+    if (!editing) return;
+    const ids = visualCatalogIds;
+    if (ids.length < 2) return;
+    const index = ids.indexOf(editing.id);
+    if (index < 0) return;
+    const nextId = ids[(index + delta + ids.length) % ids.length];
+    const next = catalog.letters.find((item) => item.id === nextId) as Work | undefined;
+    if (next) openEditor(next);
   }
 
-  function patchInbox(keys: Set<string>, patch: Partial<InboxItem>) {
-    setInbox((current) =>
-      current.map((item) => {
-        if (!keys.has(item.key)) return item;
-        const next = { ...item, ...patch };
-        if (patch.kind === KIND_WORD && !next.text.trim()) {
-          next.text = inferTextFromFilename(item.filename);
-        }
-        return next;
-      }),
+  useEffect(() => {
+    if (!editing) return;
+    function onKey(event: KeyboardEvent) {
+      if (confirmDelete) return;
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goEdit(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goEdit(1);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editing, confirmDelete, catalog, visualCatalogIds]);
+
+  async function applyReplaceFile(fileList: FileList | File[]) {
+    if (!editing) return;
+    const file = [...fileList].find(
+      (item) => item.name.toLowerCase().endsWith(".svg") || item.type === "image/svg+xml",
     );
-  }
-
-  async function patchCatalog(ids: string[], patch: Record<string, string>) {
-    if (!ids.length) return;
-    if (!writable) {
-      toast.error(copy("admin.devOnly"));
+    if (!file) {
+      toast.error(copy("admin.needSvg"));
       return;
     }
+    const raw = await file.text();
     try {
-      const data = await lettersApi("/bulk", {
-        method: "PATCH",
-        body: JSON.stringify({ ids, patch }),
-      });
-      setCatalog(data);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+      setEditGlyph(svgToInline(sanitizeSvg(raw), editing.id));
+      setEditSvg(raw);
+      setEditSvgName(file.name);
+    } catch {
+      toast.error(`${file.name}: ${copy("admin.badSvg")}`);
     }
-  }
-
-  async function applyTag(patch: { kind?: Kind; construction?: string; family?: string }) {
-    if (selectedInbox.size) patchInbox(selectedInbox, patch);
-    if (selectedCatalog.size) await patchCatalog([...selectedCatalog], patch);
   }
 
   async function addFiles(fileList: FileList | File[]) {
@@ -541,16 +429,13 @@ export function AdminApp() {
     }
 
     const next: InboxItem[] = [];
-    const keys: string[] = [];
     for (const file of files) {
       const raw = await file.text();
       try {
         const preview = svgToInline(sanitizeSvg(raw), `tmp_${crypto.randomUUID()}`);
         const text = inferTextFromFilename(file.name);
-        const key = crypto.randomUUID();
-        keys.push(key);
         next.push({
-          key,
+          key: crypto.randomUUID(),
           filename: file.name,
           svg: raw,
           preview,
@@ -567,7 +452,6 @@ export function AdminApp() {
       }
     }
     setInbox((current) => [...current, ...next]);
-    setSelectedInbox(new Set(keys));
   }
 
   async function saveInbox() {
@@ -602,7 +486,6 @@ export function AdminApp() {
       });
       setCatalog(data);
       setInbox([]);
-      setSelectedInbox(new Set());
       toast.success(copy("admin.saved"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : copy("admin.error"));
@@ -623,11 +506,17 @@ export function AdminApp() {
           stream: editDraft.stream,
           construction: editDraft.construction,
           family: editDraft.family,
+          ...(editSvg
+            ? { svg: editSvg, filename: editSvgName || editing.originalName }
+            : {}),
         }),
       });
+      const updated = data.letters.find((item) => item.id === editing.id) as Work | undefined;
       setCatalog(data);
-      setEditing(null);
-      toast.success(copy("admin.saved"));
+      setEditSvg(null);
+      setEditSvgName("");
+      if (updated) setEditing(updated);
+      toast.success(editSvg ? copy("admin.replaced") : copy("admin.saved"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : copy("admin.error"));
     }
@@ -635,16 +524,18 @@ export function AdminApp() {
 
   async function deleteEditing() {
     if (!editing) return;
+    const ids = visualCatalogIds;
+    const index = ids.indexOf(editing.id);
+    const fallbackId = (index >= 0 && ids[index + 1]) || (index > 0 ? ids[index - 1] : null);
     try {
       const data = await lettersApi(`/${editing.id}`, { method: "DELETE" });
       setCatalog(data);
-      setSelectedCatalog((current) => {
-        const next = new Set(current);
-        next.delete(editing.id);
-        return next;
-      });
       setConfirmDelete(false);
-      setEditing(null);
+      const nextItem = fallbackId
+        ? (data.letters.find((item) => item.id === fallbackId) as Work | undefined)
+        : undefined;
+      if (nextItem) openEditor(nextItem);
+      else setEditing(null);
       toast.success(copy("admin.saved"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : copy("admin.error"));
@@ -653,13 +544,11 @@ export function AdminApp() {
 
   const countKey = catalogKind === KIND_WORD ? "admin.countWords" : "admin.count";
   const emptyKey = catalogKind === KIND_WORD ? "admin.emptyWords" : "admin.empty";
-  const oneCatalog =
-    selectedCatalog.size === 1 && selectedInbox.size === 0
-      ? selectedCatalogItems[0]
-      : undefined;
+  const editIndex = editing ? visualCatalogIds.indexOf(editing.id) : -1;
+  const canCycle = visualCatalogIds.length > 1;
 
   return (
-    <div className="min-h-[var(--frame-h)] bg-background pl-[var(--admin-sidebar)]">
+    <div className="min-h-[var(--frame-h)] bg-background">
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
           <a href={publicUrl()} className="flex items-center gap-2.5 text-sm font-medium">
@@ -792,18 +681,11 @@ export function AdminApp() {
                 {inbox.map((item) => (
                   <li
                     key={item.key}
-                    className={cn(
-                      "grid items-center gap-3 rounded-xl border p-2 sm:grid-cols-[72px_minmax(4.5rem,1fr)_1fr_1fr_auto]",
-                      selectedInbox.has(item.key) && "ring-2 ring-primary",
-                    )}
+                    className="grid items-center gap-3 rounded-xl border p-2 sm:grid-cols-[72px_minmax(4.5rem,1fr)_1fr_1fr_auto]"
                   >
-                    <button
-                      type="button"
-                      className="size-[72px] overflow-hidden rounded-lg bg-muted"
-                      onClick={(event) => pickInbox(event, item.key)}
-                    >
+                    <div className="size-[72px] overflow-hidden rounded-lg bg-muted">
                       <Glyph html={item.preview} className="size-full p-2" />
-                    </button>
+                    </div>
                     {item.kind === KIND_WORD ? (
                       <Input
                         aria-label={copy("admin.text")}
@@ -868,11 +750,6 @@ export function AdminApp() {
                       size="sm"
                       onClick={() => {
                         setInbox((current) => current.filter((entry) => entry.key !== item.key));
-                        setSelectedInbox((current) => {
-                          const next = new Set(current);
-                          next.delete(item.key);
-                          return next;
-                        });
                       }}
                     >
                       {copy("admin.remove")}
@@ -885,10 +762,7 @@ export function AdminApp() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => {
-                  setInbox([]);
-                  setSelectedInbox(new Set());
-                }}
+                onClick={() => setInbox([])}
               >
                 {copy("admin.clear")}
               </Button>
@@ -906,10 +780,7 @@ export function AdminApp() {
               <h2 className="font-heading text-base font-medium">{copy("admin.catalog")}</h2>
               <KindToggle
                 value={catalogKind}
-                onChange={(kind) => {
-                  setCatalogKind(kind);
-                  setSelectedCatalog(new Set());
-                }}
+                onChange={setCatalogKind}
                 copy={copy}
               />
             </div>
@@ -928,12 +799,8 @@ export function AdminApp() {
                     key={item.id}
                     type="button"
                     title={`${item.text || item.char} · ${item.author} · ${item.stream}`}
-                    className={cn(
-                      "h-[92px] min-w-[148px] overflow-hidden rounded-xl bg-card px-3 ring-1 ring-foreground/10 transition hover:ring-foreground/40",
-                      selectedCatalog.has(item.id) && "ring-2 ring-primary",
-                    )}
-                    onClick={(event) => pickCatalog(event, item.id)}
-                    onDoubleClick={() => openEditor(item)}
+                    className="h-[92px] min-w-[148px] overflow-hidden rounded-xl bg-card px-3 ring-1 ring-foreground/10 transition hover:ring-foreground/40"
+                    onClick={() => openEditor(item)}
                   >
                     <CatalogGlyph item={item} />
                   </button>
@@ -954,26 +821,15 @@ export function AdminApp() {
             <div className="grid gap-8">
               {groups.map(([char, items]) => (
                 <section key={char} className="grid gap-3">
-                  <button
-                    type="button"
-                    className="w-fit font-heading text-4xl leading-none"
-                    title={copy("admin.selectAll")}
-                    onClick={() => toggleGroup(items)}
-                  >
-                    {char}
-                  </button>
+                  <h3 className="w-fit font-heading text-4xl leading-none">{char}</h3>
                   <div className="flex flex-wrap gap-2">
                     {items.map((item) => (
                       <button
                         key={item.id}
                         type="button"
                         title={`${item.author} · ${item.stream}`}
-                        className={cn(
-                          "size-[92px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 transition hover:ring-foreground/40",
-                          selectedCatalog.has(item.id) && "ring-2 ring-primary",
-                        )}
-                        onClick={(event) => pickCatalog(event, item.id)}
-                        onDoubleClick={() => openEditor(item)}
+                        className="size-[92px] overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 transition hover:ring-foreground/40"
+                        onClick={() => openEditor(item)}
                       >
                         <CatalogGlyph item={item} />
                       </button>
@@ -996,92 +852,6 @@ export function AdminApp() {
         </section>
       </main>
 
-      <aside
-        className="fixed top-0 left-0 z-30 flex w-[var(--admin-sidebar)] flex-col overflow-y-auto overscroll-contain border-r bg-sidebar text-sidebar-foreground"
-        style={{ height: "var(--frame-h)" }}
-      >
-        <div className="flex flex-col gap-5 p-4">
-          <div className="grid gap-2">
-            <p className="text-sm font-medium">
-              {selectedCount
-                ? copy("admin.selected").replace("{n}", String(selectedCount))
-                : copy("admin.selectEmpty")}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setSelectedInbox(new Set(inbox.map((item) => item.key)));
-                  setSelectedCatalog(new Set(visualCatalogIds));
-                }}
-              >
-                {copy("admin.selectAll")}
-              </Button>
-              {oneCatalog ? (
-                <Button type="button" size="sm" variant="outline" onClick={() => openEditor(oneCatalog)}>
-                  {copy("admin.editOne")}
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={!selectedCount}
-                onClick={() => {
-                  setSelectedInbox(new Set());
-                  setSelectedCatalog(new Set());
-                }}
-              >
-                {copy("admin.clearSelection")}
-              </Button>
-            </div>
-            {selectedCount ? null : (
-              <p className="text-xs text-muted-foreground">{copy("admin.selectHint")}</p>
-            )}
-          </div>
-          <ChipSection label={copy("admin.kind")}>
-            <Button
-              type="button"
-              size="sm"
-              variant={sharedKind === KIND_LETTER ? "default" : "outline"}
-              disabled={!selectedCount}
-              onClick={() => applyTag({ kind: KIND_LETTER })}
-            >
-              {copy("admin.kind.letter")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={sharedKind === KIND_WORD ? "default" : "outline"}
-              disabled={!selectedCount}
-              onClick={() => applyTag({ kind: KIND_WORD })}
-            >
-              {copy("admin.kind.word")}
-            </Button>
-          </ChipSection>
-          <FilterChips
-            label={copy("admin.construction")}
-            value={sharedConstruction}
-            options={CONSTRUCTIONS}
-            prefix="tax.construction."
-            copy={copy}
-            disabled={!selectedCount}
-            onChange={(construction) => applyTag({ construction })}
-          />
-          <FilterChips
-            label={copy("admin.family")}
-            value={sharedFamily}
-            options={FAMILIES}
-            prefix="tax.family."
-            copy={copy}
-            disabled={!selectedCount}
-            onChange={(family) => applyTag({ family })}
-          />
-        </div>
-      </aside>
-
       <datalist id="author-list">
         {authors.map((value: string) => (
           <option key={value} value={value} />
@@ -1093,31 +863,94 @@ export function AdminApp() {
         ))}
       </datalist>
 
-      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="sm:max-w-xl">
-          <form onSubmit={saveEdit} className="grid gap-4">
-            <DialogHeader>
-              <DialogTitle>
-                {editDraft.kind === KIND_WORD ? copy("admin.kind.word") : copy("admin.letter")}
-              </DialogTitle>
-              <DialogDescription>
-                {editDraft.kind === KIND_WORD ? copy("admin.kind.word") : copy("admin.preview")}
-              </DialogDescription>
-            </DialogHeader>
-            <KindToggle
-              value={editDraft.kind}
-              onChange={(kind) => setEditDraft((current) => ({ ...current, kind }))}
-              copy={copy}
-            />
-            <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
-              <div className="flex min-h-48 items-center justify-center rounded-xl bg-muted p-6">
-                {editGlyph ? (
-                  <Glyph html={editGlyph} className="h-40 w-full" />
-                ) : (
-                  <span className="text-5xl">{editDraft.char || editDraft.text}</span>
-                )}
+      <Dialog
+        open={Boolean(editing)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditing(null);
+            setEditSvg(null);
+            setEditSvgName("");
+            setEditHot(false);
+          }
+        }}
+      >
+        <DialogContent
+          className="top-0 left-0 flex h-[var(--frame-h)] w-[var(--frame-w)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto overscroll-contain rounded-none p-0 sm:max-w-none"
+        >
+          <DialogTitle className="sr-only">
+            {editDraft.char || editDraft.text || copy("admin.letter")}
+          </DialogTitle>
+          <form onSubmit={saveEdit} className="flex min-h-full flex-col">
+            <div className="flex items-center gap-2 border-b px-4 py-3 pr-14">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={!canCycle}
+                aria-label={copy("admin.prev")}
+                onClick={() => goEdit(-1)}
+              >
+                <ChevronLeftIcon />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={!canCycle}
+                aria-label={copy("admin.next")}
+                onClick={() => goEdit(1)}
+              >
+                <ChevronRightIcon />
+              </Button>
+              {editIndex >= 0 ? (
+                <span className="text-sm text-muted-foreground">
+                  {editIndex + 1} / {visualCatalogIds.length}
+                </span>
+              ) : null}
+            </div>
+            <div className="mx-auto grid w-full max-w-5xl flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1.2fr)_minmax(16rem,20rem)]">
+              <div className="grid gap-2">
+                <input
+                  ref={replaceRef}
+                  type="file"
+                  accept=".svg,image/svg+xml"
+                  className="sr-only"
+                  onChange={(event) => {
+                    if (event.target.files) applyReplaceFile(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  title={copy("admin.replaceFile")}
+                  className={cn(
+                    "flex min-h-[min(28rem,calc(var(--frame-h)*0.55))] w-full cursor-pointer flex-col items-center justify-center rounded-xl bg-muted p-6",
+                    editHot && "ring-2 ring-primary",
+                  )}
+                  onClick={() => replaceRef.current?.click()}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setEditHot(true);
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDragLeave={() => setEditHot(false)}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setEditHot(false);
+                    applyReplaceFile(event.dataTransfer.files);
+                  }}
+                >
+                  {editGlyph ? (
+                    <Glyph html={editGlyph} className="h-full max-h-[min(24rem,calc(var(--frame-h)*0.45))] w-full" />
+                  ) : (
+                    <span className="text-5xl">{editDraft.char || editDraft.text}</span>
+                  )}
+                  <span className="mt-4 text-xs text-muted-foreground">
+                    {copy("admin.replaceHint")}
+                  </span>
+                </button>
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-3 content-start">
                 {editDraft.kind === KIND_WORD ? (
                   <div className="grid gap-1.5">
                     <Label htmlFor="edit-text">{copy("admin.text")}</Label>
@@ -1214,7 +1047,7 @@ export function AdminApp() {
                 ) : null}
               </div>
             </div>
-            <DialogFooter className="sm:justify-between">
+            <DialogFooter className="mx-0 mb-0 mt-auto rounded-none sm:justify-between">
               <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
                 <Trash2Icon data-icon="inline-start" />
                 {copy("admin.delete")}
