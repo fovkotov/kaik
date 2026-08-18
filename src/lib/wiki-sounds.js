@@ -5,25 +5,79 @@
  */
 
 let audioContext = null;
-
+let masterGain = null;
+let keepAliveNode = null;
 let outputVolume = 1;
+
+function createContext() {
+  try {
+    return new AudioContext({ latencyHint: "interactive" });
+  } catch {
+    return new AudioContext();
+  }
+}
+
+function startKeepAlive(ctx) {
+  if (keepAliveNode) return;
+  const silent = ctx.createGain();
+  silent.gain.value = 0;
+  silent.connect(ctx.destination);
+  try {
+    const src = ctx.createConstantSource();
+    src.offset.value = 0;
+    src.connect(silent);
+    src.start();
+    keepAliveNode = src;
+  } catch {
+    const osc = ctx.createOscillator();
+    osc.frequency.value = 20;
+    osc.connect(silent);
+    osc.start();
+    keepAliveNode = osc;
+  }
+}
+
+function primeOutput(ctx) {
+  const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
+}
 
 function getAudioContext() {
   if (!audioContext) {
-    audioContext = new AudioContext();
+    audioContext = createContext();
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = 1;
+    masterGain.connect(audioContext.destination);
+    startKeepAlive(audioContext);
   }
   if (audioContext.state === "suspended") {
-    audioContext.resume();
+    void audioContext.resume();
   }
   return audioContext;
 }
 
-function getDestination(ctx) {
-  if (outputVolume === 1) return ctx.destination;
-  const master = ctx.createGain();
-  master.gain.value = outputVolume;
-  master.connect(ctx.destination);
-  return master;
+function getDestination() {
+  const ctx = getAudioContext();
+  if (outputVolume === 1) return masterGain || ctx.destination;
+  const tap = ctx.createGain();
+  tap.gain.value = outputVolume;
+  tap.connect(masterGain || ctx.destination);
+  return tap;
+}
+
+/** Create + resume AudioContext in the same turn as a user gesture. Do not await. */
+export function warmWikiAudio() {
+  if (reduced()) return;
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+    primeOutput(ctx);
+  } catch {
+    // Web Audio failures are silent.
+  }
 }
 
 function reduced() {
@@ -53,7 +107,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(getDestination(ctx));
+    gain.connect(getDestination());
     noise.start(t);
   },
 
@@ -72,7 +126,7 @@ const sounds = {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
 
     osc.connect(gain);
-    gain.connect(getDestination(ctx));
+    gain.connect(getDestination());
     osc.start(t);
     osc.stop(t + 0.05);
   },
@@ -99,7 +153,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(getDestination(ctx));
+    gain.connect(getDestination());
     noise.start(t);
 
     const osc = ctx.createOscillator();
@@ -110,7 +164,7 @@ const sounds = {
     oscGain.gain.setValueAtTime(0.15, t);
     oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
     osc.connect(oscGain);
-    oscGain.connect(getDestination(ctx));
+    oscGain.connect(getDestination());
     osc.start(t);
     osc.stop(t + 0.04);
   },
@@ -136,7 +190,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(getDestination(ctx));
+    gain.connect(getDestination());
     noise.start(t);
   },
 
@@ -164,7 +218,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(getDestination(ctx));
+    gain.connect(getDestination());
     noise.start(t);
   },
 
@@ -199,7 +253,7 @@ const sounds = {
       osc.connect(gain);
       osc2.connect(gain);
       gain.connect(filter);
-      filter.connect(getDestination(ctx));
+      filter.connect(getDestination());
 
       osc.start(start);
       osc2.start(start);
@@ -215,7 +269,7 @@ const sounds = {
     shimmerGain.gain.linearRampToValueAtTime(0.15, t + 0.26);
     shimmerGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
     shimmer.connect(shimmerGain);
-    shimmerGain.connect(getDestination(ctx));
+    shimmerGain.connect(getDestination());
     shimmer.start(t + 0.24);
     shimmer.stop(t + 0.45);
   },
@@ -242,7 +296,7 @@ const sounds = {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(getDestination(ctx));
+    gain.connect(getDestination());
     noise.start(t);
 
     const osc = ctx.createOscillator();
@@ -253,7 +307,7 @@ const sounds = {
     oscGain.gain.setValueAtTime(0.25, t);
     oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
     osc.connect(oscGain);
-    oscGain.connect(getDestination(ctx));
+    oscGain.connect(getDestination());
     osc.start(t);
     osc.stop(t + 0.06);
   },
@@ -296,7 +350,7 @@ const sounds = {
     osc2.connect(distortion);
     distortion.connect(gain);
     gain.connect(filter);
-    filter.connect(getDestination(ctx));
+    filter.connect(getDestination());
 
     osc1.start(t);
     osc2.start(t);
@@ -328,7 +382,7 @@ const sounds = {
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(getDestination(ctx));
+      gain.connect(getDestination());
 
       osc.start(start);
       osc.stop(start + 0.12);
@@ -336,12 +390,7 @@ const sounds = {
   },
 };
 
-export function playWikiSound(name, options = {}) {
-  if (reduced()) return;
-  const play = sounds[name];
-  if (!play) return;
-  const volume = options.volume ?? 1;
-  if (volume <= 0) return;
+function runSound(play, volume) {
   const prev = outputVolume;
   outputVolume = volume;
   try {
@@ -350,5 +399,21 @@ export function playWikiSound(name, options = {}) {
     // Web Audio failures are silent, matching ui-sounds.js.
   } finally {
     outputVolume = prev;
+  }
+}
+
+export function playWikiSound(name, options = {}) {
+  if (reduced()) return;
+  const play = sounds[name];
+  if (!play) return;
+  const volume = options.volume ?? 1;
+  if (volume <= 0) return;
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+    // Same turn as the gesture — never await resume() / then() before oscillators.
+    runSound(play, volume);
+  } catch {
+    // Web Audio failures are silent, matching ui-sounds.js.
   }
 }

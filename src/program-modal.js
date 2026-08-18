@@ -10,9 +10,9 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
   const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], input, textarea, select";
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], input, textarea, select";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
@@ -550,6 +550,8 @@ export function initProgramModal() {
   function resetCardScroll(el) {
     if (!el) return;
     el.scrollTop = 0;
+    const program = el.querySelector(".program-card");
+    if (program) program.scrollTop = 0;
     const sheet = el.querySelector(".program-card__sheet");
     if (sheet) sheet.scrollTop = 0;
     const works = el.querySelector(".works-card");
@@ -820,10 +822,6 @@ export function initProgramModal() {
     const retarget =
       card.hasAttribute("data-expand-settled") ||
       card.style.getPropertyValue("--fly-w") !== "";
-    if (!retarget) {
-      applyExpandPose(card, origin, false);
-      card.getBoundingClientRect();
-    }
     if (reduceMotion()) {
       card.setAttribute("data-body-grow", "");
       applyExpandPose(card, dest, false);
@@ -834,10 +832,17 @@ export function initProgramModal() {
     // not as a 0ms snap from onFlySettled's leftover --fly-ms: 0.
     card.style.setProperty("--fly-ms", `${EXPAND_MS}ms`);
     card.style.setProperty("--fly-ease", EXPAND_EASE);
-    card.getBoundingClientRect();
     card.setAttribute("data-body-grow", "");
-    applyExpandPose(card, dest, true);
-    afterFly(onFlySettled);
+    const run = () => {
+      applyExpandPose(card, dest, true);
+      afterFly(onFlySettled);
+    };
+    if (!retarget) {
+      applyExpandPose(card, origin, false);
+      card.getBoundingClientRect();
+    }
+    // Two frames so the stacked pose paints before the dest tween (same as playFly).
+    requestAnimationFrame(() => requestAnimationFrame(run));
   }
 
   function startExpandClose() {
@@ -856,12 +861,15 @@ export function initProgramModal() {
     }
     card.style.setProperty("--fly-ms", `${EXPAND_MS}ms`);
     card.style.setProperty("--fly-ease", EXPAND_EASE);
+    const run = () => {
+      card.removeAttribute("data-expand-settled");
+      card.removeAttribute("data-body-grow");
+      applyExpandPose(card, origin, true);
+      setIllustOut(card, false);
+      afterFly(onFlySettled);
+    };
     card.getBoundingClientRect();
-    card.removeAttribute("data-expand-settled");
-    card.removeAttribute("data-body-grow");
-    applyExpandPose(card, origin, true);
-    setIllustOut(card, false);
-    afterFly(onFlySettled);
+    requestAnimationFrame(() => requestAnimationFrame(run));
   }
 
   function snapshotPoses() {
@@ -974,6 +982,9 @@ export function initProgramModal() {
       const shot = captureExpandFrom(card);
       fromLocal = shot;
       fromRadius = shot.radius;
+      card.setAttribute("data-expand-host", "");
+      card.style.setProperty("--fly-ms", "0ms");
+      lockCard();
       applyExpandPose(card, {
         x: shot.x,
         y: shot.y,
@@ -983,9 +994,6 @@ export function initProgramModal() {
         height: shot.height,
         radius: shot.radius,
       }, false);
-      card.setAttribute("data-expand-host", "");
-      card.style.setProperty("--fly-ms", "0ms");
-      lockCard();
       syncAria();
       startExpandOpen();
       return;
@@ -1066,6 +1074,13 @@ export function initProgramModal() {
     if (expand) {
       fromLocal = fromVisual;
       fromRadius = fromVisual.radius;
+      card.setAttribute("data-expand-host", "");
+      card.style.setProperty("--fly-ms", "0ms");
+    } else {
+      pin(fromVisual, false);
+    }
+    lockCard();
+    if (expand) {
       applyExpandPose(card, {
         x: fromVisual.x,
         y: fromVisual.y,
@@ -1075,12 +1090,7 @@ export function initProgramModal() {
         height: fromVisual.height,
         radius: fromVisual.radius,
       }, false);
-      card.setAttribute("data-expand-host", "");
-      card.style.setProperty("--fly-ms", "0ms");
-    } else {
-      pin(fromVisual, false);
     }
-    lockCard();
     outgoingEl.removeAttribute("data-fly-lock");
     card.getBoundingClientRect();
 

@@ -2,7 +2,13 @@
  * Runtime for living inside a Cargo / parent iframe.
  *
  * The page fills the iframe viewport and scrolls internally. Parent should
- * give the iframe a real height (typically 100vh of the host page).
+ * lock host scroll and size the iframe to the visible viewport — not 100vh:
+ *
+ *   html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+ *   .kaik-embed { position: fixed; inset: 0; width: 100%; height: 100dvh; }
+ *   .kaik-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
+ *
+ * Prefer https://kaik-one.vercel.app/ (frame-ancestors *). GitHub Pages works too.
  */
 
 import { initHangingPrepositions } from "./hanging-prepositions.js";
@@ -86,6 +92,13 @@ export function notifyParent(type, payload = {}) {
   }
 }
 
+/** Hint for Cargo hosts: lock page scroll so deck swipes stay inside the iframe. */
+export function requestParentScrollLock() {
+  notifyParent("scroll-lock", {
+    hint: "Set html,body{overflow:hidden;height:100%} and iframe height:100dvh inside a fixed inset wrapper.",
+  });
+}
+
 /** localStorage is often blocked in third-party iframes (Safari ITP). */
 export function safeStorage() {
   try {
@@ -164,4 +177,5 @@ export function initEmbed() {
 
   initHangingPrepositions();
   notifyParent("ready", size);
+  requestParentScrollLock();
 }

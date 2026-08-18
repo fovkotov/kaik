@@ -1,6 +1,7 @@
 import { getScrollRoot, getViewportSize, initEmbed } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
 import { initTickClicks } from "./tick-clicks.js";
+import { initSoundSettings } from "./sound-settings.js";
 import { initImgSliders } from "./img-slider.js";
 import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
 import { initDropcaps } from "./letters/dropcap.js";
@@ -556,7 +557,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
@@ -652,7 +653,7 @@ function initDeck() {
     "wheel",
     (event) => {
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -683,7 +684,7 @@ function initDeck() {
     (event) => {
       if (!isMobile()) return;
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -695,7 +696,11 @@ function initDeck() {
   );
 
   root.addEventListener("scroll", () => {
-    if (freezeY == null || isMobile()) return;
+    if (isMobile()) {
+      if (root.scrollTop !== 0) root.scrollTop = 0;
+      return;
+    }
+    if (freezeY == null) return;
     if (root.scrollTop !== freezeY) root.scrollTop = freezeY;
   });
 
@@ -783,6 +788,7 @@ function initDeck() {
     const prevProgress = lastDeckProgress;
     lastDeckProgress = cardProgress;
     const deckDelta = prevProgress == null ? 0 : cardProgress - prevProgress;
+    const yPx = mobile ? y * cardUnitPx(params) : y;
     const now = performance.now();
     if (!mobile && Math.abs(deckDelta) > 1e-6) lastDesktopDeltaAt = now;
     const deckActive =
@@ -796,6 +802,7 @@ function initDeck() {
           detail: {
             progress: cardProgress,
             delta: deckDelta,
+            yPx,
             active: deckActive,
             mobile,
           },
@@ -1154,6 +1161,7 @@ initEmbed();
 initLocale();
 initTweaks();
 initTickClicks();
+initSoundSettings();
 initDeck();
 initTextAppear();
 const programApi = initProgramModal();

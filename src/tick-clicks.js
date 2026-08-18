@@ -1,4 +1,4 @@
-import { playWikiSound } from "./lib/wiki-sounds.js";
+import { playWikiSound, warmWikiAudio } from "./lib/wiki-sounds.js";
 import { getActionVolume } from "./lib/sound-volume.js";
 
 const STEP_KEYS = new Set([
@@ -69,15 +69,54 @@ function playAction() {
   playWikiSound("pop", { volume });
 }
 
+function isImmediateControl(target) {
+  return Boolean(
+    target.closest?.(
+      "a, button, [role='button'], [role='link'], [role='tab'], [role='menuitem'], [role='option'], summary, label, input, select, [data-work-nav], [data-program-nav], [data-fly-close], [data-open-program], [data-tweaks], [data-tweaks-reopen], [data-deck-tune]",
+    ),
+  );
+}
+
 export function initTickClicks() {
+  let skipClickUntil = 0;
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (!event.isTrusted) return;
+      if (event.button != null && event.button !== 0) return;
+      warmWikiAudio();
+      const target = clickTarget(event);
+      if (!target) return;
+      if (target.closest?.("[data-sound-settings]")) return;
+      if (isDisabledControl(target)) return;
+      if (!isImmediateControl(target)) return;
+      playAction();
+      skipClickUntil = performance.now() + 700;
+    },
+    true,
+  );
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (!event.isTrusted) return;
+      warmWikiAudio();
+    },
+    true,
+  );
+
   document.addEventListener(
     "click",
     (event) => {
       if (!event.isTrusted) return;
       if (event.button !== 0) return;
+      if (performance.now() < skipClickUntil) return;
       const target = clickTarget(event);
       if (!target) return;
+      if (target.closest?.("[data-sound-settings]")) return;
       if (isDisabledControl(target)) return;
+      warmWikiAudio();
       playAction();
     },
     true,
@@ -93,6 +132,8 @@ export function initTickClicks() {
       if (target && isTextEntry(target)) return;
       if (target && isDisabledControl(target)) return;
       if (target?.closest?.("input[type='range']")) return;
+      if (target?.closest?.("[data-sound-settings]")) return;
+      warmWikiAudio();
       playAction();
     },
     true,

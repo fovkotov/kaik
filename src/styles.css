@@ -60,7 +60,7 @@
   --font-courtship: CourtshipJNL, "SF Pro Rounded", sans-serif;
   --frame-w: 100%;
   --frame-h: 100%;
-  /* Parent (kaik.pictures) top plate overlay; 100px on mobile/webview embed. */
+  /* Legacy inset for a parent nav overlay; keep 0 — parent nav sits outside/over the iframe. */
   --host-bar: 0px;
   --card-gutter: 12px;
   /* Portrait A4: 210×297 → h/w = 297/210 */
@@ -1488,6 +1488,14 @@ img.works-card__piece {
   user-select: none;
 }
 
+.card-illust--program {
+  --u: calc(var(--card-w) / 595);
+}
+
+.card-illust--works {
+  --u: calc(var(--card-w) / 842);
+}
+
 .card-illust--exercises {
   z-index: 1;
 }
@@ -2647,8 +2655,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   initial-value: 0deg;
 }
 
-/* In-deck focus: keep deck stacking (`z-index: var(--z)`). */
-.card.is-program-open,
+/* In-deck focus: keep deck stacking (`z-index: var(--z)`).
+   Mobile expand-host drives its own width/height/transform inline. */
+.card.is-program-open:not([data-expand-host]),
 .card.is-fly-pinned {
   --card-w: var(--fly-w);
   left: var(--fly-l);
@@ -2684,10 +2693,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   top: calc(
     var(--host-bar) + (var(--frame-h) - var(--host-bar) - var(--panel-footer-h)) / 2
   );
+  margin: 0;
   z-index: 50;
   overflow: hidden;
   transform-origin: 50% 50%;
   overscroll-behavior: contain;
+  cursor: default;
   transition:
     width var(--fly-ms, 0.5s) var(--fly-ease, var(--ease-out)),
     height var(--fly-ms, 0.5s) var(--fly-ease, var(--ease-out)),
@@ -2832,6 +2843,19 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   height: auto;
   min-height: 100%;
   overflow: visible;
+}
+
+/* Open student-works gallery — every label/caption at 10px. */
+.card.is-program-open[data-works-card] .works-card__title,
+.card.is-program-open[data-works-card] .works-card__who,
+.card.is-program-open[data-works-card] .works-card__who span,
+.card.is-program-open[data-works-card] .works-card__ig,
+.card.is-program-open[data-works-card] .card-illust--works .card-illust__cue {
+  font-size: 10px !important;
+  line-height: 1.3;
+  letter-spacing: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .card.is-program-open .faq-card {
@@ -3265,6 +3289,17 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 }
 
 @media (max-width: 900px) {
+  /* Deck uses pointer drag, not the scroll track — keep the root from chaining to the parent. */
+  body:not(.admin):not(.catalog) {
+    touch-action: none;
+  }
+
+  body:not(.admin):not(.catalog) .viewport {
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
   html,
   body,
   body * {
@@ -3272,11 +3307,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   :root {
-    --host-bar: 100px;
+    --host-bar: 0px;
     --panel-footer-h: calc(16px + 76px + 16px + env(safe-area-inset-bottom, 0px));
-    --panel-chrome-top: calc(
-      var(--host-bar) + max(12px, env(safe-area-inset-top, 0px))
-    );
+    --panel-chrome-top: max(12px, env(safe-area-inset-top, 0px));
     --panel-chrome-bot: var(--panel-footer-h);
     --deck-scale: 1;
     --card-aspect: calc(450 / 320);
@@ -3657,6 +3690,19 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     text-size-adjust: 100%;
   }
 
+  /* Open works modal: uniform 10px (overrides deck-face 16px title + mixed captions). */
+  .card.is-program-open[data-works-card] .works-card__title,
+  .card.is-program-open[data-works-card] .works-card__who,
+  .card.is-program-open[data-works-card] .works-card__who span,
+  .card.is-program-open[data-works-card] .works-card__ig,
+  .card.is-program-open[data-works-card] .card-illust--works .card-illust__cue {
+    font-size: 10px !important;
+    line-height: 1.3;
+    letter-spacing: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   /*
     Lettering / student-works modal: open-sheet copy is 12px.
     Deck-face titles stay 16px (Figma 76:864) — no type restyle on расхлоп.
@@ -3802,6 +3848,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     border-radius: 0;
   }
 
+  .card.is-program-open .program-card,
+  .card.is-program-open[data-works-card] .works-card,
   .card.is-program-open .program-card__sheet,
   .card.is-program-open[data-works-card] .works-card__list {
     transition: padding-bottom var(--fly-ms, 0ms) var(--fly-ease, var(--ease-out));
@@ -3826,8 +3874,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
-  .card.is-program-open[data-works-card][data-body-grow] .works-card__list,
-  .card.is-program-open[data-works-card][data-expand-settled] .works-card__list {
+  .card.is-program-open[data-works-card][data-body-grow] .works-card,
+  .card.is-program-open[data-works-card][data-expand-settled] .works-card,
+  .card.is-program-open[data-works-card][data-expand-host] .works-card {
     padding-bottom: calc(var(--works-key-h) + env(safe-area-inset-bottom, 0px));
   }
 
@@ -3836,8 +3885,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
-  .card.is-program-open[data-program-card][data-body-grow] .program-card__sheet,
-  .card.is-program-open[data-program-card][data-expand-settled] .program-card__sheet {
+  .card.is-program-open[data-program-card][data-body-grow] .program-card,
+  .card.is-program-open[data-program-card][data-expand-settled] .program-card,
+  .card.is-program-open[data-program-card][data-expand-host] .program-card {
     padding-bottom: calc(276.539 * var(--u) + env(safe-area-inset-bottom, 0px));
   }
 
@@ -3964,6 +4014,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     touch-action: auto;
   }
 
+  /* Whole face scrolls — title included. Card chrome stays overflow:hidden
+     so the dog/key overlays stay pinned to the iframe floor. */
   .card.is-program-open[data-program-card][data-expand-host] .program-card,
   .card.is-program-open[data-works-card][data-expand-host] .works-card,
   .card.is-program-open[data-expand-settled][data-program-card] .program-card,
@@ -3972,10 +4024,25 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .card.is-program-open.is-program-scroll[data-works-card] .works-card {
     height: 100%;
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-anchor: none;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
-  /* Same absolute inset-0 box as the closed face — never swap to fixed/sticky. */
+  .card.is-program-open[data-program-card][data-expand-host] .program-card::-webkit-scrollbar,
+  .card.is-program-open[data-works-card][data-expand-host] .works-card::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Overlays are card siblings (not inside the scroller) — absolute inset-0
+     on the chrome keeps dog/key pinned while title + list scroll. */
   .card.is-program-open[data-expand-host][data-program-card] .card-illust--program,
   .card.is-program-open[data-expand-host][data-works-card] .card-illust--works {
     position: absolute;
@@ -3991,24 +4058,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet,
   .card.is-program-open[data-expand-host][data-works-card] .works-card__list {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 0 0 auto;
+    min-height: auto;
     height: auto;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overflow-anchor: none;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet::-webkit-scrollbar,
-  .card.is-program-open[data-expand-host][data-works-card] .works-card__list::-webkit-scrollbar {
-    display: none;
-    width: 0;
-    height: 0;
+    overflow: visible;
   }
 
   .card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
