@@ -45,18 +45,37 @@ function primeOutput(ctx) {
   src.start(0);
 }
 
-function getAudioContext() {
-  if (!audioContext) {
-    audioContext = createContext();
-    masterGain = audioContext.createGain();
-    masterGain.gain.value = 1;
-    masterGain.connect(audioContext.destination);
-    startKeepAlive(audioContext);
+function resumeNow(ctx) {
+  if (!ctx || ctx.state !== "suspended") return;
+  try {
+    const pending = ctx.resume();
+    if (pending && typeof pending.catch === "function") void pending.catch(() => {});
+  } catch {
+    // Web Audio failures are silent.
   }
-  if (audioContext.state === "suspended") {
-    void audioContext.resume();
-  }
+}
+
+function ensureContext() {
+  if (audioContext) return audioContext;
+  audioContext = createContext();
+  masterGain = audioContext.createGain();
+  masterGain.gain.value = 1;
+  masterGain.connect(audioContext.destination);
+  startKeepAlive(audioContext);
   return audioContext;
+}
+
+function getAudioContext() {
+  const ctx = ensureContext();
+  resumeNow(ctx);
+  return ctx;
+}
+
+try {
+  ensureContext();
+} catch {
+  audioContext = null;
+  masterGain = null;
 }
 
 function getDestination() {
@@ -68,12 +87,12 @@ function getDestination() {
   return tap;
 }
 
-/** Create + resume AudioContext in the same turn as a user gesture. Do not await. */
+/** Resume AudioContext in the same turn as a user gesture. Do not await. */
 export function warmWikiAudio() {
   if (reduced()) return;
   try {
     const ctx = getAudioContext();
-    if (ctx.state === "suspended") void ctx.resume();
+    resumeNow(ctx);
     primeOutput(ctx);
   } catch {
     // Web Audio failures are silent.
@@ -410,7 +429,7 @@ export function playWikiSound(name, options = {}) {
   if (volume <= 0) return;
   try {
     const ctx = getAudioContext();
-    if (ctx.state === "suspended") void ctx.resume();
+    resumeNow(ctx);
     // Same turn as the gesture — never await resume() / then() before oscillators.
     runSound(play, volume);
   } catch {

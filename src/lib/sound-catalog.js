@@ -189,7 +189,27 @@ export function playScrollSound() {
   playSoundOption(findSoundOption(scrollId) || findSoundOption(DEFAULT_SCROLL_ID), volume);
 }
 
+let uiContextWarmed = false;
+let firstScrollFromGesture = false;
+
 export function warmAllAudio() {
   warmWikiAudio();
   warmClipAudio();
+  if (uiContextWarmed) return;
+  uiContextWarmed = true;
+  try {
+    playUISound("tick", 0);
+  } catch {
+    // ui-sounds lazy-inits; a 0-intensity call only resumes that context.
+  }
+}
+
+/** First wheel/drag: resume + start pop in this same turn. Do not await. */
+export function playFirstScrollFromGesture() {
+  warmAllAudio();
+  if (reduced()) return false;
+  if (firstScrollFromGesture) return false;
+  firstScrollFromGesture = true;
+  playScrollSound();
+  return true;
 }

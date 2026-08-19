@@ -2,6 +2,7 @@ import { getScrollRoot, getViewportSize, initEmbed } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
 import { initTickClicks } from "./tick-clicks.js";
 import { initSoundSettings } from "./sound-settings.js";
+import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
 import { initImgSliders } from "./img-slider.js";
 import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
 import { initDropcaps } from "./letters/dropcap.js";
@@ -595,6 +596,7 @@ function initDeck() {
     const dy = event.clientY - drag.startY;
     if (!drag.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
       drag.moved = true;
+      playFirstScrollFromGesture();
     }
 
     const params = getParams();
@@ -666,6 +668,7 @@ function initDeck() {
         const unit = cardUnitPx(getParams());
         const px = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
         if (!px) return;
+        playFirstScrollFromGesture();
         // Wheel down (deltaY > 0) is native scroll-down — same advance as finger-up.
         const delta = px / unit;
         const raw = dragProgress + delta;
@@ -673,6 +676,7 @@ function initDeck() {
         dragInertia = 0;
         return;
       }
+      playFirstScrollFromGesture();
       if (root.contains(event.target)) return;
       root.scrollTop += event.deltaY;
     },

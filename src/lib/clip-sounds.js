@@ -62,21 +62,41 @@ function reduced() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function getClipContext() {
-  if (!clipCtx) {
-    try {
-      clipCtx = new AudioContext({ latencyHint: "interactive" });
-    } catch {
-      clipCtx = new AudioContext();
-    }
+function resumeNow(ctx) {
+  if (!ctx || ctx.state !== "suspended") return;
+  try {
+    const pending = ctx.resume();
+    if (pending && typeof pending.catch === "function") void pending.catch(() => {});
+  } catch {
+    // Web Audio failures are silent.
   }
-  if (clipCtx.state === "suspended") void clipCtx.resume();
+}
+
+function ensureClipContext() {
+  if (clipCtx) return clipCtx;
+  try {
+    clipCtx = new AudioContext({ latencyHint: "interactive" });
+  } catch {
+    clipCtx = new AudioContext();
+  }
   return clipCtx;
+}
+
+function getClipContext() {
+  const ctx = ensureClipContext();
+  resumeNow(ctx);
+  return ctx;
+}
+
+try {
+  ensureClipContext();
+} catch {
+  clipCtx = null;
 }
 
 function playBuffer(buffer, volume, offset = 0, duration) {
   const ctx = getClipContext();
-  if (ctx.state === "suspended") void ctx.resume();
+  resumeNow(ctx);
   const src = ctx.createBufferSource();
   const gain = ctx.createGain();
   src.buffer = buffer;

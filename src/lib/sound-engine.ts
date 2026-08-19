@@ -1,11 +1,28 @@
 let audioContext: AudioContext | null = null;
 const bufferCache = new Map<string, AudioBuffer>();
 
+function resumeNow(ctx: AudioContext) {
+  if (ctx.state !== "suspended") return;
+  try {
+    const pending = ctx.resume();
+    void pending.catch(() => {});
+  } catch {
+    // Web Audio failures are silent.
+  }
+}
+
 export function getAudioContext(): AudioContext {
   if (!audioContext) {
     audioContext = new AudioContext();
   }
+  resumeNow(audioContext);
   return audioContext;
+}
+
+try {
+  audioContext = new AudioContext();
+} catch {
+  audioContext = null;
 }
 
 export async function decodeAudioData(dataUri: string): Promise<AudioBuffer> {
@@ -41,9 +58,7 @@ export async function playSound(
 ): Promise<SoundPlayback> {
   const { volume = 1, playbackRate = 1, onEnd } = options;
   const ctx = getAudioContext();
-  if (ctx.state === "suspended") {
-    await ctx.resume();
-  }
+  resumeNow(ctx);
 
   const buffer = await decodeAudioData(dataUri);
   const source = ctx.createBufferSource();
@@ -51,7 +66,7 @@ export async function playSound(
 
   source.buffer = buffer;
   source.playbackRate.value = playbackRate;
-  gain.gain.value = volume;
+  gain.gain.value = volume / 3;
 
   source.connect(gain);
   gain.connect(ctx.destination);
