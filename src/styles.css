@@ -63,7 +63,7 @@
   /* Insets when the iframe box extends past the visible browser window (Cargo 100vh). */
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
-  /* Stage lift: desktop 64 / mobile 110. Nav·lang Y 18, stack Y 44, focus Y 9.
+  /* Stage lift: desktop 64 / mobile 110. Lockup X 2, nav·lang Y 0, stack Y 44, focus Y 9.
      JS stage-settings writes these; media-query values are the slider defaults. */
   --stage-lift: 0px;
   --lockup-nudge-x: 0px;
@@ -175,8 +175,7 @@ body.catalog {
 @media (min-width: 901px) {
   :root {
     --stage-lift: 64px;
-    --nav-nudge-y: 18px;
-    --lang-nudge-y: 18px;
+    --lockup-nudge-x: 2px;
     --deck-nudge-y: 44px;
     --focus-nudge-y: 9px;
   }
@@ -217,19 +216,30 @@ a {
   pointer-events: none;
 }
 
-/* Figma 74:643 / 74:642 — two iframe-fixed layers, no shared stacking context.
+/* Figma 117:976 — two iframe-fixed layers, no shared stacking context.
+   Centered cluster: dropcap 105.286×134 + 16/19 type column (120×133), gap 20.
    Lockup (dropcap + title + dates) under .deck at --z-lockup;
-   chrome (vertical nav + lang) over cards at --z-chrome.
-   Pad 24, dropcap 58×72.499, gap 20 to copy, gap 32 to nav. Vertically centered. */
+   chrome (enroll / program / work + lang) over cards at --z-chrome. */
 .panel {
-  --panel-dropcap-h: 72.499px;
+  --panel-dropcap-w: 105.286px;
+  --panel-dropcap-h: 134px;
   --panel-dropcap-gap: 20px;
+  --panel-copy-w: 120px;
+  --panel-cluster-w: calc(var(--panel-dropcap-w) + var(--panel-dropcap-gap) + var(--panel-copy-w));
   --panel-pad-x: 24px;
   --panel-pad-y: 24px;
-  --panel-brand-w: 242.999px;
-  --panel-nav-gap: 32px;
-  --panel-lockup-h: 72.499px;
-  --panel-line: 24px;
+  --panel-lockup-h: 134px;
+  --panel-line: 19px;
+  --panel-dates-h: 57px;
+  --panel-nav-h: 57px;
+  --panel-type: 16px;
+  --panel-cluster-left: calc(
+    50% - var(--panel-cluster-w) / 2 + var(--lockup-nudge-x)
+  );
+  --panel-cluster-top: calc(
+    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift) +
+      var(--lockup-nudge-y)
+  );
   display: contents;
 }
 
@@ -241,13 +251,10 @@ a {
 
 .panel__lockup {
   position: fixed;
-  top: calc(
-    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift) +
-      var(--lockup-nudge-y)
-  );
-  left: calc(var(--panel-pad-x) + var(--lockup-nudge-x));
+  top: var(--panel-cluster-top);
+  left: var(--panel-cluster-left);
   z-index: var(--z-lockup);
-  width: var(--panel-brand-w);
+  width: var(--panel-cluster-w);
   height: var(--panel-lockup-h);
   overflow: visible;
   pointer-events: none;
@@ -257,12 +264,10 @@ a {
 .panel__chrome {
   position: fixed;
   left: calc(
-    var(--panel-pad-x) + var(--panel-brand-w) + var(--panel-nav-gap) + var(--nav-nudge-x)
+    var(--panel-cluster-left) + var(--panel-dropcap-w) + var(--panel-dropcap-gap) +
+      var(--nav-nudge-x)
   );
-  top: calc(
-    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift) +
-      var(--nav-nudge-y)
-  );
+  top: calc(var(--panel-cluster-top) + var(--panel-dates-h) + var(--nav-nudge-y));
   bottom: auto;
   z-index: var(--z-chrome);
   display: flex;
@@ -279,7 +284,7 @@ a {
   flex-direction: row;
   align-items: flex-start;
   gap: var(--panel-dropcap-gap);
-  width: var(--panel-brand-w);
+  width: var(--panel-cluster-w);
   height: 100%;
   flex-shrink: 0;
   overflow: visible;
@@ -293,7 +298,7 @@ a {
   z-index: 1;
   margin: 0;
   height: var(--panel-dropcap-h);
-  width: auto;
+  width: var(--panel-dropcap-w);
   max-width: none;
   display: flex;
   justify-content: flex-start;
@@ -324,15 +329,15 @@ a {
 
 .panel__copy {
   min-width: 0;
-  width: auto;
-  flex: 1 1 auto;
+  width: var(--panel-copy-w);
+  flex: 0 0 var(--panel-copy-w);
 }
 
 .panel__title,
 .panel__dates {
   margin: 0;
-  font-size: 22px;
-  line-height: 24px;
+  font-size: var(--panel-type);
+  line-height: var(--panel-line);
 }
 
 .panel__title {
@@ -362,28 +367,26 @@ a {
 }
 
 .panel__nav a {
-  font-size: 22px;
-  line-height: 24px;
+  font-size: var(--panel-type);
+  line-height: var(--panel-line);
   white-space: nowrap;
 }
 
-/* Button press + fine-pointer hover (animate/RECIPES.md). */
+/* Hover: opacity only. Press keeps a short scale (emil-design-eng). */
 .panel__nav a[data-program-nav],
 .panel__nav a[data-work-nav],
 .panel__nav .panel__enroll {
   text-decoration-color: currentColor;
   transition:
     transform 160ms var(--ease-out),
-    opacity 160ms var(--ease-out),
-    text-decoration-color 160ms var(--ease-out);
+    opacity 180ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .panel__nav a[data-program-nav]:hover,
   .panel__nav a[data-work-nav]:hover,
   .panel__nav .panel__enroll:hover {
-    transform: scale(1.05);
-    text-decoration-color: currentColor;
+    opacity: 0.62;
   }
 }
 
@@ -397,7 +400,7 @@ a {
   .panel__nav a[data-program-nav],
   .panel__nav a[data-work-nav],
   .panel__nav .panel__enroll {
-    transition: text-decoration-color 160ms var(--ease-out);
+    transition: none;
   }
 
   .panel__nav a[data-program-nav]:hover,
@@ -414,8 +417,8 @@ a {
   display: block;
   margin: 0;
   color: var(--enroll);
-  font-size: 22px;
-  line-height: 24px;
+  font-size: var(--panel-type);
+  line-height: var(--panel-line);
   white-space: nowrap;
   pointer-events: auto;
 }
@@ -430,23 +433,25 @@ a {
 
 .panel__lang {
   position: fixed;
-  right: calc(16px - var(--lang-nudge-x));
+  left: calc(
+    var(--panel-cluster-left) + var(--panel-dropcap-w) + var(--panel-dropcap-gap) +
+      var(--lang-nudge-x)
+  );
+  right: auto;
   top: calc(
-    var(--frame-clip-top) + (var(--frame-h) - var(--panel-line)) / 2 - var(--stage-lift) +
-      var(--lang-nudge-y)
+    var(--panel-cluster-top) + var(--panel-dates-h) + var(--panel-nav-h) + var(--lang-nudge-y)
   );
   bottom: auto;
-  left: auto;
   z-index: var(--z-chrome);
-  width: 58px;
-  height: 24px;
+  width: auto;
+  height: var(--panel-line);
   margin: 0;
-  font-size: 22px;
-  line-height: 24px;
-  color: rgba(0, 0, 0, 0.32);
+  font-size: var(--panel-type);
+  line-height: var(--panel-line);
+  color: var(--ink);
   display: flex;
   align-items: baseline;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0;
   white-space: nowrap;
   pointer-events: none;

@@ -1,7 +1,7 @@
 /**
  * User-facing stage nudge panel: per-block X/Y on desktop, global lift everywhere.
- * Desktop defaults match the composed Figma 74:643 lockup plus the
- * intended stage JSON (lift 64 / nav·lang Y 18 / stack Y 44 / focus Y 9 / scale 0.93).
+ * Desktop chrome matches Figma 117:976; stage JSON stays
+ * lift 64 / lockup X 2 / nav·lang Y 0 / stack Y 44 / focus Y 9 / scale 0.93.
  * Mobile keeps the 110 global lift.
  */
 
@@ -32,6 +32,24 @@ const FOCUS_SCALE = { min: 0.5, max: 2, step: 0.01 };
 
 export const DESKTOP_STAGE_DEFAULTS = {
   lift: 64,
+  lockupX: 2,
+  lockupY: 0,
+  navX: 0,
+  navY: 0,
+  langX: 0,
+  langY: 0,
+  deckX: 0,
+  deckY: 44,
+  focusX: 0,
+  focusY: 9,
+  focusScale: 0.93,
+  closeX: 0,
+  closeY: 0,
+};
+
+/** Previous published defaults (lockup X 0 / nav·lang Y 18). */
+const PREV_DESKTOP_DEFAULTS = {
+  lift: 64,
   lockupX: 0,
   lockupY: 0,
   navX: 0,
@@ -47,29 +65,12 @@ export const DESKTOP_STAGE_DEFAULTS = {
   closeY: 0,
 };
 
-/** v4 composed layout: focus −47 / scale 1 / nav·lang Y 0. */
-const PREV_DESKTOP_DEFAULTS = {
-  lift: 64,
-  lockupX: 0,
-  lockupY: 0,
-  navX: 0,
-  navY: 0,
-  langX: 0,
-  langY: 0,
-  deckX: 0,
-  deckY: 44,
-  focusX: 0,
-  focusY: -47,
-  focusScale: 1,
-  closeX: 0,
-  closeY: 0,
-};
-
-/** Uncommitted v5 zeros — treat as uncustomized too. */
+/** Older uncustomized snapshots — treat as uncustomized too. */
 const PREV_DESKTOP_ALSO = {
   lift: [0, 80],
   deckY: [0],
-  focusY: [0],
+  focusY: [0, -47],
+  focusScale: [1],
 };
 
 export const MOBILE_STAGE_DEFAULTS = {
