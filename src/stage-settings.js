@@ -1,6 +1,7 @@
 /**
  * User-facing stage nudge panel: per-block X/Y on desktop, global lift everywhere.
- * Defaults match the composed desktop layout (lift 64 / stack Y 44 / focus Y −47).
+ * Desktop defaults match the composed Figma 74:643 lockup plus the
+ * intended stage JSON (lift 64 / nav·lang Y 18 / stack Y 44 / focus Y 9 / scale 0.93).
  * Mobile keeps the 110 global lift.
  */
 
@@ -16,14 +17,38 @@ import {
 } from "./tweaks.js";
 
 const storage = safeStorage();
-const STORAGE_KEY = "kaik-stage-nudge-v4";
-const LEGACY_KEYS = ["kaik-stage-nudge-v3", "kaik-stage-nudge-v2", "kaik-stage-nudge-v1"];
+const STORAGE_KEY = "kaik-stage-nudge-v6";
+const LEGACY_KEYS = [
+  "kaik-stage-nudge-v5",
+  "kaik-stage-nudge-v4",
+  "kaik-stage-nudge-v3",
+  "kaik-stage-nudge-v2",
+  "kaik-stage-nudge-v1",
+];
 
 const AXIS = { min: -240, max: 240, step: 1 };
 const FOCUS_AXIS = { min: -400, max: 400, step: 1 };
 const FOCUS_SCALE = { min: 0.5, max: 2, step: 0.01 };
 
 export const DESKTOP_STAGE_DEFAULTS = {
+  lift: 64,
+  lockupX: 0,
+  lockupY: 0,
+  navX: 0,
+  navY: 18,
+  langX: 0,
+  langY: 18,
+  deckX: 0,
+  deckY: 44,
+  focusX: 0,
+  focusY: 9,
+  focusScale: 0.93,
+  closeX: 0,
+  closeY: 0,
+};
+
+/** v4 composed layout: focus −47 / scale 1 / nav·lang Y 0. */
+const PREV_DESKTOP_DEFAULTS = {
   lift: 64,
   lockupX: 0,
   lockupY: 0,
@@ -40,21 +65,11 @@ export const DESKTOP_STAGE_DEFAULTS = {
   closeY: 0,
 };
 
-const PREV_DESKTOP_DEFAULTS = {
-  lift: 80,
-  lockupX: 0,
-  lockupY: 0,
-  navX: 0,
-  navY: 0,
-  langX: 0,
-  langY: 0,
-  deckX: 0,
-  deckY: 0,
-  focusX: 0,
-  focusY: 0,
-  focusScale: 1,
-  closeX: 0,
-  closeY: 0,
+/** Uncommitted v5 zeros — treat as uncustomized too. */
+const PREV_DESKTOP_ALSO = {
+  lift: [0, 80],
+  deckY: [0],
+  focusY: [0],
 };
 
 export const MOBILE_STAGE_DEFAULTS = {
@@ -201,13 +216,21 @@ function migrateLegacy(blob) {
   return next;
 }
 
+function previousDefaultValues(key) {
+  const values = [PREV_DESKTOP_DEFAULTS[key]];
+  const extra = PREV_DESKTOP_ALSO[key];
+  if (extra) values.push(...extra);
+  return values;
+}
+
 function migrateOldDesktopDefaults(blob) {
   if (!blob || typeof blob !== "object") return blob;
   const next = { ...blob };
   for (const key of Object.keys(DESKTOP_STAGE_DEFAULTS)) {
     if (next[key] == null) continue;
-    if (next[key] === PREV_DESKTOP_DEFAULTS[key] && PREV_DESKTOP_DEFAULTS[key] !== DESKTOP_STAGE_DEFAULTS[key]) {
-      next[key] = DESKTOP_STAGE_DEFAULTS[key];
+    const fresh = DESKTOP_STAGE_DEFAULTS[key];
+    if (previousDefaultValues(key).includes(next[key]) && next[key] !== fresh) {
+      next[key] = fresh;
     }
   }
   return next;
@@ -216,24 +239,18 @@ function migrateOldDesktopDefaults(blob) {
 function loadSaved() {
   try {
     let raw = storage.getItem(STORAGE_KEY);
-    let fromLegacy = false;
     if (!raw) {
       for (const key of LEGACY_KEYS) {
         raw = storage.getItem(key);
-        if (raw) {
-          fromLegacy = true;
-          break;
-        }
+        if (raw) break;
       }
     }
     if (!raw) return;
     const data = JSON.parse(raw);
-    const desktopBlob = fromLegacy
-      ? migrateOldDesktopDefaults(migrateLegacy(data.desktop))
-      : migrateLegacy(data.desktop);
+    const desktopBlob = migrateOldDesktopDefaults(migrateLegacy(data.desktop));
     applyBlob(desktop, desktopBlob, DESKTOP_STAGE_DEFAULTS);
     applyBlob(mobile, migrateLegacy(data.mobile), MOBILE_STAGE_DEFAULTS);
-    if (fromLegacy) save();
+    save();
   } catch {
     // ignore
   }

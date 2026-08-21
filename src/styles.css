@@ -63,7 +63,7 @@
   /* Insets when the iframe box extends past the visible browser window (Cargo 100vh). */
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
-  /* Lift the course stage toward the Cargo nav (desktop 64 / mobile 110).
+  /* Stage lift: desktop 64 / mobile 110. Nav·lang Y 18, stack Y 44, focus Y 9.
      JS stage-settings writes these; media-query values are the slider defaults. */
   --stage-lift: 0px;
   --lockup-nudge-x: 0px;
@@ -175,8 +175,10 @@ body.catalog {
 @media (min-width: 901px) {
   :root {
     --stage-lift: 64px;
+    --nav-nudge-y: 18px;
+    --lang-nudge-y: 18px;
     --deck-nudge-y: 44px;
-    --focus-nudge-y: -47px;
+    --focus-nudge-y: 9px;
   }
 
   body:not(.admin):not(.catalog) .viewport {
@@ -215,18 +217,18 @@ a {
   pointer-events: none;
 }
 
-/* Figma 74:771 — two iframe-fixed layers, no shared stacking context.
-   Lockup (dropcap + title + dates + enroll) under .deck at --z-lockup;
-   chrome (program / student work / lang) over cards at --z-chrome.
-   Text left = 32 + dropcap 77.199 + gap 24. Group h 96.499, vertically centered. */
+/* Figma 74:643 / 74:642 — two iframe-fixed layers, no shared stacking context.
+   Lockup (dropcap + title + dates) under .deck at --z-lockup;
+   chrome (vertical nav + lang) over cards at --z-chrome.
+   Pad 24, dropcap 58×72.499, gap 20 to copy, gap 32 to nav. Vertically centered. */
 .panel {
-  --panel-dropcap-h: 96.499px;
-  --panel-dropcap-gap: 24px;
-  --panel-pad-x: 133.199px;
-  --panel-pad-y: 16px;
-  --panel-brand-w: 215px;
-  --panel-nav-gap: 24px;
-  --panel-lockup-h: 96.499px;
+  --panel-dropcap-h: 72.499px;
+  --panel-dropcap-gap: 20px;
+  --panel-pad-x: 24px;
+  --panel-pad-y: 24px;
+  --panel-brand-w: 242.999px;
+  --panel-nav-gap: 32px;
+  --panel-lockup-h: 72.499px;
   --panel-line: 24px;
   display: contents;
 }
@@ -254,21 +256,29 @@ a {
 
 .panel__chrome {
   position: fixed;
-  left: calc(var(--panel-pad-x) + var(--nav-nudge-x));
-  bottom: calc(
-    var(--panel-pad-y) + var(--frame-clip-bottom) + var(--stage-lift) - var(--nav-nudge-y)
+  left: calc(
+    var(--panel-pad-x) + var(--panel-brand-w) + var(--panel-nav-gap) + var(--nav-nudge-x)
   );
+  top: calc(
+    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift) +
+      var(--nav-nudge-y)
+  );
+  bottom: auto;
   z-index: var(--z-chrome);
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: flex-start;
-  gap: var(--panel-nav-gap);
+  gap: 0;
   pointer-events: none;
   white-space: nowrap;
 }
 
 .panel__brand {
   position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--panel-dropcap-gap);
   width: var(--panel-brand-w);
   height: 100%;
   flex-shrink: 0;
@@ -277,16 +287,16 @@ a {
 }
 
 .panel__dropcap {
-  position: absolute;
-  right: 100%;
-  top: 0;
+  position: static;
+  right: auto;
+  top: auto;
   z-index: 1;
-  margin-right: var(--panel-dropcap-gap);
+  margin: 0;
   height: var(--panel-dropcap-h);
-  width: 0;
+  width: auto;
   max-width: none;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: flex-start;
   overflow: visible;
   pointer-events: none;
@@ -314,7 +324,8 @@ a {
 
 .panel__copy {
   min-width: 0;
-  width: var(--panel-brand-w);
+  width: auto;
+  flex: 1 1 auto;
 }
 
 .panel__title,
@@ -344,9 +355,9 @@ a {
 
 .panel__nav {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: flex-start;
-  gap: var(--panel-nav-gap);
+  gap: 0;
   margin: 0;
 }
 
@@ -356,9 +367,10 @@ a {
   white-space: nowrap;
 }
 
-/* Button press + fine-pointer hover (animate/RECIPES.md). Program / works only. */
+/* Button press + fine-pointer hover (animate/RECIPES.md). */
 .panel__nav a[data-program-nav],
-.panel__nav a[data-work-nav] {
+.panel__nav a[data-work-nav],
+.panel__nav .panel__enroll {
   text-decoration-color: currentColor;
   transition:
     transform 160ms var(--ease-out),
@@ -368,27 +380,32 @@ a {
 
 @media (hover: hover) and (pointer: fine) {
   .panel__nav a[data-program-nav]:hover,
-  .panel__nav a[data-work-nav]:hover {
+  .panel__nav a[data-work-nav]:hover,
+  .panel__nav .panel__enroll:hover {
     transform: scale(1.05);
-    text-decoration-color: #000;
+    text-decoration-color: currentColor;
   }
 }
 
 .panel__nav a[data-program-nav]:active,
-.panel__nav a[data-work-nav]:active {
+.panel__nav a[data-work-nav]:active,
+.panel__nav .panel__enroll:active {
   transform: scale(0.97);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .panel__nav a[data-program-nav],
-  .panel__nav a[data-work-nav] {
+  .panel__nav a[data-work-nav],
+  .panel__nav .panel__enroll {
     transition: text-decoration-color 160ms var(--ease-out);
   }
 
   .panel__nav a[data-program-nav]:hover,
   .panel__nav a[data-work-nav]:hover,
   .panel__nav a[data-program-nav]:active,
-  .panel__nav a[data-work-nav]:active {
+  .panel__nav a[data-work-nav]:active,
+  .panel__nav .panel__enroll:hover,
+  .panel__nav .panel__enroll:active {
     transform: none;
   }
 }
@@ -403,16 +420,23 @@ a {
   pointer-events: auto;
 }
 
-.panel__nav .panel__enroll {
+.panel__lockup .panel__enroll {
   display: none;
+}
+
+.panel__nav .panel__enroll {
+  display: block;
 }
 
 .panel__lang {
   position: fixed;
-  right: calc(20px - var(--lang-nudge-x));
-  bottom: calc(16px + var(--stage-lift) - var(--lang-nudge-y));
+  right: calc(16px - var(--lang-nudge-x));
+  top: calc(
+    var(--frame-clip-top) + (var(--frame-h) - var(--panel-line)) / 2 - var(--stage-lift) +
+      var(--lang-nudge-y)
+  );
+  bottom: auto;
   left: auto;
-  top: auto;
   z-index: var(--z-chrome);
   width: 58px;
   height: 24px;
@@ -3408,6 +3432,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     gap: 19px;
     position: static;
     left: auto;
+    top: auto;
     bottom: auto;
     z-index: auto;
     width: auto;
