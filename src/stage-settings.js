@@ -76,6 +76,18 @@ const GROUPS = [
     items: [{ key: "lift", labelKey: "stage.lift", min: -40, max: 280, step: 1 }],
   },
   {
+    titleKey: "stage.group.cards",
+    desktopOnly: true,
+    items: [
+      {
+        key: "cardSize",
+        labelKey: "stage.cardScale",
+        source: "tweaks",
+        ...CARD_SIZE,
+      },
+    ],
+  },
+  {
     titleKey: "stage.group.lockup",
     items: [
       { key: "lockupX", labelKey: "stage.axisX", ...AXIS },
@@ -120,19 +132,9 @@ const GROUPS = [
       { key: "closeY", labelKey: "stage.axisY", ...AXIS },
     ],
   },
-  {
-    titleKey: "stage.group.cards",
-    desktopOnly: true,
-    items: [
-      {
-        key: "cardSize",
-        labelKey: "stage.cardScale",
-        source: "tweaks",
-        ...CARD_SIZE,
-      },
-    ],
-  },
 ];
+
+const PINNED_GROUPS = new Set(["stage.group.all", "stage.group.cards"]);
 
 const FIELD_BY_KEY = new Map(GROUPS.flatMap((group) => group.items.map((item) => [item.key, item])));
 
@@ -357,12 +359,14 @@ export function initStageSettings() {
           </button>
         </div>
       </div>
+      <div class="stage-settings__pinned" data-stage-pinned></div>
       <div class="stage-settings__body" data-stage-body></div>
     </div>
   `;
 
   const fab = root.querySelector("[data-stage-open]");
   const panel = root.querySelector("[data-stage-panel]");
+  const pinned = root.querySelector("[data-stage-pinned]");
   const body = root.querySelector("[data-stage-body]");
   const copyBtn = root.querySelector("[data-stage-copy]");
   let copiedTimer = 0;
@@ -372,18 +376,15 @@ export function initStageSettings() {
     return GROUPS.filter((group) => !group.desktopOnly || !mobileView);
   }
 
-  function buildFields() {
-    body.innerHTML = "";
-    const frag = document.createDocumentFragment();
-    visibleGroups().forEach((group) => {
-      const section = document.createElement("section");
-      section.className = "stage-settings__group";
-      section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${group.titleKey}">${t(group.titleKey)}</h3>`;
-      group.items.forEach((field) => {
-        const value = readField(field.key);
-        const row = document.createElement("label");
-        row.className = "stage-settings__row";
-        row.innerHTML = `
+  function renderGroup(group) {
+    const section = document.createElement("section");
+    section.className = "stage-settings__group";
+    section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${group.titleKey}">${t(group.titleKey)}</h3>`;
+    group.items.forEach((field) => {
+      const value = readField(field.key);
+      const row = document.createElement("label");
+      row.className = "stage-settings__row";
+      row.innerHTML = `
           <span class="stage-settings__label" data-i18n="${field.labelKey}">${t(field.labelKey)}</span>
           <span class="stage-settings__value" data-value>${formatFieldValue(field.key, value)}</span>
           <input
@@ -396,11 +397,24 @@ export function initStageSettings() {
             value="${value}"
           />
         `;
-        section.append(row);
-      });
-      frag.append(section);
+      section.append(row);
     });
-    body.append(frag);
+    return section;
+  }
+
+  function buildFields() {
+    pinned.innerHTML = "";
+    body.innerHTML = "";
+    const pinFrag = document.createDocumentFragment();
+    const bodyFrag = document.createDocumentFragment();
+    visibleGroups().forEach((group) => {
+      const section = renderGroup(group);
+      if (PINNED_GROUPS.has(group.titleKey)) pinFrag.append(section);
+      else bodyFrag.append(section);
+    });
+    pinned.append(pinFrag);
+    body.append(bodyFrag);
+    pinned.hidden = !pinned.childElementCount;
   }
 
   function setOpen(open) {
@@ -410,7 +424,7 @@ export function initStageSettings() {
   }
 
   function syncValues() {
-    body.querySelectorAll("[data-nudge]").forEach((el) => {
+    root.querySelectorAll("[data-nudge]").forEach((el) => {
       const key = el.dataset.nudge;
       if (!key || (!isTweakField(key) && !(key in getTarget()))) return;
       const value = readField(key);
@@ -444,10 +458,10 @@ export function initStageSettings() {
   document.body.append(root);
   setOpen(false);
 
-  const stop = (event) => event.stopPropagation();
-  root.addEventListener("pointerdown", stop);
-  root.addEventListener("touchstart", stop, { passive: true });
-  root.addEventListener("wheel", (event) => event.stopPropagation(), { passive: true });
+  const stopDeck = (event) => event.stopPropagation();
+  root.addEventListener("pointerdown", stopDeck);
+  root.addEventListener("touchstart", stopDeck, { passive: true });
+  root.addEventListener("wheel", stopDeck, { capture: true, passive: true });
 
   fab.addEventListener("click", (event) => {
     event.preventDefault();
@@ -471,7 +485,7 @@ export function initStageSettings() {
     copyLayout();
   });
 
-  body.addEventListener("input", (event) => {
+  panel.addEventListener("input", (event) => {
     const el = event.target;
     if (!(el instanceof HTMLInputElement)) return;
     const key = el.dataset.nudge;
