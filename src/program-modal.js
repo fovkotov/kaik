@@ -1,3 +1,4 @@
+import { getViewportSize } from "./embed.js";
 import { t } from "./scriptik.js";
 import { applyDeckParams, isMobile } from "./tweaks.js";
 import {
@@ -103,11 +104,8 @@ export function initProgramModal() {
   const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function frameSize() {
-    const root = document.documentElement;
-    return {
-      w: Number.parseFloat(root.style.getPropertyValue("--frame-w")) || window.innerWidth,
-      h: Number.parseFloat(root.style.getPropertyValue("--frame-h")) || window.innerHeight,
-    };
+    const { width, height } = getViewportSize();
+    return { w: width, h: height };
   }
 
   function readVisualRotate(el) {

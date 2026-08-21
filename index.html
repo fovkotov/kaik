@@ -18,7 +18,7 @@
     />
     <style>
       /* First paint: park the stack off-iframe before JS / Vite CSS. 100vh, not
-         --frame-h (that token is 100% until embed.js; % in translate() is the card). */
+         --frame-h (`100%` in translate() is the card’s own height). */
       @media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
         html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
           transform: translate3d(0, -100vh, 0);

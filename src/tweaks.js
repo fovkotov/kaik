@@ -183,6 +183,39 @@ function cardStageCenterY(frameH) {
   return Number.isFinite(top) ? top : frameH / 2;
 }
 
+/** Measure live footer height so card centering fits short Cargo iframes. */
+export function syncPanelFooterHeight() {
+  if (!isMobile()) return;
+  const panel = document.querySelector("[data-panel]");
+  if (!panel) return;
+  const h = panel.getBoundingClientRect().height;
+  if (h > 0) {
+    document.documentElement.style.setProperty("--panel-footer-h", `${Math.ceil(h)}px`);
+  }
+}
+
+let panelFooterObserver = null;
+
+function observePanelFooter() {
+  if (!isMobile() || panelFooterObserver) return;
+  const panel = document.querySelector("[data-panel]");
+  if (!panel) return;
+  panelFooterObserver = new ResizeObserver(() => {
+    syncPanelFooterHeight();
+    syncCardMetrics();
+  });
+  panelFooterObserver.observe(panel);
+}
+
+function mobileFooterReserve(frameH) {
+  const root = document.documentElement;
+  syncPanelFooterHeight();
+  const raw = getComputedStyle(root).getPropertyValue("--panel-footer-h");
+  const footerH = Number.parseFloat(raw) || 108;
+  const hostBar = Number.parseFloat(getComputedStyle(root).getPropertyValue("--host-bar")) || 0;
+  return Math.max(48, frameH - hostBar - footerH - 8);
+}
+
 /**
  * Size A4 `--card-h` from the iframe so the visual box after deck scale,
  * max rotate, hover lift, and vertical toss stays inside `--frame-h`.
@@ -197,8 +230,20 @@ export function syncCardMetrics() {
   if (frameW <= 0 || frameH <= 0) return;
 
   if (mobile) {
-    const w = Math.min(320, frameW);
-    const h = w * (450 / 320);
+    const aspect = 450 / 320;
+    const availH = mobileFooterReserve(frameH);
+    let h = Math.min(320 * aspect, availH);
+    let w = h / aspect;
+    if (w > frameW) {
+      w = Math.min(320, frameW);
+      h = w * aspect;
+      if (h > availH) {
+        h = availH;
+        w = h / aspect;
+      }
+    }
+    w = Math.max(1, Math.round(w * 100) / 100);
+    h = Math.max(1, Math.round(h * 100) / 100);
     const root = document.documentElement;
     root.style.setProperty("--card-h", `${h}px`);
     root.style.setProperty("--card-w", `${w}px`);
@@ -260,7 +305,12 @@ export function applyDeckParams() {
     "--deck-scale",
     String(Number.isFinite(scale) ? scale : 1),
   );
+  if (mobile) syncPanelFooterHeight();
   syncCardMetrics();
+  if (mobile) {
+    syncPanelFooterHeight();
+    observePanelFooter();
+  }
   document.querySelectorAll("[data-card]").forEach((card) => {
     if (card.hasAttribute("data-fly-lock") || card.classList.contains("is-fly-pinned")) return;
     // Desktop is right-pinned. Mobile stays centered at deckLeftPct 50

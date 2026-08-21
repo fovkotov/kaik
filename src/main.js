@@ -677,7 +677,7 @@ function initDeck() {
         return;
       }
       playFirstScrollFromGesture();
-      if (root.contains(event.target)) return;
+      event.preventDefault();
       root.scrollTop += event.deltaY;
     },
     { passive: false },
@@ -689,12 +689,18 @@ function initDeck() {
       if (!isMobile()) return;
       if (eventFrom(event.target, ".is-program-open")) return;
       if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings]")) return;
+      if (eventFrom(event.target, ".panel, .panel a, .panel button")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
         return;
       }
-      event.preventDefault();
+      if (
+        drag ||
+        eventFrom(event.target, "[data-deck], [data-card], [data-scroll-root], .deck, .viewport")
+      ) {
+        event.preventDefault();
+      }
     },
     { passive: false },
   );

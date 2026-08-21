@@ -3,16 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ETTER II — iframe host</title>
+    <title>KÄIK — iframe host (dev)</title>
     <style>
       html,
       body {
         margin: 0;
         height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
         background: #111;
       }
 
-      iframe {
+      /* Simulates Cargo: fixed nav + remaining column for the embed */
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .host-nav {
+        flex: 0 0 auto;
+        padding: 12px 16px;
+        background: #222;
+        color: #eee;
+        font: 14px/1.4 system-ui, sans-serif;
+      }
+
+      .kaik-embed {
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+      }
+
+      .kaik-embed iframe {
         display: block;
         width: 100%;
         height: 100%;
@@ -21,19 +43,48 @@
     </style>
   </head>
   <body>
+    <header class="host-nav">Host menu (height varies — iframe fills space below)</header>
+    <div class="kaik-embed">
+      <iframe src="/" title="KÄIK" allow="autoplay; clipboard-write" loading="eager"></iframe>
+    </div>
     <!--
       Cargo / kaik.pictures embed (GitHub Pages — works in Russia):
 
+      Compact Cargo embed (do not use plain height:100vh — Cargo already
+      pads the page by the pinned nav via --pin-padding-top):
+
       <iframe
         src="https://fovkotov.github.io/kaik/"
-        title="ETTER II"
-        style="width:100%;height:100vh;border:0;display:block;"
+        title="KÄIK"
+        style="width:100%;height:calc(var(--viewport-height, 100vh) - var(--pin-padding-top, 0px));border:0;display:block;"
         allow="autoplay; clipboard-write"
         loading="eager"
       ></iframe>
 
+      Production: https://kaik-one.vercel.app/
+
+      If CSS cannot express remaining height, size the wrapper in JS:
+
+      <script>
+        (function () {
+          var nav = document.querySelector("nav");
+          var wrap = document.querySelector(".kaik-embed");
+          var iframe = wrap.querySelector("iframe");
+          function fit() {
+            var top = nav ? nav.getBoundingClientRect().bottom : 0;
+            var h = window.innerHeight - top;
+            wrap.style.height = h + "px";
+            iframe.contentWindow.postMessage(
+              { type: "kaik:frame-size", width: wrap.clientWidth, height: h },
+              "*"
+            );
+          }
+          window.addEventListener("resize", fit);
+          fit();
+        })();
+      </script>
+
       Backup: npm run build:cargo → upload dist/kaik.html to Cargo Files.
     -->
-    <iframe src="/" title="ETTER II" allow="autoplay; clipboard-write"></iframe>
   </body>
 </html>

@@ -13,9 +13,24 @@ This site is not a standalone tab. It is framed by another site (Cargo / kaik.pi
 - Course landing: `body` is `overflow: hidden`. Scroll lives on `[data-scroll-root].viewport`, never on `window`.
 - Admin (`body.admin`): scroll on `body` with `overscroll-behavior: contain`.
 - `position: fixed` UI (panel, deck, toasts, popovers) stays **outside** the scroll root, as a sibling, so it sticks to the iframe viewport.
-- Size against `--frame-w` / `--frame-h` (set from `innerWidth` / `innerHeight`). Do not rely on `100vh` / `100vw` alone.
+- Size against `--frame-w` / `--frame-h` (`calc(100% - clip)` of the iframe). Parent may `postMessage` an explicit pixel size. Do not rely on `100vh` / `100vw` alone inside kaik.
 - Keep `overscroll-behavior: contain` so wheel/touch does not chain to the parent page.
-- Parent must give the iframe a real height (typically `100vh` of the host). Do not auto-grow the iframe to content height — the card flight needs an internal scroller.
+- Parent must give the iframe a real height: **remaining space below the host menu**. On Cargo use `calc(var(--viewport-height, 100vh) - var(--pin-padding-top, 0px))` (tracks mobile vs desktop nav). Do not use plain `100vh` — Cargo already pads the page by the pinned menu, so 100vh overflows. Do not auto-grow the iframe to content height — the card flight needs an internal scroller.
+- Keep `--host-bar: 0` — parent nav is outside the iframe, not reserved inside.
+
+## Parent embed (Cargo)
+
+```html
+<iframe
+  src="https://fovkotov.github.io/kaik/"
+  title="KÄIK"
+  style="width:100%;height:calc(var(--viewport-height, 100vh) - var(--pin-padding-top, 0px));border:0;display:block;"
+  allow="autoplay; clipboard-write"
+  loading="eager"
+></iframe>
+```
+
+`--pin-padding-top` is Cargo’s own offset for the pinned Top Nav / Mobile Menu (`adjust: true`). Optional parent JS: `postMessage({ type: 'kaik:frame-size', width, height })` when CSS alone cannot express remaining height.
 
 ## Navigation and browser APIs
 

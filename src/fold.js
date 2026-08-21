@@ -1,3 +1,4 @@
+import { getViewportSize } from "./embed.js";
 import { PROGRAM_HTML } from "./program-content.js";
 import { t } from "./scriptik.js";
 import "./program.css";
@@ -309,8 +310,7 @@ export function initFold() {
   }
 
   function modalPos(width) {
-    const frame = document.documentElement;
-    const vw = Number.parseFloat(frame.style.getPropertyValue("--frame-w")) || window.innerWidth;
+    const vw = getViewportSize().width;
     return { left: (vw - width) / 2, top: 0 };
   }
 

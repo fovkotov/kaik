@@ -59,7 +59,12 @@
   --font-gilgon: Gilgongo, "SF Pro Rounded", sans-serif;
   --font-courtship: CourtshipJNL, "SF Pro Rounded", sans-serif;
   --frame-w: 100%;
-  --frame-h: 100%;
+  --frame-h: calc(100% - var(--frame-clip-top) - var(--frame-clip-bottom));
+  /* Insets when the iframe box extends past the visible browser window (Cargo 100vh). */
+  --frame-clip-top: 0px;
+  --frame-clip-bottom: 0px;
+  /* Lift the course stage toward the Cargo nav (desktop 80 / mobile 110). */
+  --stage-lift: 0px;
   /* Legacy inset for a parent nav overlay; keep 0 — parent nav sits outside/over the iframe. */
   --host-bar: 0px;
   --card-gutter: 12px;
@@ -117,6 +122,8 @@ body {
   margin: 0;
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   background: var(--bg);
   overscroll-behavior: contain;
 }
@@ -145,11 +152,26 @@ body.catalog {
 .viewport {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: var(--frame-h);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 901px) {
+  :root {
+    --stage-lift: 80px;
+  }
+
+  body:not(.admin):not(.catalog) .viewport {
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  body:not(.admin):not(.catalog) .viewport::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .viewport.is-fly-locked {
@@ -194,14 +216,17 @@ a {
   display: contents;
 }
 
-.panel a,
-.panel button {
-  pointer-events: auto;
-}
+  .panel a,
+  .panel button {
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
 
 .panel__lockup {
   position: fixed;
-  top: calc(50% - var(--panel-lockup-h) / 2);
+  top: calc(
+    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift)
+  );
   left: var(--panel-pad-x);
   z-index: var(--z-lockup);
   width: var(--panel-brand-w);
@@ -214,7 +239,7 @@ a {
 .panel__chrome {
   position: fixed;
   left: var(--panel-pad-x);
-  bottom: var(--panel-pad-y);
+  bottom: calc(var(--panel-pad-y) + var(--frame-clip-bottom) + var(--stage-lift));
   z-index: var(--z-chrome);
   display: flex;
   flex-direction: row;
@@ -367,7 +392,7 @@ a {
 .panel__lang {
   position: fixed;
   right: 20px;
-  bottom: 16px;
+  bottom: calc(16px + var(--stage-lift));
   left: auto;
   top: auto;
   z-index: var(--z-chrome);
@@ -414,7 +439,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 /* Cards wait for intro pose; panel copy stays hidden until the stack has landed.
-   `--frame-h` is `100%` until JS — in `translate()` that % is the card’s own
+   `--frame-h` is `calc(100% − clips)` — in `translate()` that % is the card’s own
    height, so the stack sat on-screen. Use 100vh / 100vw (iframe viewport). */
 @media (min-width: 901px) {
   html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
@@ -456,7 +481,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 /* Card deck — fixed stage on the right */
 .deck {
   position: fixed;
-  top: 0;
+  top: calc(var(--frame-clip-top) - var(--stage-lift));
   left: 0;
   z-index: var(--z-deck);
   width: var(--frame-w);
@@ -2691,7 +2716,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   left: 50%;
   right: auto;
   top: calc(
-    var(--host-bar) + (var(--frame-h) - var(--host-bar) - var(--panel-footer-h)) / 2
+    (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2
   );
   margin: 0;
   z-index: 50;
@@ -2951,7 +2976,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   display: none;
   position: fixed;
   left: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--stage-lift));
   z-index: 60;
   box-sizing: border-box;
   width: 36px;
@@ -3307,8 +3332,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   :root {
+    --stage-lift: 110px;
     --host-bar: 0px;
-    --panel-footer-h: calc(16px + 76px + 16px + env(safe-area-inset-bottom, 0px));
+    /* Chrome column (program / work / lang) can exceed lockup — max() + JS remeasure. */
+    --panel-footer-h: calc(
+      32px + max(76px, 110px) + env(safe-area-inset-bottom, 0px)
+    );
     --panel-chrome-top: max(12px, env(safe-area-inset-top, 0px));
     --panel-chrome-bot: var(--panel-footer-h);
     --deck-scale: 1;
@@ -3334,9 +3363,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: calc(var(--frame-clip-bottom) + var(--stage-lift));
     top: auto;
-    z-index: 5;
+    /* Above .deck (20) so footer nav stays visible and tappable in the iframe. */
+    z-index: 30;
     display: flex;
     flex-direction: row;
     align-items: flex-start;
@@ -3823,10 +3853,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .card {
     left: 50%;
     right: auto;
-    top: calc(
-      var(--host-bar) +
-        (var(--frame-h) - var(--host-bar) - var(--panel-footer-h)) / 2
-    );
+    top: calc((var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2);
     margin-left: calc(var(--card-w) / -2);
     transform-origin: 50% 50%;
     cursor: grab;
