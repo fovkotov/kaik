@@ -1,20 +1,44 @@
 /**
  * User-facing stage nudge panel: per-block X/Y on desktop, global lift everywhere.
- * Defaults match the hardcoded lift (desktop 80 / mobile 110) — per-block deltas start at 0.
+ * Defaults match the composed desktop layout (lift 64 / stack Y 44 / focus Y −47).
+ * Mobile keeps the 110 global lift.
  */
 
 import { onFrameMetrics, safeStorage } from "./embed.js";
 import { t } from "./scriptik.js";
-import { isMobile, MOBILE_MQ } from "./tweaks.js";
+import {
+  CARD_SIZE,
+  getCardSize,
+  isMobile,
+  MOBILE_MQ,
+  resetCardSize,
+  setCardSize,
+} from "./tweaks.js";
 
 const storage = safeStorage();
-const STORAGE_KEY = "kaik-stage-nudge-v2";
-const LEGACY_KEY = "kaik-stage-nudge-v1";
+const STORAGE_KEY = "kaik-stage-nudge-v3";
+const LEGACY_KEYS = ["kaik-stage-nudge-v2", "kaik-stage-nudge-v1"];
 
 const AXIS = { min: -240, max: 240, step: 1 };
 const FOCUS_AXIS = { min: -400, max: 400, step: 1 };
 
 export const DESKTOP_STAGE_DEFAULTS = {
+  lift: 64,
+  lockupX: 0,
+  lockupY: 0,
+  navX: 0,
+  navY: 0,
+  langX: 0,
+  langY: 0,
+  deckX: 0,
+  deckY: 44,
+  focusX: 0,
+  focusY: -47,
+  closeX: 0,
+  closeY: 0,
+};
+
+const PREV_DESKTOP_DEFAULTS = {
   lift: 80,
   lockupX: 0,
   lockupY: 0,
@@ -96,6 +120,18 @@ const GROUPS = [
       { key: "closeY", labelKey: "stage.axisY", ...AXIS },
     ],
   },
+  {
+    titleKey: "stage.group.cards",
+    desktopOnly: true,
+    items: [
+      {
+        key: "cardSize",
+        labelKey: "stage.cardScale",
+        source: "tweaks",
+        ...CARD_SIZE,
+      },
+    ],
+  },
 ];
 
 const FIELD_BY_KEY = new Map(GROUPS.flatMap((group) => group.items.map((item) => [item.key, item])));
@@ -103,11 +139,27 @@ const FIELD_BY_KEY = new Map(GROUPS.flatMap((group) => group.items.map((item) =>
 const desktop = { ...DESKTOP_STAGE_DEFAULTS };
 const mobile = { ...MOBILE_STAGE_DEFAULTS };
 
+function fieldDecimals(field) {
+  const step = String(field?.step ?? 1);
+  return step.includes(".") ? step.split(".")[1].length : 0;
+}
+
 function clampField(key, value) {
   const field = FIELD_BY_KEY.get(key);
   const n = Number(value);
   if (!field || !Number.isFinite(n)) return 0;
-  return Math.min(field.max, Math.max(field.min, Math.round(n)));
+  const clamped = Math.min(field.max, Math.max(field.min, n));
+  const step = field.step || 1;
+  const rounded = Math.round(clamped / step) * step;
+  return Number(rounded.toFixed(fieldDecimals(field)));
+}
+
+function formatFieldValue(key, value) {
+  const field = FIELD_BY_KEY.get(key);
+  const decimals = fieldDecimals(field);
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  return decimals ? n.toFixed(decimals) : String(n);
 }
 
 function getTarget() {
@@ -118,6 +170,22 @@ function getDefaults() {
   return isMobile() ? MOBILE_STAGE_DEFAULTS : DESKTOP_STAGE_DEFAULTS;
 }
 
+function isTweakField(key) {
+  return FIELD_BY_KEY.get(key)?.source === "tweaks";
+}
+
+function readField(key) {
+  if (key === "cardSize") return getCardSize();
+  return getTarget()[key];
+}
+
+function writeField(key, value) {
+  if (key === "cardSize") return setCardSize(value);
+  const next = clampField(key, value);
+  getTarget()[key] = next;
+  return next;
+}
+
 function migrateLegacy(blob) {
   if (!blob || typeof blob !== "object") return blob;
   const next = { ...blob };
@@ -126,19 +194,39 @@ function migrateLegacy(blob) {
   return next;
 }
 
+function migrateOldDesktopDefaults(blob) {
+  if (!blob || typeof blob !== "object") return blob;
+  const next = { ...blob };
+  for (const key of Object.keys(DESKTOP_STAGE_DEFAULTS)) {
+    if (next[key] == null) continue;
+    if (next[key] === PREV_DESKTOP_DEFAULTS[key] && PREV_DESKTOP_DEFAULTS[key] !== DESKTOP_STAGE_DEFAULTS[key]) {
+      next[key] = DESKTOP_STAGE_DEFAULTS[key];
+    }
+  }
+  return next;
+}
+
 function loadSaved() {
   try {
     let raw = storage.getItem(STORAGE_KEY);
-    let legacy = false;
+    let fromLegacy = false;
     if (!raw) {
-      raw = storage.getItem(LEGACY_KEY);
-      legacy = Boolean(raw);
+      for (const key of LEGACY_KEYS) {
+        raw = storage.getItem(key);
+        if (raw) {
+          fromLegacy = true;
+          break;
+        }
+      }
     }
     if (!raw) return;
     const data = JSON.parse(raw);
-    applyBlob(desktop, migrateLegacy(data.desktop), DESKTOP_STAGE_DEFAULTS);
+    const desktopBlob = fromLegacy
+      ? migrateOldDesktopDefaults(migrateLegacy(data.desktop))
+      : migrateLegacy(data.desktop);
+    applyBlob(desktop, desktopBlob, DESKTOP_STAGE_DEFAULTS);
     applyBlob(mobile, migrateLegacy(data.mobile), MOBILE_STAGE_DEFAULTS);
-    if (legacy) save();
+    if (fromLegacy) save();
   } catch {
     // ignore
   }
@@ -158,6 +246,46 @@ function save() {
   } catch {
     // ignore
   }
+}
+
+function layoutJson() {
+  const s = getTarget();
+  return {
+    lift: s.lift,
+    lockup: { x: s.lockupX, y: s.lockupY },
+    nav: { x: s.navX, y: s.navY },
+    lang: { x: s.langX, y: s.langY },
+    deck: { x: s.deckX, y: s.deckY },
+    focus: { x: s.focusX, y: s.focusY },
+    close: { x: s.closeX, y: s.closeY },
+    cardSize: getCardSize(),
+    mobileLift: mobile.lift,
+  };
+}
+
+function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  return Promise.reject(new Error("clipboard unavailable"));
+}
+
+function copyViaTextarea(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+  document.body.append(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  ta.remove();
+  return ok;
 }
 
 export function getFocusNudge() {
@@ -220,9 +348,14 @@ export function initStageSettings() {
     <div class="stage-settings__panel" data-stage-panel>
       <div class="stage-settings__bar">
         <h2 class="stage-settings__title" data-i18n="stage.title">${t("stage.title")}</h2>
-        <button type="button" class="stage-settings__reset" data-stage-reset data-i18n="stage.reset">
-          ${t("stage.reset")}
-        </button>
+        <div class="stage-settings__actions">
+          <button type="button" class="stage-settings__copy" data-stage-copy data-i18n="stage.copyJson">
+            ${t("stage.copyJson")}
+          </button>
+          <button type="button" class="stage-settings__reset" data-stage-reset data-i18n="stage.reset">
+            ${t("stage.reset")}
+          </button>
+        </div>
       </div>
       <div class="stage-settings__body" data-stage-body></div>
     </div>
@@ -231,14 +364,15 @@ export function initStageSettings() {
   const fab = root.querySelector("[data-stage-open]");
   const panel = root.querySelector("[data-stage-panel]");
   const body = root.querySelector("[data-stage-body]");
+  const copyBtn = root.querySelector("[data-stage-copy]");
+  let copiedTimer = 0;
 
   function visibleGroups() {
-    const mobile = isMobile();
-    return GROUPS.filter((group) => !group.desktopOnly || !mobile);
+    const mobileView = isMobile();
+    return GROUPS.filter((group) => !group.desktopOnly || !mobileView);
   }
 
   function buildFields() {
-    const target = getTarget();
     body.innerHTML = "";
     const frag = document.createDocumentFragment();
     visibleGroups().forEach((group) => {
@@ -246,11 +380,12 @@ export function initStageSettings() {
       section.className = "stage-settings__group";
       section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${group.titleKey}">${t(group.titleKey)}</h3>`;
       group.items.forEach((field) => {
+        const value = readField(field.key);
         const row = document.createElement("label");
         row.className = "stage-settings__row";
         row.innerHTML = `
           <span class="stage-settings__label" data-i18n="${field.labelKey}">${t(field.labelKey)}</span>
-          <span class="stage-settings__value" data-value>${target[field.key]}</span>
+          <span class="stage-settings__value" data-value>${formatFieldValue(field.key, value)}</span>
           <input
             class="stage-settings__range"
             type="range"
@@ -258,7 +393,7 @@ export function initStageSettings() {
             min="${field.min}"
             max="${field.max}"
             step="${field.step}"
-            value="${target[field.key]}"
+            value="${value}"
           />
         `;
         section.append(row);
@@ -275,14 +410,34 @@ export function initStageSettings() {
   }
 
   function syncValues() {
-    const target = getTarget();
     body.querySelectorAll("[data-nudge]").forEach((el) => {
       const key = el.dataset.nudge;
-      if (!(key in target)) return;
-      el.value = String(target[key]);
+      if (!key || (!isTweakField(key) && !(key in getTarget()))) return;
+      const value = readField(key);
+      el.value = String(value);
       const valueEl = el.closest(".stage-settings__row")?.querySelector("[data-value]");
-      if (valueEl) valueEl.textContent = String(target[key]);
+      if (valueEl) valueEl.textContent = formatFieldValue(key, value);
     });
+  }
+
+  function markCopied() {
+    window.clearTimeout(copiedTimer);
+    copyBtn.removeAttribute("data-i18n");
+    copyBtn.textContent = t("stage.copied");
+    copiedTimer = window.setTimeout(() => {
+      copyBtn.setAttribute("data-i18n", "stage.copyJson");
+      copyBtn.textContent = t("stage.copyJson");
+    }, 1200);
+  }
+
+  async function copyLayout() {
+    const text = JSON.stringify(layoutJson());
+    try {
+      await copyText(text);
+      markCopied();
+    } catch {
+      if (copyViaTextarea(text)) markCopied();
+    }
   }
 
   buildFields();
@@ -304,22 +459,30 @@ export function initStageSettings() {
     event.preventDefault();
     event.stopPropagation();
     Object.assign(getTarget(), getDefaults());
+    if (!isMobile()) resetCardSize();
     syncValues();
     applyStageNudge({ notify: true });
     save();
+  });
+
+  copyBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    copyLayout();
   });
 
   body.addEventListener("input", (event) => {
     const el = event.target;
     if (!(el instanceof HTMLInputElement)) return;
     const key = el.dataset.nudge;
-    const target = getTarget();
-    if (!key || !(key in target)) return;
-    target[key] = clampField(key, el.value);
+    if (!key || (!isTweakField(key) && !(key in getTarget()))) return;
+    const next = writeField(key, el.value);
     const valueEl = el.closest(".stage-settings__row")?.querySelector("[data-value]");
-    if (valueEl) valueEl.textContent = String(target[key]);
-    applyStageNudge({ notify: true });
-    save();
+    if (valueEl) valueEl.textContent = formatFieldValue(key, next);
+    if (!isTweakField(key)) {
+      applyStageNudge({ notify: true });
+      save();
+    }
   });
 
   window.addEventListener(

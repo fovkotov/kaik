@@ -596,6 +596,38 @@ function save() {
   }
 }
 
+export const CARD_SIZE = { min: 1, max: 3, step: 0.01 };
+
+function clampCardSize(value) {
+  const fallback = isMobile() ? MOBILE_DEFAULTS.cardSize : DESKTOP_DEFAULTS.cardSize;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  const clamped = Math.min(CARD_SIZE.max, Math.max(CARD_SIZE.min, n));
+  return Number((Math.round(clamped / CARD_SIZE.step) * CARD_SIZE.step).toFixed(2));
+}
+
+export function getCardSize() {
+  return clampCardSize(getParams().cardSize);
+}
+
+export function setCardSize(value) {
+  const next = clampCardSize(value);
+  getParams().cardSize = next;
+  applyDeckParams();
+  save();
+  document.querySelectorAll('[data-param="cardSize"]').forEach((el) => {
+    if (!(el instanceof HTMLInputElement)) return;
+    el.value = String(next);
+    const valueEl = el.closest(".tweaks__row")?.querySelector("[data-value]");
+    if (valueEl) valueEl.textContent = formatValue("cardSize", next);
+  });
+  return next;
+}
+
+export function resetCardSize() {
+  return setCardSize(isMobile() ? MOBILE_DEFAULTS.cardSize : DESKTOP_DEFAULTS.cardSize);
+}
+
 function formatValue(key, value) {
   if (typeof value === "string") return value;
   const n = Number(value);

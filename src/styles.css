@@ -63,7 +63,7 @@
   /* Insets when the iframe box extends past the visible browser window (Cargo 100vh). */
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
-  /* Lift the course stage toward the Cargo nav (desktop 80 / mobile 110).
+  /* Lift the course stage toward the Cargo nav (desktop 64 / mobile 110).
      JS stage-settings writes these; media-query values are the slider defaults. */
   --stage-lift: 0px;
   --lockup-nudge-x: 0px;
@@ -174,7 +174,9 @@ body.catalog {
 
 @media (min-width: 901px) {
   :root {
-    --stage-lift: 80px;
+    --stage-lift: 64px;
+    --deck-nudge-y: 44px;
+    --focus-nudge-y: -47px;
   }
 
   body:not(.admin):not(.catalog) .viewport {
@@ -4983,7 +4985,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   letter-spacing: 0;
 }
 
-.stage-settings__reset {
+.stage-settings__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stage-settings__reset,
+.stage-settings__copy {
   font: inherit;
   font-size: 12px;
   padding: 0.2rem 0.5rem;
@@ -4991,14 +5001,17 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   background: rgba(0, 0, 0, 0.06);
   color: inherit;
   touch-action: manipulation;
+  white-space: nowrap;
   transition: transform 140ms var(--ease-out), background 160ms ease;
 }
 
-.stage-settings__reset:hover {
+.stage-settings__reset:hover,
+.stage-settings__copy:hover {
   background: rgba(0, 0, 0, 0.1);
 }
 
-.stage-settings__reset:active {
+.stage-settings__reset:active,
+.stage-settings__copy:active {
   transform: scale(0.97);
 }
 
@@ -5086,6 +5099,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .stage-settings__fab,
   .stage-settings__panel,
   .stage-settings__reset,
+  .stage-settings__copy,
   .stage-settings__range {
     touch-action: manipulation;
   }
@@ -5103,12 +5117,14 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 @media (prefers-reduced-motion: reduce) {
   .stage-settings__fab,
   .stage-settings__reset,
+  .stage-settings__copy,
   .stage-settings__panel {
     transition: opacity 160ms ease, visibility 160ms;
   }
 
   .stage-settings__fab:active,
   .stage-settings__reset:active,
+  .stage-settings__copy:active,
   .stage-settings__panel {
     transform: none;
   }
