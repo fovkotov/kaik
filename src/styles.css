@@ -88,7 +88,7 @@
     Height-first from the iframe. Visual AABB after --deck-scale and ~8° rotate
     (1.12) plus hover/toss reserve must fit --frame-h. tweaks.syncCardMetrics
     overwrites these with live hoverLift / rotate / travelMult, then multiplies
-    by cardSize (desktop default 1.32; 1 = this max-fit size).
+    by cardSize (desktop default 1.29; 1 = this max-fit size).
   */
   --card-h: min(
     calc(((var(--frame-h) - 2 * var(--card-gutter)) / var(--deck-scale) - 52px) / 1.12),

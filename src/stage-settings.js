@@ -16,11 +16,12 @@ import {
 } from "./tweaks.js";
 
 const storage = safeStorage();
-const STORAGE_KEY = "kaik-stage-nudge-v3";
-const LEGACY_KEYS = ["kaik-stage-nudge-v2", "kaik-stage-nudge-v1"];
+const STORAGE_KEY = "kaik-stage-nudge-v4";
+const LEGACY_KEYS = ["kaik-stage-nudge-v3", "kaik-stage-nudge-v2", "kaik-stage-nudge-v1"];
 
 const AXIS = { min: -240, max: 240, step: 1 };
 const FOCUS_AXIS = { min: -400, max: 400, step: 1 };
+const FOCUS_SCALE = { min: 0.5, max: 2, step: 0.01 };
 
 export const DESKTOP_STAGE_DEFAULTS = {
   lift: 64,
@@ -34,6 +35,7 @@ export const DESKTOP_STAGE_DEFAULTS = {
   deckY: 44,
   focusX: 0,
   focusY: -47,
+  focusScale: 1,
   closeX: 0,
   closeY: 0,
 };
@@ -50,6 +52,7 @@ const PREV_DESKTOP_DEFAULTS = {
   deckY: 0,
   focusX: 0,
   focusY: 0,
+  focusScale: 1,
   closeX: 0,
   closeY: 0,
 };
@@ -66,6 +69,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   deckY: 0,
   focusX: 0,
   focusY: 0,
+  focusScale: 1,
   closeX: 0,
   closeY: 0,
 };
@@ -122,6 +126,7 @@ const GROUPS = [
     items: [
       { key: "focusX", labelKey: "stage.axisX", ...FOCUS_AXIS },
       { key: "focusY", labelKey: "stage.axisY", ...FOCUS_AXIS },
+      { key: "focusScale", labelKey: "stage.focusScale", ...FOCUS_SCALE },
     ],
   },
   {
@@ -261,6 +266,7 @@ function layoutJson() {
     focus: { x: s.focusX, y: s.focusY },
     close: { x: s.closeX, y: s.closeY },
     cardSize: getCardSize(),
+    focusScale: clampField("focusScale", s.focusScale),
     mobileLift: mobile.lift,
   };
 }
@@ -293,6 +299,10 @@ function copyViaTextarea(text) {
 export function getFocusNudge() {
   const s = getTarget();
   return { x: Number(s.focusX) || 0, y: Number(s.focusY) || 0 };
+}
+
+export function getFocusScale() {
+  return clampField("focusScale", getTarget().focusScale) || 1;
 }
 
 export function applyStageNudge({ notify = false } = {}) {

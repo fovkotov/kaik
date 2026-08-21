@@ -1,6 +1,6 @@
 import { getViewportSize } from "./embed.js";
 import { t } from "./scriptik.js";
-import { getFocusNudge } from "./stage-settings.js";
+import { getFocusNudge, getFocusScale } from "./stage-settings.js";
 import { applyDeckParams, isMobile } from "./tweaks.js";
 import {
   fadeFocusScrollbar,
@@ -48,15 +48,21 @@ export function desktopFocusDestVisual({ frameW, frameH, cardW, cardH, works = f
   }
 
   if (width > maxW && width > 0) {
-    const scale = maxW / width;
+    const fit = maxW / width;
     width = maxW;
-    height *= scale;
+    height *= fit;
   }
+
+  const focusScale = getFocusScale();
+  width *= focusScale;
+  height *= focusScale;
 
   const side = OPEN_GUTTER / 2;
   let left = (frameW - width) / 2;
-  if (left < side) left = side;
-  if (left + width > frameW - side) left = Math.max(side, frameW - side - width);
+  if (width <= frameW - OPEN_GUTTER) {
+    if (left < side) left = side;
+    if (left + width > frameW - side) left = Math.max(side, frameW - side - width);
+  }
 
   const nudge = getFocusNudge();
   return {

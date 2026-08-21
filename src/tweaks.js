@@ -25,7 +25,7 @@ export const DESKTOP = {
   deckRightPx: 304,
   deckScale: 1.15,
   /** 1 = max height that still fits the iframe; >1 grows past that fit. */
-  cardSize: 1.32,
+  cardSize: 1.29,
   travelDir: -1,
 
   parallaxX: 27,
@@ -125,7 +125,8 @@ const LEGACY_STORAGE_KEYS = [
 ];
 const UI_STORAGE_KEY = "kaik-deck-tweaks-ui-v3";
 /** Bump to force-write DESKTOP over a stale desktop blob. */
-const DESKTOP_REV = 5;
+const DESKTOP_REV = 6;
+const PREV_DESKTOP_REV = 5;
 
 /** @type {"auto" | "desktop" | "mobile"} */
 let editMode = "mobile";
@@ -493,6 +494,19 @@ function applyDesktopSaved(desktop) {
   ) {
     DESKTOP.worksShiftX = DESKTOP_DEFAULTS.worksShiftX;
   }
+  if (desktop.cardSize == null || desktop.cardSize === 1.32) {
+    DESKTOP.cardSize = DESKTOP_DEFAULTS.cardSize;
+  }
+}
+
+function desktopRevOk(rev) {
+  return rev === DESKTOP_REV || rev === PREV_DESKTOP_REV;
+}
+
+function desktopNeedsPersist(data) {
+  if (!data?.desktop) return false;
+  if (data.desktopRev !== DESKTOP_REV) return true;
+  return data.desktop.cardSize == null || data.desktop.cardSize === 1.32;
 }
 
 function isStaleMobileSnapshot(mobile) {
@@ -554,9 +568,10 @@ function loadSaved() {
     if (raw) {
       const data = JSON.parse(raw);
       applyMobileSaved(data.mobile);
-      if (data.desktopRev === DESKTOP_REV && data.desktop) {
+      if (desktopRevOk(data.desktopRev) && data.desktop) {
         applyDesktopSaved(data.desktop);
         overwriteDesktop = false;
+        if (desktopNeedsPersist(data)) persist = true;
       }
       applyEditMode(data);
     } else {
@@ -566,7 +581,7 @@ function loadSaved() {
         const legacyRaw = storage.getItem(key);
         if (!legacyRaw) continue;
         const legacy = JSON.parse(legacyRaw);
-        if (legacy.desktopRev === DESKTOP_REV && legacy.desktop) {
+        if (desktopRevOk(legacy.desktopRev) && legacy.desktop) {
           applyDesktopSaved(legacy.desktop);
           overwriteDesktop = false;
         }
