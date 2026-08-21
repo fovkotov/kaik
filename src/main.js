@@ -2,6 +2,7 @@ import { getScrollRoot, getViewportSize, initEmbed } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
 import { initTickClicks } from "./tick-clicks.js";
 import { initSoundSettings } from "./sound-settings.js";
+import { initStageSettings } from "./stage-settings.js";
 import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
 import { initImgSliders } from "./img-slider.js";
 import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
@@ -558,7 +559,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
@@ -655,7 +656,7 @@ function initDeck() {
     "wheel",
     (event) => {
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings]")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -688,7 +689,7 @@ function initDeck() {
     (event) => {
       if (!isMobile()) return;
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings]")) return;
       if (eventFrom(event.target, ".panel, .panel a, .panel button")) return;
       if (programLocked()) {
         event.preventDefault();
@@ -1170,6 +1171,7 @@ function bindWorkNav(programApi) {
 initEmbed();
 initLocale();
 initTweaks();
+initStageSettings();
 initTickClicks();
 initSoundSettings();
 initDeck();

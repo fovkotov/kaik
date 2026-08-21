@@ -63,8 +63,21 @@
   /* Insets when the iframe box extends past the visible browser window (Cargo 100vh). */
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
-  /* Lift the course stage toward the Cargo nav (desktop 80 / mobile 110). */
+  /* Lift the course stage toward the Cargo nav (desktop 80 / mobile 110).
+     JS stage-settings writes these; media-query values are the slider defaults. */
   --stage-lift: 0px;
+  --lockup-nudge-x: 0px;
+  --lockup-nudge-y: 0px;
+  --nav-nudge-x: 0px;
+  --nav-nudge-y: 0px;
+  --lang-nudge-x: 0px;
+  --lang-nudge-y: 0px;
+  --deck-nudge-x: 0px;
+  --deck-nudge-y: 0px;
+  --focus-nudge-x: 0px;
+  --focus-nudge-y: 0px;
+  --close-nudge-x: 0px;
+  --close-nudge-y: 0px;
   /* Legacy inset for a parent nav overlay; keep 0 — parent nav sits outside/over the iframe. */
   --host-bar: 0px;
   --card-gutter: 12px;
@@ -225,9 +238,10 @@ a {
 .panel__lockup {
   position: fixed;
   top: calc(
-    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift)
+    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift) +
+      var(--lockup-nudge-y)
   );
-  left: var(--panel-pad-x);
+  left: calc(var(--panel-pad-x) + var(--lockup-nudge-x));
   z-index: var(--z-lockup);
   width: var(--panel-brand-w);
   height: var(--panel-lockup-h);
@@ -238,8 +252,10 @@ a {
 
 .panel__chrome {
   position: fixed;
-  left: var(--panel-pad-x);
-  bottom: calc(var(--panel-pad-y) + var(--frame-clip-bottom) + var(--stage-lift));
+  left: calc(var(--panel-pad-x) + var(--nav-nudge-x));
+  bottom: calc(
+    var(--panel-pad-y) + var(--frame-clip-bottom) + var(--stage-lift) - var(--nav-nudge-y)
+  );
   z-index: var(--z-chrome);
   display: flex;
   flex-direction: row;
@@ -391,8 +407,8 @@ a {
 
 .panel__lang {
   position: fixed;
-  right: 20px;
-  bottom: calc(16px + var(--stage-lift));
+  right: calc(20px - var(--lang-nudge-x));
+  bottom: calc(16px + var(--stage-lift) - var(--lang-nudge-y));
   left: auto;
   top: auto;
   z-index: var(--z-chrome);
@@ -481,8 +497,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 /* Card deck — fixed stage on the right */
 .deck {
   position: fixed;
-  top: calc(var(--frame-clip-top) - var(--stage-lift));
-  left: 0;
+  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y));
+  left: var(--deck-nudge-x);
   z-index: var(--z-deck);
   width: var(--frame-w);
   height: var(--frame-h);
@@ -2975,8 +2991,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 .fly-close {
   display: none;
   position: fixed;
-  left: 50%;
-  bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + var(--stage-lift));
+  left: calc(50% + var(--close-nudge-x));
+  bottom: calc(
+    max(16px, env(safe-area-inset-bottom, 0px)) + var(--stage-lift) - var(--close-nudge-y)
+  );
   z-index: 60;
   box-sizing: border-box;
   width: 36px;
@@ -3392,13 +3410,14 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     z-index: auto;
     width: auto;
     pointer-events: none;
+    transform: translate3d(var(--nav-nudge-x), var(--nav-nudge-y), 0);
   }
 
   .panel__lockup {
     position: static;
     left: auto;
     top: auto;
-    transform: none;
+    transform: translate3d(var(--lockup-nudge-x), var(--lockup-nudge-y), 0);
     z-index: auto;
     display: block;
     width: auto;
@@ -3780,7 +3799,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     bottom: auto;
     width: auto;
     height: auto;
-    transform: none;
+    transform: translate3d(var(--lang-nudge-x), var(--lang-nudge-y), 0);
     z-index: auto;
     display: flex;
     justify-content: flex-end;
@@ -4855,6 +4874,252 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   body:has(.card.is-program-open) .deck-tune {
     display: none !important;
+  }
+}
+
+/* —— Stage position settings (user-facing, desktop + mobile) —— */
+.stage-settings {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 280;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: min(300px, calc(var(--frame-w) - 24px));
+  max-height: calc(var(--frame-h) - 24px);
+  pointer-events: none;
+  overscroll-behavior: contain;
+}
+
+.stage-settings__fab {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  color: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  touch-action: manipulation;
+  transition:
+    transform 140ms var(--ease-out),
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.stage-settings__fab:hover {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+}
+
+.stage-settings__fab:active {
+  transform: scale(0.97);
+}
+
+.stage-settings.is-open .stage-settings__fab {
+  background: #fff;
+  color: var(--ink);
+}
+
+.stage-settings__icon {
+  display: block;
+}
+
+.stage-settings__panel {
+  pointer-events: none;
+  visibility: hidden;
+  width: 100%;
+  min-height: 0;
+  max-height: calc(var(--frame-h) - 68px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  transform: scale(0.96);
+  transform-origin: top right;
+  opacity: 0;
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out),
+    visibility 180ms;
+}
+
+.stage-settings.is-open .stage-settings__panel {
+  pointer-events: auto;
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.stage-settings__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.7rem 0.45rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.stage-settings__title {
+  flex: 1;
+  margin: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.stage-settings__reset {
+  font: inherit;
+  font-size: 12px;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+  touch-action: manipulation;
+  transition: transform 140ms var(--ease-out), background 160ms ease;
+}
+
+.stage-settings__reset:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.stage-settings__reset:active {
+  transform: scale(0.97);
+}
+
+.stage-settings__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.55rem 0.7rem 0.75rem;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.stage-settings__group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.stage-settings__group + .stage-settings__group {
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.stage-settings__group-title {
+  margin: 0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+.stage-settings__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "label value"
+    "input input";
+  gap: 0.12rem 0.5rem;
+  align-items: baseline;
+}
+
+.stage-settings__label {
+  grid-area: label;
+  font-size: 12px;
+  line-height: 1.2;
+  opacity: 0.8;
+}
+
+.stage-settings__value {
+  grid-area: value;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.45;
+}
+
+.stage-settings__range {
+  grid-area: input;
+  width: 100%;
+  margin: 0;
+  height: 22px;
+  accent-color: var(--enroll);
+  touch-action: manipulation;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stage-settings__fab:hover {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+@media (max-width: 900px) {
+  .stage-settings {
+    top: max(10px, env(safe-area-inset-top, 0px));
+    right: 10px;
+    width: min(260px, calc(var(--frame-w) - 20px));
+    max-height: calc(var(--frame-h) - 20px);
+  }
+
+  .stage-settings,
+  .stage-settings__fab,
+  .stage-settings__panel,
+  .stage-settings__reset,
+  .stage-settings__range {
+    touch-action: manipulation;
+  }
+
+  .stage-settings__body {
+    touch-action: pan-y;
+  }
+
+  .stage-settings__fab {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-settings__fab,
+  .stage-settings__reset,
+  .stage-settings__panel {
+    transition: opacity 160ms ease, visibility 160ms;
+  }
+
+  .stage-settings__fab:active,
+  .stage-settings__reset:active,
+  .stage-settings__panel {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .stage-settings__fab,
+  .stage-settings__panel {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 

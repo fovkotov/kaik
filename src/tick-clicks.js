@@ -72,7 +72,7 @@ function playAction() {
 function isImmediateControl(target) {
   return Boolean(
     target.closest?.(
-      "a, button, [role='button'], [role='link'], [role='tab'], [role='menuitem'], [role='option'], summary, label, input, select, [data-work-nav], [data-program-nav], [data-fly-close], [data-open-program], [data-tweaks], [data-tweaks-reopen], [data-deck-tune]",
+      "a, button, [role='button'], [role='link'], [role='tab'], [role='menuitem'], [role='option'], summary, label, input, select, [data-work-nav], [data-program-nav], [data-fly-close], [data-open-program], [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings]",
     ),
   );
 }

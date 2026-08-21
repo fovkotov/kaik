@@ -1,5 +1,6 @@
 import { getViewportSize } from "./embed.js";
 import { t } from "./scriptik.js";
+import { getFocusNudge } from "./stage-settings.js";
 import { applyDeckParams, isMobile } from "./tweaks.js";
 import {
   fadeFocusScrollbar,
@@ -11,9 +12,9 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
   const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-sound-settings], input, textarea, select";
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
@@ -57,7 +58,14 @@ export function desktopFocusDestVisual({ frameW, frameH, cardW, cardH, works = f
   if (left < side) left = side;
   if (left + width > frameW - side) left = Math.max(side, frameW - side - width);
 
-  return { left, top: TOP_GAP, width, height, rotate: 0 };
+  const nudge = getFocusNudge();
+  return {
+    left: left + nudge.x,
+    top: TOP_GAP + nudge.y,
+    width,
+    height,
+    rotate: 0,
+  };
 }
 
 export function initProgramModal() {
@@ -1427,6 +1435,8 @@ export function initProgramModal() {
   window.addEventListener("keydown", (event) => {
     if (isTypingTarget(event.target)) return;
     if (phase !== "open" && phase !== "opening") return;
+    if (event.target?.closest?.("[data-stage-settings], [data-tweaks]")) return;
+    if (document.querySelector(".stage-settings.is-open")) return;
     if (event.key === "Escape") {
       event.preventDefault();
       closeFocus();
@@ -1457,6 +1467,7 @@ export function initProgramModal() {
   };
   window.addEventListener("resize", onFrameResize, { passive: true });
   window.visualViewport?.addEventListener("resize", onFrameResize, { passive: true });
+  document.addEventListener("kaik:stage-nudge", onFrameResize);
 
   return {
     open: () => focusCard(programCard),
