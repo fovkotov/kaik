@@ -1250,7 +1250,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
-  font-size: calc(var(--card-w) * 14 / var(--program-face-w));
+  font-size: calc(var(--card-w) * 12 / var(--program-face-w));
   line-height: normal;
   color: #000;
   white-space: nowrap;
@@ -4462,7 +4462,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card[data-program-card] .card-illust--program .card-illust__cue {
-    font-size: calc(var(--card-w) * 14 / var(--program-face-w));
+    font-size: calc(var(--card-w) * 12 / var(--program-face-w));
   }
 
   /* Size the box to «close me» so swapping «open me» cannot recenter. */
