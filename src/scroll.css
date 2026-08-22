@@ -1,0 +1,218 @@
+body.scroll-lab {
+  background: var(--bg);
+}
+
+.scroll-stage {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--frame-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px 40px;
+}
+
+.scroll-track {
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+}
+
+.roll-card {
+  --card-h: min(
+    calc(min(340px, calc(var(--frame-w) - 56px)) * 450 / 318),
+    calc(var(--frame-h) - 80px)
+  );
+  --card-w: calc(var(--card-h) * 318 / 450);
+  --program-face-w: 318;
+  --program-dog-h: calc(149.134 / var(--program-face-w) * var(--card-w));
+  --program-dog-y: 0;
+  --program-sheet-top: calc(109 / var(--program-face-w) * var(--card-w));
+  --u: calc(var(--card-w) / 595);
+  --roll-reserve: 72px;
+  --radius: 36px;
+  --rod-d: 26px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  background: #2bb673;
+  border-radius: 2px;
+  overflow: visible;
+  cursor: default;
+}
+
+.roll-card__scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  perspective: 920px;
+  perspective-origin: 50% 86%;
+  transform-style: preserve-3d;
+}
+
+.roll-card__flat {
+  position: absolute;
+  inset: 0 0 var(--roll-reserve) 0;
+  overflow: hidden;
+  background: #2bb673;
+  border-radius: 2px 2px 0 0;
+}
+
+.roll-card__paper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--card-w);
+  will-change: transform;
+}
+
+.roll-card .program-card {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.roll-card .program-card__title {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.roll-card .program-card__sheet {
+  flex: 0 0 auto;
+  min-height: auto;
+  height: auto;
+  overflow: visible;
+  padding-bottom: calc(80 * var(--u));
+}
+
+.roll-card .card-illust--program .card-illust__cue {
+  display: none;
+}
+
+.roll-card__curl {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: calc(100% - var(--roll-reserve));
+  height: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.roll-card__seg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--seg-h, 8px);
+  margin-top: calc(var(--seg-h, 8px) / -2);
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.roll-card__window {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #2bb673;
+}
+
+.roll-card__seg .roll-card__paper {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.roll-card__shade {
+  position: absolute;
+  inset: 0;
+  background: #0a3d24;
+  pointer-events: none;
+}
+
+.roll-card__flat::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  background: linear-gradient(180deg, rgba(10, 61, 36, 0), rgba(10, 61, 36, 0.18));
+  pointer-events: none;
+}
+
+.roll-card__rod {
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: 0;
+  height: var(--rod-d);
+  margin-top: calc(var(--rod-d) / -2);
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      180deg,
+      #4ae08f 0%,
+      #24965a 16%,
+      #14663a 40%,
+      #0c3f26 50%,
+      #167544 72%,
+      #2bb673 100%
+    );
+  box-shadow:
+    0 12px 20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.28);
+  transform: translate3d(0, var(--radius), 0);
+  pointer-events: none;
+}
+
+.roll-card.is-reduced {
+  overflow: hidden;
+}
+
+.roll-card.is-reduced .roll-card__flat {
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.roll-card.is-reduced .roll-card__flat::-webkit-scrollbar {
+  display: none;
+}
+
+.roll-card.is-reduced .roll-card__curl,
+.roll-card.is-reduced .roll-card__rod {
+  display: none;
+}
+
+.roll-card.is-reduced .roll-card__paper {
+  position: relative;
+  transform: none !important;
+}
+
+@media (max-width: 900px) {
+  .scroll-stage {
+    padding: 20px 16px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll-card__paper {
+    will-change: auto;
+  }
+}
