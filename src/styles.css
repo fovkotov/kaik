@@ -1388,26 +1388,27 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --works-rotate: 0deg;
   --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
   --works-open-scale: 1.16;
-  /* Figma 130:5847 — 318×450 face; arts authored on 842-wide board. */
+  /* Figma 130:1000 / 130:460 — 842 board (15+810+15), title 32.528, gaps 64/24/16. */
   --works-src: 842;
-  --works-face-w: 318;
+  --works-face-w: 842;
   --works-bleed-w: 810;
   --u: calc(var(--card-w) / var(--works-src));
-  --works-pad-x: calc(5.665 / var(--works-face-w) * var(--card-w));
-  --works-pad-top: calc(0.755 / var(--works-face-w) * var(--card-w));
-  --works-pad-bot: calc(15.106 / var(--works-face-w) * var(--card-w));
+  --works-pad-x: calc(15 / var(--works-src) * var(--card-w));
+  --works-pad-top: calc(2 / var(--works-src) * var(--card-w));
+  --works-pad-bot: calc(40 / var(--works-src) * var(--card-w));
   --works-content-w: calc(var(--card-w) - 2 * var(--works-pad-x));
-  /* Full-width arts ≈ 305.905/318 (96.2%) of card — scale 842 coords to content width. */
   --works-art-scale: calc(var(--works-content-w) / var(--works-bleed-w));
-  --works-gap-section: calc(24.17 / var(--works-face-w) * var(--card-w));
-  --works-gap-item: calc(9.064 / var(--works-face-w) * var(--card-w));
-  --works-gap-tight: calc(6.043 / var(--works-face-w) * var(--card-w));
-  --works-list-top: calc(128.165 / var(--works-face-w) * var(--card-w));
-  --works-col-a: calc(158.24 / var(--works-face-w) * var(--card-w));
-  --works-col-b: calc(147.665 / var(--works-face-w) * var(--card-w));
-  --works-title-size: calc(17.384 / var(--works-face-w) * var(--card-w));
+  --works-gap-section: calc(64 / var(--works-src) * var(--card-w));
+  --works-gap-item: calc(24 / var(--works-src) * var(--card-w));
+  --works-gap-tight: calc(16 / var(--works-src) * var(--card-w));
+  --works-list-top: calc((32.528 + 67) / var(--works-src) * var(--card-w));
+  --works-col-a: calc(419 / var(--works-bleed-w) * var(--works-content-w));
+  --works-col-b: calc(391 / var(--works-bleed-w) * var(--works-content-w));
+  --works-col-c: calc(389 / var(--works-bleed-w) * var(--works-content-w));
+  --works-title-size: calc(32.528 / var(--works-src) * var(--card-w));
+  --works-who-size: calc(11.749 / var(--works-src) * var(--card-w));
   --works-key-h: calc(176 / 449 * var(--card-w));
-  --works-key-y: calc(6 / var(--works-face-w) * var(--card-w));
+  --works-key-y: calc(6 / 318 * var(--card-w));
   --focus-open-w: min(
     calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
     calc(var(--frame-w) - 48px)
@@ -1448,13 +1449,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .card[data-works-card] .works-card__key .works-card__key-cue {
   display: block;
   position: absolute;
-  left: calc(50% - var(--card-w) * 75.43 / var(--works-face-w));
+  left: calc(50% - var(--card-w) * 75.43 / 318);
   top: calc(78 / 176 * 100%);
   transform: translateX(-50%);
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
-  font-size: calc(var(--card-w) * 8.499 / var(--works-face-w));
+  font-size: calc(var(--card-w) * 8.499 / 318);
   line-height: normal;
   color: #000;
   white-space: nowrap;
@@ -1573,8 +1574,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .works-card__col--389 {
-  width: calc(389 / var(--works-src) * var(--works-content-w));
-  flex: 0 0 calc(389 / var(--works-src) * var(--works-content-w));
+  width: var(--works-col-c);
+  flex: 0 0 var(--works-col-c);
   max-width: none;
 }
 
@@ -1588,10 +1589,11 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   width: 100%;
   margin: 0;
   font-family: var(--font-ru);
-  font-size: max(10px, calc(11.749 * var(--u)));
+  font-size: var(--works-who-size);
   line-height: normal;
   text-align: center;
   color: #000;
+  white-space: nowrap;
 }
 
 .works-card__ig {
@@ -1610,7 +1612,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: fill;
+  object-fit: contain;
   object-position: center;
   pointer-events: none;
   user-select: none;
@@ -1628,9 +1630,31 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 @media (max-width: 900px) {
   .card[data-works-card] {
+    /* Figma 130:5304 closed 318 / 131:6735 open 374 — same ratios, caption stays 10. */
+    --works-face-w: 318;
+    --works-pad-x: calc(5.665 / 318 * var(--card-w));
+    --works-pad-top: calc(0.755 / 318 * var(--card-w));
+    --works-pad-bot: calc(15.106 / 318 * var(--card-w));
+    --works-gap-section: calc(24.17 / 318 * var(--card-w));
+    --works-gap-item: calc(9.064 / 318 * var(--card-w));
+    --works-gap-tight: calc(6.043 / 318 * var(--card-w));
+    --works-list-top: calc((17.384 + 107.41) / 318 * var(--card-w));
+    --works-col-a: calc(158.24 / 318 * var(--card-w));
+    --works-col-b: calc(147.665 / 318 * var(--card-w));
+    --works-col-c: calc(146.91 / 318 * var(--card-w));
+    --works-title-size: calc(17.384 / 318 * var(--card-w));
+    --works-who-size: 10px;
+    --works-key-y: calc(6 / 318 * var(--card-w));
     --works-shift-x: 0px;
     --focus-open-w: var(--frame-w);
     --program-open-w: var(--focus-open-w);
+  }
+
+  .works-card__who--stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    white-space: normal;
   }
 
   .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
@@ -4458,7 +4482,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card[data-works-card] .works-card__key .works-card__key-cue {
-    font-size: calc(var(--card-w) * 8.499 / var(--works-face-w));
+    font-size: calc(var(--card-w) * 8.499 / 318);
   }
 
   .card[data-program-card] .card-illust--program .card-illust__cue {
