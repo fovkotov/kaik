@@ -75,7 +75,7 @@
   --lang-nudge-x: 0px;
   --lang-nudge-y: 0px;
   --deck-nudge-x: 59px;
-  --deck-nudge-y: 44px;
+  --deck-nudge-y: 41px;
   --focus-nudge-x: 0px;
   --focus-nudge-y: 0px;
   --close-nudge-x: 0px;
@@ -190,7 +190,7 @@ body.catalog {
   }
 
   .deck {
-    top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 44px));
+    top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 41px));
   }
 
   body:not(.admin):not(.catalog) .viewport {
@@ -565,7 +565,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
    desktop media-query rule above, so a Y-less top made СТОПКА Y a no-op. */
 .deck {
   position: fixed;
-  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 44px));
+  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 41px));
   left: var(--deck-nudge-x, 0px);
   z-index: var(--z-deck);
   width: var(--frame-w);
@@ -5390,6 +5390,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 /* —— Stage position settings (gear on desktop + mobile) —— */
 .stage-settings {
+  display: none;
   position: fixed;
   top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
   right: 8px;

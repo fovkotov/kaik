@@ -40,7 +40,7 @@ export const DESKTOP_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 59,
-  deckY: 44,
+  deckY: 41,
   focusX: 0,
   focusY: 9,
   focusScale: 0.93,
@@ -51,7 +51,7 @@ export const DESKTOP_STAGE_DEFAULTS = {
   clusterLinked: 1,
 };
 
-/** Previous published defaults (deck X 0, cluster X 0). Stored 0 → 59. */
+/** Previous published defaults. Stored deck X 0 → 59, deck Y 44 → 41. */
 const PREV_DESKTOP_DEFAULTS = {
   lift: 64,
   lockupX: 0,
@@ -61,6 +61,7 @@ const PREV_DESKTOP_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
+  deckY: 44,
   focusX: 0,
   focusY: 9,
   focusScale: 0.93,
