@@ -11,10 +11,51 @@ let outputVolume = 1;
 
 function createContext() {
   try {
-    return new AudioContext({ latencyHint: "interactive" });
+    return new AudioContext({ latencyHint: 0 });
   } catch {
-    return new AudioContext();
+    try {
+      return new AudioContext({ latencyHint: "interactive" });
+    } catch {
+      return new AudioContext();
+    }
   }
+}
+
+function isClosed(ctx) {
+  return !ctx || ctx.state === "closed";
+}
+
+function isCold(ctx) {
+  return isClosed(ctx) || ctx.state === "suspended" || ctx.state === "interrupted";
+}
+
+function dropContext() {
+  try {
+    keepAliveNode?.stop();
+  } catch {
+    // already stopped
+  }
+  keepAliveNode = null;
+  masterGain = null;
+  const prev = audioContext;
+  audioContext = null;
+  if (prev && prev.state !== "closed") {
+    try {
+      void prev.close();
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function attachGraph(ctx) {
+  masterGain = ctx.createGain();
+  masterGain.gain.value = 1;
+  masterGain.connect(ctx.destination);
+  startKeepAlive(ctx);
+  resumeNow(ctx);
+  primeOutput(ctx);
+  return ctx;
 }
 
 function startKeepAlive(ctx) {
@@ -46,7 +87,7 @@ function primeOutput(ctx) {
 }
 
 function resumeNow(ctx) {
-  if (!ctx || ctx.state !== "suspended") return;
+  if (!ctx || ctx.state === "running" || ctx.state === "closed") return;
   try {
     const pending = ctx.resume();
     if (pending && typeof pending.catch === "function") void pending.catch(() => {});
@@ -56,26 +97,17 @@ function resumeNow(ctx) {
 }
 
 function ensureContext() {
-  if (audioContext) return audioContext;
+  if (audioContext && audioContext.state === "closed") dropContext();
+  if (audioContext) {
+    resumeNow(audioContext);
+    return audioContext;
+  }
   audioContext = createContext();
-  masterGain = audioContext.createGain();
-  masterGain.gain.value = 1;
-  masterGain.connect(audioContext.destination);
-  startKeepAlive(audioContext);
-  return audioContext;
+  return attachGraph(audioContext);
 }
 
 function getAudioContext() {
-  const ctx = ensureContext();
-  resumeNow(ctx);
-  return ctx;
-}
-
-try {
-  ensureContext();
-} catch {
-  audioContext = null;
-  masterGain = null;
+  return ensureContext();
 }
 
 function getDestination() {
@@ -87,13 +119,22 @@ function getDestination() {
   return tap;
 }
 
-/** Resume AudioContext in the same turn as a user gesture. Do not await. */
+/**
+ * Call from a user gesture. A context created at import stays suspended and
+ * resume() can take ~500ms (worse in an iframe). Recreate while we have
+ * activation so the new context starts running in this turn.
+ */
 export function warmWikiAudio() {
   if (reduced()) return;
   try {
-    const ctx = getAudioContext();
-    resumeNow(ctx);
-    primeOutput(ctx);
+    if (audioContext && !isCold(audioContext)) {
+      resumeNow(audioContext);
+      primeOutput(audioContext);
+      return;
+    }
+    dropContext();
+    audioContext = createContext();
+    attachGraph(audioContext);
   } catch {
     // Web Audio failures are silent.
   }

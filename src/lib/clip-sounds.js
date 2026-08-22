@@ -63,7 +63,7 @@ function reduced() {
 }
 
 function resumeNow(ctx) {
-  if (!ctx || ctx.state !== "suspended") return;
+  if (!ctx || ctx.state === "running" || ctx.state === "closed") return;
   try {
     const pending = ctx.resume();
     if (pending && typeof pending.catch === "function") void pending.catch(() => {});
@@ -72,26 +72,47 @@ function resumeNow(ctx) {
   }
 }
 
-function ensureClipContext() {
-  if (clipCtx) return clipCtx;
+function createClipContext() {
   try {
-    clipCtx = new AudioContext({ latencyHint: "interactive" });
+    return new AudioContext({ latencyHint: 0 });
   } catch {
-    clipCtx = new AudioContext();
+    try {
+      return new AudioContext({ latencyHint: "interactive" });
+    } catch {
+      return new AudioContext();
+    }
   }
+}
+
+function isCold(ctx) {
+  return !ctx || ctx.state === "closed" || ctx.state === "suspended" || ctx.state === "interrupted";
+}
+
+function dropClipContext() {
+  const prev = clipCtx;
+  clipCtx = null;
+  if (prev && prev.state !== "closed") {
+    try {
+      void prev.close();
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function ensureClipContext() {
+  if (clipCtx && clipCtx.state === "closed") dropClipContext();
+  if (clipCtx) {
+    resumeNow(clipCtx);
+    return clipCtx;
+  }
+  clipCtx = createClipContext();
+  resumeNow(clipCtx);
   return clipCtx;
 }
 
 function getClipContext() {
-  const ctx = ensureClipContext();
-  resumeNow(ctx);
-  return ctx;
-}
-
-try {
-  ensureClipContext();
-} catch {
-  clipCtx = null;
+  return ensureClipContext();
 }
 
 function playBuffer(buffer, volume, offset = 0, duration) {
@@ -103,8 +124,9 @@ function playBuffer(buffer, volume, offset = 0, duration) {
   gain.gain.value = volume;
   src.connect(gain);
   gain.connect(ctx.destination);
-  if (duration != null && duration > 0) src.start(0, offset, duration);
-  else src.start(0, offset);
+  const when = ctx.currentTime;
+  if (duration != null && duration > 0) src.start(when, offset, duration);
+  else src.start(when, offset);
 }
 
 function decodeUri(dataUri) {
@@ -142,7 +164,11 @@ function loadSprite() {
 export function warmClipAudio() {
   if (reduced()) return;
   try {
-    getClipContext();
+    if (isCold(clipCtx)) {
+      dropClipContext();
+      clipCtx = createClipContext();
+    }
+    resumeNow(clipCtx);
     loadSprite();
     Object.values(SOUNDCN).forEach((asset) => decodeUri(asset.dataUri));
   } catch {

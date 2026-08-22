@@ -192,10 +192,17 @@ export function playScrollSound() {
 let uiContextWarmed = false;
 let firstScrollFromGesture = false;
 
+function selectedKinds() {
+  const action = findSoundOption(actionId) || findSoundOption(DEFAULT_ACTION_ID);
+  const scroll = findSoundOption(scrollId) || findSoundOption(DEFAULT_SCROLL_ID);
+  return new Set([action?.kind, scroll?.kind]);
+}
+
 export function warmAllAudio() {
-  warmWikiAudio();
-  warmClipAudio();
-  if (uiContextWarmed) return;
+  const kinds = selectedKinds();
+  if (kinds.has("wiki")) warmWikiAudio();
+  if (kinds.has("soundcn") || kinds.has("snd")) warmClipAudio();
+  if (!kinds.has("deslop") || uiContextWarmed) return;
   uiContextWarmed = true;
   try {
     playUISound("tick", 0);

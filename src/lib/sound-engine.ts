@@ -2,7 +2,7 @@ let audioContext: AudioContext | null = null;
 const bufferCache = new Map<string, AudioBuffer>();
 
 function resumeNow(ctx: AudioContext) {
-  if (ctx.state !== "suspended") return;
+  if (ctx.state === "running" || ctx.state === "closed") return;
   try {
     const pending = ctx.resume();
     void pending.catch(() => {});
@@ -11,18 +11,24 @@ function resumeNow(ctx: AudioContext) {
   }
 }
 
+function createContext(): AudioContext {
+  try {
+    return new AudioContext({ latencyHint: 0 });
+  } catch {
+    try {
+      return new AudioContext({ latencyHint: "interactive" });
+    } catch {
+      return new AudioContext();
+    }
+  }
+}
+
 export function getAudioContext(): AudioContext {
-  if (!audioContext) {
-    audioContext = new AudioContext();
+  if (!audioContext || audioContext.state === "closed") {
+    audioContext = createContext();
   }
   resumeNow(audioContext);
   return audioContext;
-}
-
-try {
-  audioContext = new AudioContext();
-} catch {
-  audioContext = null;
 }
 
 export async function decodeAudioData(dataUri: string): Promise<AudioBuffer> {
@@ -52,15 +58,13 @@ export interface SoundPlayback {
   stop: () => void;
 }
 
-export async function playSound(
-  dataUri: string,
-  options: PlaySoundOptions = {}
-): Promise<SoundPlayback> {
-  const { volume = 1, playbackRate = 1, onEnd } = options;
-  const ctx = getAudioContext();
-  resumeNow(ctx);
-
-  const buffer = await decodeAudioData(dataUri);
+function startPlayback(
+  ctx: AudioContext,
+  buffer: AudioBuffer,
+  volume: number,
+  playbackRate: number,
+  onEnd?: () => void
+): SoundPlayback {
   const source = ctx.createBufferSource();
   const gain = ctx.createGain();
 
@@ -75,7 +79,7 @@ export async function playSound(
     onEnd?.();
   };
 
-  source.start(0);
+  source.start(ctx.currentTime);
 
   return {
     stop: () => {
@@ -86,4 +90,19 @@ export async function playSound(
       }
     },
   };
+}
+
+export async function playSound(
+  dataUri: string,
+  options: PlaySoundOptions = {}
+): Promise<SoundPlayback> {
+  const { volume = 1, playbackRate = 1, onEnd } = options;
+  const ctx = getAudioContext();
+  resumeNow(ctx);
+
+  const cached = bufferCache.get(dataUri);
+  if (cached) return startPlayback(ctx, cached, volume, playbackRate, onEnd);
+
+  const buffer = await decodeAudioData(dataUri);
+  return startPlayback(ctx, buffer, volume, playbackRate, onEnd);
 }

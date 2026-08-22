@@ -44,12 +44,12 @@ export const DESKTOP_STAGE_DEFAULTS = {
   focusScale: 0.93,
   closeX: 0,
   closeY: 0,
-  clusterX: 0,
+  clusterX: -65,
   clusterY: 0,
   clusterLinked: 1,
 };
 
-/** Previous published defaults (lockup X 0 / nav·lang Y 18). */
+/** Previous published defaults (lockup X 0 / nav·lang Y 18 / cluster 0). */
 const PREV_DESKTOP_DEFAULTS = {
   lift: 64,
   lockupX: 0,
@@ -69,6 +69,8 @@ const PREV_DESKTOP_DEFAULTS = {
   clusterY: 0,
   clusterLinked: 1,
 };
+
+const CLUSTER_KEYS = new Set(["clusterX", "clusterY", "clusterLinked"]);
 
 /** Older uncustomized snapshots — treat as uncustomized too. */
 const PREV_DESKTOP_ALSO = {
@@ -256,17 +258,35 @@ function previousDefaultValues(key) {
   return values;
 }
 
+function migrateClusterDefaults(blob) {
+  if (!blob || typeof blob !== "object") return blob;
+  const next = { ...blob };
+  const missing = next.clusterX == null && next.clusterY == null;
+  const x = next.clusterX == null ? 0 : Number(next.clusterX);
+  const y = next.clusterY == null ? 0 : Number(next.clusterY);
+  const atOrigin = Number.isFinite(x) && Number.isFinite(y) && x === 0 && y === 0;
+  if (missing || atOrigin) {
+    next.clusterX = DESKTOP_STAGE_DEFAULTS.clusterX;
+    next.clusterY = DESKTOP_STAGE_DEFAULTS.clusterY;
+    next.clusterLinked = DESKTOP_STAGE_DEFAULTS.clusterLinked;
+  } else if (next.clusterLinked == null) {
+    next.clusterLinked = DESKTOP_STAGE_DEFAULTS.clusterLinked;
+  }
+  return next;
+}
+
 function migrateOldDesktopDefaults(blob) {
   if (!blob || typeof blob !== "object") return blob;
   const next = { ...blob };
   for (const key of Object.keys(DESKTOP_STAGE_DEFAULTS)) {
+    if (CLUSTER_KEYS.has(key)) continue;
     if (next[key] == null) continue;
     const fresh = DESKTOP_STAGE_DEFAULTS[key];
     if (previousDefaultValues(key).includes(next[key]) && next[key] !== fresh) {
       next[key] = fresh;
     }
   }
-  return next;
+  return migrateClusterDefaults(next);
 }
 
 function loadSaved() {
