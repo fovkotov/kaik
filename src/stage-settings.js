@@ -5,15 +5,7 @@
  */
 
 import { onFrameMetrics, safeStorage } from "./embed.js";
-import { t } from "./scriptik.js";
-import {
-  CARD_SIZE,
-  getCardSize,
-  isMobile,
-  MOBILE_MQ,
-  resetCardSize,
-  setCardSize,
-} from "./tweaks.js";
+import { CARD_SIZE, isMobile, MOBILE_MQ } from "./tweaks.js";
 
 const storage = safeStorage();
 const STORAGE_KEY = "kaik-stage-nudge-v6";
@@ -154,8 +146,6 @@ const GROUPS = [
   },
 ];
 
-const PINNED_GROUPS = new Set(["stage.group.all", "stage.group.cards"]);
-
 const FIELD_BY_KEY = new Map(GROUPS.flatMap((group) => group.items.map((item) => [item.key, item])));
 
 const desktop = { ...DESKTOP_STAGE_DEFAULTS };
@@ -176,36 +166,8 @@ function clampField(key, value) {
   return Number(rounded.toFixed(fieldDecimals(field)));
 }
 
-function formatFieldValue(key, value) {
-  const field = FIELD_BY_KEY.get(key);
-  const decimals = fieldDecimals(field);
-  const n = Number(value);
-  if (!Number.isFinite(n)) return String(value);
-  return decimals ? n.toFixed(decimals) : String(n);
-}
-
 function getTarget() {
   return isMobile() ? mobile : desktop;
-}
-
-function getDefaults() {
-  return isMobile() ? MOBILE_STAGE_DEFAULTS : DESKTOP_STAGE_DEFAULTS;
-}
-
-function isTweakField(key) {
-  return FIELD_BY_KEY.get(key)?.source === "tweaks";
-}
-
-function readField(key) {
-  if (key === "cardSize") return getCardSize();
-  return getTarget()[key];
-}
-
-function writeField(key, value) {
-  if (key === "cardSize") return setCardSize(value);
-  const next = clampField(key, value);
-  getTarget()[key] = next;
-  return next;
 }
 
 function migrateLegacy(blob) {
@@ -270,47 +232,6 @@ function save() {
   } catch {
     // ignore
   }
-}
-
-function layoutJson() {
-  const s = getTarget();
-  return {
-    lift: s.lift,
-    lockup: { x: s.lockupX, y: s.lockupY },
-    nav: { x: s.navX, y: s.navY },
-    lang: { x: s.langX, y: s.langY },
-    deck: { x: s.deckX, y: s.deckY },
-    focus: { x: s.focusX, y: s.focusY },
-    close: { x: s.closeX, y: s.closeY },
-    cardSize: getCardSize(),
-    focusScale: clampField("focusScale", s.focusScale),
-    mobileLift: mobile.lift,
-  };
-}
-
-function copyText(text) {
-  if (navigator.clipboard?.writeText) {
-    return navigator.clipboard.writeText(text);
-  }
-  return Promise.reject(new Error("clipboard unavailable"));
-}
-
-function copyViaTextarea(text) {
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.setAttribute("readonly", "");
-  ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
-  document.body.append(ta);
-  ta.focus();
-  ta.select();
-  let ok = false;
-  try {
-    ok = document.execCommand("copy");
-  } catch {
-    ok = false;
-  }
-  ta.remove();
-  return ok;
 }
 
 export function getFocusNudge() {
