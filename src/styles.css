@@ -4283,18 +4283,18 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     display: none;
   }
 
-  /* Figma 91:2162 — full-bleed dachshund (~322×149), pinned to the bottom
-     so title / week 1 stay clear. Card tilt stays −1deg in main.js. */
+  /* Figma 76:897 / 91:2162 — full-bleed dachshund (~322×149), pinned to the
+     top of the closed stack face. Card tilt stays −1deg in main.js. */
   .card-illust--program {
     z-index: 2;
     pointer-events: none;
   }
 
   .card-illust--program .card-illust__art {
-    top: auto;
+    top: 0;
     left: calc(-1.515 * var(--u));
     right: auto;
-    bottom: 0;
+    bottom: auto;
     width: calc(596.969 * var(--u));
     height: calc(276.539 * var(--u));
     transform: none;
@@ -4304,8 +4304,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .card-illust--program .card-illust__cue {
     left: 50%;
-    top: auto;
-    bottom: calc(108.539 * var(--u));
+    top: calc(168 * var(--u));
+    bottom: auto;
     transform: translateX(-50%);
     pointer-events: none;
   }
@@ -4423,12 +4423,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     cursor: pointer;
   }
 
-  /* Vector.svg 449×176 — key flush to the iframe/card bottom. Height is
-     width-based so a fullscreen overlay cannot stretch it mid-screen. */
+  /* Figma 76:1062 — Vector.svg 449×176, key flush to the closed card top.
+     Height is width-based so a fullscreen overlay cannot stretch it mid-screen. */
   .card-illust--works .card-illust__art {
     left: 50%;
-    top: auto;
-    bottom: 0;
+    top: 0;
+    bottom: auto;
     width: calc(449 / 450 * 100%);
     height: var(--works-key-h);
     transform: translateX(-50%);
@@ -4437,8 +4437,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .card-illust--works .card-illust__cue {
     left: calc(50% - 23.811%);
-    top: auto;
-    bottom: calc(var(--works-key-h) * 98 / 176);
+    top: calc(var(--works-key-h) * 78 / 176);
+    bottom: auto;
     transform: translateX(-50%);
   }
 
