@@ -92,7 +92,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
-  deckY: 0,
+  deckY: 70,
   focusX: 0,
   focusY: 0,
   focusScale: 1,
@@ -245,6 +245,9 @@ const PREV_FAB_TOP_GAP = 8;
 const FAB_TOP_TOLERANCE = 3;
 const FAB_DRAG_THRESHOLD = 8;
 const FAB_LONG_PRESS_MS = 300;
+const PANEL_GAP = 8;
+const PANEL_EDGE = 8;
+const PANEL_MIN_HEIGHT = 140;
 
 function fieldDecimals(field) {
   const step = String(field?.step ?? 1);
@@ -473,6 +476,31 @@ function applyFabPos(root, fabEl) {
   root.style.left = `${clamped.x}px`;
   root.style.top = `${clamped.y}px`;
   root.style.right = "auto";
+}
+
+function layoutPanel(root, fabEl, panelEl) {
+  if (!root.classList.contains("is-open")) {
+    root.classList.remove("is-panel-above");
+    panelEl.style.removeProperty("max-height");
+    return;
+  }
+
+  const { height: vh } = getViewportSize();
+  const { top: clipTop, bottom: clipBottom } = frameClipInsets();
+  const fabRect = fabEl.getBoundingClientRect();
+  const spaceBelow = vh - clipBottom - fabRect.bottom - PANEL_GAP - PANEL_EDGE;
+  const spaceAbove = fabRect.top - clipTop - PANEL_GAP - PANEL_EDGE;
+
+  let openAbove = false;
+  if (spaceBelow < PANEL_MIN_HEIGHT) {
+    openAbove = spaceAbove >= PANEL_MIN_HEIGHT;
+  } else {
+    openAbove = spaceAbove > spaceBelow;
+  }
+
+  root.classList.toggle("is-panel-above", openAbove);
+  const maxH = Math.max(PANEL_MIN_HEIGHT, openAbove ? spaceAbove : spaceBelow);
+  panelEl.style.maxHeight = `${maxH}px`;
 }
 
 function clearFabPos() {
@@ -858,6 +886,11 @@ export function initStageSettings() {
     root.classList.toggle("is-open", open);
     fab.setAttribute("aria-expanded", String(open));
     panel.inert = !open;
+    if (open) {
+      requestAnimationFrame(() => layoutPanel(root, fab, panel));
+    } else {
+      layoutPanel(root, fab, panel);
+    }
   }
 
   function syncValues() {
@@ -903,6 +936,7 @@ export function initStageSettings() {
   onFrameMetrics(() => {
     applyStageNudge();
     applyFabPos(root, fab);
+    layoutPanel(root, fab, panel);
   });
 
   const stopDeck = (event) => event.stopPropagation();
@@ -965,5 +999,6 @@ export function initStageSettings() {
     applyStageNudge({ notify: true });
     applyFabPos(root, fab);
     buildFields();
+    layoutPanel(root, fab, panel);
   });
 }
