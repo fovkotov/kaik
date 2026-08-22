@@ -1,10 +1,10 @@
 /**
- * Stage nudge panel (desktop + mobile gear). Desktop chrome matches Figma 117:975
- * in the left half, under cards. A “text position” toggle moves the whole
- * lockup+nav+lang cluster as one X/Y. Mobile: lift → footer, deck → stack.
+ * Stage nudge panel (desktop + mobile gear). Desktop chrome sits in the left
+ * half of the frame (Figma 117:975), under cards. Cluster X/Y are optional
+ * overrides on top of that geometry (default X -90). Mobile: lift → footer, deck → stack.
  */
 
-import { onFrameMetrics, safeStorage } from "./embed.js";
+import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
 import { t } from "./scriptik.js";
 import {
   CARD_SIZE,
@@ -27,40 +27,39 @@ const LEGACY_KEYS = [
 ];
 
 const AXIS = { min: -240, max: 240, step: 1 };
+const MOBILE_CARD_Y = { min: -120, max: 280, step: 1 };
 const FOCUS_AXIS = { min: -400, max: 400, step: 1 };
 const FOCUS_SCALE = { min: 0.5, max: 2, step: 0.01 };
 
 export const DESKTOP_STAGE_DEFAULTS = {
   lift: 64,
-  lockupX: 2,
+  lockupX: 0,
+  lockupY: 0,
+  navX: 0,
+  navY: 0,
+  langX: 0,
+  langY: 0,
+  deckX: 59,
+  focusX: 0,
+  focusY: 9,
+  focusScale: 0.93,
+  closeX: 0,
+  closeY: 0,
+  clusterX: -90,
+  clusterY: 0,
+  clusterLinked: 1,
+};
+
+/** Previous published defaults (deck X 0, cluster X 0). Stored 0 → 59. */
+const PREV_DESKTOP_DEFAULTS = {
+  lift: 64,
+  lockupX: 0,
   lockupY: 0,
   navX: 0,
   navY: 0,
   langX: 0,
   langY: 0,
   deckX: 0,
-  deckY: 44,
-  focusX: 0,
-  focusY: 9,
-  focusScale: 0.93,
-  closeX: 0,
-  closeY: 0,
-  clusterX: -65,
-  clusterY: 0,
-  clusterLinked: 1,
-};
-
-/** Previous published defaults (lockup X 0 / nav·lang Y 18 / cluster 0). */
-const PREV_DESKTOP_DEFAULTS = {
-  lift: 64,
-  lockupX: 0,
-  lockupY: 0,
-  navX: 0,
-  navY: 18,
-  langX: 0,
-  langY: 18,
-  deckX: 0,
-  deckY: 44,
   focusX: 0,
   focusY: 9,
   focusScale: 0.93,
@@ -76,9 +75,12 @@ const CLUSTER_KEYS = new Set(["clusterX", "clusterY", "clusterLinked"]);
 /** Older uncustomized snapshots — treat as uncustomized too. */
 const PREV_DESKTOP_ALSO = {
   lift: [0, 80],
-  deckY: [0],
+  lockupX: [2],
+  navY: [18],
+  langY: [18],
   focusY: [0, -47],
   focusScale: [1],
+  clusterX: [-65],
 };
 
 export const MOBILE_STAGE_DEFAULTS = {
@@ -90,7 +92,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
-  deckY: 151,
+  deckY: 0,
   focusX: 0,
   focusY: 0,
   focusScale: 1,
@@ -98,7 +100,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   closeY: 0,
 };
 
-/** Previous published mobile defaults (lift 110 / deckY 0). */
+/** Previous published mobile defaults (lift 110). */
 const PREV_MOBILE_DEFAULTS = {
   lift: 110,
   lockupX: 0,
@@ -186,7 +188,13 @@ const GROUPS = [
     mobileTitleKey: "stage.group.cards",
     items: [
       { key: "deckX", labelKey: "stage.axisX", ...AXIS },
-      { key: "deckY", labelKey: "stage.axisY", ...AXIS },
+      {
+        key: "deckY",
+        labelKey: "stage.axisY",
+        mobileLabelKey: "stage.cardY",
+        mobileOnly: true,
+        ...MOBILE_CARD_Y,
+      },
       {
         key: "cardSize",
         labelKey: "stage.cardScale",
@@ -215,13 +223,28 @@ const GROUPS = [
   },
 ];
 
-const DESKTOP_PINNED_GROUPS = new Set(["stage.group.all", "stage.group.cards", "stage.group.text"]);
+const DESKTOP_PINNED_GROUPS = new Set([
+  "stage.group.all",
+  "stage.group.cards",
+  "stage.group.deck",
+  "stage.group.text",
+]);
 const MOBILE_PINNED_GROUPS = new Set(["stage.group.all", "stage.group.deck"]);
 
 const FIELD_BY_KEY = new Map(GROUPS.flatMap((group) => group.items.map((item) => [item.key, item])));
 
 const desktop = { ...DESKTOP_STAGE_DEFAULTS };
 const mobile = { ...MOBILE_STAGE_DEFAULTS };
+
+/** Custom FAB position per breakpoint; null = CSS default (top-right). */
+const fabPos = { desktop: null, mobile: null };
+
+const FAB_EDGE = 8;
+const FAB_TOP_GAP = 0;
+const PREV_FAB_TOP_GAP = 8;
+const FAB_TOP_TOLERANCE = 3;
+const FAB_DRAG_THRESHOLD = 8;
+const FAB_LONG_PRESS_MS = 300;
 
 function fieldDecimals(field) {
   const step = String(field?.step ?? 1);
@@ -288,15 +311,18 @@ function previousDefaultValues(key) {
 function migrateClusterDefaults(blob) {
   if (!blob || typeof blob !== "object") return blob;
   const next = { ...blob };
-  const missing = next.clusterX == null && next.clusterY == null;
-  const x = next.clusterX == null ? 0 : Number(next.clusterX);
-  const y = next.clusterY == null ? 0 : Number(next.clusterY);
-  const atOrigin = Number.isFinite(x) && Number.isFinite(y) && x === 0 && y === 0;
-  if (missing || atOrigin) {
+  const x = next.clusterX == null ? null : Number(next.clusterX);
+  const y = next.clusterY == null ? null : Number(next.clusterY);
+  const prevX = previousDefaultValues("clusterX");
+  if (next.clusterX == null || (Number.isFinite(x) && prevX.includes(x))) {
     next.clusterX = DESKTOP_STAGE_DEFAULTS.clusterX;
+  }
+  if (next.clusterY == null) {
     next.clusterY = DESKTOP_STAGE_DEFAULTS.clusterY;
-    next.clusterLinked = DESKTOP_STAGE_DEFAULTS.clusterLinked;
-  } else if (next.clusterLinked == null) {
+  } else if (Number.isFinite(y) && previousDefaultValues("clusterY").includes(y)) {
+    next.clusterY = DESKTOP_STAGE_DEFAULTS.clusterY;
+  }
+  if (next.clusterLinked == null) {
     next.clusterLinked = DESKTOP_STAGE_DEFAULTS.clusterLinked;
   }
   return next;
@@ -330,6 +356,130 @@ function migrateOldMobileDefaults(blob) {
   return next;
 }
 
+function readFabPos(blob) {
+  if (!blob || typeof blob !== "object") return null;
+  const x = Number(blob.x);
+  const y = Number(blob.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x, y };
+}
+
+function getFabPos() {
+  return isMobile() ? fabPos.mobile : fabPos.desktop;
+}
+
+function setFabPos(next) {
+  if (isMobile()) fabPos.mobile = next;
+  else fabPos.desktop = next;
+}
+
+function loadFabPos(data) {
+  if (!data || typeof data !== "object") return;
+  fabPos.desktop = readFabPos(data.desktop);
+  fabPos.mobile = readFabPos(data.mobile);
+}
+
+function frameClipInsets() {
+  const rootStyle = getComputedStyle(document.documentElement);
+  return {
+    top: parseFloat(rootStyle.getPropertyValue("--frame-clip-top")) || 0,
+    bottom: parseFloat(rootStyle.getPropertyValue("--frame-clip-bottom")) || 0,
+  };
+}
+
+function readSafeAreaTop() {
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top, 0px);visibility:hidden;pointer-events:none";
+  document.body.append(probe);
+  const inset = probe.offsetTop || 0;
+  probe.remove();
+  return inset;
+}
+
+function fabTopInset(mobile = isMobile()) {
+  if (!mobile) return FAB_TOP_GAP;
+  return FAB_TOP_GAP + readSafeAreaTop();
+}
+
+function prevFabTopInset(mobile) {
+  if (!mobile) return PREV_FAB_TOP_GAP;
+  return Math.max(PREV_FAB_TOP_GAP, readSafeAreaTop());
+}
+
+function fabDefaultPos(mobile, { prev = false } = {}) {
+  const { width } = getViewportSize();
+  const { top: clipTop } = frameClipInsets();
+  const fabW = mobile ? 44 : 40;
+  const right = mobile ? 12 : FAB_EDGE;
+  const inset = prev ? prevFabTopInset(mobile) : fabTopInset(mobile);
+  return {
+    x: width - fabW - right,
+    y: clipTop + inset,
+  };
+}
+
+function fabPosNearDefault(pos, mobile, { prev = false } = {}) {
+  const def = fabDefaultPos(mobile, { prev });
+  return (
+    Math.abs(pos.x - def.x) <= FAB_TOP_TOLERANCE &&
+    Math.abs(pos.y - def.y) <= FAB_TOP_TOLERANCE
+  );
+}
+
+function migrateFabDefaults(data) {
+  if (!data || typeof data !== "object") return data;
+  const next = { ...data };
+  for (const [key, mobile] of [
+    ["desktop", false],
+    ["mobile", true],
+  ]) {
+    const pos = readFabPos(next[key]);
+    if (pos && fabPosNearDefault(pos, mobile, { prev: true })) {
+      next[key] = null;
+    }
+  }
+  return next;
+}
+
+function clampFabPos(x, y, fabEl) {
+  const { width, height } = getViewportSize();
+  const fabRect = fabEl.getBoundingClientRect();
+  const fabW = fabRect.width || (isMobile() ? 44 : 40);
+  const fabH = fabRect.height || fabW;
+  const { top: clipTop, bottom: clipBottom } = frameClipInsets();
+  const minX = FAB_EDGE;
+  const minY = clipTop + fabTopInset();
+  const maxX = Math.max(minX, width - fabW - FAB_EDGE);
+  const maxY = Math.max(minY, height - clipBottom - fabH - FAB_EDGE);
+  return {
+    x: Math.min(maxX, Math.max(minX, x)),
+    y: Math.min(maxY, Math.max(minY, y)),
+  };
+}
+
+function applyFabPos(root, fabEl) {
+  const pos = getFabPos();
+  if (!pos) {
+    root.classList.remove("is-fab-custom");
+    root.style.removeProperty("left");
+    root.style.removeProperty("top");
+    root.style.removeProperty("right");
+    return;
+  }
+  const clamped = clampFabPos(pos.x, pos.y, fabEl);
+  if (clamped.x !== pos.x || clamped.y !== pos.y) setFabPos(clamped);
+  root.classList.add("is-fab-custom");
+  root.style.left = `${clamped.x}px`;
+  root.style.top = `${clamped.y}px`;
+  root.style.right = "auto";
+}
+
+function clearFabPos() {
+  fabPos.desktop = null;
+  fabPos.mobile = null;
+}
+
 function loadSaved() {
   try {
     let raw = storage.getItem(STORAGE_KEY);
@@ -344,6 +494,7 @@ function loadSaved() {
     const desktopBlob = migrateOldDesktopDefaults(migrateLegacy(data.desktop));
     applyBlob(desktop, desktopBlob, DESKTOP_STAGE_DEFAULTS);
     applyBlob(mobile, migrateOldMobileDefaults(migrateLegacy(data.mobile)), MOBILE_STAGE_DEFAULTS);
+    loadFabPos(migrateFabDefaults(data.fab));
     save();
   } catch {
     // ignore
@@ -360,7 +511,14 @@ function applyBlob(target, blob, defaults) {
 
 function save() {
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify({ desktop, mobile }));
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        desktop,
+        mobile,
+        fab: { desktop: fabPos.desktop, mobile: fabPos.mobile },
+      }),
+    );
   } catch {
     // ignore
   }
@@ -388,7 +546,11 @@ export function applyStageNudge({ notify = false } = {}) {
   root.style.setProperty("--lang-nudge-x", `${s.langX}px`);
   root.style.setProperty("--lang-nudge-y", `${s.langY}px`);
   root.style.setProperty("--deck-nudge-x", `${s.deckX}px`);
-  root.style.setProperty("--deck-nudge-y", `${s.deckY}px`);
+  if (isMobile()) {
+    root.style.setProperty("--deck-nudge-y", `${s.deckY ?? 0}px`);
+  } else {
+    root.style.removeProperty("--deck-nudge-y");
+  }
   root.style.setProperty("--focus-nudge-x", `${s.focusX}px`);
   root.style.setProperty("--focus-nudge-y", `${s.focusY}px`);
   root.style.setProperty("--close-nudge-x", `${s.closeX}px`);
@@ -400,15 +562,24 @@ export function applyStageNudge({ notify = false } = {}) {
 
 function layoutJson() {
   const s = getTarget();
+  const deck = { x: s.deckX };
+  if (isMobile() && s.deckY) deck.y = s.deckY;
+
+  const cluster = { linked: Boolean(s.clusterLinked) };
+  if (cluster.linked) {
+    cluster.x = s.clusterX;
+    cluster.y = s.clusterY;
+  }
+
   return {
     lift: s.lift,
     lockup: { x: s.lockupX, y: s.lockupY },
     nav: { x: s.navX, y: s.navY },
     lang: { x: s.langX, y: s.langY },
-    deck: { x: s.deckX, y: s.deckY },
+    deck,
     focus: { x: s.focusX, y: s.focusY },
     close: { x: s.closeX, y: s.closeY },
-    cluster: { x: s.clusterX, y: s.clusterY, linked: Boolean(s.clusterLinked) },
+    cluster,
     cardSize: getCardSize(),
     focusScale: clampField("focusScale", s.focusScale),
     mobileLift: mobile.lift,
@@ -451,11 +622,105 @@ function gearSvg() {
   `;
 }
 
+function wireFabDrag(fab, root, { onTap, onDragStart } = {}) {
+  let drag = null;
+
+  function clearDrag() {
+    if (!drag) return;
+    window.clearTimeout(drag.timer);
+    fab.classList.remove("is-dragging", "is-drag-armed");
+    fab.releasePointerCapture?.(drag.pointerId);
+    drag = null;
+  }
+
+  function beginDrag(pointerId) {
+    if (drag?.active) return;
+    const rect = root.getBoundingClientRect();
+    drag.active = true;
+    drag.originLeft = rect.left;
+    drag.originTop = rect.top;
+    fab.classList.add("is-dragging");
+    fab.classList.remove("is-drag-armed");
+    window.clearTimeout(drag.timer);
+    onDragStart?.();
+    fab.setPointerCapture?.(pointerId);
+  }
+
+  fab.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    clearDrag();
+    drag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      active: false,
+      timer: window.setTimeout(() => beginDrag(event.pointerId), FAB_LONG_PRESS_MS),
+    };
+    fab.classList.add("is-drag-armed");
+    fab.setPointerCapture?.(event.pointerId);
+  });
+
+  fab.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.active) {
+      if (Math.hypot(dx, dy) < FAB_DRAG_THRESHOLD) return;
+      beginDrag(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const next = clampFabPos(drag.originLeft + dx, drag.originTop + dy, fab);
+    root.classList.add("is-fab-custom");
+    root.style.left = `${next.x}px`;
+    root.style.top = `${next.y}px`;
+    root.style.right = "auto";
+  });
+
+  function finishDrag(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const wasDrag = drag.active;
+    if (wasDrag) {
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = root.getBoundingClientRect();
+      const next = clampFabPos(rect.left, rect.top, fab);
+      setFabPos(next);
+      applyFabPos(root, fab);
+      save();
+    } else {
+      onTap?.();
+    }
+    clearDrag();
+  }
+
+  fab.addEventListener("pointerup", finishDrag);
+  fab.addEventListener("pointercancel", (event) => {
+    if (drag?.active && event.pointerId === drag.pointerId) {
+      const rect = root.getBoundingClientRect();
+      setFabPos(clampFabPos(rect.left, rect.top, fab));
+      applyFabPos(root, fab);
+      save();
+    }
+    clearDrag();
+  });
+
+  fab.addEventListener("lostpointercapture", () => {
+    fab.classList.remove("is-dragging", "is-drag-armed");
+  });
+
+  fab.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+}
+
 export function initStageSettings() {
   document.querySelector("[data-stage-settings]")?.remove();
   loadSaved();
   applyStageNudge();
-  onFrameMetrics(() => applyStageNudge());
 
   const root = document.createElement("aside");
   root.className = "stage-settings";
@@ -633,16 +898,21 @@ export function initStageSettings() {
   buildFields();
   document.body.append(root);
   setOpen(false);
+  applyFabPos(root, fab);
+
+  onFrameMetrics(() => {
+    applyStageNudge();
+    applyFabPos(root, fab);
+  });
 
   const stopDeck = (event) => event.stopPropagation();
   root.addEventListener("pointerdown", stopDeck);
   root.addEventListener("touchstart", stopDeck, { passive: true });
   root.addEventListener("wheel", stopDeck, { capture: true, passive: true });
 
-  fab.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setOpen(!root.classList.contains("is-open"));
+  wireFabDrag(fab, root, {
+    onTap: () => setOpen(!root.classList.contains("is-open")),
+    onDragStart: () => setOpen(false),
   });
 
   root.querySelector("[data-stage-reset]").addEventListener("click", (event) => {
@@ -650,6 +920,8 @@ export function initStageSettings() {
     event.stopPropagation();
     Object.assign(getTarget(), getDefaults());
     resetCardSize();
+    clearFabPos();
+    applyFabPos(root, fab);
     buildFields();
     applyStageNudge({ notify: true });
     save();
@@ -691,6 +963,7 @@ export function initStageSettings() {
 
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
     applyStageNudge({ notify: true });
+    applyFabPos(root, fab);
     buildFields();
   });
 }

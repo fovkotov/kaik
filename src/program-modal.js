@@ -14,7 +14,7 @@ const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
   "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
   const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select";
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
@@ -366,8 +366,14 @@ export function initProgramModal() {
     const stackH = fromLocal?.height || pose.height;
     el.style.position = "";
     el.style.right = "";
-    el.style.marginLeft = `${-stackW / 2}px`;
-    el.style.marginTop = `${-stackH / 2}px`;
+    if (isMobile()) {
+      el.style.marginTop = "0";
+      el.style.marginLeft =
+        getComputedStyle(document.documentElement).getPropertyValue("--deck-nudge-x").trim() || "0px";
+    } else {
+      el.style.marginLeft = `${-stackW / 2}px`;
+      el.style.marginTop = `${-stackH / 2}px`;
+    }
     el.style.marginRight = "0";
     el.style.marginBottom = "0";
     el.style.width = `${pose.width}px`;

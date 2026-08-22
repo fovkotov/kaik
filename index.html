@@ -37,38 +37,35 @@
     <link
       rel="preload"
       as="image"
-      href="/letters/ltr_d094952c.svg"
+      href="/letters/ltr_53a64d7a.svg"
       type="image/svg+xml"
       fetchpriority="high"
       data-dropcap-preload
     />
     <script>
-      /* Random dropcap before first paint. Math.random() every load — not stored. */
+      /* First-paint dropcap is always Nadya's gothic L — not random. */
       (function () {
-        var fallback = { id: "ltr_d094952c", file: "ltr_d094952c.svg", char: "L" };
-        var pick = fallback;
+        var pinned = { id: "ltr_53a64d7a", file: "ltr_53a64d7a.svg", char: "L" };
+        var pick = pinned;
         var node = document.getElementById("kaik-dropcap-catalog");
         try {
           var data = JSON.parse(node && node.textContent);
           var letters = (data && data.letters) || [];
-          if (letters.length) {
-            var loc = document.documentElement.getAttribute("data-locale") || "en";
-            var want = loc === "ru" ? (data.ru || "Э") : (data.en || "L");
-            var pool = letters.filter(function (item) {
-              return item && item.char === want;
-            });
-            if (!pool.length) pool = letters;
-            pick = pool[Math.floor(Math.random() * pool.length)] || fallback;
+          for (var i = 0; i < letters.length; i++) {
+            if (letters[i] && letters[i].id === pinned.id && letters[i].file) {
+              pick = letters[i];
+              break;
+            }
           }
         } catch (e) {}
-        if (!pick || !pick.file) pick = fallback;
+        if (!pick || !pick.file) pick = pinned;
         var root = document.documentElement;
-        root.setAttribute("data-dropcap-id", pick.id || fallback.id);
+        root.setAttribute("data-dropcap-id", pick.id || pinned.id);
         root.setAttribute("data-dropcap-file", pick.file);
-        root.setAttribute("data-dropcap-char", pick.char || "");
+        root.setAttribute("data-dropcap-char", pick.char || pinned.char);
         var preload = document.querySelector("[data-dropcap-preload]");
         if (preload) {
-          var href = preload.getAttribute("href") || "/letters/" + fallback.file;
+          var href = preload.getAttribute("href") || "/letters/" + pinned.file;
           var next = href.replace(/[^/]+$/, pick.file);
           preload.setAttribute("href", next);
           preload.href = next;
@@ -129,16 +126,16 @@
               type="button"
               class="dropcap"
               data-slot="dropcap-0"
-              data-letter-id="ltr_d094952c"
+              data-letter-id="ltr_53a64d7a"
               data-char="L"
               aria-label="Drop cap L"
             >
               <span class="dropcap__swap" aria-hidden="true">
                 <span class="dropcap__glyph">
                   <img
-                    src="/letters/ltr_d094952c.svg"
+                    src="/letters/ltr_53a64d7a.svg"
                     alt=""
-                    width="368"
+                    width="379"
                     height="459"
                     decoding="async"
                     fetchpriority="high"
@@ -226,12 +223,12 @@ to 12 october</p>
             />
           </div>
           <div class="landing-card__foot">
-            <div class="landing-card__meta">
-              <p class="landing-card__title" data-i18n="landing.title">LETTER II</p>
-              <p class="landing-card__dates" data-i18n="landing.dates">from 31 avgust
+            <div class="landing-card__intro">
+              <div class="landing-card__meta">
+                <p class="landing-card__title" data-i18n="landing.title">LETTER II</p>
+                <p class="landing-card__dates" data-i18n="landing.dates">from 31 avgust
 to 12 october</p>
-            </div>
-            <nav class="landing-card__nav" aria-label="Course">
+              </div>
               <a
                 class="landing-card__enroll"
                 href="https://web.tribute.tg/p/AOo"
@@ -240,6 +237,8 @@ to 12 october</p>
                 data-i18n="nav.enroll"
                 >enroll</a
               >
+            </div>
+            <nav class="landing-card__nav" aria-label="Course">
               <a href="/program.html" data-program-nav data-i18n="nav.program">program</a>
               <a href="#works" data-work-nav data-i18n="nav.work">student work</a>
               <div

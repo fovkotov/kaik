@@ -1,0 +1,33 @@
+---
+description: After any file-changing task, commit and push to GitHub without asking.
+alwaysApply: true
+---
+
+# Git commit and push after every task
+
+This project opts into auto-push. After every completed user task that changes files, ship to GitHub **without asking**. Do not wait for "закоммить / запушь".
+
+## When to commit
+
+Commit when the task is done and the working tree has relevant project changes (source, assets, config, Cursor rules). Skip commits for question-only or read-only work.
+
+## How to commit
+
+1. Run `git status` and `git diff` to see what changed.
+2. Stage all relevant files — not secrets (`.env`, tokens, credentials).
+3. Write a concise 1–2 sentence commit message in the repo style (sentence case, focus on why/outcome — no `feat:` prefixes).
+4. Commit. If a pre-commit hook fails, fix and create a **new** commit — do not amend unless the user explicitly asked.
+
+## How to push
+
+Push to the tracked remote immediately after a successful commit:
+
+```bash
+git push
+```
+
+Use `git push -u origin <branch>` only when the branch has no upstream yet. **Never** force-push. **Never** update git config.
+
+## With Vercel deploy
+
+This rule covers GitHub only. The separate Vercel deploy rule still applies after file changes — commit and push first when git is in use, then deploy production.

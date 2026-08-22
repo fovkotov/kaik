@@ -63,19 +63,18 @@
   /* Insets when the iframe box extends past the visible browser window (Cargo 100vh). */
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
-  /* Stage lift: desktop 64 / mobile 110. Lockup X 2, cluster X -65, stack Y 44, focus Y 9.
-     JS stage-settings writes these; media-query values are the slider defaults. */
+  /* Stage lift: desktop 64 / mobile 146. Cluster X/Y are extra nudges on left-half geometry.
+     JS stage-settings writes these; fallback X -90 matches the published default. */
   --stage-lift: 0px;
   --lockup-nudge-x: 0px;
   --lockup-nudge-y: 0px;
-  --cluster-nudge-x: 0px;
+  --cluster-nudge-x: -90px;
   --cluster-nudge-y: 0px;
   --nav-nudge-x: 0px;
   --nav-nudge-y: 0px;
   --lang-nudge-x: 0px;
   --lang-nudge-y: 0px;
-  --deck-nudge-x: 0px;
-  --deck-nudge-y: 0px;
+  --deck-nudge-x: 59px;
   --focus-nudge-x: 0px;
   --focus-nudge-y: 0px;
   --close-nudge-x: 0px;
@@ -187,10 +186,11 @@ body.catalog {
 @media (min-width: 901px) {
   :root {
     --stage-lift: 64px;
-    --lockup-nudge-x: 2px;
-    --cluster-nudge-x: -65px;
-    --deck-nudge-y: 44px;
     --focus-nudge-y: 9px;
+  }
+
+  .deck {
+    top: calc(var(--frame-clip-top) - var(--stage-lift) + 44px);
   }
 
   body:not(.admin):not(.catalog) .viewport {
@@ -200,16 +200,6 @@ body.catalog {
 
   body:not(.admin):not(.catalog) .viewport::-webkit-scrollbar {
     display: none;
-  }
-
-  .panel__cluster {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-lockup);
-    pointer-events: none;
-    transform: translate3d(var(--cluster-nudge-x), var(--cluster-nudge-y), 0);
-    transform-style: preserve-3d;
   }
 }
 
@@ -239,8 +229,10 @@ a {
   pointer-events: none;
 }
 
-/* Figma 117:975 — static cluster centered in the left half, under .deck.
+/* Figma 117:975 — lockup centered in the left half of the frame, under .deck.
    Dropcap 105.286×134 + 16/19 type column (120×133), gap 20.
+   Desktop: .panel__cluster is the left 50% column (containing block). 100% below
+   is that column, so the lockup center sits at 25% of --frame-w.
    Lockup, nav, and lang all sit at --z-lockup so cards paint over them. */
 .panel {
   --panel-dropcap-w: 105.286px;
@@ -255,19 +247,35 @@ a {
   --panel-dates-h: 57px;
   --panel-nav-h: 57px;
   --panel-type: 16px;
-  --panel-left-col: calc(var(--frame-w) * 0.5);
+  --panel-left-col: 100%;
   --panel-cluster-left: calc(
     (var(--panel-left-col) - var(--panel-cluster-w)) / 2 + var(--lockup-nudge-x)
   );
   --panel-cluster-top: calc(
-    var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift) +
-      var(--lockup-nudge-y)
+    (100% - var(--panel-lockup-h)) / 2 - var(--stage-lift) + var(--lockup-nudge-y)
   );
   display: contents;
 }
 
 .panel__cluster {
   display: contents;
+}
+
+@media (min-width: 901px) {
+  /* Must follow the base `display: contents` or that rule wins and the column
+     never exists — 100% in --panel-cluster-left then means the full frame. */
+  .panel__cluster {
+    display: block;
+    position: fixed;
+    top: var(--frame-clip-top);
+    left: 0;
+    width: calc(var(--frame-w) / 2);
+    height: var(--frame-h);
+    z-index: var(--z-lockup);
+    pointer-events: none;
+    transform: translate3d(var(--cluster-nudge-x), var(--cluster-nudge-y), 0);
+    transform-style: preserve-3d;
+  }
 }
 
   .panel a,
@@ -555,7 +563,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 /* Card deck — fixed stage on the right */
 .deck {
   position: fixed;
-  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y));
+  top: calc(var(--frame-clip-top) - var(--stage-lift));
   left: var(--deck-nudge-x);
   z-index: var(--z-deck);
   width: var(--frame-w);
@@ -781,11 +789,22 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: calc(28 * var(--u, 1px));
+  gap: calc(24 * var(--u, 1px));
   width: 100%;
   min-height: 0;
-  padding: calc(32 * var(--u, 1px));
+  padding: calc(16 * var(--u, 1px)) calc(32 * var(--u, 1px));
   box-sizing: border-box;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: calc(14 * var(--u, 1px));
+  line-height: normal;
+}
+
+.landing-card__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .landing-card__meta {
@@ -796,16 +815,22 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   width: min(180px, 100%);
   text-align: center;
   color: rgba(0, 0, 0, 0.48);
-  font-family: var(--font);
-  font-weight: 700;
-  font-size: calc(11.676 * var(--u, 1px));
-  line-height: normal;
   white-space: pre-wrap;
 }
 
 .landing-card__title,
 .landing-card__dates {
   margin: 0;
+}
+
+.landing-card__enroll {
+  display: inline-block;
+  margin: 0;
+  color: #ff4c00;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .landing-card__nav {
@@ -815,10 +840,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   justify-content: center;
   gap: 12px;
   width: 100%;
-  font-family: var(--font-ru);
-  font-weight: 700;
-  font-size: calc(11.676 * var(--u, 1px));
-  line-height: normal;
+  color: rgba(0, 0, 0, 0.48);
+  white-space: nowrap;
   pointer-events: auto;
 }
 
@@ -834,15 +857,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   text-underline-offset: 0.12em;
 }
 
-.landing-card__enroll {
-  color: #ff4c00 !important;
-}
-
 .landing-card__lang {
   display: inline-flex;
   align-items: center;
   gap: 0;
   color: rgba(0, 0, 0, 0.48);
+  font: inherit;
 }
 
 .landing-card__lang .lang-btn {
@@ -854,6 +874,17 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+  text-decoration: none;
+}
+
+.landing-card__lang .lang-btn.is-active {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.landing-card__lang .lang-sep {
+  margin: 0;
+  text-decoration: none;
 }
 
 .format-card {
@@ -1306,11 +1337,15 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --works-rotate: 0deg;
   --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
   --works-open-scale: 1.16;
+  --works-key-h: calc(var(--card-w) * 176 / 449);
   --focus-open-w: min(
     calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
     calc(var(--frame-w) - 48px)
   );
   --program-open-w: var(--focus-open-w);
+  /* preserve-3d on .card makes overflow:hidden a no-op — lettering then
+     paints as one grey plane instead of a clipped slide. */
+  transform-style: flat;
 }
 
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
@@ -1319,6 +1354,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   width: var(--works-side);
   height: var(--works-side);
   margin-top: calc(var(--works-side) / -2);
+  overflow: hidden;
 }
 
 .works-card {
@@ -1333,9 +1369,14 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   height: 100%;
   padding: calc(2 * var(--u)) calc(15 * var(--u)) calc(40 * var(--u));
   overflow: hidden;
+  overflow: clip;
   background: #9d9d9d;
   color: #000;
   font-weight: 700;
+}
+
+.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card {
+  --u: calc(var(--works-side) / 842);
 }
 
 .works-card__title {
@@ -1469,6 +1510,11 @@ img.works-card__piece {
     --works-shift-x: 0px;
     --focus-open-w: var(--frame-w);
     --program-open-w: var(--focus-open-w);
+  }
+
+  /* Mobile stack origin is top:0 / margin-top:0 — do not pull the square up. */
+  .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
+    margin-top: 0;
   }
 }
 
@@ -1693,7 +1739,8 @@ img.works-card__piece {
 .card-illust--program,
 .card-illust--exercises,
 .card-illust--faq,
-.card-illust--preview {
+.card-illust--preview,
+.card-illust--works {
   display: block;
   position: absolute;
   inset: 0;
@@ -1708,6 +1755,33 @@ img.works-card__piece {
 
 .card-illust--works {
   --u: calc(var(--card-w) / 842);
+  z-index: 4;
+}
+
+.card-illust--works .card-illust__art {
+  left: 50%;
+  top: auto;
+  bottom: 0;
+  width: calc(449 / 450 * 100%);
+  height: var(--works-key-h);
+  transform: translateX(-50%);
+  object-fit: fill;
+}
+
+.card-illust--works .card-illust__cue {
+  display: block;
+  position: absolute;
+  left: calc(50% - 23.811%);
+  top: auto;
+  bottom: calc(var(--works-key-h) * 98 / 176);
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-ru);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: normal;
+  color: #000;
+  white-space: nowrap;
 }
 
 .card-illust--exercises {
@@ -2881,6 +2955,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   height: var(--fly-h);
   margin: 0;
   overflow: hidden;
+  transform-style: flat;
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -2905,7 +2980,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   left: 50%;
   right: auto;
   top: calc(
-    (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2 + var(--deck-nudge-y)
+    (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2
   );
   margin-left: var(--deck-nudge-x);
   margin-top: 0;
@@ -2947,6 +3022,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 }
 
 .card.is-program-open.is-program-scroll {
+  transform-style: flat;
   overflow-x: hidden;
   overflow-y: auto;
   overflow-anchor: none;
@@ -3526,6 +3602,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   :root {
     --host-bar: 0px;
     --panel-footer-h: 0px;
+    --deck-nudge-y: 0px;
     --panel-chrome-top: max(12px, env(safe-area-inset-top, 0px));
     --panel-chrome-bot: 0px;
     --focus-close-inset: calc(
@@ -3546,11 +3623,13 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .deck {
     z-index: 20;
-    top: calc(var(--frame-clip-top) + var(--deck-nudge-y));
+    top: calc(var(--frame-clip-top) + var(--deck-nudge-y, 0px));
     perspective-origin: 50% 50%;
     transform-origin: 50% 50%;
     pointer-events: none;
     touch-action: none;
+    /* Stack lift / cardSize move cards above the deck box — do not clip the top. */
+    overflow: visible;
   }
 
   .card[data-landing-card] {
@@ -4050,14 +4129,17 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .card {
     left: 50%;
     right: auto;
-    top: calc(
-      (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2 + var(--deck-nudge-y)
-    );
+    top: 0;
+    margin-top: 0;
     margin-left: calc(var(--card-w) / -2 + var(--deck-nudge-x));
     transform-origin: 50% 50%;
     cursor: grab;
     touch-action: none;
     pointer-events: auto;
+  }
+
+  .card.is-program-open[data-expand-host] {
+    top: 0;
   }
 
   .deck.is-dragging .card {
@@ -5126,10 +5208,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 }
 
-/* —— Stage position settings (gear on mobile only) —— */
+/* —— Stage position settings (gear on desktop + mobile) —— */
 .stage-settings {
   position: fixed;
-  top: 8px;
+  top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
   right: 8px;
   z-index: 280;
   display: flex;
@@ -5141,6 +5223,11 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   overflow: hidden;
   pointer-events: none;
   overscroll-behavior: contain;
+}
+
+.stage-settings.is-fab-custom {
+  right: auto !important;
+  bottom: auto !important;
 }
 
 .stage-settings__fab {
@@ -5172,6 +5259,18 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 .stage-settings__fab:active {
   transform: scale(0.97);
+}
+
+.stage-settings__fab.is-drag-armed {
+  cursor: grab;
+  transform: scale(0.98);
+}
+
+.stage-settings__fab.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.04);
+  touch-action: none;
+  z-index: 1;
 }
 
 .stage-settings.is-open .stage-settings__fab {
@@ -5400,18 +5499,24 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 }
 
 @media (min-width: 901px) {
-  .stage-settings__fab {
-    display: none;
+  /* Keep the gear in the iframe viewport, above the deck (z-index 280 > --z-deck).
+     Top-right sits above the vertically centered cards so it stays clickable. */
+  .stage-settings {
+    top: var(--frame-clip-top);
+    right: 8px;
   }
 }
 
 @media (max-width: 900px) {
   .stage-settings {
-    top: auto;
-    bottom: calc(var(--frame-clip-bottom) + max(12px, env(safe-area-inset-bottom, 0px)));
+    top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
+    bottom: auto;
     right: 12px;
     width: min(260px, calc(var(--frame-w) - 24px));
-    max-height: min(calc(var(--frame-h) - 28px), 72%);
+    max-height: min(
+      calc(var(--frame-h) - var(--frame-clip-top) - env(safe-area-inset-top, 0px) - 16px),
+      72%
+    );
   }
 
   body:has(.card.is-program-open) .stage-settings {
@@ -5424,6 +5529,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .stage-settings__copy,
   .stage-settings__range {
     touch-action: manipulation;
+  }
+
+  .stage-settings__fab.is-dragging {
+    touch-action: none;
   }
 
   .stage-settings,
@@ -5447,6 +5556,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .stage-settings__fab:active,
+  .stage-settings__fab.is-drag-armed,
+  .stage-settings__fab.is-dragging,
   .stage-settings__reset:active,
   .stage-settings__copy:active,
   .stage-settings__panel {

@@ -70,7 +70,7 @@ export const MOBILE = {
   deckLeftPct: 50,
   deckScale: 1,
   /** 1 = max height that still fits the iframe; 0.5–1.5 scales the whole stack. */
-  cardSize: 1,
+  cardSize: 1.07,
   travelDir: 0,
 
   parallaxX: 14,
@@ -554,6 +554,9 @@ function applyMobileSaved(mobile) {
     if (!Number.isFinite(Number(MOBILE[key]))) MOBILE[key] = MOBILE_DEFAULTS[key];
   }
   MOBILE.viewMode = normalizeViewMode(MOBILE.viewMode);
+  if (MOBILE.cardSize == null || MOBILE.cardSize === 1) {
+    MOBILE.cardSize = MOBILE_DEFAULTS.cardSize;
+  }
 }
 
 function applyEditMode(data) {

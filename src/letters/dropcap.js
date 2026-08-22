@@ -13,6 +13,9 @@ import { firstGrapheme, normalizeChar } from "./shared.js";
 import { svgToInline } from "./svg.js";
 import { sameCatalog, subscribeCatalog } from "./live.js";
 
+/** First paint always opens on this gothic L. Click / scroll still cycle. */
+const FIRST_DROPCAP_ID = "ltr_53a64d7a";
+
 const SPIN_OUT_DEG = 450;
 const SPIN_IN_FROM_DEG = -90;
 const EASE_IN = "cubic-bezier(0.55, 0.055, 0.675, 0.19)";
@@ -289,6 +292,22 @@ function wrapSpinDeg(deg) {
 
 function halfTurns(deg) {
   return Math.floor((deg + 90) / SWAP_PERIOD_DEG);
+}
+
+/** Paint a preferred letter first; fall back to the pool if it is missing. */
+async function paintPreferred(button, pool, preferredId, { animate = false } = {}) {
+  const preferred = preferredId
+    ? pool.find((item) => item.id === preferredId)
+    : null;
+  if (preferred) {
+    try {
+      await paintGlyph(button, preferred, { animate });
+      return preferred;
+    } catch {
+      /* SVG missing — keep going through the pool. */
+    }
+  }
+  return paintFromPool(button, pool, preferredId, { animate });
 }
 
 /** Paint the first variant whose SVG loads. Prefer `excludeId` only as a skip. */
@@ -650,9 +669,8 @@ export async function initDropcaps() {
         const localeSwap = Boolean(
           animate && matched.length && paintedChar && paintedChar !== char,
         );
-        /* Keep the first-paint random glyph. Re-pick only when locale has a
-           matching set, or when the inline pick never ran. Never restore a
-           session letter — each visit uses Math.random(). */
+        /* Keep the first-paint pinned glyph. Re-pick only when locale has a
+           matching set, or when the inline pick never ran. */
         const keepHtmlGlyph =
           hadGlyph && !localeSwap && (picked || animate || !pool.length);
 
@@ -662,7 +680,7 @@ export async function initDropcaps() {
           return;
         }
 
-        const entry = await paintFromPool(button, pool, undefined, {
+        const entry = await paintPreferred(button, pool, FIRST_DROPCAP_ID, {
           animate: animate && hadGlyph,
         });
         if (gen !== mountGen) return;
