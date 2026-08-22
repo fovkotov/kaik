@@ -1410,11 +1410,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .works-card__key {
   position: absolute;
-  top: calc(6 / 318 * 100cqw);
+  top: 6px;
   left: 0;
   z-index: 5;
   width: 100%;
-  height: calc(176 / 449 * 100cqw);
+  height: auto;
+  aspect-ratio: 449 / 176;
   pointer-events: none;
   user-select: none;
 }
@@ -1431,13 +1432,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .card[data-works-card] .works-card__key .works-card__key-cue {
   display: block;
   position: absolute;
-  left: calc(50% - 75.43 / 318 * 100cqw);
+  left: calc(50% - 75.43 / 318 * 100%);
   top: calc(78 / 176 * 100%);
   transform: translateX(-50%);
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
-  font-size: calc(8.499 / 318 * 100cqw);
+  font-size: 12px;
   line-height: normal;
   color: #000;
   white-space: nowrap;
@@ -1646,17 +1647,30 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
     --program-open-w: var(--focus-open-w);
   }
 
+  /* Figma 130:5304 — 318×450 portrait stack face, not the desktop square. */
+  .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
+    --card-w: var(--stack-card-w);
+    --card-h: var(--stack-card-h);
+    width: var(--stack-card-w);
+    height: var(--stack-card-h);
+    margin-top: 0;
+  }
+
   .card[data-works-card] .works-card {
-    --u: calc(100cqw / 318);
-    --works-pad-x: 0px;
-    --works-pad-top: calc(0.755 / 318 * 100%);
-    --works-pad-bot: calc(15.106 / 318 * 100%);
-    --works-gap-section: calc(24.17 / 318 * 100cqw);
-    --works-gap-item: calc(9.064 / 318 * 100cqw);
-    --works-gap-tight: calc(6.043 / 318 * 100cqw);
-    --works-list-top: calc((17.384 + 107.41) / 318 * 100cqw);
-    --works-title-size: calc(17.384 / 318 * 100cqw);
+    --u: calc(var(--card-w) / 318);
+    --works-pad-x: calc(5.665 / 318 * var(--card-w));
+    --works-pad-top: calc(0.755 / 318 * var(--card-w));
+    --works-pad-bot: calc(15.106 / 318 * var(--card-w));
+    --works-gap-section: calc(24.17 / 318 * var(--card-w));
+    --works-gap-item: calc(9.064 / 318 * var(--card-w));
+    --works-gap-tight: calc(6.043 / 318 * var(--card-w));
+    --works-list-top: calc((17.384 + 107.41) / 318 * var(--card-w));
+    --works-title-size: calc(17.384 / 318 * var(--card-w));
     --works-who-size: 10px;
+  }
+
+  .card.is-program-open[data-works-card] .works-card {
+    --works-title-size: calc(20.5 / 374 * var(--card-w));
   }
 
   .works-card__who--stack {
@@ -1664,10 +1678,6 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
     flex-direction: column;
     align-items: center;
     white-space: normal;
-  }
-
-  .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
-    margin-top: 0;
   }
 }
 
@@ -4490,7 +4500,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card[data-works-card] .works-card__key .works-card__key-cue {
-    font-size: calc(8.499 / 318 * 100cqw);
+    font-size: 12px;
   }
 
   .card[data-program-card] .card-illust--program .card-illust__cue {

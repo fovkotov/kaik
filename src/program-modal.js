@@ -258,7 +258,7 @@ export function initProgramModal() {
       return { w: from.width, h: from.height };
     }
     const root = getComputedStyle(document.documentElement);
-    if (card?.hasAttribute("data-works-card")) {
+    if (card?.hasAttribute("data-works-card") && !isMobile()) {
       const side =
         Number.parseFloat(getComputedStyle(card).getPropertyValue("--works-side")) ||
         Number.parseFloat(root.getPropertyValue("--stack-card-h")) ||
