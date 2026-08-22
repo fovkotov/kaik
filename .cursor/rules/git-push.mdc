@@ -32,6 +32,8 @@ Use `git push -u origin <branch>` only when the branch has no upstream yet.
 
 **Never** force-push (`--force`, `--force-with-lease`). **Never** update git config.
 
-## With Vercel deploy
+## After push
 
-This rule covers GitHub only. The separate Vercel deploy rule still applies after file changes — commit and push first when git is in use, then deploy production.
+Push to `main` triggers **GitHub Pages** automatically (primary — see `github-pages-deploy.mdc`). Then deploy **Vercel** (secondary — see `vercel-deploy.mdc`).
+
+Order: commit → `git push origin main` → wait for Pages workflow → Vercel CLI deploy.

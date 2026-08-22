@@ -1,0 +1,78 @@
+---
+description: Primary production deploy — push to GitHub Pages first via git push to main. One push ships site, admin, and catalog together.
+alwaysApply: true
+---
+
+# Immediate GitHub Pages production deploy (primary)
+
+This project opts into auto-deploy. After a task that changes files, ship to GitHub Pages **first**, **without asking**. Do not wait for "закоммить / запушь / задеплой".
+
+GitHub Pages is the **primary** live host (Cargo iframe embed). Vercel is secondary — see `vercel-deploy.mdc`.
+
+## One repo, all products
+
+One Vite app, one GitHub Pages site (`fovkotov/kaik`). A single push to `main` updates every product:
+
+| Product | URL path | Source |
+|---|---|---|
+| Site (course) | `/kaik/` | `index.html` |
+| Admin | `/kaik/admin` | `admin.html` |
+| Catalog | `/kaik/catalog` | `catalog.html` |
+
+Do not treat them as separate apps. Do not skip a deploy because "only admin changed".
+
+Live host: `https://fovkotov.github.io/kaik/`
+
+## How it works
+
+- Workflow: `.github/workflows/pages.yml`
+- Trigger: every push to `main` (and manual `workflow_dispatch`)
+- Build: `npm run build:pages` → `vite build --base /kaik/`
+- Artifact: `dist/` with `.nojekyll` and `404.html` copy for SPA routing
+
+## How to ship
+
+When git is in use (normal case):
+
+```bash
+git push origin main
+```
+
+Commit first if the working tree has relevant changes — see `git-push.mdc`. The push triggers the Pages workflow automatically.
+
+Local build check (optional, before push):
+
+```bash
+npm run build:pages
+```
+
+Force a redeploy without new commits (rare):
+
+```bash
+gh workflow run pages.yml
+```
+
+- Do not update git config. Do not commit secrets (`.env`, tokens).
+- **Never** force-push.
+
+## Deploy order after file changes
+
+1. **Commit + push to GitHub** → GitHub Pages (primary)
+2. **Vercel CLI deploy** → secondary mirror (`vercel-deploy.mdc`)
+
+Wait for the Pages workflow to finish when possible:
+
+```bash
+gh run list --workflow=pages.yml --limit 1
+gh run watch --exit-status
+```
+
+## After deploy
+
+Reply with the three live URLs:
+
+- https://fovkotov.github.io/kaik/
+- https://fovkotov.github.io/kaik/admin
+- https://fovkotov.github.io/kaik/catalog
+
+Then the Vercel mirror URLs from `vercel-deploy.mdc`.

@@ -1,11 +1,11 @@
 ---
-description: After any finished change, immediately deploy production to Vercel. One project ships site, admin, and catalog together.
+description: Secondary production deploy — Vercel mirror after GitHub Pages. One project ships site, admin, and catalog together.
 alwaysApply: true
 ---
 
-# Immediate Vercel production deploy
+# Vercel production deploy (secondary)
 
-This project opts into auto-deploy. After a task that changes files, ship production **without asking**. Do not wait for “закоммить / запушь / задеплой”.
+GitHub Pages is the **primary** host — see `github-pages-deploy.mdc`. After pushing to `main`, also deploy to Vercel **without asking**. Do not wait for “задеплой на Vercel”.
 
 ## One project, all products
 
@@ -30,7 +30,7 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 vercel deploy --prod --yes --project kaik --logs
 ```
 
 - `--prod` is required (not a preview URL).
-- If git + remote exist later, commit then `git push` so Vercel builds — still production, still all products.
+- Always `git push origin main` first (GitHub Pages). Vercel CLI is the secondary step after that push.
 - Do not update git config. Do not commit secrets (`.env`, tokens).
 - If TLS intercept blocks the CLI, keep `NODE_TLS_REJECT_UNAUTHORIZED=0` for that command only.
 
