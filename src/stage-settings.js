@@ -92,7 +92,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
-  deckY: 81,
+  deckY: 71,
   focusX: 0,
   focusY: 0,
   focusScale: 1,
@@ -100,7 +100,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   closeY: 0,
 };
 
-/** Previous published mobile defaults (lift 110, deck Y 70). */
+/** Previous published mobile defaults (lift 110, deck Y 81). */
 const PREV_MOBILE_DEFAULTS = {
   lift: 110,
   lockupX: 0,
@@ -110,7 +110,7 @@ const PREV_MOBILE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
-  deckY: 70,
+  deckY: 81,
   focusX: 0,
   focusY: 0,
   focusScale: 1,
