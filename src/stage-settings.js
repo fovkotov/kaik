@@ -1,8 +1,7 @@
 /**
- * User-facing stage nudge panel: per-block X/Y on desktop, global lift everywhere.
- * Desktop chrome matches Figma 117:976; stage JSON stays
- * lift 64 / lockup X 2 / nav·lang Y 0 / stack Y 44 / focus Y 9 / scale 0.93.
- * Mobile keeps the 110 global lift.
+ * Stage nudge defaults (no UI). Desktop chrome matches Figma 117:975;
+ * stage JSON stays lift 64 / lockup X 2 / nav·lang Y 0 / stack Y 44 /
+ * focus Y 9 / scale 0.93. Mobile keeps the 110 global lift.
  */
 
 import { onFrameMetrics, safeStorage } from "./embed.js";
@@ -344,203 +343,15 @@ export function applyStageNudge({ notify = false } = {}) {
   }
 }
 
-function gearSvg() {
-  return `
-    <svg class="stage-settings__icon" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M10 7.2a2.8 2.8 0 1 1 0 5.6 2.8 2.8 0 0 1 0-5.6Zm7.1 3.15-.95-.16a6.1 6.1 0 0 0-.5-1.2l.55-.8a.7.7 0 0 0-.08-.88l-1.13-1.13a.7.7 0 0 0-.88-.08l-.8.55c-.38-.2-.78-.37-1.2-.5l-.16-.95A.7.7 0 0 0 11.2 5H8.8a.7.7 0 0 0-.69.55l-.16.95c-.42.13-.82.3-1.2.5l-.8-.55a.7.7 0 0 0-.88.08L3.94 7.66a.7.7 0 0 0-.08.88l.55.8c-.2.38-.37.78-.5 1.2l-.95.16A.7.7 0 0 0 2.4 11.2v2.4a.7.7 0 0 0 .56.69l.95.16c.13.42.3.82.5 1.2l-.55.8a.7.7 0 0 0 .08.88l1.13 1.13a.7.7 0 0 0 .88.08l.8-.55c.38.2.78.37 1.2.5l.16.95a.7.7 0 0 0 .69.55h2.4a.7.7 0 0 0 .69-.55l.16-.95c.42-.13.82-.3 1.2-.5l.8.55a.7.7 0 0 0 .88-.08l1.13-1.13a.7.7 0 0 0 .08-.88l-.55-.8c.2-.38.37-.78.5-1.2l.95-.16a.7.7 0 0 0 .56-.69v-2.4a.7.7 0 0 0-.56-.69Z"
-      />
-    </svg>
-  `;
-}
-
 export function initStageSettings() {
+  document.querySelector("[data-stage-settings]")?.remove();
+  document.querySelectorAll(".stage-settings, .stage-settings__fab").forEach((el) => {
+    el.remove();
+  });
   loadSaved();
   applyStageNudge();
   onFrameMetrics(() => applyStageNudge());
-
-  const root = document.createElement("aside");
-  root.className = "stage-settings";
-  root.dataset.stageSettings = "";
-  root.dataset.tweaks = "";
-  root.innerHTML = `
-    <button
-      type="button"
-      class="stage-settings__fab"
-      data-stage-open
-      aria-expanded="false"
-      data-i18n-aria="stage.settings"
-      aria-label="${t("stage.settings")}"
-    >
-      ${gearSvg()}
-    </button>
-    <div class="stage-settings__panel" data-stage-panel>
-      <div class="stage-settings__bar">
-        <h2 class="stage-settings__title" data-i18n="stage.title">${t("stage.title")}</h2>
-        <div class="stage-settings__actions">
-          <button type="button" class="stage-settings__copy" data-stage-copy data-i18n="stage.copyJson">
-            ${t("stage.copyJson")}
-          </button>
-          <button type="button" class="stage-settings__reset" data-stage-reset data-i18n="stage.reset">
-            ${t("stage.reset")}
-          </button>
-        </div>
-      </div>
-      <div class="stage-settings__pinned" data-stage-pinned></div>
-      <div class="stage-settings__body" data-stage-body></div>
-    </div>
-  `;
-
-  const fab = root.querySelector("[data-stage-open]");
-  const panel = root.querySelector("[data-stage-panel]");
-  const pinned = root.querySelector("[data-stage-pinned]");
-  const body = root.querySelector("[data-stage-body]");
-  const copyBtn = root.querySelector("[data-stage-copy]");
-  let copiedTimer = 0;
-
-  function visibleGroups() {
-    const mobileView = isMobile();
-    return GROUPS.filter((group) => !group.desktopOnly || !mobileView);
-  }
-
-  function renderGroup(group) {
-    const section = document.createElement("section");
-    section.className = "stage-settings__group";
-    section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${group.titleKey}">${t(group.titleKey)}</h3>`;
-    group.items.forEach((field) => {
-      const value = readField(field.key);
-      const row = document.createElement("label");
-      row.className = "stage-settings__row";
-      row.innerHTML = `
-          <span class="stage-settings__label" data-i18n="${field.labelKey}">${t(field.labelKey)}</span>
-          <span class="stage-settings__value" data-value>${formatFieldValue(field.key, value)}</span>
-          <input
-            class="stage-settings__range"
-            type="range"
-            data-nudge="${field.key}"
-            min="${field.min}"
-            max="${field.max}"
-            step="${field.step}"
-            value="${value}"
-          />
-        `;
-      section.append(row);
-    });
-    return section;
-  }
-
-  function buildFields() {
-    pinned.innerHTML = "";
-    body.innerHTML = "";
-    const pinFrag = document.createDocumentFragment();
-    const bodyFrag = document.createDocumentFragment();
-    visibleGroups().forEach((group) => {
-      const section = renderGroup(group);
-      if (PINNED_GROUPS.has(group.titleKey)) pinFrag.append(section);
-      else bodyFrag.append(section);
-    });
-    pinned.append(pinFrag);
-    body.append(bodyFrag);
-    pinned.hidden = !pinned.childElementCount;
-  }
-
-  function setOpen(open) {
-    root.classList.toggle("is-open", open);
-    fab.setAttribute("aria-expanded", String(open));
-    panel.inert = !open;
-  }
-
-  function syncValues() {
-    root.querySelectorAll("[data-nudge]").forEach((el) => {
-      const key = el.dataset.nudge;
-      if (!key || (!isTweakField(key) && !(key in getTarget()))) return;
-      const value = readField(key);
-      el.value = String(value);
-      const valueEl = el.closest(".stage-settings__row")?.querySelector("[data-value]");
-      if (valueEl) valueEl.textContent = formatFieldValue(key, value);
-    });
-  }
-
-  function markCopied() {
-    window.clearTimeout(copiedTimer);
-    copyBtn.removeAttribute("data-i18n");
-    copyBtn.textContent = t("stage.copied");
-    copiedTimer = window.setTimeout(() => {
-      copyBtn.setAttribute("data-i18n", "stage.copyJson");
-      copyBtn.textContent = t("stage.copyJson");
-    }, 1200);
-  }
-
-  async function copyLayout() {
-    const text = JSON.stringify(layoutJson());
-    try {
-      await copyText(text);
-      markCopied();
-    } catch {
-      if (copyViaTextarea(text)) markCopied();
-    }
-  }
-
-  buildFields();
-  document.body.append(root);
-  setOpen(false);
-
-  const stopDeck = (event) => event.stopPropagation();
-  root.addEventListener("pointerdown", stopDeck);
-  root.addEventListener("touchstart", stopDeck, { passive: true });
-  root.addEventListener("wheel", stopDeck, { capture: true, passive: true });
-
-  fab.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setOpen(!root.classList.contains("is-open"));
-  });
-
-  root.querySelector("[data-stage-reset]").addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    Object.assign(getTarget(), getDefaults());
-    if (!isMobile()) resetCardSize();
-    syncValues();
-    applyStageNudge({ notify: true });
-    save();
-  });
-
-  copyBtn.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    copyLayout();
-  });
-
-  panel.addEventListener("input", (event) => {
-    const el = event.target;
-    if (!(el instanceof HTMLInputElement)) return;
-    const key = el.dataset.nudge;
-    if (!key || (!isTweakField(key) && !(key in getTarget()))) return;
-    const next = writeField(key, el.value);
-    const valueEl = el.closest(".stage-settings__row")?.querySelector("[data-value]");
-    if (valueEl) valueEl.textContent = formatFieldValue(key, next);
-    if (!isTweakField(key)) {
-      applyStageNudge({ notify: true });
-      save();
-    }
-  });
-
-  window.addEventListener(
-    "keydown",
-    (event) => {
-      if (event.key !== "Escape") return;
-      if (!root.classList.contains("is-open")) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      setOpen(false);
-    },
-    true,
-  );
-
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
     applyStageNudge({ notify: true });
-    buildFields();
   });
 }
