@@ -1281,18 +1281,24 @@ export function initProgramModal() {
     return Boolean(el?.hasAttribute("data-article-card"));
   }
 
+  function usesInFlowClose(el) {
+    if (!el) return false;
+    if (isArticleCard(el)) return true;
+    return el.hasAttribute("data-work-card") && el.classList.contains("is-work-open");
+  }
+
   function syncCloseBtn() {
     const mobile = window.matchMedia("(max-width: 900px)").matches;
     const expanded = phase === "open" || phase === "opening";
     const showGlobal =
-      mobile && expanded && card && !overlayCloseCard(card) && !isArticleCard(card);
+      mobile && expanded && card && !overlayCloseCard(card) && !usesInFlowClose(card);
     if (closeBtn) {
       closeBtn.hidden = !showGlobal;
       if (showGlobal && card) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
     }
     document.querySelectorAll("[data-article-close]").forEach((btn) => {
       const host = btn.closest(FOCUS_SEL);
-      const show = mobile && expanded && host === card && isArticleCard(host);
+      const show = mobile && expanded && host === card && usesInFlowClose(host);
       btn.hidden = !show;
       if (show) btn.setAttribute("aria-label", t(labelKey(host, true)));
     });

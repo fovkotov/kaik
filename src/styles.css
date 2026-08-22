@@ -2304,8 +2304,20 @@ img.works-card__piece {
   width: 100%;
   min-height: var(--work-chrome-h);
   padding: 0 calc(48 * var(--u));
-  padding-right: calc(48 * var(--u) + var(--work-chrome-h));
   pointer-events: auto;
+}
+
+.work-card__nav .work-card__close {
+  margin-left: auto;
+  flex: none;
+  background: rgba(85, 85, 85, 0.06);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+}
+
+.work-card__nav .work-card__close .article-close__icon {
+  filter: brightness(0);
+  opacity: 0.32;
 }
 
 .card.is-work-open .work-card {
@@ -4826,7 +4838,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .card.is-program-open[data-work-card].is-work-open .work-card__nav {
     gap: 4px;
     padding: 0 16px;
-    padding-right: calc(16px + var(--work-chrome-h));
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__nav-btn {
@@ -4844,10 +4855,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     padding-right: 0;
   }
 
-  /* Student work + other non-article open — fixed top-right close (not history/format/author). */
-  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]))
-    .fly-close:not([hidden]),
-  body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close:not([hidden]) {
+  /* Non-article open (preview, faq, …) — fixed top-right close. Work detail uses in-flow ✕ in .work-card__nav. */
+  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]):not([data-work-card]))
+    .fly-close:not([hidden]) {
     top: var(--work-focus-bar-top);
     bottom: auto;
     left: auto;
@@ -4860,9 +4870,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     z-index: 62;
   }
 
-  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]))
-    .fly-close__icon,
-  body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close__icon {
+  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]):not([data-work-card]))
+    .fly-close__icon {
     filter: brightness(0);
     opacity: 0.32;
   }
