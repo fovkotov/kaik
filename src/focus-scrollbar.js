@@ -24,16 +24,11 @@ export function allowsFocusScrollbar(card) {
   return false;
 }
 
-/** Inner face when a transformed expand-host must not itself be the scroller. */
+/** Card scrolls for program expand-host (dog is a sibling); works-card scrolls when key is in-flow inside it. */
 export function focusScrollRoot(card) {
   if (!(card instanceof HTMLElement)) return card;
-  if (card.hasAttribute("data-expand-host")) {
-    if (card.hasAttribute("data-program-card")) {
-      return card.querySelector(".program-card") || card;
-    }
-    if (card.hasAttribute("data-works-card")) {
-      return card.querySelector(".works-card") || card;
-    }
+  if (card.hasAttribute("data-expand-host") && card.hasAttribute("data-works-card")) {
+    return card.querySelector(".works-card") || card;
   }
   return card;
 }
