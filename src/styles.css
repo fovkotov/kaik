@@ -1361,27 +1361,15 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --works-rotate: 0deg;
   --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
   --works-open-scale: 1.16;
-  /* Figma 130:3112 / 130:2018 — 450×450 face, 842 art coords, 450×176 key. */
-  --works-face-w: 450;
-  --works-art-w: 842;
-  --works-u: calc(var(--card-w) / var(--works-art-w));
-  --works-key-h: calc(var(--card-w) * 176 / var(--works-face-w));
-  --works-pad-x: calc(var(--card-w) * 8.017 / var(--works-face-w));
-  --works-pad-top: calc(var(--card-w) * 1.069 / var(--works-face-w));
-  --works-pad-bottom: calc(var(--card-w) * 21.378 / var(--works-face-w));
-  --works-gap-section: calc(var(--card-w) * 34.204 / var(--works-face-w));
-  --works-gap-item: calc(var(--card-w) * 12.827 / var(--works-face-w));
-  --works-gap-tight: calc(var(--card-w) * 8.551 / var(--works-face-w));
-  --works-list-top: calc(var(--card-w) * 173.068 / var(--works-face-w));
-  --works-content-w: calc(var(--card-w) - 2 * var(--works-pad-x));
-  --works-col-a: calc(var(--card-w) * 223.931 / var(--works-face-w));
-  --works-col-b: calc(var(--card-w) * 208.967 / var(--works-face-w));
+  /* Figma 130:460 / 130:1000 — 842-wide board; 130:6389 closed face is 318×450. */
+  --works-src: 842;
+  --works-face-w: 318;
+  --u: calc(var(--card-w) / var(--works-src));
   --focus-open-w: min(
     calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
     calc(var(--frame-w) - 48px)
   );
   --program-open-w: var(--focus-open-w);
-  transform-style: flat;
   isolation: isolate;
 }
 
@@ -1392,66 +1380,23 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   height: var(--works-side);
   margin-top: calc(var(--works-side) / -2);
   overflow: hidden;
-  overflow: clip;
 }
 
-.card[data-works-card]:not(.is-program-open) .works-card {
-  contain: paint;
-}
-
-.works-card {
-  --u: var(--works-u);
-  position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  overflow: clip;
-  background: #9d9d9d;
-  color: #000;
-  font-weight: 700;
-}
-
-/* Figma 130:3114 — key floats over the face, no grey substrate. */
 .works-card__key {
   position: absolute;
-  top: calc(var(--card-w) * -0.34 / var(--works-face-w));
-  left: 50%;
+  top: calc(6 * var(--works-src) / var(--works-face-w) * var(--u));
+  left: 0;
   z-index: 5;
   width: 100%;
-  height: var(--works-key-h);
-  transform: translateX(-50%);
-  overflow: visible;
-  background: none;
+  height: calc(125 * var(--works-src) / var(--works-face-w) * var(--u));
   pointer-events: none;
   user-select: none;
 }
 
-.works-card__title {
-  position: absolute;
-  top: calc(4 / var(--works-face-w) * var(--card-w));
-  left: 0;
-  right: 0;
-  z-index: 6;
-  margin: 0;
-  width: 100%;
-  font-family: var(--font-en);
-  font-size: calc(var(--card-w) * 17.384 / var(--works-face-w));
-  line-height: normal;
-  text-align: center;
-  color: #000;
-  pointer-events: none;
-}
-
 .works-card__key-art {
   display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
-  transform: none;
   object-fit: fill;
   pointer-events: none;
   user-select: none;
@@ -1460,13 +1405,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .works-card__key-cue {
   display: block;
   position: absolute;
-  left: calc(50% - var(--card-w) * 106.79 / var(--works-face-w));
-  top: calc(var(--card-w) * 77.84 / var(--works-face-w));
-  transform: translateX(-50%);
+  left: calc(66.6 / var(--works-face-w) * 100%);
+  top: calc((61.2 - 6) / 125 * 100%);
+  transform: translate(-50%, -50%);
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
-  font-size: calc(var(--card-w) * 12.027 / var(--works-face-w));
+  font-size: calc(8.5 * var(--works-src) / var(--works-face-w) * var(--u));
   line-height: normal;
   color: #000;
   white-space: nowrap;
@@ -1482,48 +1427,59 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   pointer-events: none;
 }
 
-.card.is-program-open[data-works-card] .works-card__title {
-  position: relative;
-  top: auto;
-  z-index: auto;
-  padding-top: calc(1.069 / var(--works-face-w) * var(--card-w));
-}
-
 .card.is-program-open[data-works-card] .works-card__key {
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
-  z-index: 5;
-  flex-shrink: 0;
   pointer-events: auto;
 }
 
-.card.is-program-open[data-works-card] .works-card__key-art,
-.card.is-program-open[data-works-card] .works-card__key-cue {
+.card.is-program-open[data-works-card] .works-card__key .works-card__key-art,
+.card.is-program-open[data-works-card] .works-card__key .works-card__key-cue {
   pointer-events: auto;
   cursor: pointer;
+}
+
+.works-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: calc(2 * var(--u)) calc(15 * var(--u)) calc(40 * var(--u));
+  background: #9d9d9d;
+  color: #000;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
+.works-card__title {
+  position: absolute;
+  top: calc(4 * var(--u));
+  left: 0;
+  right: 0;
+  z-index: 6;
+  flex-shrink: 0;
+  margin: 0;
+  width: 100%;
+  font-family: var(--font-en);
+  font-size: calc(32.528 * var(--u));
+  line-height: normal;
+  text-align: center;
+  color: #000;
+  pointer-events: none;
 }
 
 .works-card__list {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--works-gap-section);
+  gap: calc(64 * var(--u));
   width: 100%;
   margin: 0;
-  padding: var(--works-list-top) var(--works-pad-x) var(--works-pad-bottom);
+  padding: calc(128 * var(--works-src) / var(--works-face-w) * var(--u)) 0 0;
   flex-shrink: 0;
-}
-
-.card.is-program-open[data-works-card] .works-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.card.is-program-open[data-works-card] .works-card__list {
-  padding-top: var(--works-gap-section);
 }
 
 .works-card__item,
@@ -1531,13 +1487,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--works-gap-item);
+  gap: calc(24 * var(--u));
   width: 100%;
   flex-shrink: 0;
 }
 
-.works-card__tight {
-  gap: var(--works-gap-tight);
+.works-card__item--tight {
+  gap: calc(16 * var(--u));
 }
 
 .works-card__row {
@@ -1549,21 +1505,25 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .works-card__col--419 {
-  width: var(--works-col-a);
+  width: calc(419 * var(--u));
   max-width: 100%;
 }
 
 .works-card__col--391,
 .works-card__col--389 {
-  width: var(--works-col-b);
+  width: calc(391 * var(--u));
   max-width: 100%;
+}
+
+.works-card__col--389 {
+  width: calc(389 * var(--u));
 }
 
 .works-card__who {
   width: 100%;
   margin: 0;
   font-family: var(--font-ru);
-  font-size: 10px;
+  font-size: max(10px, calc(11.749 * var(--u)));
   line-height: normal;
   text-align: center;
   color: #000;
@@ -1575,14 +1535,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .works-card__art {
-  position: relative;
-  width: calc(var(--art-w) / 810 * var(--works-content-w));
-  height: calc(var(--art-h) / 810 * var(--works-content-w));
+  width: calc(var(--art-w) * var(--u));
+  height: calc(var(--art-h) * var(--u));
   max-width: none;
   flex-shrink: 0;
 }
 
-.works-card__art > img:only-child {
+.works-card__art > img {
   display: block;
   width: 100%;
   height: 100%;
@@ -1592,47 +1551,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   user-select: none;
 }
 
-.works-card__piece {
-  position: absolute;
-  left: calc(var(--l, 0) * var(--u));
-  top: calc(var(--t, 0) * var(--u));
-  width: calc(var(--w) * var(--u));
-  height: calc(var(--h) * var(--u));
-  pointer-events: none;
-  user-select: none;
-}
-
-.works-card__piece--inset {
-  left: auto;
-  top: auto;
-  width: auto;
-  height: auto;
-  inset: var(--inset);
-}
-
-.works-card__piece img,
-img.works-card__piece {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  pointer-events: none;
-  user-select: none;
-}
-
-.works-card__storm-grid {
+.works-card__storm {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  width: calc(810 * var(--u));
   row-gap: calc(24 * var(--u));
-  width: 100%;
-}
-
-.works-card__pair-grid {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
 }
 
 @media (max-width: 900px) {
@@ -1642,7 +1566,6 @@ img.works-card__piece {
     --program-open-w: var(--focus-open-w);
   }
 
-  /* Mobile stack origin is top:0 / margin-top:0 — do not pull the square up. */
   .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
     margin-top: 0;
   }
@@ -3267,7 +3190,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 /* Open illustrated cards are scrolling articles: inner face grows, title + art scroll. */
 .card.is-program-open .program-card,
-.card.is-program-open .works-card,
 .card.is-program-open .exercises-card,
 .card.is-program-open .faq-card {
   height: auto;
@@ -3275,38 +3197,29 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   overflow: visible;
 }
 
-/* Open student-works gallery — Figma 130:2018. */
-.card.is-program-open[data-works-card] .works-card__title {
-  font-size: calc(var(--card-w) * 17.384 / var(--works-face-w)) !important;
-  line-height: normal;
-  letter-spacing: 0;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+/* Open student-works: same 842 board, unclipped, scroll the board not the card. */
+.card.is-program-open[data-works-card],
+.card.is-program-open[data-works-card].is-program-scroll {
+  overflow: hidden;
 }
 
 .card.is-program-open[data-works-card] .works-card {
-  height: auto;
-  min-height: 100%;
-  overflow: visible;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: calc(40 * var(--u) + 72px + env(safe-area-inset-bottom, 0px));
 }
 
-.card.is-program-open[data-works-card] .works-card__who,
-.card.is-program-open[data-works-card] .works-card__who span,
-.card.is-program-open[data-works-card] .works-card__ig {
-  font-size: 10px !important;
-  line-height: 1.3;
-  letter-spacing: 0;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-.card.is-program-open[data-works-card] .works-card__key-cue {
-  font-size: calc(var(--card-w) * 12.027 / var(--works-face-w)) !important;
-  line-height: normal;
-  letter-spacing: 0;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+.card.is-program-open[data-works-card] .works-card::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .card.is-program-open[data-program-card] .program-card > .card-illust--program {
@@ -3977,7 +3890,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .program-card__title,
   .program-card__week-title,
   .progress-card__title,
-  .works-card__title,
   .exercises-card__title,
   .preview-card__title,
   .faq-card__title,
@@ -4001,11 +3913,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .preview-card__title {
     width: calc(270.811 * var(--card-w) / 318);
-  }
-
-  .works-card {
-    padding: 0;
-    gap: 0;
   }
 
   .history-card__title {
@@ -4202,16 +4109,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     text-size-adjust: 100%;
   }
 
-  /* Figma 76:1062 — uniform 10px captions on the deck face. */
-  .works-card__who,
-  .works-card__who span,
-  .works-card__ig {
-    font-size: 10px !important;
-    line-height: 1.3;
-    letter-spacing: 0;
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-  }
 
   /*
     Lettering / student-works modal: open-sheet copy is 12px.
@@ -4411,9 +4308,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     width: 100%;
   }
 
-  .card[data-works-card] {
-    --works-key-h: calc(var(--card-w) * 176 / var(--works-face-w));
-  }
 
   .fly-close:not([hidden]) {
     display: flex;
@@ -4568,9 +4462,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     height: 0;
   }
 
-  /* Works key scrolls in-flow with the gallery (130:2018). */
-  .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program,
-  .card.is-program-open[data-expand-host][data-works-card] .works-card__key {
+  .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program {
     position: relative;
     top: auto;
     z-index: 2;
