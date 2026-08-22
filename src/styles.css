@@ -1355,10 +1355,11 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: hidden;
 }
 
-/*
-  Figma 76:1062 closed stack face (125:133 key band).
-  Key illust is in-flow at the top of .works-card; title overlays at 4px.
-*/
+/* Figma 76:1062 closed stack — title at 4px over the key band; gallery below key. */
+.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card {
+  gap: calc(14 * var(--u));
+}
+
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card__title {
   position: absolute;
   top: 4px;
@@ -1366,19 +1367,6 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   right: 0;
   z-index: 5;
   pointer-events: none;
-}
-
-.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .card-illust--works {
-  position: relative;
-  inset: auto;
-  top: auto;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  width: 100%;
-  height: var(--works-key-h);
-  flex-shrink: 0;
-  z-index: 4;
 }
 
 .works-card {
@@ -1401,6 +1389,18 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card {
   --u: calc(var(--works-side) / 842);
+}
+
+/* Key band is in-flow inside .works-card (not a full-card absolute overlay). */
+.works-card > .card-illust--works {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: var(--works-key-h);
+  flex-shrink: 0;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
 }
 
 .works-card__title {
@@ -1763,14 +1763,17 @@ img.works-card__piece {
 .card-illust--program,
 .card-illust--exercises,
 .card-illust--faq,
-.card-illust--preview,
-.card-illust--works {
+.card-illust--preview {
   display: block;
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
   user-select: none;
+}
+
+.card-illust--works {
+  display: block;
 }
 
 .card-illust--program {
@@ -3165,6 +3168,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 /* Open student-works gallery — Figma 76:1062: 16px title, 10px captions, 12px key cue. */
 .card.is-program-open[data-works-card] .works-card__title {
+  position: relative;
+  top: auto;
+  z-index: auto;
   font-size: 16px !important;
   line-height: normal;
   letter-spacing: 0;
@@ -3180,19 +3186,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   letter-spacing: 0;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-}
-
-.card.is-program-open[data-works-card] .card-illust--works {
-  position: relative;
-  inset: auto;
-  top: auto;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  width: 100%;
-  height: var(--works-key-h);
-  flex-shrink: 0;
-  z-index: 4;
 }
 
 .card.is-program-open[data-works-card] .card-illust--works .card-illust__cue {
@@ -4434,22 +4427,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
-  }
-
-  .card.is-program-open[data-expand-host][data-works-card] .card-illust--works {
-    position: relative;
-    inset: auto;
-    top: auto;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    width: 100%;
-    height: var(--works-key-h);
-    flex-shrink: 0;
-    z-index: 4;
-    pointer-events: none;
-    opacity: 1;
-    filter: none;
   }
 
   .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet,
