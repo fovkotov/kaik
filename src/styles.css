@@ -1876,11 +1876,11 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   z-index: 1;
 }
 
-.card.is-program-open .card-illust__cue {
+.card.is-program-open:not([data-program-card]) .card-illust__cue {
   display: none;
 }
 
-.card.is-program-open[data-expand-host][data-program-card] .card-illust__cue,
+.card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
 .card.is-program-open[data-expand-host][data-works-card] .works-card__key-cue {
   display: block;
 }
@@ -3299,18 +3299,30 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 }
 
 .card.is-program-open[data-program-card] .program-card > .card-illust--program {
-  position: relative;
-  top: auto;
-  left: auto;
+  position: absolute;
+  top: var(--program-dog-y);
+  left: 0;
   width: 100%;
   height: var(--program-dog-h);
-  flex-shrink: 0;
-  z-index: 2;
+  z-index: 5;
   pointer-events: auto;
 }
 
-.card.is-program-open[data-program-card] .program-card__sheet {
-  padding-top: calc(40 * var(--u));
+.card.is-program-open[data-program-card] .program-card__title {
+  position: absolute;
+  top: 4px;
+  right: calc(48 * var(--u));
+  left: auto;
+  width: auto;
+  z-index: 6;
+  text-align: right;
+  pointer-events: none;
+}
+
+.card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
+.card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .card.is-program-open .faq-card {
@@ -4463,11 +4475,11 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     pointer-events: none;
   }
 
-  .card.is-program-open .card-illust__cue {
+  .card.is-program-open:not([data-program-card]) .card-illust__cue {
     display: none;
   }
 
-  .card.is-program-open[data-expand-host][data-program-card] .card-illust__cue,
+  .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
   .card.is-program-open[data-expand-host][data-works-card] .works-card__key-cue {
     display: block;
   }
@@ -4536,20 +4548,21 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program {
-    position: relative;
-    top: auto;
-    z-index: 2;
+    position: absolute;
+    top: var(--program-dog-y);
+    left: 0;
+    z-index: 5;
     pointer-events: auto;
     opacity: 1;
     filter: none;
   }
 
-  .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program .card-illust__cue {
-    top: calc(67.567 / 149.134 * 100%);
-    bottom: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
+  .card.is-program-open[data-program-card] .program-card__title {
+    top: 4px;
+    right: 12px;
+    font-size: 16px;
+    line-height: 1.2;
+    letter-spacing: 0;
   }
 
   .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet,
@@ -4558,12 +4571,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     min-height: auto;
     height: auto;
     overflow: visible;
-  }
-
-  .card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
-  .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
-    pointer-events: auto;
-    cursor: pointer;
   }
 
   .card.is-program-open[data-works-card] .works-card__key-art,
@@ -4658,10 +4665,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .program-card__sheet {
     gap: 32px;
     padding: var(--program-sheet-top) 12px 12px;
-  }
-
-  .card.is-program-open[data-program-card] .program-card__sheet {
-    padding-top: 12px;
   }
 
   .program-card__week {
