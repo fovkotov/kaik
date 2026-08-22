@@ -559,7 +559,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;

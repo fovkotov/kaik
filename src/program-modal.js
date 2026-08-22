@@ -12,9 +12,9 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-article-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
   const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-fly-illust-close], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select";
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-article-close], [data-fly-illust-close], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
@@ -1277,13 +1277,25 @@ export function initProgramModal() {
     return persistIllust(el);
   }
 
+  function isArticleCard(el) {
+    return Boolean(el?.hasAttribute("data-article-card"));
+  }
+
   function syncCloseBtn() {
-    if (!closeBtn) return;
     const mobile = window.matchMedia("(max-width: 900px)").matches;
     const expanded = phase === "open" || phase === "opening";
-    const show = mobile && expanded && card && !overlayCloseCard(card);
-    closeBtn.hidden = !show;
-    if (show && card) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
+    const showGlobal =
+      mobile && expanded && card && !overlayCloseCard(card) && !isArticleCard(card);
+    if (closeBtn) {
+      closeBtn.hidden = !showGlobal;
+      if (showGlobal && card) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
+    }
+    document.querySelectorAll("[data-article-close]").forEach((btn) => {
+      const host = btn.closest(FOCUS_SEL);
+      const show = mobile && expanded && host === card && isArticleCard(host);
+      btn.hidden = !show;
+      if (show) btn.setAttribute("aria-label", t(labelKey(host, true)));
+    });
   }
 
   function syncIllustClose() {
@@ -1434,6 +1446,16 @@ export function initProgramModal() {
     event.stopPropagation();
     if (phase !== "open" && phase !== "opening") return;
     closeFocus();
+  });
+
+  document.querySelectorAll("[data-article-close]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const host = btn.closest(FOCUS_SEL);
+      if (host !== card || (phase !== "open" && phase !== "opening")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeFocus();
+    });
   });
 
   document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {

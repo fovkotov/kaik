@@ -3406,6 +3406,64 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   pointer-events: none;
 }
 
+/* Figma 130:454 — in-flow article close (history / format / author). */
+.article-close-row {
+  display: none;
+  position: relative;
+  z-index: 2;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.history-card > .article-close-row {
+  --u: calc(var(--card-w) / 595);
+  padding: calc(12.79 * var(--u)) calc(11.4 * var(--u)) 0;
+}
+
+.format-card > .article-close-row,
+.author-card > .article-close-row {
+  --u: calc(var(--card-w) / 595);
+  padding: calc(12.79 * var(--u)) calc(11.4 * var(--u)) 0;
+}
+
+.article-close {
+  display: none;
+  box-sizing: border-box;
+  width: var(--work-chrome-h);
+  height: var(--work-chrome-h);
+  margin: 0;
+  padding: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(85, 85, 85, 0.8);
+  backdrop-filter: blur(57.653px);
+  -webkit-backdrop-filter: blur(57.653px);
+  color: #fff;
+  line-height: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.article-close:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.article-close__icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 @media (max-width: 900px) {
   [data-program-card],
   [data-focus-card] {
@@ -4331,6 +4389,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     justify-content: center;
   }
 
+  .card.is-program-open[data-article-card] .article-close-row {
+    display: flex;
+  }
+
   /* Same overlay box as the closed 318×450 face — do not restyle on open. */
   .card-illust {
     display: block;
@@ -4749,8 +4811,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     padding-right: 0;
   }
 
-  /* Article + student work open — Figma 60:1004 / 60:1925: close fixed top-right. */
-  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card])) .fly-close:not([hidden]),
+  /* Student work + other non-article open — fixed top-right close (not history/format/author). */
+  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]))
+    .fly-close:not([hidden]),
   body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close:not([hidden]) {
     top: var(--work-focus-bar-top);
     bottom: auto;
@@ -4764,7 +4827,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     z-index: 62;
   }
 
-  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card])) .fly-close__icon,
+  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]))
+    .fly-close__icon,
   body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close__icon {
     filter: brightness(0);
     opacity: 0.32;

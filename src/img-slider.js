@@ -2,7 +2,7 @@ const SLIDE = "[data-img-slider-slide]";
 const PREV = "[data-img-slider-prev]";
 const NEXT = "[data-img-slider-next]";
 const IGNORE =
-  "button, a, [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-format-mute], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-fly-close]";
+  "button, a, [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-format-mute], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-fly-close], [data-article-close]";
 const COARSE = window.matchMedia("(pointer: coarse)");
 
 const AXIS_PX = 8;
