@@ -1,43 +1,55 @@
 ---
-description: Secondary production deploy — Vercel mirror after GitHub Pages. One project ships site, admin, and catalog together.
+description: After product changes, ship both Vercel production and GitHub Pages. One project ships site, admin, and catalog together.
 alwaysApply: true
 ---
 
-# Vercel production deploy (secondary)
+# Dual production deploy — Vercel and GitHub Pages
 
-GitHub Pages is the **primary** host — see `github-pages-deploy.mdc`. After pushing to `main`, also deploy to Vercel **without asking**. Do not wait for “задеплой на Vercel”.
+After product file changes, ship **both** hosts **without asking**. Do not wait for “задеплой / запушь”. Do not ship Vercel-only and skip Pages.
+
+GitHub Pages is the **primary** live host (Cargo iframe embed) — see `github-pages-deploy.mdc`. Vercel is the secondary mirror. Both must get the same production ship.
 
 ## One project, all products
 
-One Vite app, one Vercel project (`kaik`). A single production deploy updates every product:
+One Vite app, one Vercel project (`kaik`), one GitHub Pages site (`fovkotov/kaik`). A single ship updates every product:
 
-| Product | URL path | Source |
-|---|---|---|
-| Site (course) | `/` | `index.html` |
-| Admin | `/admin` | `admin.html` |
-| Catalog | `/catalog` | `catalog.html` |
+| Product | Vercel | GitHub Pages | Source |
+|---|---|---|---|
+| Site (course) | `/` | `/kaik/` | `index.html` |
+| Admin | `/admin` | `/kaik/admin` | `admin.html` |
+| Catalog | `/catalog` | `/kaik/catalog` | `catalog.html` |
 
-Do not treat them as separate apps. Do not skip a deploy because “only admin changed”.
+Do not treat them as separate apps. Do not skip either host because “only admin changed”.
 
-Live host: `https://kaik-one.vercel.app`
+Live hosts:
+
+- https://kaik-one.vercel.app
+- https://fovkotov.github.io/kaik/
 
 ## How to ship
 
-There is often **no git repo**. Prefer CLI deploy of the working tree:
+Do **both**, in this order:
+
+1. **GitHub Pages** — commit relevant product files and `git push` to the GitHub remote that feeds Pages (`origin` → `github.com/fovkotov/kaik`, branch `main`). The Pages workflow (`.github/workflows/pages.yml`) builds `npm run build:pages` and publishes. See `git-push.mdc` and `github-pages-deploy.mdc`.
+2. **Vercel production** — CLI deploy of the working tree:
 
 ```bash
 NODE_TLS_REJECT_UNAUTHORIZED=0 vercel deploy --prod --yes --project kaik --logs
 ```
 
 - `--prod` is required (not a preview URL).
-- Always `git push origin main` first (GitHub Pages). Vercel CLI is the secondary step after that push.
+- Always push to GitHub first so Pages is never left behind.
 - Do not update git config. Do not commit secrets (`.env`, tokens).
+- Do not commit huge `.agents/skills` dumps or `skills-lock.json` unless the user asked for those.
 - If TLS intercept blocks the CLI, keep `NODE_TLS_REJECT_UNAUTHORIZED=0` for that command only.
 
 ## After deploy
 
-Reply with the three live URLs:
+Reply with the live URLs:
 
 - https://kaik-one.vercel.app/
 - https://kaik-one.vercel.app/admin
 - https://kaik-one.vercel.app/catalog
+- https://fovkotov.github.io/kaik/
+- https://fovkotov.github.io/kaik/admin
+- https://fovkotov.github.io/kaik/catalog

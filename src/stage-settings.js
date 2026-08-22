@@ -40,6 +40,7 @@ export const DESKTOP_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 59,
+  deckY: 44,
   focusX: 0,
   focusY: 9,
   focusScale: 0.93,
@@ -192,8 +193,10 @@ const GROUPS = [
         key: "deckY",
         labelKey: "stage.axisY",
         mobileLabelKey: "stage.cardY",
-        mobileOnly: true,
-        ...MOBILE_CARD_Y,
+        ...AXIS,
+        mobileMin: MOBILE_CARD_Y.min,
+        mobileMax: MOBILE_CARD_Y.max,
+        mobileStep: MOBILE_CARD_Y.step,
       },
       {
         key: "cardSize",
@@ -249,19 +252,30 @@ const PANEL_GAP = 8;
 const PANEL_EDGE = 8;
 const PANEL_MIN_HEIGHT = 140;
 
-function fieldDecimals(field) {
-  const step = String(field?.step ?? 1);
+function fieldDecimals(field, mobile = isMobile()) {
+  const step = String(fieldBounds(field, mobile).step ?? 1);
   return step.includes(".") ? step.split(".")[1].length : 0;
 }
 
-function clampField(key, value) {
+function fieldBounds(field, mobile = isMobile()) {
+  if (mobile && field?.mobileMin != null) {
+    return {
+      min: field.mobileMin,
+      max: field.mobileMax ?? field.max,
+      step: field.mobileStep ?? field.step,
+    };
+  }
+  return { min: field?.min, max: field?.max, step: field?.step };
+}
+
+function clampField(key, value, mobile = isMobile()) {
   const field = FIELD_BY_KEY.get(key);
   const n = Number(value);
   if (!field || !Number.isFinite(n)) return 0;
-  const clamped = Math.min(field.max, Math.max(field.min, n));
-  const step = field.step || 1;
+  const { min, max, step = 1 } = fieldBounds(field, mobile);
+  const clamped = Math.min(max, Math.max(min, n));
   const rounded = Math.round(clamped / step) * step;
-  return Number(rounded.toFixed(fieldDecimals(field)));
+  return Number(rounded.toFixed(fieldDecimals(field, mobile)));
 }
 
 function formatFieldValue(key, value) {
@@ -334,6 +348,7 @@ function migrateClusterDefaults(blob) {
 function migrateOldDesktopDefaults(blob) {
   if (!blob || typeof blob !== "object") return blob;
   const next = { ...blob };
+  if (next.deckY == null) next.deckY = DESKTOP_STAGE_DEFAULTS.deckY;
   for (const key of Object.keys(DESKTOP_STAGE_DEFAULTS)) {
     if (CLUSTER_KEYS.has(key)) continue;
     if (next[key] == null) continue;
@@ -531,9 +546,10 @@ function loadSaved() {
 
 function applyBlob(target, blob, defaults) {
   if (!blob || typeof blob !== "object") return;
+  const mobile = defaults === MOBILE_STAGE_DEFAULTS;
   for (const key of Object.keys(defaults)) {
     if (blob[key] == null) continue;
-    target[key] = clampField(key, blob[key]);
+    target[key] = clampField(key, blob[key], mobile);
   }
 }
 
@@ -574,11 +590,7 @@ export function applyStageNudge({ notify = false } = {}) {
   root.style.setProperty("--lang-nudge-x", `${s.langX}px`);
   root.style.setProperty("--lang-nudge-y", `${s.langY}px`);
   root.style.setProperty("--deck-nudge-x", `${s.deckX}px`);
-  if (isMobile()) {
-    root.style.setProperty("--deck-nudge-y", `${s.deckY ?? 0}px`);
-  } else {
-    root.style.removeProperty("--deck-nudge-y");
-  }
+  root.style.setProperty("--deck-nudge-y", `${s.deckY ?? (isMobile() ? 0 : 44)}px`);
   root.style.setProperty("--focus-nudge-x", `${s.focusX}px`);
   root.style.setProperty("--focus-nudge-y", `${s.focusY}px`);
   root.style.setProperty("--close-nudge-x", `${s.closeX}px`);
@@ -590,8 +602,7 @@ export function applyStageNudge({ notify = false } = {}) {
 
 function layoutJson() {
   const s = getTarget();
-  const deck = { x: s.deckX };
-  if (isMobile() && s.deckY) deck.y = s.deckY;
+  const deck = { x: s.deckX, y: s.deckY ?? (isMobile() ? 0 : 44) };
 
   const cluster = { linked: Boolean(s.clusterLinked) };
   if (cluster.linked) {
@@ -846,6 +857,7 @@ export function initStageSettings() {
           <span class="stage-settings__switch-ui" aria-hidden="true"></span>
         `;
       } else {
+        const bounds = fieldBounds(field);
         row.className = "stage-settings__row";
         row.innerHTML = `
           <span class="stage-settings__label" data-i18n="${labelKey}">${t(labelKey)}</span>
@@ -854,9 +866,9 @@ export function initStageSettings() {
             class="stage-settings__range"
             type="range"
             data-nudge="${field.key}"
-            min="${field.min}"
-            max="${field.max}"
-            step="${field.step}"
+            min="${bounds.min}"
+            max="${bounds.max}"
+            step="${bounds.step}"
             value="${value}"
           />
         `;
