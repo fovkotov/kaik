@@ -1357,6 +1357,30 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: hidden;
 }
 
+/* Figma 76:1062 closed stack face — title above key overlay (125:133). */
+.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card {
+  z-index: auto;
+}
+
+.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card__title {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .card-illust--works {
+  inset: auto;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  height: var(--works-key-h);
+  z-index: 4;
+}
+
 .works-card {
   --u: calc(var(--card-w) / 842);
   position: relative;
@@ -1380,8 +1404,6 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .works-card__title {
-  position: relative;
-  z-index: 5;
   margin: 0;
   flex-shrink: 0;
   width: 100%;
@@ -1774,8 +1796,8 @@ img.works-card__piece {
 .card-illust--works .card-illust__cue {
   display: block;
   position: absolute;
-  left: calc(50% - 23.811%);
-  top: calc(var(--works-key-h) * 82 / 176);
+  left: calc(100% * 118.645 / 449);
+  top: calc(var(--works-key-h) * 78 / 176);
   bottom: auto;
   transform: translateX(-50%);
   margin: 0;
@@ -4391,9 +4413,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-expand-host][data-works-card] .card-illust--works .card-illust__cue {
-    top: calc(var(--works-key-h) * 82 / 176);
+    top: calc(var(--works-key-h) * 78 / 176);
     bottom: auto;
-    left: calc(50% - 23.811%);
+    left: calc(100% * 118.645 / 449);
     transform: translateX(-50%);
   }
 
@@ -4426,8 +4448,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card-illust--works .card-illust__cue {
-    left: calc(50% - 23.811%);
-    top: calc(var(--works-key-h) * 82 / 176);
+    left: calc(100% * 118.645 / 449);
+    top: calc(var(--works-key-h) * 78 / 176);
     bottom: auto;
     transform: translateX(-50%);
   }
