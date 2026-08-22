@@ -2982,7 +2982,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   top: calc(
     (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2
   );
-  margin-left: var(--deck-nudge-x);
+  margin-left: calc(var(--fly-w) / -2 + var(--deck-nudge-x));
   margin-top: 0;
   margin-right: 0;
   margin-bottom: 0;

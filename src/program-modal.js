@@ -368,8 +368,9 @@ export function initProgramModal() {
     el.style.right = "";
     if (isMobile()) {
       el.style.marginTop = "0";
-      el.style.marginLeft =
+      const nudge =
         getComputedStyle(document.documentElement).getPropertyValue("--deck-nudge-x").trim() || "0px";
+      el.style.marginLeft = `calc(${-stackW / 2}px + ${nudge})`;
     } else {
       el.style.marginLeft = `${-stackW / 2}px`;
       el.style.marginTop = `${-stackH / 2}px`;
