@@ -577,9 +577,18 @@ export function getFocusScale() {
   return clampField("focusScale", getTarget().focusScale) || 1;
 }
 
+function deckNudgeY(s = getTarget()) {
+  const y = Number(s.deckY);
+  if (Number.isFinite(y)) return y;
+  return isMobile() ? 0 : DESKTOP_STAGE_DEFAULTS.deckY;
+}
+
 export function applyStageNudge({ notify = false } = {}) {
   const s = getTarget();
   const root = document.documentElement;
+  const mobile = isMobile();
+  const nudgeX = Number(s.deckX) || 0;
+  const nudgeY = deckNudgeY(s);
   root.style.setProperty("--stage-lift", `${s.lift}px`);
   root.style.setProperty("--lockup-nudge-x", `${s.lockupX}px`);
   root.style.setProperty("--lockup-nudge-y", `${s.lockupY}px`);
@@ -589,12 +598,19 @@ export function applyStageNudge({ notify = false } = {}) {
   root.style.setProperty("--nav-nudge-y", `${s.navY}px`);
   root.style.setProperty("--lang-nudge-x", `${s.langX}px`);
   root.style.setProperty("--lang-nudge-y", `${s.langY}px`);
-  root.style.setProperty("--deck-nudge-x", `${s.deckX}px`);
-  root.style.setProperty("--deck-nudge-y", `${s.deckY ?? (isMobile() ? 0 : 44)}px`);
+  root.style.setProperty("--deck-nudge-x", `${nudgeX}px`);
+  root.style.setProperty("--deck-nudge-y", `${nudgeY}px`);
   root.style.setProperty("--focus-nudge-x", `${s.focusX}px`);
   root.style.setProperty("--focus-nudge-y", `${s.focusY}px`);
   root.style.setProperty("--close-nudge-x", `${s.closeX}px`);
   root.style.setProperty("--close-nudge-y", `${s.closeY}px`);
+  const deckEl = document.querySelector("[data-deck]");
+  if (deckEl) {
+    deckEl.style.left = `${nudgeX}px`;
+    deckEl.style.top = mobile
+      ? `calc(var(--frame-clip-top) + ${nudgeY}px)`
+      : `calc(var(--frame-clip-top) - var(--stage-lift) + ${nudgeY}px)`;
+  }
   if (notify) {
     document.dispatchEvent(new CustomEvent("kaik:stage-nudge"));
   }
@@ -602,7 +618,7 @@ export function applyStageNudge({ notify = false } = {}) {
 
 function layoutJson() {
   const s = getTarget();
-  const deck = { x: s.deckX, y: s.deckY ?? (isMobile() ? 0 : 44) };
+  const deck = { x: s.deckX, y: deckNudgeY(s) };
 
   const cluster = { linked: Boolean(s.clusterLinked) };
   if (cluster.linked) {
