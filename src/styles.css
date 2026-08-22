@@ -1413,24 +1413,19 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   font-weight: 700;
 }
 
-/* Figma 130:3112 — key band 450×176 with title at y=4 inside it. */
+/* Figma 130:3114 — key floats over the face, no grey substrate. */
 .works-card__key {
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  top: calc(var(--card-w) * -0.34 / var(--works-face-w));
+  left: 50%;
+  z-index: 5;
   width: 100%;
   height: var(--works-key-h);
-  flex-shrink: 0;
-  overflow: hidden;
-  background: #9d9d9d;
+  transform: translateX(-50%);
+  overflow: visible;
+  background: none;
   pointer-events: none;
   user-select: none;
-}
-
-.card[data-works-card]:not(.is-program-open) .works-card__key {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
 }
 
 .works-card__title {
@@ -1438,7 +1433,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   top: calc(4 / var(--works-face-w) * var(--card-w));
   left: 0;
   right: 0;
-  z-index: 3;
+  z-index: 6;
   margin: 0;
   width: 100%;
   font-family: var(--font-en);
@@ -1453,10 +1448,10 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: block;
   position: absolute;
   top: 0;
-  left: 50%;
+  left: 0;
   width: 100%;
   height: 100%;
-  transform: translateX(-50%);
+  transform: none;
   object-fit: fill;
   pointer-events: none;
   user-select: none;
@@ -1465,8 +1460,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .works-card__key-cue {
   display: block;
   position: absolute;
-  left: calc(100% * 118.645 / 449);
-  top: calc(var(--works-key-h) * 78 / 176);
+  left: calc(50% - var(--card-w) * 106.79 / var(--works-face-w));
+  top: calc(var(--card-w) * 77.84 / var(--works-face-w));
   transform: translateX(-50%);
   margin: 0;
   font-family: var(--font-ru);
@@ -1487,10 +1482,20 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   pointer-events: none;
 }
 
+.card.is-program-open[data-works-card] .works-card__title {
+  position: relative;
+  top: auto;
+  z-index: auto;
+  padding-top: calc(1.069 / var(--works-face-w) * var(--card-w));
+}
+
 .card.is-program-open[data-works-card] .works-card__key {
   position: relative;
   top: auto;
-  z-index: 2;
+  left: auto;
+  transform: none;
+  z-index: 5;
+  flex-shrink: 0;
   pointer-events: auto;
 }
 
