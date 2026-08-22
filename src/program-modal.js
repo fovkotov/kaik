@@ -1316,7 +1316,7 @@ export function initProgramModal() {
         illust.removeAttribute("role");
         illust.removeAttribute("aria-label");
       }
-      const cue = illust.querySelector(".card-illust__cue");
+      const cue = illust.querySelector(".works-card__key-cue, .card-illust__cue");
       if (!cue) return;
       const key = active ? "illust.close" : "illust.open";
       cue.setAttribute("data-i18n", key);

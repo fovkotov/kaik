@@ -1414,13 +1414,15 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   left: 0;
   z-index: 5;
   width: 100%;
-  height: auto;
-  aspect-ratio: 449 / 176;
+  height: 0;
+  padding-top: calc(176 / 449 * 100%);
   pointer-events: none;
   user-select: none;
 }
 
 .works-card__key-art {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -1432,9 +1434,10 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .card[data-works-card] .works-card__key .works-card__key-cue {
   display: block;
   position: absolute;
-  left: calc(50% - 75.43 / 318 * 100%);
-  top: calc(78 / 176 * 100%);
-  transform: translateX(-50%);
+  left: calc(79 / 449 * 100%);
+  top: calc(88 / 176 * 100%);
+  transform: translate(-50%, -50%);
+  z-index: 1;
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
@@ -1919,12 +1922,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   z-index: 1;
 }
 
-.card.is-program-open:not([data-program-card]) .card-illust__cue {
+.card.is-program-open:not([data-program-card]):not([data-works-card]) .card-illust__cue {
   display: none;
 }
 
 .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
-.card.is-program-open[data-expand-host][data-works-card] .works-card__key-cue {
+.card.is-program-open[data-works-card] .works-card__key-cue {
   display: block;
 }
 
@@ -4517,12 +4520,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     pointer-events: none;
   }
 
-  .card.is-program-open:not([data-program-card]) .card-illust__cue {
+  .card.is-program-open:not([data-program-card]):not([data-works-card]) .card-illust__cue {
     display: none;
   }
 
   .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
-  .card.is-program-open[data-expand-host][data-works-card] .works-card__key-cue {
+  .card.is-program-open[data-works-card] .works-card__key-cue {
     display: block;
   }
 
