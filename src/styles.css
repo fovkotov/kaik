@@ -2763,9 +2763,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   left: 50%;
   right: auto;
   top: calc(
-    (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2
+    (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2 + var(--deck-nudge-y)
   );
-  margin: 0;
+  margin-left: var(--deck-nudge-x);
+  margin-top: 0;
+  margin-right: 0;
+  margin-bottom: 0;
   z-index: 50;
   overflow: hidden;
   transform-origin: 50% 50%;
@@ -3904,8 +3907,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .card {
     left: 50%;
     right: auto;
-    top: calc((var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2);
-    margin-left: calc(var(--card-w) / -2);
+    top: calc(
+      (var(--frame-h) - var(--panel-footer-h) - var(--card-h)) / 2 + var(--deck-nudge-y)
+    );
+    margin-left: calc(var(--card-w) / -2 + var(--deck-nudge-x));
     transform-origin: 50% 50%;
     cursor: grab;
     touch-action: none;
@@ -4909,15 +4914,14 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 }
 
-/* Stage nudge defaults still apply from JS; the gear / «положение» FAB is gone. */
-.stage-settings,
-.stage-settings__fab,
-[data-stage-settings] {
-  display: none !important;
-  pointer-events: none !important;
+/* —— Stage position settings (mobile FAB; desktop hidden — use dev tweaks) —— */
+@media (min-width: 901px) {
+  .stage-settings {
+    display: none !important;
+    pointer-events: none !important;
+  }
 }
 
-/* —— Stage position settings (retired UI; offsets still apply from JS) —— */
 .stage-settings {
   position: fixed;
   top: 8px;
@@ -5140,10 +5144,16 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 @media (max-width: 900px) {
   .stage-settings {
-    top: max(8px, env(safe-area-inset-top, 0px));
-    right: 8px;
-    width: min(260px, calc(var(--frame-w) - 16px));
-    max-height: min(calc(var(--frame-h) - 16px), calc(100% - 16px));
+    top: auto;
+    bottom: calc(var(--panel-footer-h, 108px) + 12px);
+    right: 12px;
+    width: min(260px, calc(var(--frame-w) - 24px));
+    max-height: min(calc(var(--frame-h) - var(--panel-footer-h, 108px) - 28px), 72%);
+  }
+
+  body:has(.card.is-program-open) .stage-settings {
+    display: none !important;
+    pointer-events: none !important;
   }
 
   .stage-settings__fab,
