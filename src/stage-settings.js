@@ -16,7 +16,7 @@ import {
 } from "./tweaks.js";
 
 const storage = safeStorage();
-const STORAGE_KEY = "kaik-stage-nudge-v6";
+const STORAGE_KEY = "kaik-stage-nudge-v7";
 const LEGACY_KEYS = [
   "kaik-stage-nudge-v5",
   "kaik-stage-nudge-v4",
@@ -81,6 +81,24 @@ const PREV_DESKTOP_ALSO = {
 };
 
 export const MOBILE_STAGE_DEFAULTS = {
+  lift: 146,
+  lockupX: 0,
+  lockupY: 0,
+  navX: 0,
+  navY: 0,
+  langX: 0,
+  langY: 0,
+  deckX: 0,
+  deckY: 151,
+  focusX: 0,
+  focusY: 0,
+  focusScale: 1,
+  closeX: 0,
+  closeY: 0,
+};
+
+/** Previous published mobile defaults (lift 110 / deckY 0). */
+const PREV_MOBILE_DEFAULTS = {
   lift: 110,
   lockupX: 0,
   lockupY: 0,
@@ -164,9 +182,17 @@ const GROUPS = [
   },
   {
     titleKey: "stage.group.deck",
+    mobileTitleKey: "stage.group.cards",
     items: [
       { key: "deckX", labelKey: "stage.axisX", ...AXIS },
       { key: "deckY", labelKey: "stage.axisY", ...AXIS },
+      {
+        key: "cardSize",
+        labelKey: "stage.cardScale",
+        source: "tweaks",
+        mobileOnly: true,
+        ...CARD_SIZE,
+      },
     ],
   },
   {
@@ -289,6 +315,20 @@ function migrateOldDesktopDefaults(blob) {
   return migrateClusterDefaults(next);
 }
 
+function migrateOldMobileDefaults(blob) {
+  if (!blob || typeof blob !== "object") return blob;
+  const next = { ...blob };
+  for (const key of Object.keys(MOBILE_STAGE_DEFAULTS)) {
+    if (next[key] == null) continue;
+    const fresh = MOBILE_STAGE_DEFAULTS[key];
+    const prev = PREV_MOBILE_DEFAULTS[key];
+    if (prev != null && next[key] === prev && next[key] !== fresh) {
+      next[key] = fresh;
+    }
+  }
+  return next;
+}
+
 function loadSaved() {
   try {
     let raw = storage.getItem(STORAGE_KEY);
@@ -302,7 +342,7 @@ function loadSaved() {
     const data = JSON.parse(raw);
     const desktopBlob = migrateOldDesktopDefaults(migrateLegacy(data.desktop));
     applyBlob(desktop, desktopBlob, DESKTOP_STAGE_DEFAULTS);
-    applyBlob(mobile, migrateLegacy(data.mobile), MOBILE_STAGE_DEFAULTS);
+    applyBlob(mobile, migrateOldMobileDefaults(migrateLegacy(data.mobile)), MOBILE_STAGE_DEFAULTS);
     save();
   } catch {
     // ignore
@@ -494,6 +534,8 @@ export function initStageSettings() {
     section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${titleKey}">${t(titleKey)}</h3>`;
     const linked = clusterLinked();
     group.items.forEach((field) => {
+      if (field.mobileOnly && !isMobile()) return;
+      if (field.desktopOnly && isMobile()) return;
       if (field.linkedOnly && !linked) return;
       const value = readField(field.key);
       const labelKey = fieldLabelKey(field);
@@ -606,7 +648,7 @@ export function initStageSettings() {
     event.preventDefault();
     event.stopPropagation();
     Object.assign(getTarget(), getDefaults());
-    if (!isMobile()) resetCardSize();
+    resetCardSize();
     buildFields();
     applyStageNudge({ notify: true });
     save();
