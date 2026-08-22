@@ -84,11 +84,6 @@
     var(--frame-clip-bottom) + max(16px, env(safe-area-inset-bottom, 0px)) + var(--stage-lift) -
       var(--close-nudge-y)
   );
-  /* Top inset for program dog / works key when open on mobile. */
-  --focus-sticker-top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
-  --work-focus-bar-top: calc(var(--focus-sticker-top) + 20px);
-  /* 36px control row + 24px gap before the name (Figma 60:1004). */
-  --work-focus-chrome-h: 80px;
   /* Legacy inset for a parent nav overlay; keep 0 — parent nav sits outside/over the iframe. */
   --host-bar: 0px;
   --card-gutter: 12px;
@@ -4658,7 +4653,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     gap: 24px;
   }
 
-  /* Student progress open — Figma 60:1004: prev/next top-left, close top-right. */
+  /* Article + student work open — Figma 60:1004: close fixed top-right while scrolling. */
+  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card])) .fly-close:not([hidden]),
   body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close:not([hidden]) {
     top: var(--work-focus-bar-top);
     bottom: auto;
@@ -4669,6 +4665,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     z-index: 62;
   }
 
+  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card])) .fly-close__icon,
   body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close__icon {
     filter: brightness(0);
     opacity: 0.32;
