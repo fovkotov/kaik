@@ -1210,7 +1210,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(124 * var(--u));
+  gap: 0;
   background: #2bb673;
   color: #b6d9c1;
   font-family: var(--font);
@@ -1218,16 +1218,43 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: hidden;
 }
 
-/* Dachshund band is in-flow inside .program-card (not a full-card absolute overlay). */
+/* Figma 76:897 / 91:2162 — dachshund floats over the sheet (works-key pattern). */
 .program-card > .card-illust--program {
-  position: relative;
-  inset: auto;
+  position: absolute;
+  top: var(--program-dog-y);
+  left: 0;
+  z-index: 5;
   width: 100%;
-  height: calc(276.539 * var(--u));
-  flex-shrink: 0;
-  z-index: 2;
+  height: var(--program-dog-h);
   pointer-events: none;
   user-select: none;
+}
+
+.program-card > .card-illust--program .card-illust__art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+.card[data-program-card] .card-illust--program .card-illust__cue {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: calc(67.567 / 149.134 * 100%);
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-ru);
+  font-weight: 700;
+  font-size: calc(var(--card-w) * 14 / var(--program-face-w));
+  line-height: normal;
+  color: #000;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .program-card__title {
@@ -1249,7 +1276,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: flex;
   flex-direction: column;
   gap: calc(80 * var(--u));
-  padding: calc(40 * var(--u)) calc(48 * var(--u));
+  padding: var(--program-sheet-top) calc(48 * var(--u)) calc(40 * var(--u));
   background: #2bb673;
   overflow: hidden;
 }
@@ -1343,7 +1370,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 /*
-  Figma 76:897 closed stack face — dachshund band in-flow at top;
+  Figma 76:897 closed stack face — dachshund overlays the sheet;
   title overlays at 4px like the works key band.
 */
 .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card__title {
@@ -3015,6 +3042,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   --program-open-w: var(--focus-open-w);
 }
 
+[data-program-card] {
+  /* Figma 76:897 — 318×450 face; dog 91:2162 at y=0 h≈149; week 1 at y≈109. */
+  --program-face-w: 318;
+  --program-dog-h: calc(149.134 / var(--program-face-w) * var(--card-w));
+  --program-dog-y: 0;
+  --program-sheet-top: calc(109 / var(--program-face-w) * var(--card-w));
+  isolation: isolate;
+}
+
 [data-program-card],
 [data-focus-card]:not([data-work-card]) {
   cursor: pointer;
@@ -3264,16 +3300,17 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 .card.is-program-open[data-program-card] .program-card > .card-illust--program {
   position: relative;
-  inset: auto;
   top: auto;
   left: auto;
-  right: auto;
-  bottom: auto;
   width: 100%;
-  height: calc(276.539 * var(--u));
+  height: var(--program-dog-h);
   flex-shrink: 0;
   z-index: 2;
   pointer-events: auto;
+}
+
+.card.is-program-open[data-program-card] .program-card__sheet {
+  padding-top: calc(40 * var(--u));
 }
 
 .card.is-program-open .faq-card {
@@ -4369,14 +4406,14 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     user-select: none;
   }
 
-  /* Program dog stays in-flow — works key uses .works-card__key, not .card-illust. */
+  /* Program dog floats over the sheet — works key uses .works-card__key. */
   .program-card > .card-illust--program {
-    position: relative;
-    inset: auto;
+    position: absolute;
+    top: var(--program-dog-y);
+    left: 0;
+    z-index: 5;
     width: 100%;
-    height: calc(276.539 * var(--u));
-    flex-shrink: 0;
-    z-index: 2;
+    height: var(--program-dog-h);
     pointer-events: none;
   }
 
@@ -4412,6 +4449,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     font-size: calc(var(--card-w) * 8.499 / var(--works-face-w));
   }
 
+  .card[data-program-card] .card-illust--program .card-illust__cue {
+    font-size: calc(var(--card-w) * 14 / var(--program-face-w));
+  }
+
   /* Size the box to «close me» so swapping «open me» cannot recenter. */
   .card-illust__cue::before {
     content: "close me";
@@ -4442,21 +4483,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     pointer-events: none;
   }
 
-  .card-illust--program .card-illust__art {
-    top: 0;
-    left: calc(-1.515 * var(--u));
-    right: auto;
-    bottom: auto;
-    width: calc(596.969 * var(--u));
-    height: calc(276.539 * var(--u));
-    transform: none;
-    object-fit: fill;
-    pointer-events: none;
-  }
-
   .card-illust--program .card-illust__cue {
     left: 50%;
-    top: calc(168 * var(--u));
+    top: calc(67.567 / 149.134 * 100%);
     bottom: auto;
     transform: translateX(-50%);
     pointer-events: none;
@@ -4515,13 +4544,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     filter: none;
   }
 
-  .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program .card-illust__art {
-    top: 0;
-    bottom: auto;
-  }
-
   .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program .card-illust__cue {
-    top: calc(168 * var(--u));
+    top: calc(67.567 / 149.134 * 100%);
     bottom: auto;
     left: 50%;
     transform: translateX(-50%);
@@ -4622,7 +4646,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .program-card {
-    gap: 53px;
+    gap: 0;
     padding-top: 4px;
   }
 
@@ -4633,7 +4657,11 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .program-card__sheet {
     gap: 32px;
-    padding: 12px;
+    padding: var(--program-sheet-top) 12px 12px;
+  }
+
+  .card.is-program-open[data-program-card] .program-card__sheet {
+    padding-top: 12px;
   }
 
   .program-card__week {
