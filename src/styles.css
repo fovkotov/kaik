@@ -75,6 +75,7 @@
   --lang-nudge-x: 0px;
   --lang-nudge-y: 0px;
   --deck-nudge-x: 59px;
+  --deck-nudge-y: 44px;
   --focus-nudge-x: 0px;
   --focus-nudge-y: 0px;
   --close-nudge-x: 0px;
@@ -189,7 +190,7 @@ body.catalog {
   }
 
   .deck {
-    top: calc(var(--frame-clip-top) - var(--stage-lift) + 44px);
+    top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 44px));
   }
 
   body:not(.admin):not(.catalog) .viewport {
@@ -1632,16 +1633,16 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   .card[data-works-card] {
     /* Figma 130:5304 closed 318 / 131:6735 open 374 — same ratios, caption stays 10. */
     --works-face-w: 318;
-    --works-pad-x: calc(5.665 / 318 * var(--card-w));
+    --works-pad-x: 0px;
     --works-pad-top: calc(0.755 / 318 * var(--card-w));
     --works-pad-bot: calc(15.106 / 318 * var(--card-w));
     --works-gap-section: calc(24.17 / 318 * var(--card-w));
     --works-gap-item: calc(9.064 / 318 * var(--card-w));
     --works-gap-tight: calc(6.043 / 318 * var(--card-w));
     --works-list-top: calc((17.384 + 107.41) / 318 * var(--card-w));
-    --works-col-a: calc(158.24 / 318 * var(--card-w));
-    --works-col-b: calc(147.665 / 318 * var(--card-w));
-    --works-col-c: calc(146.91 / 318 * var(--card-w));
+    --works-col-a: calc(158.24 / 305.905 * var(--works-content-w));
+    --works-col-b: calc(147.665 / 305.905 * var(--works-content-w));
+    --works-col-c: calc(146.91 / 305.905 * var(--works-content-w));
     --works-title-size: calc(17.384 / 318 * var(--card-w));
     --works-who-size: 10px;
     --works-key-y: calc(6 / 318 * var(--card-w));
@@ -1659,6 +1660,10 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
   .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
     margin-top: 0;
+  }
+
+  .card[data-works-card] [data-focus-scroll] {
+    display: none;
   }
 }
 
