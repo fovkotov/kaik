@@ -1,6 +1,7 @@
 /**
- * Stage nudge panel (mobile FAB). Desktop offsets still apply from saved JSON.
- * Mobile: lift → footer block, deckX/deckY → card stack.
+ * Stage nudge panel (desktop + mobile gear). Desktop chrome matches Figma 117:975
+ * in the left half, under cards. A “text position” toggle moves the whole
+ * lockup+nav+lang cluster as one X/Y. Mobile: lift → footer, deck → stack.
  */
 
 import { onFrameMetrics, safeStorage } from "./embed.js";
@@ -43,6 +44,9 @@ export const DESKTOP_STAGE_DEFAULTS = {
   focusScale: 0.93,
   closeX: 0,
   closeY: 0,
+  clusterX: 0,
+  clusterY: 0,
+  clusterLinked: 1,
 };
 
 /** Previous published defaults (lockup X 0 / nav·lang Y 18). */
@@ -61,6 +65,9 @@ const PREV_DESKTOP_DEFAULTS = {
   focusScale: 0.93,
   closeX: 0,
   closeY: 0,
+  clusterX: 0,
+  clusterY: 0,
+  clusterLinked: 1,
 };
 
 /** Older uncustomized snapshots — treat as uncustomized too. */
@@ -116,6 +123,22 @@ const GROUPS = [
     ],
   },
   {
+    titleKey: "stage.group.text",
+    desktopOnly: true,
+    items: [
+      {
+        key: "clusterLinked",
+        type: "toggle",
+        labelKey: "stage.textPos",
+        min: 0,
+        max: 1,
+        step: 1,
+      },
+      { key: "clusterX", labelKey: "stage.axisX", linkedOnly: true, ...AXIS },
+      { key: "clusterY", labelKey: "stage.axisY", linkedOnly: true, ...AXIS },
+    ],
+  },
+  {
     titleKey: "stage.group.lockup",
     items: [
       { key: "lockupX", labelKey: "stage.axisX", ...AXIS },
@@ -163,7 +186,7 @@ const GROUPS = [
   },
 ];
 
-const DESKTOP_PINNED_GROUPS = new Set(["stage.group.all", "stage.group.cards"]);
+const DESKTOP_PINNED_GROUPS = new Set(["stage.group.all", "stage.group.cards", "stage.group.text"]);
 const MOBILE_PINNED_GROUPS = new Set(["stage.group.all", "stage.group.deck"]);
 
 const FIELD_BY_KEY = new Map(GROUPS.flatMap((group) => group.items.map((item) => [item.key, item])));
@@ -297,6 +320,8 @@ export function applyStageNudge({ notify = false } = {}) {
   root.style.setProperty("--stage-lift", `${s.lift}px`);
   root.style.setProperty("--lockup-nudge-x", `${s.lockupX}px`);
   root.style.setProperty("--lockup-nudge-y", `${s.lockupY}px`);
+  root.style.setProperty("--cluster-nudge-x", `${Number(s.clusterX) || 0}px`);
+  root.style.setProperty("--cluster-nudge-y", `${Number(s.clusterY) || 0}px`);
   root.style.setProperty("--nav-nudge-x", `${s.navX}px`);
   root.style.setProperty("--nav-nudge-y", `${s.navY}px`);
   root.style.setProperty("--lang-nudge-x", `${s.langX}px`);
@@ -322,6 +347,7 @@ function layoutJson() {
     deck: { x: s.deckX, y: s.deckY },
     focus: { x: s.focusX, y: s.focusY },
     close: { x: s.closeX, y: s.closeY },
+    cluster: { x: s.clusterX, y: s.clusterY, linked: Boolean(s.clusterLinked) },
     cardSize: getCardSize(),
     focusScale: clampField("focusScale", s.focusScale),
     mobileLift: mobile.lift,
@@ -413,12 +439,20 @@ export function initStageSettings() {
     return isMobile() ? MOBILE_PINNED_GROUPS : DESKTOP_PINNED_GROUPS;
   }
 
+  function clusterLinked() {
+    return Boolean(desktop.clusterLinked);
+  }
+
   function visibleGroups() {
     const mobileView = isMobile();
+    const linked = !mobileView && clusterLinked();
     return GROUPS.filter((group) => {
       if (group.desktopOnly && mobileView) return false;
       if (group.mobileOnly && !mobileView) return false;
       if (mobileView && (group.titleKey === "stage.group.lockup" || group.titleKey === "stage.group.nav")) {
+        return false;
+      }
+      if (linked && (group.titleKey === "stage.group.lockup" || group.titleKey === "stage.group.nav" || group.titleKey === "stage.group.lang")) {
         return false;
       }
       return true;
@@ -438,12 +472,26 @@ export function initStageSettings() {
     const section = document.createElement("section");
     section.className = "stage-settings__group";
     section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${titleKey}">${t(titleKey)}</h3>`;
+    const linked = clusterLinked();
     group.items.forEach((field) => {
+      if (field.linkedOnly && !linked) return;
       const value = readField(field.key);
       const labelKey = fieldLabelKey(field);
       const row = document.createElement("label");
-      row.className = "stage-settings__row";
-      row.innerHTML = `
+      if (field.type === "toggle") {
+        row.className = "stage-settings__switch";
+        row.innerHTML = `
+          <span class="stage-settings__label" data-i18n="${labelKey}">${t(labelKey)}</span>
+          <input
+            type="checkbox"
+            data-nudge="${field.key}"
+            ${value ? "checked" : ""}
+          />
+          <span class="stage-settings__switch-ui" aria-hidden="true"></span>
+        `;
+      } else {
+        row.className = "stage-settings__row";
+        row.innerHTML = `
           <span class="stage-settings__label" data-i18n="${labelKey}">${t(labelKey)}</span>
           <span class="stage-settings__value" data-value>${formatFieldValue(field.key, value)}</span>
           <input
@@ -456,6 +504,7 @@ export function initStageSettings() {
             value="${value}"
           />
         `;
+      }
       section.append(row);
     });
     return section;
@@ -488,6 +537,10 @@ export function initStageSettings() {
       const key = el.dataset.nudge;
       if (!key || (!isTweakField(key) && !(key in getTarget()))) return;
       const value = readField(key);
+      if (el.type === "checkbox") {
+        el.checked = Boolean(value);
+        return;
+      }
       el.value = String(value);
       const valueEl = el.closest(".stage-settings__row")?.querySelector("[data-value]");
       if (valueEl) valueEl.textContent = formatFieldValue(key, value);
@@ -533,7 +586,8 @@ export function initStageSettings() {
     event.preventDefault();
     event.stopPropagation();
     Object.assign(getTarget(), getDefaults());
-    syncValues();
+    if (!isMobile()) resetCardSize();
+    buildFields();
     applyStageNudge({ notify: true });
     save();
   });
@@ -549,9 +603,11 @@ export function initStageSettings() {
     if (!(el instanceof HTMLInputElement)) return;
     const key = el.dataset.nudge;
     if (!key || (!isTweakField(key) && !(key in getTarget()))) return;
-    const next = writeField(key, el.value);
+    const raw = el.type === "checkbox" ? (el.checked ? 1 : 0) : el.value;
+    const next = writeField(key, raw);
     const valueEl = el.closest(".stage-settings__row")?.querySelector("[data-value]");
     if (valueEl) valueEl.textContent = formatFieldValue(key, next);
+    if (key === "clusterLinked") buildFields();
     if (!isTweakField(key)) {
       applyStageNudge({ notify: true });
       save();

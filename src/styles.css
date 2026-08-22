@@ -68,6 +68,8 @@
   --stage-lift: 0px;
   --lockup-nudge-x: 0px;
   --lockup-nudge-y: 0px;
+  --cluster-nudge-x: 0px;
+  --cluster-nudge-y: 0px;
   --nav-nudge-x: 0px;
   --nav-nudge-y: 0px;
   --lang-nudge-x: 0px;
@@ -234,11 +236,12 @@ a {
   --panel-type: 16px;
   --panel-left-col: calc(var(--frame-w) * 0.5);
   --panel-cluster-left: calc(
-    (var(--panel-left-col) - var(--panel-cluster-w)) / 2 + var(--lockup-nudge-x)
+    (var(--panel-left-col) - var(--panel-cluster-w)) / 2 + var(--lockup-nudge-x) +
+      var(--cluster-nudge-x)
   );
   --panel-cluster-top: calc(
     var(--frame-clip-top) + (var(--frame-h) - var(--panel-lockup-h)) / 2 - var(--stage-lift) +
-      var(--lockup-nudge-y)
+      var(--lockup-nudge-y) + var(--cluster-nudge-y)
   );
   display: contents;
 }
@@ -4914,14 +4917,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 }
 
-/* —— Stage position settings (mobile FAB; desktop hidden — use dev tweaks) —— */
-@media (min-width: 901px) {
-  .stage-settings {
-    display: none !important;
-    pointer-events: none !important;
-  }
-}
-
+/* —— Stage position settings (gear on desktop + mobile) —— */
 .stage-settings {
   position: fixed;
   top: 8px;
@@ -5134,6 +5130,58 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   height: 22px;
   accent-color: var(--enroll);
   touch-action: manipulation;
+}
+
+.stage-settings__switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.stage-settings__switch .stage-settings__label {
+  grid-area: unset;
+}
+
+.stage-settings__switch-ui {
+  position: relative;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.16);
+  transition: background 160ms ease;
+}
+
+.stage-settings__switch-ui::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: transform 160ms var(--ease-out);
+}
+
+.stage-settings__switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.stage-settings__switch:has(input:checked) .stage-settings__switch-ui {
+  background: var(--enroll);
+}
+
+.stage-settings__switch:has(input:checked) .stage-settings__switch-ui::after {
+  transform: translateX(14px);
 }
 
 @media (hover: hover) and (pointer: fine) {
