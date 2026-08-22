@@ -1389,27 +1389,6 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --works-rotate: 0deg;
   --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
   --works-open-scale: 1.16;
-  /* Figma 130:1000 / 130:460 — 842 board (15+810+15), title 32.528, gaps 64/24/16. */
-  --works-src: 842;
-  --works-face-w: 842;
-  --works-bleed-w: 810;
-  --u: calc(var(--card-w) / var(--works-src));
-  --works-pad-x: calc(15 / var(--works-src) * var(--card-w));
-  --works-pad-top: calc(2 / var(--works-src) * var(--card-w));
-  --works-pad-bot: calc(40 / var(--works-src) * var(--card-w));
-  --works-content-w: calc(var(--card-w) - 2 * var(--works-pad-x));
-  --works-art-scale: calc(var(--works-content-w) / var(--works-bleed-w));
-  --works-gap-section: calc(64 / var(--works-src) * var(--card-w));
-  --works-gap-item: calc(24 / var(--works-src) * var(--card-w));
-  --works-gap-tight: calc(16 / var(--works-src) * var(--card-w));
-  --works-list-top: calc((32.528 + 67) / var(--works-src) * var(--card-w));
-  --works-col-a: calc(419 / var(--works-bleed-w) * var(--works-content-w));
-  --works-col-b: calc(391 / var(--works-bleed-w) * var(--works-content-w));
-  --works-col-c: calc(389 / var(--works-bleed-w) * var(--works-content-w));
-  --works-title-size: calc(32.528 / var(--works-src) * var(--card-w));
-  --works-who-size: calc(11.749 / var(--works-src) * var(--card-w));
-  --works-key-h: calc(176 / 449 * var(--card-w));
-  --works-key-y: calc(6 / 318 * var(--card-w));
   --focus-open-w: min(
     calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
     calc(var(--frame-w) - 48px)
@@ -1429,11 +1408,11 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .works-card__key {
   position: absolute;
-  top: var(--works-key-y);
+  top: calc(6 / 318 * 100cqw);
   left: 0;
   z-index: 5;
   width: 100%;
-  height: var(--works-key-h);
+  height: calc(176 / 449 * 100cqw);
   pointer-events: none;
   user-select: none;
 }
@@ -1450,13 +1429,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .card[data-works-card] .works-card__key .works-card__key-cue {
   display: block;
   position: absolute;
-  left: calc(50% - var(--card-w) * 75.43 / 318);
+  left: calc(50% - 75.43 / 318 * 100cqw);
   top: calc(78 / 176 * 100%);
   transform: translateX(-50%);
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
-  font-size: calc(var(--card-w) * 8.499 / 318);
+  font-size: calc(8.499 / 318 * 100cqw);
   line-height: normal;
   color: #000;
   white-space: nowrap;
@@ -1491,6 +1470,22 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .works-card {
+  /* cqw = this face. Do not scale arts from --card-w: --frame-w is 100%
+     and re-resolves on nested boxes, shrinking letterings. */
+  container-type: inline-size;
+  --u: calc(100cqw / 842);
+  --works-pad-x: calc(15 / 842 * 100%);
+  --works-pad-top: calc(2 / 842 * 100%);
+  --works-pad-bot: calc(40 / 842 * 100%);
+  --works-gap-section: calc(64 / 842 * 100cqw);
+  --works-gap-item: calc(24 / 842 * 100cqw);
+  --works-gap-tight: calc(16 / 842 * 100cqw);
+  --works-list-top: calc((32.528 + 67) / 842 * 100cqw);
+  --works-col-a: calc(419 / 810 * 100%);
+  --works-col-b: calc(391 / 810 * 100%);
+  --works-col-c: calc(389 / 810 * 100%);
+  --works-title-size: calc(32.528 / 842 * 100cqw);
+  --works-who-size: calc(11.749 / 842 * 100cqw);
   position: relative;
   z-index: 1;
   display: flex;
@@ -1529,7 +1524,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   flex-direction: column;
   align-items: stretch;
   gap: var(--works-gap-section);
-  width: var(--works-content-w);
+  width: 100%;
   max-width: 100%;
   margin: 0;
   padding: var(--works-list-top) 0 0;
@@ -1557,7 +1552,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: calc(var(--works-content-w) - var(--works-col-a) - var(--works-col-b));
+  gap: calc(100% - var(--works-col-a) - var(--works-col-b));
   width: 100%;
   flex-shrink: 0;
 }
@@ -1603,10 +1598,15 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .works-card__art {
-  width: calc(var(--art-w) * var(--works-art-scale));
-  height: calc(var(--art-h) * var(--works-art-scale));
+  width: calc(var(--art-w) / 810 * 100%);
+  height: auto;
+  aspect-ratio: var(--art-w) / var(--art-h);
   max-width: none;
   flex-shrink: 0;
+}
+
+.works-card__item > .works-card__art {
+  width: 100%;
 }
 
 .works-card__art > img {
@@ -1624,31 +1624,29 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  width: var(--works-content-w);
+  width: 100%;
   row-gap: var(--works-gap-item);
   flex-shrink: 0;
 }
 
 @media (max-width: 900px) {
   .card[data-works-card] {
-    /* Figma 130:5304 closed 318 / 131:6735 open 374 — same ratios, caption stays 10. */
-    --works-face-w: 318;
-    --works-pad-x: 0px;
-    --works-pad-top: calc(0.755 / 318 * var(--card-w));
-    --works-pad-bot: calc(15.106 / 318 * var(--card-w));
-    --works-gap-section: calc(24.17 / 318 * var(--card-w));
-    --works-gap-item: calc(9.064 / 318 * var(--card-w));
-    --works-gap-tight: calc(6.043 / 318 * var(--card-w));
-    --works-list-top: calc((17.384 + 107.41) / 318 * var(--card-w));
-    --works-col-a: calc(158.24 / 305.905 * var(--works-content-w));
-    --works-col-b: calc(147.665 / 305.905 * var(--works-content-w));
-    --works-col-c: calc(146.91 / 305.905 * var(--works-content-w));
-    --works-title-size: calc(17.384 / 318 * var(--card-w));
-    --works-who-size: 10px;
-    --works-key-y: calc(6 / 318 * var(--card-w));
     --works-shift-x: 0px;
     --focus-open-w: var(--frame-w);
     --program-open-w: var(--focus-open-w);
+  }
+
+  .card[data-works-card] .works-card {
+    --u: calc(100cqw / 318);
+    --works-pad-x: 0px;
+    --works-pad-top: calc(0.755 / 318 * 100%);
+    --works-pad-bot: calc(15.106 / 318 * 100%);
+    --works-gap-section: calc(24.17 / 318 * 100cqw);
+    --works-gap-item: calc(9.064 / 318 * 100cqw);
+    --works-gap-tight: calc(6.043 / 318 * 100cqw);
+    --works-list-top: calc((17.384 + 107.41) / 318 * 100cqw);
+    --works-title-size: calc(17.384 / 318 * 100cqw);
+    --works-who-size: 10px;
   }
 
   .works-card__who--stack {
@@ -4482,7 +4480,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card[data-works-card] .works-card__key .works-card__key-cue {
-    font-size: calc(var(--card-w) * 8.499 / 318);
+    font-size: calc(8.499 / 318 * 100cqw);
   }
 
   .card[data-program-card] .card-illust--program .card-illust__cue {
