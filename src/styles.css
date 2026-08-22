@@ -1661,10 +1661,6 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
     margin-top: 0;
   }
-
-  .card[data-works-card] [data-focus-scroll] {
-    display: none;
-  }
 }
 
 .exercises-card {
