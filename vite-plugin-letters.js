@@ -150,6 +150,17 @@ function applyPartial(entry, body) {
 
 const LETTERS_CATALOG_EVENT = "letters-catalog";
 
+function dropcapSnapshot(catalog) {
+  const letters = (catalog.letters || [])
+    .filter((item) => (item.kind || KIND_LETTER) === KIND_LETTER && item.id && item.file)
+    .map((item) => ({
+      id: item.id,
+      file: item.file,
+      char: item.char || "",
+    }));
+  return JSON.stringify({ en: "L", ru: "Э", letters });
+}
+
 export function lettersAdminPlugin() {
   let root = process.cwd();
   let viteServer = null;
@@ -196,6 +207,18 @@ export function lettersAdminPlugin() {
     name: "letters-admin",
     configResolved(config) {
       root = config.root;
+    },
+    async transformIndexHtml(html) {
+      if (!html.includes('id="kaik-dropcap-catalog"')) return html;
+      try {
+        const snapshot = dropcapSnapshot(await readCatalog());
+        return html.replace(
+          /(<script type="application\/json" id="kaik-dropcap-catalog">)([\s\S]*?)(<\/script>)/,
+          `$1${snapshot}$3`,
+        );
+      } catch {
+        return html;
+      }
     },
     handleHotUpdate(ctx) {
       if (ctx.file.includes(`${path.sep}public${path.sep}letters${path.sep}`)) {

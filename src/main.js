@@ -656,7 +656,7 @@ function initDeck() {
     "wheel",
     (event) => {
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], .landing-card__nav a, .landing-card__nav button")) return;
       if (programLocked()) {
         event.preventDefault();
         holdFlyLock();
@@ -689,7 +689,7 @@ function initDeck() {
     (event) => {
       if (!isMobile()) return;
       if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings]")) return;
+      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], .landing-card__nav a, .landing-card__nav button")) return;
       if (eventFrom(event.target, ".panel, .panel a, .panel button")) return;
       if (programLocked()) {
         event.preventDefault();

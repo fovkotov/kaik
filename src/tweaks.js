@@ -69,7 +69,7 @@ export const MOBILE = {
 
   deckLeftPct: 50,
   deckScale: 1,
-  /** 1 = max height that still fits the iframe; <1 shrinks, never overflows. */
+  /** 1 = max height that still fits the iframe; 0.5–1.5 scales the whole stack. */
   cardSize: 1,
   travelDir: 0,
 
@@ -210,11 +210,9 @@ function observePanelFooter() {
 
 function mobileFooterReserve(frameH) {
   const root = document.documentElement;
-  syncPanelFooterHeight();
-  const raw = getComputedStyle(root).getPropertyValue("--panel-footer-h");
-  const footerH = Number.parseFloat(raw) || 108;
   const hostBar = Number.parseFloat(getComputedStyle(root).getPropertyValue("--host-bar")) || 0;
-  return Math.max(48, frameH - hostBar - footerH - 8);
+  /* Mobile footer panel is hidden — landing card carries nav; use nearly full frame. */
+  return Math.max(48, frameH - hostBar - 16);
 }
 
 /**
@@ -243,8 +241,12 @@ export function syncCardMetrics() {
         w = h / aspect;
       }
     }
-    w = Math.max(1, Math.round(w * 100) / 100);
-    h = Math.max(1, Math.round(h * 100) / 100);
+    const rawSize = Number(p.cardSize);
+    const cardSize = Number.isFinite(rawSize)
+      ? Math.min(MOBILE_CARD_SIZE.max, Math.max(MOBILE_CARD_SIZE.min, rawSize))
+      : MOBILE_DEFAULTS.cardSize;
+    w = Math.max(1, Math.round(w * cardSize * 100) / 100);
+    h = Math.max(1, Math.round(h * cardSize * 100) / 100);
     const root = document.documentElement;
     root.style.setProperty("--card-h", `${h}px`);
     root.style.setProperty("--card-w", `${w}px`);
@@ -612,13 +614,20 @@ function save() {
 }
 
 export const CARD_SIZE = { min: 1, max: 3, step: 0.01 };
+/** Mobile stack scale: 1 = max-fit in iframe; lower shrinks the whole deck. */
+export const MOBILE_CARD_SIZE = { min: 0.5, max: 1.5, step: 0.01 };
+
+function cardSizeBounds() {
+  return isMobile() ? MOBILE_CARD_SIZE : CARD_SIZE;
+}
 
 function clampCardSize(value) {
+  const bounds = cardSizeBounds();
   const fallback = isMobile() ? MOBILE_DEFAULTS.cardSize : DESKTOP_DEFAULTS.cardSize;
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
-  const clamped = Math.min(CARD_SIZE.max, Math.max(CARD_SIZE.min, n));
-  return Number((Math.round(clamped / CARD_SIZE.step) * CARD_SIZE.step).toFixed(2));
+  const clamped = Math.min(bounds.max, Math.max(bounds.min, n));
+  return Number((Math.round(clamped / bounds.step) * bounds.step).toFixed(2));
 }
 
 export function getCardSize() {

@@ -1,4 +1,4 @@
-import { getScrollRoot, getViewportSize, safeSessionStorage } from "../embed.js";
+import { getScrollRoot, getViewportSize } from "../embed.js";
 import { publicUrl } from "../public-url.js";
 import { isMobile } from "../tweaks.js";
 import {
@@ -13,7 +13,6 @@ import { firstGrapheme, normalizeChar } from "./shared.js";
 import { svgToInline } from "./svg.js";
 import { sameCatalog, subscribeCatalog } from "./live.js";
 
-const LAST_KEY = "kaik-dropcap-last";
 const SPIN_OUT_DEG = 450;
 const SPIN_IN_FROM_DEG = -90;
 const EASE_IN = "cubic-bezier(0.55, 0.055, 0.675, 0.19)";
@@ -25,7 +24,6 @@ const SWAP_PERIOD_DEG = 180;
 const SCRUB_LERP = 0.25;
 const SCRUB_SETTLE_MS = 320;
 const svgCache = new Map();
-const session = safeSessionStorage();
 const reduceMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 /** Fine pointer only — iOS sticky :hover / synthetic mouseenter must not open the popover. */
@@ -95,20 +93,6 @@ function waitForIntroDone() {
     });
     const timer = window.setTimeout(finish, 5000);
   });
-}
-
-function lastMap() {
-  try {
-    return JSON.parse(session.getItem(LAST_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function remember(slot, id) {
-  const map = lastMap();
-  map[slot] = id;
-  session.setItem(LAST_KEY, JSON.stringify(map));
 }
 
 function svgStamp(entry) {
@@ -417,7 +401,6 @@ function createScrubber() {
     const swap = ensureSwap(button);
     swap.replaceChildren(glyph);
     applyMeta(button, entry);
-    remember(button.dataset.slot, entry.id);
     applyScrubTransform(state);
   };
 
@@ -586,7 +569,6 @@ export async function initDropcaps() {
         animate: true,
       });
       if (next && next.id !== prevId && button.dataset.letterId === next.id) {
-        remember(button.dataset.slot, next.id);
         if (!isMobile()) showPopover(button, next);
       }
       if (scrub) scrub.clicking = false;
@@ -640,11 +622,6 @@ export async function initDropcaps() {
           return;
         }
 
-        const last =
-          paintedChar && (!char || paintedChar === char)
-            ? currentId || lastMap()[slot]
-            : undefined;
-
         const rest =
           char && (!explicit || normalizeChar(first) === char)
             ? source.slice(first.length)
@@ -668,18 +645,24 @@ export async function initDropcaps() {
 
         if (gen !== mountGen) return;
 
-        const sameChar = Boolean(button.dataset.char && button.dataset.char === char);
         const cyclePool = clickPool(catalog, char);
+        const picked = button.hasAttribute("data-dropcap-picked");
+        const localeSwap = Boolean(
+          animate && matched.length && paintedChar && paintedChar !== char,
+        );
+        /* Keep the first-paint random glyph. Re-pick only when locale has a
+           matching set, or when the inline pick never ran. Never restore a
+           session letter — each visit uses Math.random(). */
         const keepHtmlGlyph =
-          hadGlyph && (sameChar || !matched.length || !paintedChar);
+          hadGlyph && !localeSwap && (picked || animate || !pool.length);
 
         if (keepHtmlGlyph) {
-          remember(slot, currentId || currentEntry?.id || pool[0]?.id);
+          if (currentEntry) applyMeta(button, currentEntry);
           attachRuntime(button, cyclePool);
           return;
         }
 
-        const entry = await paintFromPool(button, pool, last, {
+        const entry = await paintFromPool(button, pool, undefined, {
           animate: animate && hadGlyph,
         });
         if (gen !== mountGen) return;
@@ -691,7 +674,7 @@ export async function initDropcaps() {
           host.textContent = source;
           return;
         }
-        remember(slot, entry.id);
+        button.setAttribute("data-dropcap-picked", "");
         attachRuntime(button, cyclePool);
       }),
     );

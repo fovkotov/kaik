@@ -3,13 +3,78 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      /* Scriptik boot: lock html lang to the browser (or saved choice) before paint. */
+      (function () {
+        var KEY = "kaik-course-locale";
+        var SUPPORTED = { en: 1, ru: 1 };
+        function pick(value) {
+          if (!value) return null;
+          var base = String(value).toLowerCase().split("-")[0];
+          return SUPPORTED[base] ? base : null;
+        }
+        var locale = null;
+        try {
+          locale = pick(localStorage.getItem(KEY));
+        } catch (e) {}
+        if (!locale) {
+          var list = navigator.languages || [];
+          for (var i = 0; i < list.length; i++) {
+            locale = pick(list[i]);
+            if (locale) break;
+          }
+          if (!locale) {
+            locale = pick(navigator.language) || pick(navigator.userLanguage);
+          }
+        }
+        locale = locale || "en";
+        document.documentElement.lang = locale;
+        document.documentElement.setAttribute("data-locale", locale);
+        document.documentElement.classList.toggle("lang-ru", locale === "ru");
+      })();
+    </script>
+    <script type="application/json" id="kaik-dropcap-catalog">{"en":"L","ru":"Э","letters":[{"id":"ltr_d094952c","file":"ltr_d094952c.svg","char":"L"},{"id":"ltr_9c88f6f0","file":"ltr_9c88f6f0.svg","char":"L"},{"id":"ltr_a7085a04","file":"ltr_a7085a04.svg","char":"L"},{"id":"ltr_d2559774","file":"ltr_d2559774.svg","char":"L"},{"id":"ltr_49304cb0","file":"ltr_49304cb0.svg","char":"L"},{"id":"ltr_98d9510f","file":"ltr_98d9510f.svg","char":"L"},{"id":"ltr_25a367eb","file":"ltr_25a367eb.svg","char":"L"},{"id":"ltr_49efced6","file":"ltr_49efced6.svg","char":"L"},{"id":"ltr_53a64d7a","file":"ltr_53a64d7a.svg","char":"L"},{"id":"ltr_f268d1c2","file":"ltr_f268d1c2.svg","char":"L"}]}</script>
     <link
       rel="preload"
       as="image"
       href="/letters/ltr_d094952c.svg"
       type="image/svg+xml"
       fetchpriority="high"
+      data-dropcap-preload
     />
+    <script>
+      /* Random dropcap before first paint. Math.random() every load — not stored. */
+      (function () {
+        var fallback = { id: "ltr_d094952c", file: "ltr_d094952c.svg", char: "L" };
+        var pick = fallback;
+        var node = document.getElementById("kaik-dropcap-catalog");
+        try {
+          var data = JSON.parse(node && node.textContent);
+          var letters = (data && data.letters) || [];
+          if (letters.length) {
+            var loc = document.documentElement.getAttribute("data-locale") || "en";
+            var want = loc === "ru" ? (data.ru || "Э") : (data.en || "L");
+            var pool = letters.filter(function (item) {
+              return item && item.char === want;
+            });
+            if (!pool.length) pool = letters;
+            pick = pool[Math.floor(Math.random() * pool.length)] || fallback;
+          }
+        } catch (e) {}
+        if (!pick || !pick.file) pick = fallback;
+        var root = document.documentElement;
+        root.setAttribute("data-dropcap-id", pick.id || fallback.id);
+        root.setAttribute("data-dropcap-file", pick.file);
+        root.setAttribute("data-dropcap-char", pick.char || "");
+        var preload = document.querySelector("[data-dropcap-preload]");
+        if (preload) {
+          var href = preload.getAttribute("href") || "/letters/" + fallback.file;
+          var next = href.replace(/[^/]+$/, pick.file);
+          preload.setAttribute("href", next);
+          preload.href = next;
+        }
+      })();
+    </script>
     <title>LETTER II — käik</title>
     <meta property="og:title" content="LETTER II — käik" />
     <link
@@ -44,36 +109,6 @@
       }
     </style>
     <link rel="stylesheet" href="/src/styles.css" />
-    <script>
-      /* Scriptik boot: lock html lang to the browser (or saved choice) before paint. */
-      (function () {
-        var KEY = "kaik-course-locale";
-        var SUPPORTED = { en: 1, ru: 1 };
-        function pick(value) {
-          if (!value) return null;
-          var base = String(value).toLowerCase().split("-")[0];
-          return SUPPORTED[base] ? base : null;
-        }
-        var locale = null;
-        try {
-          locale = pick(localStorage.getItem(KEY));
-        } catch (e) {}
-        if (!locale) {
-          var list = navigator.languages || [];
-          for (var i = 0; i < list.length; i++) {
-            locale = pick(list[i]);
-            if (locale) break;
-          }
-          if (!locale) {
-            locale = pick(navigator.language) || pick(navigator.userLanguage);
-          }
-        }
-        locale = locale || "en";
-        document.documentElement.lang = locale;
-        document.documentElement.setAttribute("data-locale", locale);
-        document.documentElement.classList.toggle("lang-ru", locale === "ru");
-      })();
-    </script>
   </head>
   <body>
     <div class="viewport" data-scroll-root>
@@ -109,11 +144,32 @@
                     fetchpriority="high"
                     loading="eager"
                     draggable="false"
+                    data-dropcap-img
                   />
                 </span>
               </span>
             </button>
           </span>
+            <script>
+              (function () {
+                var root = document.documentElement;
+                var id = root.getAttribute("data-dropcap-id");
+                var file = root.getAttribute("data-dropcap-file");
+                var ch = root.getAttribute("data-dropcap-char") || "";
+                var button = document.querySelector(".panel__dropcap .dropcap");
+                var img = button && button.querySelector("[data-dropcap-img]");
+                if (!button || !img || !id || !file) return;
+                var src = img.getAttribute("src") || "/letters/" + file;
+                img.src = src.replace(/[^/]+$/, file);
+                button.dataset.letterId = id;
+                if (ch) button.dataset.char = ch;
+                button.setAttribute("data-dropcap-picked", "");
+                button.setAttribute(
+                  "aria-label",
+                  root.lang === "ru" ? "Буквица " + ch : "Drop cap " + ch,
+                );
+              })();
+            </script>
           <div class="panel__copy">
             <p class="panel__title" data-i18n="title">ETTER II</p>
             <p class="panel__dates" data-i18n="dates">from 31 avgust
@@ -151,13 +207,56 @@ to 12 october</p>
         class="card"
         data-card
         data-focus-card
+        data-landing-card
         data-base-rotate="0"
         data-base-x="54"
         data-base-y="0"
         data-tip="-18"
         style="--card-color: #ffffff; --z: 10"
       >
-        <img class="card__art" src="/assets/cards/01.webp" alt="" draggable="false" />
+        <img class="card__art card__art--cover" src="/assets/cards/01.webp" alt="" draggable="false" />
+        <div class="landing-card" data-landing-card-face>
+          <div class="landing-card__hero">
+            <img
+              src="/assets/cards/landing-hero.png"
+              alt=""
+              width="608"
+              height="564"
+              draggable="false"
+            />
+          </div>
+          <div class="landing-card__foot">
+            <div class="landing-card__meta">
+              <p class="landing-card__title" data-i18n="landing.title">LETTER II</p>
+              <p class="landing-card__dates" data-i18n="landing.dates">from 31 avgust
+to 12 october</p>
+            </div>
+            <nav class="landing-card__nav" aria-label="Course">
+              <a
+                class="landing-card__enroll"
+                href="https://web.tribute.tg/p/AOo"
+                target="_top"
+                rel="noopener noreferrer"
+                data-i18n="nav.enroll"
+                >enroll</a
+              >
+              <a href="/program.html" data-program-nav data-i18n="nav.program">program</a>
+              <a href="#works" data-work-nav data-i18n="nav.work">student work</a>
+              <div
+                class="landing-card__lang"
+                role="group"
+                data-i18n-aria="lang.label"
+                aria-label="Language"
+              >
+                <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">
+                  en
+                </button>
+                <span class="lang-sep" aria-hidden="true">/</span>
+                <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">ru</button>
+              </div>
+            </nav>
+          </div>
+        </div>
       </article>
       <article
         class="card"
