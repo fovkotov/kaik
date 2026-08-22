@@ -1365,6 +1365,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --works-src: 842;
   --works-face-w: 318;
   --u: calc(var(--card-w) / var(--works-src));
+  --works-key-h: calc(176 / 449 * var(--card-w));
+  --works-key-y: calc(6 / var(--works-face-w) * var(--card-w));
   --focus-open-w: min(
     calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
     calc(var(--frame-w) - 48px)
@@ -1384,11 +1386,11 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .works-card__key {
   position: absolute;
-  top: calc(6 * var(--works-src) / var(--works-face-w) * var(--u));
+  top: var(--works-key-y);
   left: 0;
   z-index: 5;
   width: 100%;
-  height: calc(125 * var(--works-src) / var(--works-face-w) * var(--u));
+  height: var(--works-key-h);
   pointer-events: none;
   user-select: none;
 }
@@ -1402,16 +1404,16 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   user-select: none;
 }
 
-.works-card__key-cue {
+.card[data-works-card] .works-card__key .works-card__key-cue {
   display: block;
   position: absolute;
-  left: calc(66.6 / var(--works-face-w) * 100%);
-  top: calc((61.2 - 6) / 125 * 100%);
-  transform: translate(-50%, -50%);
+  left: calc(50% - var(--card-w) * 75.43 / var(--works-face-w));
+  top: calc(78 / 176 * 100%);
+  transform: translateX(-50%);
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
-  font-size: calc(8.5 * var(--works-src) / var(--works-face-w) * var(--u));
+  font-size: calc(var(--card-w) * 8.499 / var(--works-face-w));
   line-height: normal;
   color: #000;
   white-space: nowrap;
@@ -4366,6 +4368,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     text-align: left;
     white-space: nowrap;
     pointer-events: none;
+  }
+
+  .card[data-works-card] .works-card__key .works-card__key-cue {
+    font-size: calc(var(--card-w) * 8.499 / var(--works-face-w));
   }
 
   /* Size the box to «close me» so swapping «open me» cannot recenter. */
