@@ -1273,6 +1273,7 @@ export function initProgramModal() {
   }
 
   function overlayCloseCard(el) {
+    if (el?.hasAttribute("data-works-card")) return false;
     return persistIllust(el);
   }
 

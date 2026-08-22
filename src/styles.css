@@ -84,6 +84,9 @@
     var(--frame-clip-bottom) + max(16px, env(safe-area-inset-bottom, 0px)) + var(--stage-lift) -
       var(--close-nudge-y)
   );
+  /* Top inset for fly-close on article / student work open (mobile). */
+  --focus-sticker-top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
+  --work-focus-bar-top: calc(var(--focus-sticker-top) + 20px);
   /* Legacy inset for a parent nav overlay; keep 0 — parent nav sits outside/over the iframe. */
   --host-bar: 0px;
   --card-gutter: 12px;
@@ -1352,11 +1355,10 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: hidden;
 }
 
-/* Figma 76:1062 closed stack face — title above key overlay (125:133). */
-.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card {
-  z-index: auto;
-}
-
+/*
+  Figma 76:1062 closed stack face (125:133 key band).
+  Key illust is in-flow at the top of .works-card; title overlays at 4px.
+*/
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card__title {
   position: absolute;
   top: 4px;
@@ -1367,12 +1369,15 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .card-illust--works {
+  position: relative;
   inset: auto;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: auto;
+  left: auto;
+  right: auto;
   bottom: auto;
+  width: 100%;
   height: var(--works-key-h);
+  flex-shrink: 0;
   z-index: 4;
 }
 
@@ -1774,7 +1779,7 @@ img.works-card__piece {
 
 .card-illust--works {
   --u: calc(var(--card-w) / 450);
-  z-index: 4;
+  z-index: 2;
 }
 
 /* Figma 76:1062 — Vector.svg 449×176, key flush to the card top. */
@@ -3177,6 +3182,19 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   text-size-adjust: 100%;
 }
 
+.card.is-program-open[data-works-card] .card-illust--works {
+  position: relative;
+  inset: auto;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  height: var(--works-key-h);
+  flex-shrink: 0;
+  z-index: 4;
+}
+
 .card.is-program-open[data-works-card] .card-illust--works .card-illust__cue {
   font-size: 12px !important;
   line-height: normal;
@@ -4195,7 +4213,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-works-card][data-expand-host] .works-card {
-    padding-top: calc(var(--works-key-h) + var(--focus-sticker-top));
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -4327,8 +4344,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     filter: none;
   }
 
-  /* Face stays the fullscreen chrome. The transformed card must not scroll —
-     overflow+transform makes position:fixed descendants scroll with content. */
+  /* Face stays the fullscreen chrome. Inner program/works columns scroll. */
   .card.is-program-open[data-expand-host][data-program-card],
   .card.is-program-open[data-expand-host][data-works-card],
   .card.is-program-open[data-expand-host][data-program-card].is-program-scroll,
@@ -4337,8 +4353,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     touch-action: auto;
   }
 
-  /* Whole face scrolls — title included. Card chrome stays overflow:hidden
-     so the dog/key overlays stay pinned to the top edge. */
+  /* Whole face scrolls — title included. */
   .card.is-program-open[data-program-card][data-expand-host] .program-card,
   .card.is-program-open[data-works-card][data-expand-host] .works-card,
   .card.is-program-open[data-expand-settled][data-program-card] .program-card,
@@ -4364,16 +4379,16 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     height: 0;
   }
 
-  /* Overlays are card siblings (not inside the scroller) — pin to top when open
-     (Figma 76:897 / 76:1062) so dog/key stay fixed while content scrolls. */
-  .card.is-program-open[data-expand-host][data-program-card] .card-illust--program,
-  .card.is-program-open[data-expand-host][data-works-card] .card-illust--works {
+  /* Program dog is a card sibling — pin to top while the inner column scrolls.
+     Works key lives in-flow inside .works-card and scrolls with the gallery. */
+  .card.is-program-open[data-expand-host][data-program-card] .card-illust--program {
     position: absolute;
     top: var(--focus-sticker-top);
     left: 0;
     right: 0;
     bottom: auto;
     width: auto;
+    height: calc(276.539 * var(--u));
     margin: 0;
     z-index: 6;
     pointer-events: none;
@@ -4381,20 +4396,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     filter: none;
   }
 
-  .card.is-program-open[data-expand-host][data-program-card] .card-illust--program {
-    height: calc(276.539 * var(--u));
-  }
-
-  .card.is-program-open[data-expand-host][data-works-card] .card-illust--works {
-    height: var(--works-key-h);
-  }
-
   .card.is-program-open[data-expand-host][data-program-card] .card-illust--program .card-illust__art {
-    top: 0;
-    bottom: auto;
-  }
-
-  .card.is-program-open[data-expand-host][data-works-card] .card-illust--works .card-illust__art {
     top: 0;
     bottom: auto;
   }
@@ -4407,11 +4409,20 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     text-align: center;
   }
 
-  .card.is-program-open[data-expand-host][data-works-card] .card-illust--works .card-illust__cue {
-    top: calc(var(--works-key-h) * 78 / 176);
+  .card.is-program-open[data-expand-host][data-works-card] .card-illust--works {
+    position: relative;
+    inset: auto;
+    top: auto;
+    left: auto;
+    right: auto;
     bottom: auto;
-    left: calc(100% * 118.645 / 449);
-    transform: translateX(-50%);
+    width: 100%;
+    height: var(--works-key-h);
+    flex-shrink: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 1;
+    filter: none;
   }
 
   .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet,
