@@ -1361,14 +1361,25 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --works-rotate: 0deg;
   --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
   --works-open-scale: 1.16;
-  --works-key-h: calc(var(--card-w) * 176 / 449);
+  /* Figma 130:3112 / 130:2018 — 450×450 face, 842 art coords, 450×176 key. */
+  --works-face-w: 450;
+  --works-art-w: 842;
+  --works-u: calc(var(--card-w) / var(--works-art-w));
+  --works-key-h: calc(var(--card-w) * 176 / var(--works-face-w));
+  --works-pad-x: calc(var(--card-w) * 8.017 / var(--works-face-w));
+  --works-pad-top: calc(var(--card-w) * 1.069 / var(--works-face-w));
+  --works-pad-bottom: calc(var(--card-w) * 21.378 / var(--works-face-w));
+  --works-gap-section: calc(var(--card-w) * 34.204 / var(--works-face-w));
+  --works-gap-item: calc(var(--card-w) * 12.827 / var(--works-face-w));
+  --works-gap-tight: calc(var(--card-w) * 8.551 / var(--works-face-w));
+  --works-title-list-gap: calc(var(--card-w) * 152 / var(--works-face-w));
+  --works-col-a: calc(var(--card-w) * 223.931 / var(--works-face-w));
+  --works-col-b: calc(var(--card-w) * 208.967 / var(--works-face-w));
   --focus-open-w: min(
     calc(var(--works-side) * var(--deck-scale) * var(--works-open-scale)),
     calc(var(--frame-w) - 48px)
   );
   --program-open-w: var(--focus-open-w);
-  /* preserve-3d on .card makes overflow:hidden a no-op — lettering then
-     paints as one grey plane instead of a clipped slide. */
   transform-style: flat;
   isolation: isolate;
 }
@@ -1376,25 +1387,27 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
   --card-w: var(--works-side);
   --card-h: var(--works-side);
-  /* Key height from the square face, not A4 --card-w. */
-  --works-key-h: calc(var(--works-side) * 176 / 449);
   width: var(--works-side);
   height: var(--works-side);
   margin-top: calc(var(--works-side) / -2);
   overflow: hidden;
+  overflow: clip;
+}
+
+.card[data-works-card]:not(.is-program-open) .works-card {
+  contain: paint;
 }
 
 .works-card {
-  --u: calc(var(--card-w) / 842);
+  --u: var(--works-u);
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: calc(67 * var(--u));
+  align-items: stretch;
   width: 100%;
   height: 100%;
-  padding: 4px calc(15 * var(--u)) calc(40 * var(--u));
+  padding: var(--works-pad-top) var(--works-pad-x) var(--works-pad-bottom);
   overflow: hidden;
   overflow: clip;
   background: #9d9d9d;
@@ -1402,64 +1415,99 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   font-weight: 700;
 }
 
-/*
-  Closed stack face = Figma 76:1062 crop of 64:1519:
-  title at y=4 over the 176px key, Alena at y=190, Always Fresh peek, rest clipped.
-  Title is out of flex flow, so the key must stay in-flow or Alena slides under it
-  and Knight / FANCY paint on the square.
-*/
-.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card {
-  --u: calc(var(--works-side) / 842);
-  gap: calc(var(--works-side) * 14 / 450);
-  padding: 0;
-  contain: paint;
-}
-
-.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card__title {
-  position: absolute;
-  top: 4px;
-  left: 0;
-  right: 0;
-  z-index: 5;
+.works-card__title {
+  position: relative;
+  z-index: 3;
+  margin: 0;
+  width: 100%;
+  flex-shrink: 0;
+  font-family: var(--font-en);
+  font-size: calc(var(--card-w) * 17.384 / var(--works-face-w));
+  line-height: normal;
+  text-align: center;
+  color: #000;
   pointer-events: none;
 }
 
-.card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card__list {
-  overflow: hidden;
-  max-height: calc(100% - var(--works-key-h) - var(--works-side) * 14 / 450);
-}
-
-/* Key band is in-flow inside .works-card (not a full-card absolute overlay). */
-.works-card > .card-illust--works {
-  position: relative;
-  inset: auto;
+/* Collapsed: key overlays the title band (130:3112). Open: in-flow, scrolls away (130:2018). */
+.works-card__key {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
   width: 100%;
   height: var(--works-key-h);
-  flex-shrink: 0;
-  z-index: 4;
+  transform: translateX(-50%);
   overflow: hidden;
   pointer-events: none;
   user-select: none;
 }
 
-.works-card__title {
-  margin: 0;
-  flex-shrink: 0;
+.works-card__key-art {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 50%;
   width: 100%;
-  font-family: var(--font-en);
-  font-size: 16px;
+  height: 100%;
+  transform: translateX(-50%);
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+.works-card__key-cue {
+  display: block;
+  position: absolute;
+  left: calc(100% * 118.645 / 449);
+  top: calc(var(--works-key-h) * 78 / 176);
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-ru);
+  font-weight: 700;
+  font-size: calc(var(--card-w) * 12.027 / var(--works-face-w));
   line-height: normal;
-  text-align: center;
   color: #000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.works-card__key-cue::before {
+  content: "close me";
+  display: block;
+  height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.card.is-program-open[data-works-card] .works-card__key {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+.card.is-program-open[data-works-card] .works-card__key-art,
+.card.is-program-open[data-works-card] .works-card__key-cue {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .works-card__list {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: calc(64 * var(--u));
+  gap: var(--works-gap-section);
   width: 100%;
+  margin-top: var(--works-title-list-gap);
   flex-shrink: 0;
+}
+
+.card.is-program-open[data-works-card] .works-card__list {
+  margin-top: 0;
 }
 
 .works-card__item,
@@ -1467,9 +1515,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(16 * var(--u));
+  gap: var(--works-gap-item);
   width: 100%;
   flex-shrink: 0;
+}
+
+.works-card__tight {
+  gap: var(--works-gap-tight);
 }
 
 .works-card__row {
@@ -1481,15 +1533,14 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .works-card__col--419 {
-  width: calc(419 * var(--u));
+  width: var(--works-col-a);
+  max-width: 100%;
 }
 
-.works-card__col--391 {
-  width: calc(391 * var(--u));
-}
-
+.works-card__col--391,
 .works-card__col--389 {
-  width: calc(389 * var(--u));
+  width: var(--works-col-b);
+  max-width: 100%;
 }
 
 .works-card__who {
@@ -1811,59 +1862,8 @@ img.works-card__piece {
   user-select: none;
 }
 
-.card-illust--works {
-  display: block;
-}
-
 .card-illust--program {
   --u: calc(var(--card-w) / 595);
-}
-
-.card-illust--works {
-  --u: calc(var(--card-w) / 450);
-  z-index: 2;
-}
-
-/* Figma 76:1062 — Vector.svg 449×176, key flush to the card top. */
-.card-illust--works .card-illust__art {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: auto;
-  width: calc(449 / 450 * 100%);
-  height: var(--works-key-h);
-  transform: translateX(-50%);
-  object-fit: fill;
-}
-
-.card.is-program-open[data-works-card] .works-card > .card-illust--works {
-  position: relative;
-  inset: auto;
-  top: auto;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  width: 100%;
-  height: var(--works-key-h);
-  flex-shrink: 0;
-  z-index: 4;
-  pointer-events: auto;
-}
-
-.card-illust--works .card-illust__cue {
-  display: block;
-  position: absolute;
-  left: calc(100% * 118.645 / 449);
-  top: calc(var(--works-key-h) * 78 / 176);
-  bottom: auto;
-  transform: translateX(-50%);
-  margin: 0;
-  font-family: var(--font-ru);
-  font-weight: 700;
-  font-size: 12px;
-  line-height: normal;
-  color: #000;
-  white-space: nowrap;
 }
 
 .card-illust--exercises {
@@ -1875,7 +1875,7 @@ img.works-card__piece {
 }
 
 .card.is-program-open[data-expand-host][data-program-card] .card-illust__cue,
-.card.is-program-open[data-expand-host][data-works-card] .card-illust__cue {
+.card.is-program-open[data-expand-host][data-works-card] .works-card__key-cue {
   display: block;
 }
 
@@ -3259,16 +3259,20 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   overflow: visible;
 }
 
-/* Open student-works gallery — Figma 76:1062: 16px title, 10px captions, 12px key cue. */
+/* Open student-works gallery — Figma 130:2018. */
 .card.is-program-open[data-works-card] .works-card__title {
-  position: relative;
-  top: auto;
-  z-index: auto;
-  font-size: 16px !important;
+  font-size: calc(var(--card-w) * 17.384 / var(--works-face-w)) !important;
   line-height: normal;
   letter-spacing: 0;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+.card.is-program-open[data-works-card] .works-card {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 .card.is-program-open[data-works-card] .works-card__who,
@@ -3281,8 +3285,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   text-size-adjust: 100%;
 }
 
-.card.is-program-open[data-works-card] .card-illust--works .card-illust__cue {
-  font-size: 12px !important;
+.card.is-program-open[data-works-card] .works-card__key-cue {
+  font-size: calc(var(--card-w) * 12.027 / var(--works-face-w)) !important;
   line-height: normal;
   letter-spacing: 0;
   -webkit-text-size-adjust: 100%;
@@ -3984,14 +3988,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .works-card {
-    padding-top: 4px;
-    gap: 34px;
-  }
-
-  /* Closed face keeps the 76:1062 key→Alena gap, not the 34px open-sheet rhythm. */
-  .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) .works-card {
-    gap: calc(var(--works-side) * 14 / 450);
-    padding-top: 0;
+    padding: 0;
+    gap: 0;
   }
 
   .history-card__title {
@@ -4372,12 +4370,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
-  .card.is-program-open[data-works-card][data-body-grow] .works-card,
-  .card.is-program-open[data-works-card][data-expand-settled] .works-card {
-    padding-bottom: calc(var(--works-key-h) + env(safe-area-inset-bottom, 0px));
-  }
-
-  .card.is-program-open[data-works-card][data-expand-host] .works-card {
+  .card.is-program-open[data-works-card][data-body-grow] .works-card__list,
+  .card.is-program-open[data-works-card][data-expand-settled] .works-card__list,
+  .card.is-program-open[data-works-card][data-expand-host] .works-card__list {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -4401,7 +4396,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card[data-works-card] {
-    --works-key-h: calc(var(--card-w) * 176 / 449);
+    --works-key-h: calc(var(--card-w) * 176 / var(--works-face-w));
   }
 
   .fly-close:not([hidden]) {
@@ -4424,23 +4419,11 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     user-select: none;
   }
 
-  /* Works key + program dog stay in-flow — exclude from full-bleed overlay. */
-  .works-card > .card-illust--works,
+  /* Program dog stays in-flow — works key uses .works-card__key, not .card-illust. */
   .program-card > .card-illust--program {
     position: relative;
     inset: auto;
     width: 100%;
-  }
-
-  .works-card > .card-illust--works {
-    height: var(--works-key-h);
-    flex-shrink: 0;
-    z-index: 4;
-    overflow: hidden;
-    pointer-events: none;
-  }
-
-  .program-card > .card-illust--program {
     height: calc(276.539 * var(--u));
     flex-shrink: 0;
     z-index: 2;
@@ -4490,7 +4473,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-expand-host][data-program-card] .card-illust__cue,
-  .card.is-program-open[data-expand-host][data-works-card] .card-illust__cue {
+  .card.is-program-open[data-expand-host][data-works-card] .works-card__key-cue {
     display: block;
   }
 
@@ -4527,15 +4510,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   /* Key + dachshund stay painted for the whole morph. Never fade/blur them —
      they are the close control. Preview-only overlays may still dissolve. */
-  .card-illust--works,
+  .works-card__key,
   .card-illust--program,
-  .card[data-illust-out] .card-illust--works,
+  .card[data-illust-out] .works-card__key,
   .card[data-illust-out] .card-illust--program {
     opacity: 1;
     filter: none;
   }
 
-  /* Face stays the fullscreen chrome. Inner program/works columns scroll (dog/key in-flow inside). */
+  /* Face stays the fullscreen chrome. Inner program/works columns scroll. */
   .card.is-program-open[data-expand-host][data-program-card],
   .card.is-program-open[data-expand-host][data-works-card],
   .card.is-program-open[data-expand-host][data-program-card].is-program-scroll,
@@ -4544,7 +4527,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     touch-action: auto;
   }
 
-  /* Whole face scrolls — title included. */
   .card.is-program-open[data-program-card][data-expand-host] .program-card,
   .card.is-program-open[data-works-card][data-expand-host] .works-card,
   .card.is-program-open[data-expand-settled][data-program-card] .program-card,
@@ -4570,9 +4552,9 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     height: 0;
   }
 
-  /* Program dog and works key scroll inside their face columns. */
+  /* Program dog and works key scroll inside the face column (130:2018). */
   .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program,
-  .card.is-program-open[data-expand-host][data-works-card] .works-card > .card-illust--works {
+  .card.is-program-open[data-expand-host][data-works-card] .works-card__key {
     pointer-events: auto;
     opacity: 1;
     filter: none;
@@ -4600,30 +4582,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
-  .card.is-program-open[data-works-card] .card-illust--works .card-illust__art,
-  .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
-  .card.is-program-open[data-works-card] .card-illust--works .card-illust__cue {
+  .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
     pointer-events: auto;
     cursor: pointer;
   }
 
-  /* Figma 76:1062 — Vector.svg 449×176, key flush to the closed card top.
-     Height is width-based so a fullscreen overlay cannot stretch it mid-screen. */
-  .card-illust--works .card-illust__art {
-    left: 50%;
-    top: 0;
-    bottom: auto;
-    width: calc(449 / 450 * 100%);
-    height: var(--works-key-h);
-    transform: translateX(-50%);
-    object-fit: fill;
-  }
-
-  .card-illust--works .card-illust__cue {
-    left: calc(100% * 118.645 / 449);
-    top: calc(var(--works-key-h) * 78 / 176);
-    bottom: auto;
-    transform: translateX(-50%);
+  .card.is-program-open[data-works-card] .works-card__key-art,
+  .card.is-program-open[data-works-card] .works-card__key-cue {
+    pointer-events: auto;
+    cursor: pointer;
   }
 
   /* Figma 76:1528 — tooth sits in the flex gap under the title (150×186
@@ -5393,8 +5360,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 /* —— Stage position settings (gear on desktop + mobile) —— */
 .stage-settings {
-  /* temporary hide — settings gear FAB + panel */
-  display: none;
   position: fixed;
   top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
   right: 8px;
