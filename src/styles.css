@@ -3421,6 +3421,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 .history-card > .article-close-row {
   --u: calc(var(--card-w) / 595);
   padding: calc(12.79 * var(--u)) calc(11.4 * var(--u)) 0;
+  margin-bottom: calc(-1 * var(--work-chrome-h));
 }
 
 .format-card > .article-close-row,
