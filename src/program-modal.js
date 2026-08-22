@@ -1258,6 +1258,7 @@ export function initProgramModal() {
       if (sheet) {
         next.classList.add("is-work-open");
         mountFocusScrollbar(next);
+        syncAria();
       }
       return;
     }

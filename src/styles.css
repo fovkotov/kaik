@@ -87,6 +87,7 @@
   /* Top inset for fly-close on article / student work open (mobile). */
   --focus-sticker-top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
   --work-focus-bar-top: calc(var(--focus-sticker-top) + 20px);
+  --work-chrome-h: 44px;
   /* Legacy inset for a parent nav overlay; keep 0 — parent nav sits outside/over the iframe. */
   --host-bar: 0px;
   --card-gutter: 12px;
@@ -2221,6 +2222,7 @@ img.works-card__piece {
 
 .work-card {
   --u: calc(var(--card-w) / 709);
+  --work-chrome-gap: calc(24 * var(--u));
   --work-ink: rgba(0, 0, 0, 0.4);
   --work-rule: rgba(0, 0, 0, 0.08);
   --work-blur: 18px;
@@ -2285,17 +2287,33 @@ img.works-card__piece {
 .work-card__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   display: none;
-  position: absolute;
-  top: calc(40 * var(--u));
-  right: calc(48 * var(--u));
-  z-index: 4;
+  position: relative;
+  z-index: 5;
+  flex: none;
+  box-sizing: border-box;
   align-items: center;
   gap: calc(4 * var(--u));
+  width: 100%;
+  min-height: var(--work-chrome-h);
+  padding: 0 calc(48 * var(--u));
+  padding-right: calc(48 * var(--u) + var(--work-chrome-h));
   pointer-events: auto;
+}
+
+.card.is-work-open .work-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--work-chrome-gap);
+  padding-top: calc(40 * var(--u));
 }
 
 .card.is-work-open .work-card__nav {
   display: flex;
+}
+
+.card.is-work-open .work-card__full {
+  padding-top: 0;
 }
 
 .work-card__nav-btn {
@@ -2304,9 +2322,9 @@ img.works-card__piece {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: calc(36 * var(--u));
-  height: calc(36 * var(--u));
-  padding: calc(8 * var(--u));
+  width: var(--work-chrome-h);
+  height: var(--work-chrome-h);
+  padding: calc((var(--work-chrome-h) - 20px) / 2);
   border: 0;
   border-radius: 120px;
   background: rgba(85, 85, 85, 0.06);
@@ -2367,6 +2385,10 @@ img.works-card__piece {
   font-size: calc(30.596 * var(--u));
   line-height: normal;
   color: var(--work-ink);
+}
+
+.card.is-work-open .work-card__who {
+  padding-right: 0;
 }
 
 .work-card__who span,
@@ -2548,8 +2570,14 @@ img.works-card__piece {
 .card.is-work-open[data-work-student="alena"] .work-card__full--alena,
 .card.is-work-open[data-work-student="yan"] .work-card__full--yan,
 .card.is-work-open[data-work-student="polina"] .work-card__full--polina {
+  position: relative;
+  top: auto;
+  left: auto;
+  flex: 1 1 auto;
+  min-height: 0;
   opacity: 1;
   filter: blur(0);
+  pointer-events: auto;
 }
 
 .card.is-program-open.is-program-scroll .work-card {
@@ -4691,17 +4719,46 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open .work-card__full {
-    padding: 20px 16px calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 0 16px calc(72px + env(safe-area-inset-bottom, 0px));
     gap: 24px;
   }
 
-  /* Article + student work open — Figma 60:1004: close fixed top-right while scrolling. */
+  .card.is-program-open[data-work-card].is-work-open .work-card {
+    gap: 24px;
+    padding-top: 20px;
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__nav {
+    gap: 4px;
+    padding: 0 16px;
+    padding-right: calc(16px + var(--work-chrome-h));
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__nav-btn {
+    width: var(--work-chrome-h);
+    height: var(--work-chrome-h);
+    padding: 12px;
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__nav-chevron {
+    width: 20px;
+    height: 20px;
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__who {
+    padding-right: 0;
+  }
+
+  /* Article + student work open — Figma 60:1004 / 60:1925: close fixed top-right. */
   body:has(.card.is-program-open:not([data-program-card]):not([data-works-card])) .fly-close:not([hidden]),
   body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close:not([hidden]) {
     top: var(--work-focus-bar-top);
     bottom: auto;
     left: auto;
     right: 16px;
+    width: var(--work-chrome-h);
+    height: var(--work-chrome-h);
+    padding: 12px;
     transform: none;
     background: rgba(85, 85, 85, 0.06);
     z-index: 62;
@@ -4711,40 +4768,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   body:has(.card.is-program-open[data-work-card].is-work-open) .fly-close__icon {
     filter: brightness(0);
     opacity: 0.32;
-  }
-
-  /* Student work open — prev/next in-flow above the review (scrolls with content). */
-  .card.is-program-open[data-work-card].is-work-open .work-card__nav {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    display: flex;
-    gap: 4px;
-    margin: 20px 16px 0;
-    z-index: 4;
-    align-self: flex-start;
-  }
-
-  .card.is-program-open[data-work-card].is-work-open .work-card__nav-btn {
-    width: 36px;
-    height: 36px;
-    padding: 8px;
-  }
-
-  .card.is-program-open[data-work-card].is-work-open .work-card__nav-chevron {
-    width: 20px;
-    height: 20px;
-  }
-
-  .card.is-program-open[data-work-card].is-work-open .work-card__full {
-    padding-right: 16px;
-    padding-left: 16px;
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .card.is-program-open[data-work-card].is-work-open .work-card__who {
-    padding-right: 0;
   }
 
   .card.is-program-open .work-card__photos {
