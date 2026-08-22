@@ -1441,7 +1441,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   margin: 0;
   font-family: var(--font-ru);
   font-weight: 700;
-  font-size: 12px;
+  font-size: calc(var(--card-w) * 12 / 318);
   line-height: normal;
   color: #000;
   white-space: nowrap;
@@ -4503,7 +4503,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card[data-works-card] .works-card__key .works-card__key-cue {
-    font-size: 12px;
+    font-size: calc(var(--card-w) * 12 / 318);
   }
 
   .card[data-program-card] .card-illust--program .card-illust__cue {
