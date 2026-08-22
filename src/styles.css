@@ -560,11 +560,13 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   margin: 0 0.05em;
 }
 
-/* Card deck — fixed stage on the right */
+/* Card deck — fixed stage on the right.
+   Must include --deck-nudge-y here: a later .deck { top } wins over the
+   desktop media-query rule above, so a Y-less top made СТОПКА Y a no-op. */
 .deck {
   position: fixed;
-  top: calc(var(--frame-clip-top) - var(--stage-lift));
-  left: var(--deck-nudge-x);
+  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 44px));
+  left: var(--deck-nudge-x, 0px);
   z-index: var(--z-deck);
   width: var(--frame-w);
   height: var(--frame-h);
@@ -1459,8 +1461,16 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   pointer-events: auto;
 }
 
-.card.is-program-open[data-works-card] .works-card__list {
-  padding-top: 0;
+@media (min-width: 901px) {
+  .card[data-works-card] .works-card__key {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .card.is-program-open[data-works-card] .works-card__list {
+    padding-top: 0;
+  }
 }
 
 .card.is-program-open[data-works-card] .works-card__key .works-card__key-art,
