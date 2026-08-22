@@ -5200,6 +5200,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 /* —— Stage position settings (gear on desktop + mobile) —— */
 .stage-settings {
+  /* temporary hide — settings gear FAB + panel */
+  display: none;
   position: fixed;
   top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
   right: 8px;
