@@ -1372,7 +1372,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --works-gap-section: calc(var(--card-w) * 34.204 / var(--works-face-w));
   --works-gap-item: calc(var(--card-w) * 12.827 / var(--works-face-w));
   --works-gap-tight: calc(var(--card-w) * 8.551 / var(--works-face-w));
-  --works-title-list-gap: calc(var(--card-w) * 152 / var(--works-face-w));
+  --works-list-top: calc(var(--card-w) * 173.068 / var(--works-face-w));
+  --works-content-w: calc(var(--card-w) - 2 * var(--works-pad-x));
   --works-col-a: calc(var(--card-w) * 223.931 / var(--works-face-w));
   --works-col-b: calc(var(--card-w) * 208.967 / var(--works-face-w));
   --focus-open-w: min(
@@ -1402,12 +1403,9 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   --u: var(--works-u);
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  display: block;
   width: 100%;
   height: 100%;
-  padding: var(--works-pad-top) var(--works-pad-x) var(--works-pad-bottom);
   overflow: hidden;
   overflow: clip;
   background: #9d9d9d;
@@ -1415,32 +1413,40 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   font-weight: 700;
 }
 
-.works-card__title {
+/* Figma 130:3112 — key band 450×176 with title at y=4 inside it. */
+.works-card__key {
   position: relative;
+  z-index: 2;
+  width: 100%;
+  height: var(--works-key-h);
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #9d9d9d;
+  pointer-events: none;
+  user-select: none;
+}
+
+.card[data-works-card]:not(.is-program-open) .works-card__key {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.works-card__title {
+  position: absolute;
+  top: calc(4 / var(--works-face-w) * var(--card-w));
+  left: 0;
+  right: 0;
   z-index: 3;
   margin: 0;
   width: 100%;
-  flex-shrink: 0;
   font-family: var(--font-en);
   font-size: calc(var(--card-w) * 17.384 / var(--works-face-w));
   line-height: normal;
   text-align: center;
   color: #000;
   pointer-events: none;
-}
-
-/* Collapsed: key overlays the title band (130:3112). Open: in-flow, scrolls away (130:2018). */
-.works-card__key {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  z-index: 2;
-  width: 100%;
-  height: var(--works-key-h);
-  transform: translateX(-50%);
-  overflow: hidden;
-  pointer-events: none;
-  user-select: none;
 }
 
 .works-card__key-art {
@@ -1484,9 +1490,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .card.is-program-open[data-works-card] .works-card__key {
   position: relative;
   top: auto;
-  left: auto;
-  transform: none;
-  flex-shrink: 0;
+  z-index: 2;
   pointer-events: auto;
 }
 
@@ -1502,12 +1506,19 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   align-items: stretch;
   gap: var(--works-gap-section);
   width: 100%;
-  margin-top: var(--works-title-list-gap);
+  margin: 0;
+  padding: var(--works-list-top) var(--works-pad-x) var(--works-pad-bottom);
   flex-shrink: 0;
 }
 
+.card.is-program-open[data-works-card] .works-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .card.is-program-open[data-works-card] .works-card__list {
-  margin-top: 0;
+  padding-top: var(--works-gap-section);
 }
 
 .works-card__item,
@@ -1560,9 +1571,9 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .works-card__art {
   position: relative;
-  width: calc(var(--art-w) * var(--u));
-  height: calc(var(--art-h) * var(--u));
-  max-width: 100%;
+  width: calc(var(--art-w) / 810 * var(--works-content-w));
+  height: calc(var(--art-h) / 810 * var(--works-content-w));
+  max-width: none;
   flex-shrink: 0;
 }
 
@@ -1570,7 +1581,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: fill;
   object-position: center;
   pointer-events: none;
   user-select: none;
@@ -4552,9 +4563,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     height: 0;
   }
 
-  /* Program dog and works key scroll inside the face column (130:2018). */
+  /* Works key scrolls in-flow with the gallery (130:2018). */
   .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program,
   .card.is-program-open[data-expand-host][data-works-card] .works-card__key {
+    position: relative;
+    top: auto;
+    z-index: 2;
     pointer-events: auto;
     opacity: 1;
     filter: none;
