@@ -3,6 +3,24 @@ const MIN_THUMB = 28;
 const OVERFLOW_PX = 1;
 const DESKTOP_MQ = "(min-width: 901px)";
 const WORK_SHEETS = new Set(["yan", "polina", "alena"]);
+const HINT_PEEK_MS = 220;
+const HINT_HOLD_MS = 70;
+const HINT_BACK_MS = 260;
+const HINT_EASE_OUT = [0.23, 1, 0.32, 1];
+const HINT_EASE_INOUT = [0.77, 0, 0.175, 1];
+
+function unitBezier(p1x, p1y, p2x, p2y, t) {
+  let u = t;
+  for (let i = 0; i < 5; i += 1) {
+    const inv = 1 - u;
+    const x = 3 * inv * inv * u * p1x + 3 * inv * u * u * p2x + u * u * u;
+    const dx = 3 * inv * inv * p1x + 6 * inv * u * (p2x - p1x) + 3 * u * u * (1 - p2x);
+    if (Math.abs(dx) < 1e-6) break;
+    u = Math.min(1, Math.max(0, u - (x - t) / dx));
+  }
+  const inv = 1 - u;
+  return 3 * inv * inv * u * p1y + 3 * inv * u * u * p2y + u * u * u;
+}
 
 /** @type {WeakMap<HTMLElement, { dispose: () => void, sync: () => void, track: HTMLElement }>} */
 const attached = new WeakMap();
@@ -258,7 +276,66 @@ export function mountFocusScrollbar(card) {
   window.visualViewport?.addEventListener("resize", schedule, { passive: true });
   card.addEventListener("load", schedule, true);
 
+  let hintRaf = 0;
+  let hintHold = 0;
+  let hinting = false;
+  let stopHint = null;
+
+  const cancelHint = () => {
+    if (hintRaf) cancelAnimationFrame(hintRaf);
+    if (hintHold) window.clearTimeout(hintHold);
+    hintRaf = 0;
+    hintHold = 0;
+    hinting = false;
+    if (stopHint) {
+      root.removeEventListener("wheel", stopHint);
+      root.removeEventListener("pointerdown", stopHint);
+      root.removeEventListener("touchstart", stopHint);
+      root.removeEventListener("keydown", stopHint);
+      stopHint = null;
+    }
+  };
+
+  const hint = () => {
+    cancelHint();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const m = metrics(card);
+    if (root.scrollTop > OVERFLOW_PX) return;
+    const peek = Math.min(40, Math.round(m.maxScroll * 0.1), Math.round(m.view * 0.07));
+    if (peek < 12) return;
+
+    hinting = true;
+    stopHint = () => cancelHint();
+    root.addEventListener("wheel", stopHint, { passive: true });
+    root.addEventListener("pointerdown", stopHint);
+    root.addEventListener("touchstart", stopHint, { passive: true });
+    root.addEventListener("keydown", stopHint);
+
+    const run = (from, to, ms, ease, done) => {
+      const t0 = performance.now();
+      const step = (now) => {
+        if (!hinting) return;
+        const p = Math.min(1, (now - t0) / ms);
+        root.scrollTop = from + (to - from) * ease(p);
+        if (p < 1) hintRaf = requestAnimationFrame(step);
+        else done();
+      };
+      hintRaf = requestAnimationFrame(step);
+    };
+
+    const easeOut = (t) => unitBezier(...HINT_EASE_OUT, t);
+    const easeInOut = (t) => unitBezier(...HINT_EASE_INOUT, t);
+    run(0, peek, HINT_PEEK_MS, easeOut, () => {
+      if (!hinting) return;
+      hintHold = window.setTimeout(() => {
+        hintHold = 0;
+        run(root.scrollTop, 0, HINT_BACK_MS, easeInOut, cancelHint);
+      }, HINT_HOLD_MS);
+    });
+  };
+
   const dispose = () => {
+    cancelHint();
     if (raf) cancelAnimationFrame(raf);
     if (follow) cancelAnimationFrame(follow);
     raf = 0;
@@ -289,7 +366,7 @@ export function mountFocusScrollbar(card) {
     attached.delete(card);
   };
 
-  attached.set(card, { dispose, sync, track, out });
+  attached.set(card, { dispose, sync, hint, track, out });
   sync();
   const reveal = () => {
     track.classList.add("is-on");
@@ -321,4 +398,8 @@ export function unmountFocusScrollbar(card) {
 
 export function syncFocusScrollbar(card) {
   attached.get(card)?.sync();
+}
+
+export function hintFocusScroll(card) {
+  attached.get(card)?.hint();
 }

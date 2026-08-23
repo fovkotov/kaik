@@ -5,6 +5,7 @@ import { applyDeckParams, isMobile } from "./tweaks.js";
 import {
   fadeFocusScrollbar,
   focusScrollRoot,
+  hintFocusScroll,
   mountFocusScrollbar,
   syncFocusScrollbar,
   unmountFocusScrollbar,
@@ -793,6 +794,9 @@ export function initProgramModal() {
         // width/type with a leftover duration. Zero after the scheme swap.
         card.style.setProperty("--fly-ms", "0ms");
         syncFocusScrollbar(card);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => hintFocusScroll(card));
+        });
       }
       syncAria();
       return;
