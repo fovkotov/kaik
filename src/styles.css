@@ -230,7 +230,8 @@ a {
 }
 
 /* Figma 117:975 — lockup centered in the left half of the frame, under .deck.
-   Dropcap 105.286×134 + 16/19 type column (120×133), gap 20.
+   Dropcap 105.286×134 + 16/19 type column (168×133), gap 20.
+   168px keeps “from 14 september” on one line (Helvetica Rounded 16 ≈ 154px).
    Desktop: .panel__cluster is the left 50% column (containing block). 100% below
    is that column, so the lockup center sits at 25% of --frame-w.
    Lockup, nav, and lang all sit at --z-lockup so cards paint over them. */
@@ -238,7 +239,7 @@ a {
   --panel-dropcap-w: 105.286px;
   --panel-dropcap-h: 134px;
   --panel-dropcap-gap: 20px;
-  --panel-copy-w: 120px;
+  --panel-copy-w: 168px;
   --panel-cluster-w: calc(var(--panel-dropcap-w) + var(--panel-dropcap-gap) + var(--panel-copy-w));
   --panel-pad-x: 24px;
   --panel-pad-y: 24px;
@@ -380,7 +381,7 @@ a {
 }
 
 .panel__dates {
-  white-space: pre-line;
+  white-space: pre;
 }
 
 .panel__dates--short {
