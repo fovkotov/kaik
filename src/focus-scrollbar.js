@@ -1,10 +1,44 @@
 const INSET = 4;
 const MIN_THUMB = 28;
 const OVERFLOW_PX = 1;
+const DESKTOP_MQ = "(min-width: 901px)";
 const WORK_SHEETS = new Set(["yan", "polina", "alena"]);
 
 /** @type {WeakMap<HTMLElement, { dispose: () => void, sync: () => void, track: HTMLElement }>} */
 const attached = new WeakMap();
+
+function isDesktopRail() {
+  return window.matchMedia(DESKTOP_MQ).matches;
+}
+
+function paintThumbs(thumbs, m) {
+  const thumbTop = thumbOffset(m);
+  const y = `translateY(${thumbTop}px)`;
+  thumbs.forEach((el) => {
+    if (el) el.style.transform = y;
+  });
+  return thumbTop;
+}
+
+function placeOuter(card, out) {
+  if (!out) return;
+  const r = card.getBoundingClientRect();
+  out.style.top = `${r.top}px`;
+  out.style.left = `${r.right}px`;
+  out.style.height = `${r.height}px`;
+  out.style.setProperty("--focus-view", `${r.height}px`);
+}
+
+function makeTrack(kind) {
+  const track = document.createElement("div");
+  track.setAttribute(kind === "out" ? "data-focus-scroll-out" : "data-focus-scroll", "");
+  track.setAttribute("aria-hidden", "true");
+  const thumb = document.createElement("div");
+  thumb.setAttribute("data-focus-scroll-thumb", "");
+  if (kind === "out") thumb.setAttribute("data-focus-scroll-thumb-out", "");
+  track.appendChild(thumb);
+  return { track, thumb };
+}
 
 /** Pink overlay bar on history, program, student works, and yan/polina/alena work sheets. */
 export function allowsFocusScrollbar(card) {
@@ -58,27 +92,25 @@ function thumbOffset(m) {
   return INSET + (m.maxScroll > 0 ? (m.top / m.maxScroll) * m.maxThumb : 0);
 }
 
-function paintThumb(thumb, m) {
-  const thumbTop = thumbOffset(m);
-  thumb.style.transform = `translateY(${thumbTop}px)`;
-  return thumbTop;
-}
-
-function layout(card, track, thumb) {
+function layout(card, track, thumb, out, outThumb) {
   const m = metrics(card);
   const open = card.classList.contains("is-program-open");
   const scrolling = card.classList.contains("is-program-scroll");
   const overflows = m.maxScroll > OVERFLOW_PX;
   // During the fly, overflow-y is still hidden — still paint the rail.
   const show = open && (!scrolling || overflows);
+  const showOut = show && isDesktopRail();
 
   track.hidden = !show;
+  if (out) out.hidden = !showOut;
   if (!show) return { ...m, thumbTop: thumbOffset(m) };
 
   // Sticky host stays in the visible scrollport; only the rail height is layout.
   track.style.setProperty("--focus-view", `${m.view}px`);
   thumb.style.height = `${m.thumbH}px`;
-  return { ...m, thumbTop: paintThumb(thumb, m) };
+  if (outThumb) outThumb.style.height = `${m.thumbH}px`;
+  if (showOut) placeOuter(card, out);
+  return { ...m, thumbTop: paintThumbs([thumb, outThumb], m) };
 }
 
 /**
@@ -90,25 +122,34 @@ export function mountFocusScrollbar(card) {
   const existing = attached.get(card);
   if (existing) {
     existing.track.classList.add("is-on");
+    existing.out?.classList.add("is-on");
     existing.sync();
     return;
   }
 
-  const track = document.createElement("div");
-  track.setAttribute("data-focus-scroll", "");
-  track.setAttribute("aria-hidden", "true");
-  const thumb = document.createElement("div");
-  thumb.setAttribute("data-focus-scroll-thumb", "");
-  track.appendChild(thumb);
+  const { track, thumb } = makeTrack("in");
+  const { track: out, thumb: outThumb } = makeTrack("out");
   card.prepend(track);
+  document.body.appendChild(out);
 
   let drag = null;
   let raf = 0;
+  let follow = 0;
   let wheelTimer = 0;
   let last = { thumbTop: INSET, thumbH: MIN_THUMB };
 
+  const thumbs = () => [thumb, outThumb];
+
   const sync = () => {
-    last = layout(card, track, thumb) || last;
+    last = layout(card, track, thumb, out, outThumb) || last;
+    if (!out.hidden && !follow) follow = requestAnimationFrame(followOuter);
+  };
+
+  const followOuter = () => {
+    follow = 0;
+    if (!attached.has(card) || out.hidden) return;
+    placeOuter(card, out);
+    follow = requestAnimationFrame(followOuter);
   };
 
   const schedule = () => {
@@ -122,18 +163,20 @@ export function mountFocusScrollbar(card) {
   const endWheel = () => {
     wheelTimer = 0;
     card.classList.remove("is-wheel-scrolling");
+    out.classList.remove("is-wheel-scrolling");
   };
 
   const onScroll = () => {
     if (drag) return;
     if (!card.classList.contains("is-wheel-scrolling")) {
       card.classList.add("is-wheel-scrolling");
+      out.classList.add("is-wheel-scrolling");
     }
     window.clearTimeout(wheelTimer);
     wheelTimer = window.setTimeout(endWheel, 140);
     // Same frame as the scroll, not rAF — rAF left the thumb one tick behind.
     const m = metrics(card);
-    last = { ...m, thumbTop: paintThumb(thumb, m) };
+    last = { ...m, thumbTop: paintThumbs(thumbs(), m) };
   };
 
   const onScrollEnd = () => {
@@ -149,7 +192,7 @@ export function mountFocusScrollbar(card) {
     const ratio = m.maxThumb > 0 ? y / m.maxThumb : 0;
     root.scrollTop = Math.min(m.maxScroll, Math.max(0, ratio * m.maxScroll));
     const next = metrics(card);
-    last = { ...next, thumbTop: paintThumb(thumb, next) };
+    last = { ...next, thumbTop: paintThumbs(thumbs(), next) };
   };
 
   const onPointerDown = (event) => {
@@ -159,8 +202,9 @@ export function mountFocusScrollbar(card) {
     const origin = card.getBoundingClientRect().top;
     const grabOffset = event.clientY - (origin + last.thumbTop);
     drag = { pointerId: event.pointerId, grabOffset };
-    thumb.setPointerCapture(event.pointerId);
+    event.currentTarget.setPointerCapture(event.pointerId);
     track.classList.add("is-dragging");
+    out.classList.add("is-dragging");
     card.classList.remove("is-wheel-scrolling");
   };
 
@@ -174,6 +218,7 @@ export function mountFocusScrollbar(card) {
     if (!drag || (event && event.pointerId !== drag.pointerId)) return;
     drag = null;
     track.classList.remove("is-dragging");
+    out.classList.remove("is-dragging");
     schedule();
   };
 
@@ -196,23 +241,28 @@ export function mountFocusScrollbar(card) {
 
   root.addEventListener("scroll", onScroll, { passive: true });
   root.addEventListener("scrollend", onScrollEnd, { passive: true });
-  thumb.addEventListener("pointerdown", onPointerDown);
-  thumb.addEventListener("pointermove", onPointerMove);
-  thumb.addEventListener("pointerup", endDrag);
-  thumb.addEventListener("pointercancel", endDrag);
-  thumb.addEventListener("click", onClick);
-  thumb.addEventListener("lostpointercapture", endDrag);
+  thumbs().forEach((el) => {
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointerup", endDrag);
+    el.addEventListener("pointercancel", endDrag);
+    el.addEventListener("click", onClick);
+    el.addEventListener("lostpointercapture", endDrag);
+  });
   window.addEventListener("resize", schedule, { passive: true });
   window.visualViewport?.addEventListener("resize", schedule, { passive: true });
   card.addEventListener("load", schedule, true);
 
   const dispose = () => {
     if (raf) cancelAnimationFrame(raf);
+    if (follow) cancelAnimationFrame(follow);
     raf = 0;
+    follow = 0;
     drag = null;
     window.clearTimeout(wheelTimer);
     wheelTimer = 0;
     card.classList.remove("is-wheel-scrolling");
+    out.classList.remove("is-wheel-scrolling");
     ro.disconnect();
     mo.disconnect();
     root.removeEventListener("scroll", onScroll);
@@ -220,15 +270,26 @@ export function mountFocusScrollbar(card) {
     card.removeEventListener("load", schedule, true);
     window.removeEventListener("resize", schedule);
     window.visualViewport?.removeEventListener("resize", schedule);
+    thumbs().forEach((el) => {
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", endDrag);
+      el.removeEventListener("pointercancel", endDrag);
+      el.removeEventListener("click", onClick);
+      el.removeEventListener("lostpointercapture", endDrag);
+    });
     track.remove();
+    out.remove();
     attached.delete(card);
   };
 
-  attached.set(card, { dispose, sync, track });
+  attached.set(card, { dispose, sync, track, out });
   sync();
   const reveal = () => {
     track.classList.add("is-on");
+    out.classList.add("is-on");
     sync();
+    if (!follow && !out.hidden) follow = requestAnimationFrame(followOuter);
   };
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     reveal();
@@ -244,6 +305,7 @@ export function fadeFocusScrollbar(card, shown) {
   const rec = attached.get(card);
   if (!rec) return;
   rec.track.classList.toggle("is-on", shown);
+  rec.out?.classList.toggle("is-on", shown);
   if (shown) rec.sync();
 }
 
