@@ -80,14 +80,11 @@
   --focus-nudge-y: 0px;
   --close-nudge-x: 0px;
   --close-nudge-y: 0px;
-  /* Shared bottom inset for fly-close on mobile focus. */
-  --focus-close-inset: calc(
-    var(--frame-clip-bottom) + max(16px, env(safe-area-inset-bottom, 0px)) + var(--stage-lift) -
-      var(--close-nudge-y)
-  );
-  /* Top inset for fly-close on article / student work open (mobile). */
+  /* Shared top-right inset for fly-close on mobile focus. */
+  --focus-close-inset: calc(var(--frame-clip-top) + 16px + var(--close-nudge-y));
+  /* Top inset for article / student work chrome (mobile). */
   --focus-sticker-top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
-  --work-focus-bar-top: calc(var(--focus-sticker-top) + 20px);
+  --work-focus-bar-top: calc(var(--focus-sticker-top) + 16px);
   --work-chrome-h: 44px;
   /* Legacy inset for a parent nav overlay; keep 0 — parent nav sits outside/over the iframe. */
   --host-bar: 0px;
@@ -1676,13 +1673,16 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
     --works-gap-section: calc(24.17 / 318 * var(--card-w));
     --works-gap-item: calc(9.064 / 318 * var(--card-w));
     --works-gap-tight: calc(6.043 / 318 * var(--card-w));
-    --works-list-top: calc((17.384 + 107.41) / 318 * var(--card-w));
+    /* Title + a short beat. The old +107.41 was the top-dog reserve. */
+    --works-list-top: calc(var(--works-title-size) + 8px);
     --works-title-size: calc(17.384 / 318 * var(--card-w));
     --works-who-size: 10px;
   }
 
   .card.is-program-open[data-works-card] .works-card {
     --works-title-size: calc(20.5 / 374 * var(--card-w));
+    --works-pad-x: 16px;
+    --works-list-top: calc(var(--works-title-size) + 8px);
   }
 
   .works-card__who--stack {
@@ -3577,8 +3577,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 .fly-close {
   display: none;
   position: fixed;
-  left: calc(50% + var(--close-nudge-x));
-  bottom: var(--focus-close-inset);
+  top: var(--focus-close-inset);
+  right: calc(16px - var(--close-nudge-x));
+  left: auto;
+  bottom: auto;
   z-index: 60;
   box-sizing: border-box;
   width: 44px;
@@ -3592,7 +3594,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   -webkit-backdrop-filter: blur(57.653px);
   color: #fff;
   line-height: 0;
-  transform: translateX(-50%);
+  transform: none;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -3673,6 +3675,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   [data-focus-card] {
     --focus-open-w: var(--frame-w);
     --program-open-w: var(--focus-open-w);
+  }
+
+  /* Peek dog hangs below the face — drop the 109 top reserve (Figma 76:897 / 2136141330).
+     Closed stack + расхлоп share this. Title is 16/1.2 at 4px; card already pads 4px. */
+  [data-program-card] {
+    --program-sheet-top: calc(16px * 1.2 + 8px);
   }
 }
 
@@ -3999,9 +4007,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     --deck-nudge-y: 0px;
     --panel-chrome-top: max(12px, env(safe-area-inset-top, 0px));
     --panel-chrome-bot: 0px;
-    --focus-close-inset: calc(
-      var(--frame-clip-bottom) + max(16px, env(safe-area-inset-bottom, 0px)) - var(--close-nudge-y)
-    );
+    --focus-close-inset: calc(var(--frame-clip-top) + 16px + var(--close-nudge-y));
     --deck-scale: 1;
     --card-aspect: calc(450 / 320);
     --stack-card-w: min(320px, var(--frame-w));
@@ -4744,6 +4750,11 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     letter-spacing: 0;
   }
 
+  /* Figma 2136141330 — open sheet uses 16px side inset (same as the close X). */
+  .card.is-program-open[data-program-card] .program-card__sheet {
+    padding: var(--program-sheet-top) 16px 16px;
+  }
+
   .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet,
   .card.is-program-open[data-expand-host][data-works-card] .works-card__list {
     flex: 0 0 auto;
@@ -4970,8 +4981,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .card.is-program-open[data-work-card].is-work-open .work-card__nav {
     position: absolute;
-    top: 20px;
-    right: 16px;
+    top: 16px;
+    right: calc(16px + var(--work-chrome-h) + 8px);
     z-index: 6;
     width: auto;
     gap: 4px;
@@ -4994,20 +5005,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__who {
-    padding-right: calc(var(--work-chrome-h) * 2 + 8px);
+    padding-right: calc(var(--work-chrome-h) * 3 + 16px);
   }
 
-  /* Non-article open (preview, faq, …) — fixed top-right close. Work detail uses in-flow ✕ in .work-card__nav. */
+  /* Preview / faq keep a quieter X; position is the shared top-right 16px. */
   body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]):not([data-work-card]))
     .fly-close:not([hidden]) {
-    top: var(--work-focus-bar-top);
-    bottom: auto;
-    left: auto;
-    right: 16px;
     width: var(--work-chrome-h);
     height: var(--work-chrome-h);
     padding: 12px;
-    transform: none;
     background: rgba(85, 85, 85, 0.06);
     z-index: 62;
   }
