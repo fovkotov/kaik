@@ -25,6 +25,7 @@ body.scroll-lab .viewport::-webkit-scrollbar {
   align-items: center;
   justify-content: center;
   padding: 28px 20px 48px;
+  perspective: 2000px;
 }
 
 .scroll-track {
@@ -33,7 +34,7 @@ body.scroll-lab .viewport::-webkit-scrollbar {
   pointer-events: none;
 }
 
-.roll-card {
+.pen-card {
   --card-w: min(400px, calc(var(--frame-w) - 56px));
   --card-h: min(calc(var(--card-w) * 450 / 318), calc(var(--frame-h) - 88px));
   --program-face-w: 318;
@@ -41,35 +42,80 @@ body.scroll-lab .viewport::-webkit-scrollbar {
   --program-dog-y: 0;
   --program-sheet-top: calc(109 / var(--program-face-w) * var(--card-w));
   --u: calc(var(--card-w) / 595);
-  --roll-h: 72px;
-  --radius: 36px;
+  --roll-h: 88px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   position: relative;
   width: var(--card-w);
   height: var(--card-h);
   background: #2bb673;
-  border-radius: 2px;
-  overflow: visible;
+  color: #013243;
+  transform-style: preserve-3d;
+  transform: rotate3d(0, 1, 0.15, 8deg);
+  box-shadow:
+    inset 220px 0 50px rgba(0, 0, 0, 0.28),
+    18px 10px 50px rgba(0, 0, 0, 0.18);
   cursor: default;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
 }
 
-.roll-card__scene {
+.pen-card::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: #24965a;
+  transform-origin: bottom;
+  transform: skewX(-45deg);
+}
+
+.pen-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 5px;
+  height: 100%;
+  background: #1a7a48;
+  transform-origin: left;
+  transform: skewY(-45deg);
+}
+
+.pen-card__scene {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: visible;
+  transform-style: preserve-3d;
 }
 
-.roll-card__flat {
+.pen-card__cover {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  overflow: hidden;
+  background: #2bb673;
+}
+
+.pen-card__bark {
+  position: absolute;
+  inset: 0;
+  background: #2bb673;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 280px 180px 90px rgba(0, 0, 0, 0.35) inset;
+}
+
+.pen-card__flat {
   position: absolute;
   inset: 0 0 var(--roll-h) 0;
   overflow: hidden;
   background: #2bb673;
-  border-radius: 2px 2px 0 0;
 }
 
-.roll-card__paper {
+.pen-card__paper {
   position: absolute;
   top: 0;
   left: 0;
@@ -77,13 +123,13 @@ body.scroll-lab .viewport::-webkit-scrollbar {
   will-change: transform;
 }
 
-.roll-card .program-card {
+.pen-card .program-card {
   height: auto;
   min-height: 0;
   overflow: visible;
 }
 
-.roll-card .program-card__title {
+.pen-card .program-card__title {
   position: absolute;
   top: 4px;
   left: 0;
@@ -92,7 +138,7 @@ body.scroll-lab .viewport::-webkit-scrollbar {
   pointer-events: none;
 }
 
-.roll-card .program-card__sheet {
+.pen-card .program-card__sheet {
   flex: 0 0 auto;
   min-height: auto;
   height: auto;
@@ -100,120 +146,69 @@ body.scroll-lab .viewport::-webkit-scrollbar {
   padding-bottom: calc(80 * var(--u));
 }
 
-.roll-card .card-illust--program .card-illust__cue {
+.pen-card .card-illust--program .card-illust__cue {
   display: none;
 }
 
-.roll-card__curl {
+.pen-card__curl {
   position: absolute;
   left: 0;
   width: 100%;
   top: calc(100% - var(--roll-h));
   height: var(--roll-h);
+  perspective: 1200px;
+  perspective-origin: 50% 0%;
+  transform-style: preserve-3d;
   pointer-events: none;
 }
 
-.roll-card__canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.roll-card__segs {
-  position: absolute;
-  inset: 0;
-  display: none;
-  perspective: 920px;
-  perspective-origin: 50% 0%;
-  transform-style: preserve-3d;
-}
-
-.roll-card.is-fallback .roll-card__canvas {
-  visibility: hidden;
-}
-
-.roll-card.is-fallback .roll-card__segs {
-  display: block;
-}
-
-.roll-card__seg {
+.pen-card__seg {
   position: absolute;
   left: 0;
-  top: 0;
   width: 100%;
-  height: var(--seg-h, 6px);
-  margin-top: calc(var(--seg-h, 6px) / -2);
-  transform-origin: 50% 50%;
+  height: var(--seg-h, 10px);
+  transform-origin: 50% 0%;
   transform-style: preserve-3d;
+}
+
+.pen-card__face,
+.pen-card__back {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   backface-visibility: hidden;
 }
 
-.roll-card__window {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+.pen-card__face {
   background: #2bb673;
 }
 
-.roll-card__seg .roll-card__paper {
+.pen-card__back {
+  background: #24965a;
+  transform: rotateX(180deg);
+  box-shadow: inset 0 40px 70px rgba(0, 0, 0, 0.38);
+}
+
+.pen-card__seg .pen-card__paper {
   position: absolute;
   top: 0;
   left: 0;
 }
 
-.roll-card__light {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.06) 18%,
-    rgba(10, 61, 36, 0.08) 42%,
-    rgba(10, 61, 36, 0.34) 72%,
-    rgba(8, 40, 24, 0.52) 100%
-  );
-}
-
-.roll-card.is-fallback .roll-card__light {
-  display: block;
-}
-
-.roll-card:not(.is-fallback) .roll-card__light {
-  display: none;
-}
-
-.roll-card__flat::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 16px;
-  background: linear-gradient(180deg, rgba(10, 61, 36, 0), rgba(10, 61, 36, 0.14));
-  pointer-events: none;
-}
-
-.roll-card__ground {
-  position: absolute;
-  left: 4%;
-  right: 4%;
-  top: 100%;
-  height: 22px;
-  margin-top: -6px;
-  background: radial-gradient(50% 70% at 50% 0%, rgba(0, 0, 0, 0.2), transparent 74%);
-  filter: blur(5px);
-  pointer-events: none;
-}
-
-.roll-card.is-reduced {
+.pen-card.is-reduced {
+  transform: none;
+  box-shadow: none;
   overflow: hidden;
 }
 
-.roll-card.is-reduced .roll-card__flat {
+.pen-card.is-reduced::before,
+.pen-card.is-reduced::after,
+.pen-card.is-reduced .pen-card__cover,
+.pen-card.is-reduced .pen-card__curl {
+  display: none;
+}
+
+.pen-card.is-reduced .pen-card__flat {
   inset: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -221,16 +216,11 @@ body.scroll-lab .viewport::-webkit-scrollbar {
   scrollbar-width: none;
 }
 
-.roll-card.is-reduced .roll-card__flat::-webkit-scrollbar {
+.pen-card.is-reduced .pen-card__flat::-webkit-scrollbar {
   display: none;
 }
 
-.roll-card.is-reduced .roll-card__curl,
-.roll-card.is-reduced .roll-card__ground {
-  display: none;
-}
-
-.roll-card.is-reduced .roll-card__paper {
+.pen-card.is-reduced .pen-card__paper {
   position: relative;
   transform: none !important;
 }
@@ -242,7 +232,9 @@ body.scroll-lab .viewport::-webkit-scrollbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .roll-card__paper {
+  .pen-card,
+  .pen-card__cover,
+  .pen-card__paper {
     will-change: auto;
   }
 }

@@ -33,8 +33,9 @@ jobs:
         run: |
           touch dist/.nojekyll
           cp dist/index.html dist/404.html
-          mkdir -p dist/scroll
+          mkdir -p dist/scroll dist/scroll2
           cp dist/scroll.html dist/scroll/index.html
+          cp dist/scroll2.html dist/scroll2/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

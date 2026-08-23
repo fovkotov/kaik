@@ -32,29 +32,27 @@
         document.documentElement.classList.toggle("lang-ru", locale === "ru");
       })();
     </script>
-    <title>Scroll — Käik</title>
+    <title>Scroll 2 — Käik</title>
     <link
       rel="icon"
       href="https://freight.cargo.site/t/original/i/H2765952418214795329571591071100/kaik_favicon.ico"
     />
     <link rel="stylesheet" href="/src/styles.css" />
-    <link rel="stylesheet" href="/src/scroll.css" />
+    <link rel="stylesheet" href="/src/scroll2.css" />
   </head>
   <body class="scroll-lab">
     <div class="viewport" data-scroll-root>
       <div class="scroll-stage">
-        <article class="roll-card" data-roll-card data-program-card>
-          <div class="roll-card__scene">
-            <div class="roll-card__flat" data-roll-flat>
-              <div class="roll-card__paper" data-roll-paper></div>
+        <article class="pen-card" data-pen-card data-program-card>
+          <div class="pen-card__scene">
+            <div class="pen-card__cover" data-pen-cover>
+              <div class="pen-card__paper" data-roll-paper></div>
+              <div class="pen-card__bark" data-pen-bark></div>
             </div>
-            <div class="roll-card__curl" data-roll-curl aria-hidden="true">
-              <canvas class="roll-card__canvas" data-roll-canvas></canvas>
-              <div class="roll-card__segs" data-roll-segs>
-                <div class="roll-card__light"></div>
-              </div>
+            <div class="pen-card__flat" data-pen-flat>
+              <div class="pen-card__paper" data-roll-paper></div>
             </div>
-            <div class="roll-card__ground" aria-hidden="true"></div>
+            <div class="pen-card__curl" data-pen-curl aria-hidden="true"></div>
           </div>
         </article>
       </div>
@@ -190,6 +188,6 @@
       </div>
     </template>
 
-    <script type="module" src="/src/scroll.js"></script>
+    <script type="module" src="/src/scroll2.js"></script>
   </body>
 </html>
