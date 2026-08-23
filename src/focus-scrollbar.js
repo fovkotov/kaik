@@ -1,6 +1,7 @@
 const INSET = 4;
 const MIN_THUMB = 28;
 const OVERFLOW_PX = 1;
+const RAIL_W = 14;
 const DESKTOP_MQ = "(min-width: 901px)";
 const WORK_SHEETS = new Set(["yan", "polina", "alena"]);
 const HINT_PEEK_MS = 220;
@@ -32,22 +33,66 @@ function isDesktopRail() {
   );
 }
 
-function paintThumbs(thumbs, m) {
+function visualScale(card) {
+  const deck = card.closest(".deck");
+  if (deck) {
+    const t = getComputedStyle(deck).transform;
+    if (t && t !== "none") {
+      try {
+        const mx = new DOMMatrixReadOnly(t);
+        const s = Math.hypot(mx.a, mx.b);
+        if (s > 0.01) return s;
+      } catch {
+        /* fall through */
+      }
+    }
+  }
+  const n = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
+  );
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function paintInner(card, track, thumb, m) {
   const thumbTop = thumbOffset(m);
-  const y = `translateY(${thumbTop}px)`;
-  thumbs.forEach((el) => {
-    if (el) el.style.transform = y;
-  });
+  const desktop = isDesktopRail();
+  if (desktop) {
+    const localW = RAIL_W / visualScale(card);
+    track.style.setProperty("--focus-rail", `${localW}px`);
+    thumb.style.width = `${localW}px`;
+  } else {
+    track.style.removeProperty("--focus-rail");
+    thumb.style.width = "";
+  }
+  thumb.style.height = `${m.thumbH}px`;
+  thumb.style.transform = `translateY(${thumbTop}px)`;
   return thumbTop;
 }
 
-function placeOuter(card, out) {
-  if (!out) return;
-  const r = card.getBoundingClientRect();
-  out.style.top = `${r.top}px`;
-  out.style.left = `${r.right}px`;
-  out.style.height = `${r.height}px`;
-  out.style.setProperty("--focus-view", `${r.height}px`);
+function snapOuter(card, thumb, out, outThumb, thumbTop) {
+  if (!out || !outThumb) return;
+  const inner = thumb.getBoundingClientRect();
+  const scale = visualScale(card);
+  const railTop = inner.top - thumbTop * scale;
+  const viewLocal = parseFloat(getComputedStyle(thumb.parentElement).getPropertyValue("--focus-view")) || 0;
+  const railH = viewLocal > 0 ? viewLocal * scale : card.getBoundingClientRect().height;
+  const w = inner.width || RAIL_W;
+  out.style.top = `${railTop}px`;
+  out.style.left = `${inner.right}px`;
+  out.style.width = `${w}px`;
+  out.style.height = `${railH}px`;
+  out.style.setProperty("--focus-view", `${railH}px`);
+  outThumb.style.height = `${inner.height}px`;
+  outThumb.style.width = `${w}px`;
+  outThumb.style.transform = `translateY(${inner.top - railTop}px)`;
+}
+
+function paintLocked(card, track, thumb, out, outThumb, m) {
+  const thumbTop = paintInner(card, track, thumb, m);
+  if (out && outThumb && isDesktopRail() && !out.hidden) {
+    snapOuter(card, thumb, out, outThumb, thumbTop);
+  }
+  return { ...m, thumbTop };
 }
 
 function makeTrack(kind) {
@@ -128,10 +173,7 @@ function layout(card, track, thumb, out, outThumb) {
 
   // Sticky host stays in the visible scrollport; only the rail height is layout.
   track.style.setProperty("--focus-view", `${m.view}px`);
-  thumb.style.height = `${m.thumbH}px`;
-  if (outThumb) outThumb.style.height = `${m.thumbH}px`;
-  if (showOut) placeOuter(card, out);
-  return { ...m, thumbTop: paintThumbs([thumb, outThumb], m) };
+  return paintLocked(card, track, thumb, out, outThumb, m);
 }
 
 /**
@@ -169,7 +211,7 @@ export function mountFocusScrollbar(card) {
   const followOuter = () => {
     follow = 0;
     if (!attached.has(card) || out.hidden) return;
-    placeOuter(card, out);
+    last = paintLocked(card, track, thumb, out, outThumb, metrics(card));
     follow = requestAnimationFrame(followOuter);
   };
 
@@ -196,8 +238,7 @@ export function mountFocusScrollbar(card) {
     window.clearTimeout(wheelTimer);
     wheelTimer = window.setTimeout(endWheel, 140);
     // Same frame as the scroll, not rAF — rAF left the thumb one tick behind.
-    const m = metrics(card);
-    last = { ...m, thumbTop: paintThumbs(thumbs(), m) };
+    last = paintLocked(card, track, thumb, out, outThumb, metrics(card));
   };
 
   const onScrollEnd = () => {
@@ -208,20 +249,25 @@ export function mountFocusScrollbar(card) {
   const scrollFromClientY = (clientY, grabOffset) => {
     const root = focusScrollRoot(card);
     const m = metrics(card);
-    const origin = card.getBoundingClientRect().top;
-    const y = clientY - origin - INSET - grabOffset;
-    const ratio = m.maxThumb > 0 ? y / m.maxThumb : 0;
+    const scale = visualScale(card);
+    const insetV = INSET * scale;
+    const inner = thumb.getBoundingClientRect();
+    const railTop = inner.top - last.thumbTop * scale;
+    const viewLocal = parseFloat(getComputedStyle(track).getPropertyValue("--focus-view")) || m.view;
+    const railH = viewLocal * scale;
+    const thumbH = inner.height || last.thumbH * scale;
+    const maxThumb = Math.max(0, railH - insetV * 2 - thumbH);
+    const y = clientY - railTop - insetV - grabOffset;
+    const ratio = maxThumb > 0 ? y / maxThumb : 0;
     root.scrollTop = Math.min(m.maxScroll, Math.max(0, ratio * m.maxScroll));
-    const next = metrics(card);
-    last = { ...next, thumbTop: paintThumbs(thumbs(), next) };
+    last = paintLocked(card, track, thumb, out, outThumb, metrics(card));
   };
 
   const onPointerDown = (event) => {
     if (event.button != null && event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    const origin = card.getBoundingClientRect().top;
-    const grabOffset = event.clientY - (origin + last.thumbTop);
+    const grabOffset = event.clientY - event.currentTarget.getBoundingClientRect().top;
     drag = { pointerId: event.pointerId, grabOffset };
     event.currentTarget.setPointerCapture(event.pointerId);
     track.classList.add("is-dragging");
@@ -317,6 +363,7 @@ export function mountFocusScrollbar(card) {
         if (!hinting) return;
         const p = Math.min(1, (now - t0) / ms);
         root.scrollTop = from + (to - from) * ease(p);
+        last = paintLocked(card, track, thumb, out, outThumb, metrics(card));
         if (p < 1) hintRaf = requestAnimationFrame(step);
         else done();
       };

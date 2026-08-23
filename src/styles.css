@@ -3229,6 +3229,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   --fly-ms: 0.92s;
   --fly-ease: cubic-bezier(0.22, 1, 0.32, 1);
   --focus-view: 0px;
+  --focus-rail: 7px;
   position: sticky;
   top: 0;
   float: right;
@@ -3251,7 +3252,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   position: absolute;
   top: 0;
   right: 0;
-  width: 7px;
+  width: var(--focus-rail);
   height: var(--focus-view);
   background: rgba(255, 145, 248, 0.14);
   border-radius: 999px;
@@ -3278,7 +3279,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   top: 0;
   right: 0;
   left: auto;
-  width: 7px;
+  width: var(--focus-rail);
   background: #ff91f8;
   border-radius: 999px;
   pointer-events: auto;
@@ -3308,6 +3309,10 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 }
 
 @media (min-width: 901px) {
+  html:not(.is-mobile) [data-focus-scroll] {
+    --focus-rail: 14px;
+  }
+
   html:not(.is-mobile) [data-focus-scroll]::before,
   html:not(.is-mobile) [data-focus-scroll-thumb] {
     border-radius: 999px 0 0 999px;
@@ -3321,7 +3326,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     position: fixed;
     z-index: 45;
     box-sizing: border-box;
-    width: 7px;
+    width: 14px;
     margin: 0;
     overflow: visible;
     pointer-events: none;
@@ -3336,7 +3341,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     position: absolute;
     top: 0;
     left: 0;
-    width: 7px;
+    width: 100%;
     height: var(--focus-view);
     background: rgba(255, 145, 248, 0.14);
     border-radius: 0 999px 999px 0;
@@ -3354,6 +3359,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   html:not(.is-mobile) [data-focus-scroll-out] [data-focus-scroll-thumb] {
     right: auto;
     left: 0;
+    width: 100%;
     border-radius: 0 999px 999px 0;
   }
 }
