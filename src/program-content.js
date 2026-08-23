@@ -20,7 +20,7 @@ export const PROGRAM_HTML = `
       </li>
       <li class="program-row">
         <p class="program-row__name">Обсуждение тем для финального проекта</p>
-        <p class="program-row__when">3 сентября, Четверг</p>
+        <p class="program-row__when">17 сентября, Четверг</p>
         <p class="program-row__kind program-row__kind--live">звонок</p>
       </li>
     </ul>
@@ -30,12 +30,12 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Готическая каллиграфия</p>
-        <p class="program-row__when">7 сентября, Понедельник</p>
+        <p class="program-row__when">21 сентября, Понедельник</p>
         <p class="program-row__kind program-row__kind--live">воркшоп</p>
       </li>
       <li class="program-row">
         <p class="program-row__name">Пять стартовых упражнений</p>
-        <p class="program-row__when">10 сентября, Четверг</p>
+        <p class="program-row__when">24 сентября, Четверг</p>
         <p class="program-row__kind program-row__kind--live">воркшоп</p>
       </li>
       <li class="program-row">
@@ -55,7 +55,7 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Вариативная стилизация надписи</p>
-        <p class="program-row__when">14 сентября, Понедельник</p>
+        <p class="program-row__when">28 сентября, Понедельник</p>
         <p class="program-row__kind program-row__kind--live">воркшоп</p>
       </li>
       <li class="program-row program-row--no-when">
@@ -73,7 +73,7 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Модульная типографика</p>
-        <p class="program-row__when">21 сентября, Понедельник</p>
+        <p class="program-row__when">5 октября, Понедельник</p>
         <p class="program-row__kind program-row__kind--live">воркшоп</p>
       </li>
       <li class="program-row program-row--no-when">
@@ -91,7 +91,7 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Консультация-предпросмотр</p>
-        <p class="program-row__when">28 сентября, Понедельник</p>
+        <p class="program-row__when">12 октября, Понедельник</p>
         <p class="program-row__kind program-row__kind--live">звонок</p>
       </li>
     </ul>
@@ -101,12 +101,12 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Финальный просмотр работ</p>
-        <p class="program-row__when">5 октября, Понедельник</p>
+        <p class="program-row__when">19 октября, Понедельник</p>
         <p class="program-row__kind program-row__kind--live">просмотр</p>
       </li>
       <li class="program-row">
         <p class="program-row__name">Что делать (с жизнью) после курса</p>
-        <p class="program-row__when">8 октября, Четверг</p>
+        <p class="program-row__when">22 октября, Четверг</p>
         <p class="program-row__kind program-row__kind--live">звонок</p>
       </li>
     </ul>
