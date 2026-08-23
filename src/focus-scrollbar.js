@@ -348,7 +348,7 @@ export function mountFocusScrollbar(card) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const m = metrics(card);
     if (root.scrollTop > OVERFLOW_PX) return;
-    const peek = Math.min(80, Math.round(m.maxScroll * 0.2), Math.round(m.view * 0.14));
+    const peek = Math.min(160, Math.round(m.maxScroll * 0.4), Math.round(m.view * 0.28));
     if (peek < 12) return;
 
     hinting = true;
