@@ -1473,8 +1473,16 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 @media (max-width: 900px) {
-  .card.is-program-open[data-works-card] .works-card__list {
-    padding-top: 0;
+  .card[data-history-card] .history-card__kicker {
+    z-index: 6;
+  }
+
+  .card[data-work-card].is-program-open .work-card__nav {
+    pointer-events: none;
+  }
+
+  .card[data-work-card].is-program-open .work-card__nav-btn {
+    pointer-events: auto;
   }
 }
 
@@ -1923,13 +1931,75 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   z-index: 1;
 }
 
-.card.is-program-open:not([data-program-card]):not([data-works-card]) .card-illust__cue {
+.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-history-card]):not([data-work-card]) .card-illust__cue {
   display: none;
 }
 
 .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
+.card.is-program-open[data-works-card] .card-illust--program .card-illust__cue,
+.card.is-program-open[data-history-card] .card-illust--program .card-illust__cue,
+.card.is-program-open[data-work-card] .card-illust--program .card-illust__cue,
 .card.is-program-open[data-works-card] .works-card__key-cue {
   display: block;
+}
+
+/* Shared program-dog box — same 318-face sizing on every mobile expand card. */
+.card-illust--program[data-fly-illust-close] {
+  inset: auto;
+  top: var(--program-dog-y, 0);
+  left: 0;
+  z-index: 5;
+  width: 100%;
+  height: var(--program-dog-h);
+  pointer-events: none;
+  user-select: none;
+}
+
+.card-illust--program[data-fly-illust-close] .card-illust__art {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.card-illust--program[data-fly-illust-close] .card-illust__cue {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: calc(67.567 / 149.134 * 100%);
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-ru);
+  font-weight: 700;
+  font-size: calc(var(--card-w) * 12 / var(--program-face-w));
+  line-height: normal;
+  color: #000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.card.is-program-open .card-illust--program[data-fly-illust-close],
+.card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__art,
+.card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__cue {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Extra dogs are mobile-only. Program keeps its desktop dachshund. */
+html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
+  display: none;
+}
+
+@media (min-width: 901px) {
+  .card:not([data-program-card]) .card-illust--fly-close {
+    display: none;
+  }
+}
+
+/* Progress face does not open as a modal — keep student sheets tappable. */
+.card[data-work-card]:not(.is-program-open) .card-illust--fly-close {
+  display: none;
 }
 
 .card-illust__art {
@@ -3096,6 +3166,14 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   --program-dog-y: 0;
   --program-sheet-top: calc(109 / var(--program-face-w) * var(--card-w));
   isolation: isolate;
+}
+
+[data-works-card],
+[data-history-card],
+[data-work-card] {
+  --program-face-w: 318;
+  --program-dog-h: calc(149.134 / var(--program-face-w) * var(--card-w));
+  --program-dog-y: 0;
 }
 
 [data-program-card],
@@ -4528,7 +4606,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     user-select: none;
   }
 
-  /* Program dog floats over the sheet — works key uses .works-card__key. */
+  /* Program dog floats over the sheet — same box as other mobile expand dogs. */
   .program-card > .card-illust--program {
     position: absolute;
     top: var(--program-dog-y);
@@ -4585,11 +4663,11 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     pointer-events: none;
   }
 
-  .card.is-program-open:not([data-program-card]):not([data-works-card]) .card-illust__cue {
+  .card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-history-card]):not([data-work-card]) .card-illust__cue {
     display: none;
   }
 
-  .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
+  .card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__cue,
   .card.is-program-open[data-works-card] .works-card__key-cue {
     display: block;
   }
@@ -4657,7 +4735,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     height: 0;
   }
 
-  .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program {
+  .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program,
+  .card.is-program-open .card-illust--program[data-fly-illust-close] {
     position: absolute;
     top: var(--program-dog-y);
     left: 0;
@@ -4685,6 +4764,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     overflow: visible;
   }
 
+  .card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__art,
+  .card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__cue,
   .card.is-program-open[data-works-card] .works-card__key-art,
   .card.is-program-open[data-works-card] .works-card__key-cue {
     pointer-events: auto;

@@ -581,7 +581,10 @@ export function initProgramModal() {
   }
 
   function persistIllust(el) {
-    return Boolean(el?.hasAttribute("data-works-card") || el?.hasAttribute("data-program-card"));
+    if (!el?.querySelector("[data-fly-illust-close]")) return false;
+    // Program dog is the close control on desktop too. Extra dogs are mobile-only.
+    if (el.hasAttribute("data-program-card")) return true;
+    return isMobile();
   }
 
   function setIllustOut(el, hidden) {
@@ -1287,6 +1290,7 @@ export function initProgramModal() {
 
   function usesInFlowClose(el) {
     if (!el) return false;
+    if (persistIllust(el)) return false;
     if (isArticleCard(el)) return true;
     return el.hasAttribute("data-work-card") && el.classList.contains("is-work-open");
   }
