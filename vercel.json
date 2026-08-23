@@ -4,9 +4,7 @@
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/catalog", "destination": "/catalog.html" },
-    { "source": "/program", "destination": "/program.html" },
-    { "source": "/scroll", "destination": "/scroll.html" },
-    { "source": "/scroll2", "destination": "/scroll2.html" }
+    { "source": "/program", "destination": "/program.html" }
   ],
   "headers": [
     {

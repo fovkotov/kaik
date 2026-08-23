@@ -23,7 +23,7 @@ function publicBaseUrls() {
   function withBaseHtml(html) {
     if (!prefix) return html;
     return html.replace(
-      /(\b(?:src|href|poster)\s*=\s*["'])\/(?!\/)((?:(?:assets|fonts|letters)\/|(?:program|admin|catalog|index|scroll|scroll2)\.html)[^"']*)/gi,
+      /(\b(?:src|href|poster)\s*=\s*["'])\/(?!\/)((?:(?:assets|fonts|letters)\/|(?:program|admin|catalog|index)\.html)[^"']*)/gi,
       `$1${prefix}/$2`,
     );
   }
@@ -95,8 +95,6 @@ export default defineConfig({
             admin: path.resolve(root, "admin.html"),
             program: path.resolve(root, "program.html"),
             catalog: path.resolve(root, "catalog.html"),
-            scroll: path.resolve(root, "scroll.html"),
-            scroll2: path.resolve(root, "scroll2.html"),
           },
     },
   },
