@@ -582,14 +582,17 @@ export function initProgramModal() {
 
   function persistIllust(el) {
     if (!el?.querySelector("[data-fly-illust-close]")) return false;
-    // Program dog is the close control on desktop too. Extra dogs are mobile-only.
-    if (el.hasAttribute("data-program-card")) return true;
-    return isMobile();
+    // Desktop program dog stays the painted close control. Mobile uses fly-close.
+    return el.hasAttribute("data-program-card") && !isMobile();
+  }
+
+  function isMobilePeekIllust(target) {
+    return isMobile() && Boolean(target?.closest?.("[data-fly-illust-close]"));
   }
 
   function setIllustOut(el, hidden) {
     if (!el) return;
-    // Key + dachshund stay painted through expand (they are the close control).
+    // Desktop program dog stays painted through expand (it is the close control).
     if (hidden && persistIllust(el)) {
       el.removeAttribute("data-illust-out");
       return;
@@ -1291,6 +1294,8 @@ export function initProgramModal() {
   function usesInFlowClose(el) {
     if (!el) return false;
     if (persistIllust(el)) return false;
+    // Mobile expand cards close with the viewport X (Figma 141:968).
+    if (isMobile()) return false;
     if (isArticleCard(el)) return true;
     return el.hasAttribute("data-work-card") && el.classList.contains("is-work-open");
   }
@@ -1315,9 +1320,10 @@ export function initProgramModal() {
   function syncIllustClose() {
     document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
       const host = illust.closest(FOCUS_SEL);
-      const active = host === card && (phase === "open" || phase === "opening");
-      illust.setAttribute("aria-hidden", active ? "false" : "true");
-      if (active) {
+      const expanded = host === card && (phase === "open" || phase === "opening");
+      const closeControl = persistIllust(host) && expanded;
+      illust.setAttribute("aria-hidden", closeControl ? "false" : "true");
+      if (closeControl) {
         illust.setAttribute("role", "button");
         illust.setAttribute("aria-label", t(labelKey(host, true)));
       } else {
@@ -1326,7 +1332,7 @@ export function initProgramModal() {
       }
       const cue = illust.querySelector(".works-card__key-cue, .card-illust__cue");
       if (!cue) return;
-      const key = active ? "illust.close" : "illust.open";
+      const key = closeControl ? "illust.close" : "illust.open";
       cue.setAttribute("data-i18n", key);
       cue.textContent = t(key);
     });
@@ -1358,7 +1364,10 @@ export function initProgramModal() {
         });
       }
       // Let the deck capture a vertical swipe. Only real controls keep the event.
-      if (event.target.closest?.(FOCUS_IGNORE) || event.target.closest?.(WORK_IG)) {
+      if (
+        (event.target.closest?.(FOCUS_IGNORE) && !isMobilePeekIllust(event.target)) ||
+        event.target.closest?.(WORK_IG)
+      ) {
         event.stopPropagation();
       }
     });
@@ -1368,7 +1377,11 @@ export function initProgramModal() {
         event.stopPropagation();
         return;
       }
-      if (event.target.closest?.(FOCUS_IGNORE) && !event.target.closest?.(WORK_OPEN)) {
+      if (
+        event.target.closest?.(FOCUS_IGNORE) &&
+        !event.target.closest?.(WORK_OPEN) &&
+        !isMobilePeekIllust(event.target)
+      ) {
         event.stopPropagation();
         return;
       }
@@ -1437,7 +1450,9 @@ export function initProgramModal() {
       const hit = target instanceof Element ? target : target.parentElement;
       if (hit?.closest?.(SIDE_CHROME)) return;
       if (hit?.closest?.(WORK_IG)) return;
-      if (hit?.closest?.(FOCUS_IGNORE) && !hit.closest?.(WORK_OPEN)) return;
+      if (hit?.closest?.(FOCUS_IGNORE) && !hit.closest?.(WORK_OPEN) && !isMobilePeekIllust(hit)) {
+        return;
+      }
 
       const resolved = resolveOpenTarget(event, hit?.closest?.(FOCUS_SEL));
       if (resolved?.card === card) return;
@@ -1475,6 +1490,7 @@ export function initProgramModal() {
   document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
     illust.addEventListener("click", (event) => {
       const host = illust.closest(FOCUS_SEL);
+      if (!persistIllust(host)) return;
       if (host !== card || (phase !== "open" && phase !== "opening")) return;
       event.preventDefault();
       event.stopPropagation();

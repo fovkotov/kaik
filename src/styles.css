@@ -1222,7 +1222,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: hidden;
 }
 
-/* Figma 76:897 / 91:2162 — dachshund floats over the sheet (works-key pattern). */
+/* Figma 76:897 / 91:2162 — desktop dachshund floats over the sheet (works-key pattern). */
 .program-card > .card-illust--program {
   position: absolute;
   top: var(--program-dog-y);
@@ -1936,14 +1936,11 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue,
-.card.is-program-open[data-works-card] .card-illust--program .card-illust__cue,
-.card.is-program-open[data-history-card] .card-illust--program .card-illust__cue,
-.card.is-program-open[data-work-card] .card-illust--program .card-illust__cue,
 .card.is-program-open[data-works-card] .works-card__key-cue {
   display: block;
 }
 
-/* Shared program-dog box — same 318-face sizing on every mobile expand card. */
+/* Shared program-dog box — 318-face sizing. Desktop program stays top-pinned. */
 .card-illust--program[data-fly-illust-close] {
   inset: auto;
   top: var(--program-dog-y, 0);
@@ -1998,7 +1995,7 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 }
 
 /* Progress face does not open as a modal — keep student sheets tappable. */
-.card[data-work-card]:not(.is-program-open) .card-illust--fly-close {
+.card[data-work-card] .card-illust--fly-close {
   display: none;
 }
 
@@ -3164,6 +3161,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   --program-face-w: 318;
   --program-dog-h: calc(149.134 / var(--program-face-w) * var(--card-w));
   --program-dog-y: 0;
+  --program-dog-w: calc(321.938 / var(--program-face-w) * var(--card-w));
+  --program-dog-hang: calc(74.13 / var(--program-face-w) * var(--card-w));
   --program-sheet-top: calc(109 / var(--program-face-w) * var(--card-w));
   isolation: isolate;
 }
@@ -3174,6 +3173,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   --program-face-w: 318;
   --program-dog-h: calc(149.134 / var(--program-face-w) * var(--card-w));
   --program-dog-y: 0;
+  --program-dog-w: calc(321.938 / var(--program-face-w) * var(--card-w));
+  --program-dog-hang: calc(74.13 / var(--program-face-w) * var(--card-w));
 }
 
 [data-program-card],
@@ -3580,15 +3581,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   bottom: var(--focus-close-inset);
   z-index: 60;
   box-sizing: border-box;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   margin: 0;
-  padding: 8px;
+  padding: 10px;
   border: 0;
-  border-radius: 120px;
+  border-radius: 173px;
   background: rgba(85, 85, 85, 0.8);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(57.653px);
+  -webkit-backdrop-filter: blur(57.653px);
   color: #fff;
   line-height: 0;
   transform: translateX(-50%);
@@ -3596,13 +3597,14 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   appearance: none;
   -webkit-appearance: none;
   pointer-events: auto;
+  overscroll-behavior: contain;
   -webkit-tap-highlight-color: transparent;
 }
 
 .fly-close__icon {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -4563,8 +4565,17 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     justify-content: center;
   }
 
+  /* History / format / author in-flow X yields to the viewport fly-close. */
   .card.is-program-open[data-article-card] .article-close-row {
-    display: flex;
+    display: none;
+  }
+
+  /* Figma 141:136 / 141:688 / 141:967 — dog hangs below the stacked face. */
+  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned),
+  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card,
+  .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned),
+  .card[data-history-card]:not(.is-program-open):not(.is-fly-pinned) {
+    overflow: visible;
   }
 
   /* Same overlay box as the closed 318×450 face — do not restyle on open. */
@@ -4577,15 +4588,21 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     user-select: none;
   }
 
-  /* Program dog floats over the sheet — same box as other mobile expand dogs. */
-  .program-card > .card-illust--program {
+  /* Figma 141:136 — peek dog stands on the bottom edge, overlapping from behind. */
+  .card[data-program-card] .program-card > .card-illust--program,
+  .card[data-works-card] > .card-illust--program,
+  .card[data-history-card] > .card-illust--program,
+  .card-illust--program[data-fly-illust-close] {
     position: absolute;
-    top: var(--program-dog-y);
-    left: 0;
-    z-index: 5;
-    width: 100%;
+    inset: auto;
+    top: auto;
+    bottom: calc(-1 * var(--program-dog-hang));
+    left: 50%;
+    z-index: 6;
+    width: var(--program-dog-w);
     height: var(--program-dog-h);
-    pointer-events: none;
+    transform: translateX(-50%);
+    pointer-events: auto;
   }
 
   .card-illust--preview {
@@ -4640,16 +4657,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__cue,
   .card.is-program-open[data-works-card] .works-card__key-cue {
-    display: block;
+    display: none;
   }
 
   .card-illust__art--cake {
     display: none;
   }
 
-  /* Figma 76:897 / 91:2162 — full-bleed dachshund (~322×149), pinned to the
-     top of the closed stack face. Card tilt stays −1deg in main.js. */
-  .card-illust--program {
+  /* Peek dog is the stacked-face overlay; other face arts stay inert. */
+  .card-illust--program:not([data-fly-illust-close]) {
     z-index: 2;
     pointer-events: none;
   }
@@ -4662,14 +4678,20 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     pointer-events: none;
   }
 
-  /* Key + dachshund stay painted for the whole morph. Never fade/blur them —
-     they are the close control. Preview-only overlays may still dissolve. */
+  /* Peek dog leaves when the card focuses. Preview-only overlays may still dissolve. */
   .works-card__key,
-  .card-illust--program,
-  .card[data-illust-out] .works-card__key,
-  .card[data-illust-out] .card-illust--program {
+  .card[data-illust-out] .works-card__key {
     opacity: 1;
     filter: none;
+  }
+
+  .card.is-program-open > .card-illust--program,
+  .card.is-program-open > .card-illust--fly-close,
+  .card.is-program-open .program-card > .card-illust--program,
+  .card.is-program-open .card-illust--program[data-fly-illust-close],
+  body:has(.card.is-program-open) .card-illust--program[data-fly-illust-close] {
+    display: none;
+    pointer-events: none;
   }
 
   /* Face stays the fullscreen chrome. Inner program/works columns scroll. */
@@ -4708,13 +4730,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program,
   .card.is-program-open .card-illust--program[data-fly-illust-close] {
-    position: absolute;
-    top: var(--program-dog-y);
-    left: 0;
-    z-index: 5;
-    pointer-events: auto;
-    opacity: 1;
-    filter: none;
+    display: none;
+    pointer-events: none;
   }
 
   .card.is-program-open[data-program-card] .program-card__title {
@@ -4739,8 +4756,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   .card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__cue,
   .card.is-program-open[data-works-card] .works-card__key-art,
   .card.is-program-open[data-works-card] .works-card__key-cue {
-    pointer-events: auto;
-    cursor: pointer;
+    pointer-events: none;
   }
 
   /* Figma 76:1528 — tooth sits in the flex gap under the title (150×186
@@ -4953,8 +4969,17 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__nav {
+    position: absolute;
+    top: 20px;
+    right: 16px;
+    z-index: 6;
+    width: auto;
     gap: 4px;
-    padding: 0 16px;
+    padding: 0;
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__close {
+    display: none;
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__nav-btn {
@@ -4969,7 +4994,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__who {
-    padding-right: 0;
+    padding-right: calc(var(--work-chrome-h) * 2 + 8px);
   }
 
   /* Non-article open (preview, faq, …) — fixed top-right close. Work detail uses in-flow ✕ in .work-card__nav. */
