@@ -3325,27 +3325,14 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   transition: opacity var(--fly-ms) var(--fly-ease);
 }
 
-[data-focus-scroll]::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--focus-rail);
-  height: var(--focus-view);
-  background: rgba(255, 145, 248, 0.14);
-  border-radius: 999px;
-  pointer-events: none;
-  transform: scaleY(0.96);
-  transform-origin: top right;
-  transition: transform var(--fly-ms) var(--fly-ease);
+/* Thumbs only — no translucent rail behind the magenta pill. */
+[data-focus-scroll]::before,
+[data-focus-scroll-out]::before {
+  content: none;
 }
 
 [data-focus-scroll].is-on {
   opacity: 1;
-}
-
-[data-focus-scroll].is-on::before {
-  transform: scaleY(1);
 }
 
 [data-focus-scroll][hidden] {
@@ -3391,7 +3378,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     --focus-rail: 14px;
   }
 
-  html:not(.is-mobile) [data-focus-scroll]::before,
   html:not(.is-mobile) [data-focus-scroll-thumb] {
     border-radius: 999px 0 0 999px;
   }
@@ -3414,18 +3400,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     transition: opacity var(--fly-ms) var(--fly-ease);
   }
 
-  html:not(.is-mobile) [data-focus-scroll-out]::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: var(--focus-view);
-    background: rgba(255, 145, 248, 0.14);
-    border-radius: 0 999px 999px 0;
-    pointer-events: none;
-  }
-
   html:not(.is-mobile) [data-focus-scroll-out].is-on {
     opacity: 1;
   }
@@ -3439,6 +3413,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
     left: 0;
     width: 100%;
     border-radius: 0 999px 999px 0;
+    /* Cover the card-edge hairline / AA seam under the outer half. */
+    box-shadow: -2px 0 0 #ff91f8;
   }
 }
 
@@ -3593,11 +3569,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   [data-focus-scroll],
   [data-focus-scroll-out] {
-    transition: none;
-  }
-
-  [data-focus-scroll]::before {
-    transform: none;
     transition: none;
   }
 }

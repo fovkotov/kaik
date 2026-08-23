@@ -2,6 +2,7 @@ const INSET = 4;
 const MIN_THUMB = 28;
 const OVERFLOW_PX = 1;
 const RAIL_W = 14;
+const SEAM_OVERLAP = 2;
 const DESKTOP_MQ = "(min-width: 901px)";
 const WORK_SHEETS = new Set(["yan", "polina", "alena"]);
 const HINT_PEEK_MS = 220;
@@ -77,13 +78,15 @@ function snapOuter(card, thumb, out, outThumb, thumbTop) {
   const viewLocal = parseFloat(getComputedStyle(thumb.parentElement).getPropertyValue("--focus-view")) || 0;
   const railH = viewLocal > 0 ? viewLocal * scale : card.getBoundingClientRect().height;
   const w = inner.width || RAIL_W;
+  const outerW = w + SEAM_OVERLAP;
   out.style.top = `${railTop}px`;
-  out.style.left = `${inner.right}px`;
-  out.style.width = `${w}px`;
+  /* Overlap the inner half so subpixel snap / card clip cannot open a 1px seam. */
+  out.style.left = `${inner.right - SEAM_OVERLAP}px`;
+  out.style.width = `${outerW}px`;
   out.style.height = `${railH}px`;
   out.style.setProperty("--focus-view", `${railH}px`);
   outThumb.style.height = `${inner.height}px`;
-  outThumb.style.width = `${w}px`;
+  outThumb.style.width = `${outerW}px`;
   outThumb.style.transform = `translateY(${inner.top - railTop}px)`;
 }
 
