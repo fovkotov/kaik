@@ -8,7 +8,10 @@ const WORK_SHEETS = new Set(["yan", "polina", "alena"]);
 const attached = new WeakMap();
 
 function isDesktopRail() {
-  return window.matchMedia(DESKTOP_MQ).matches;
+  return (
+    window.matchMedia(DESKTOP_MQ).matches &&
+    !document.documentElement.classList.contains("is-mobile")
+  );
 }
 
 function paintThumbs(thumbs, m) {
@@ -249,6 +252,8 @@ export function mountFocusScrollbar(card) {
     el.addEventListener("click", onClick);
     el.addEventListener("lostpointercapture", endDrag);
   });
+  const mq = window.matchMedia(DESKTOP_MQ);
+  mq.addEventListener("change", schedule);
   window.addEventListener("resize", schedule, { passive: true });
   window.visualViewport?.addEventListener("resize", schedule, { passive: true });
   card.addEventListener("load", schedule, true);
@@ -268,6 +273,7 @@ export function mountFocusScrollbar(card) {
     root.removeEventListener("scroll", onScroll);
     root.removeEventListener("scrollend", onScrollEnd);
     card.removeEventListener("load", schedule, true);
+    mq.removeEventListener("change", schedule);
     window.removeEventListener("resize", schedule);
     window.visualViewport?.removeEventListener("resize", schedule);
     thumbs().forEach((el) => {
