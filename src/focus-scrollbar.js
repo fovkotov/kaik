@@ -344,6 +344,7 @@ export function mountFocusScrollbar(card) {
 
   const hint = () => {
     cancelHint();
+    if (!isDesktopRail()) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const m = metrics(card);
     if (root.scrollTop > OVERFLOW_PX) return;
@@ -448,5 +449,6 @@ export function syncFocusScrollbar(card) {
 }
 
 export function hintFocusScroll(card) {
+  if (!isDesktopRail()) return;
   attached.get(card)?.hint();
 }
