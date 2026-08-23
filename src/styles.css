@@ -1485,8 +1485,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .card.is-program-open[data-works-card] .works-card__key .works-card__key-art,
 .card.is-program-open[data-works-card] .works-card__key .works-card__key-cue {
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
+  cursor: default;
 }
 
 .works-card {
@@ -1979,8 +1979,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .card.is-program-open .card-illust--program[data-fly-illust-close],
 .card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__art,
 .card.is-program-open .card-illust--program[data-fly-illust-close] .card-illust__cue {
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
+  cursor: default;
+}
+
+.card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
+  display: none;
 }
 
 /* Extra dogs are mobile-only. Program keeps its desktop dachshund. */
@@ -2428,6 +2432,7 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 }
 
 .work-card__nav .work-card__close {
+  display: none;
   margin-left: auto;
   flex: none;
   background: rgba(85, 85, 85, 0.06);
@@ -3485,8 +3490,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 .card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
 .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
+  cursor: default;
 }
 
 .card.is-program-open .faq-card {
@@ -3603,6 +3608,12 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   -webkit-tap-highlight-color: transparent;
 }
 
+.fly-close:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .fly-close__icon {
   display: block;
   width: 24px;
@@ -3612,7 +3623,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 }
 
 /* Figma 130:454 — in-flow article close (history / format / author). */
-.article-close-row {
+.article-close-row,
+.card.is-program-open .article-close-row {
   display: none;
   position: relative;
   z-index: 2;
@@ -4572,7 +4584,8 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   }
 
   /* History / format / author in-flow X yields to the viewport fly-close. */
-  .card.is-program-open[data-article-card] .article-close-row {
+  .card.is-program-open[data-article-card] .article-close-row,
+  .card.is-program-open .work-card__close {
     display: none;
   }
 
@@ -5006,22 +5019,6 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
   .card.is-program-open[data-work-card].is-work-open .work-card__who {
     padding-right: calc(var(--work-chrome-h) * 3 + 16px);
-  }
-
-  /* Preview / faq keep a quieter X; position is the shared top-right 16px. */
-  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]):not([data-work-card]))
-    .fly-close:not([hidden]) {
-    width: var(--work-chrome-h);
-    height: var(--work-chrome-h);
-    padding: 12px;
-    background: rgba(85, 85, 85, 0.06);
-    z-index: 62;
-  }
-
-  body:has(.card.is-program-open:not([data-program-card]):not([data-works-card]):not([data-article-card]):not([data-work-card]))
-    .fly-close__icon {
-    filter: brightness(0);
-    opacity: 0.32;
   }
 
   .card.is-program-open .work-card__photos {

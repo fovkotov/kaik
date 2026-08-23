@@ -582,7 +582,7 @@ export function initProgramModal() {
 
   function persistIllust(el) {
     if (!el?.querySelector("[data-fly-illust-close]")) return false;
-    // Desktop program dog stays the painted close control. Mobile uses fly-close.
+    // Desktop program dog stays painted; close is always the viewport X.
     return el.hasAttribute("data-program-card") && !isMobile();
   }
 
@@ -592,7 +592,7 @@ export function initProgramModal() {
 
   function setIllustOut(el, hidden) {
     if (!el) return;
-    // Desktop program dog stays painted through expand (it is the close control).
+    // Desktop program dog stays painted through expand. Close is the viewport X.
     if (hidden && persistIllust(el)) {
       el.removeAttribute("data-illust-out");
       return;
@@ -1283,58 +1283,27 @@ export function initProgramModal() {
     return expanded ? "card.close" : "card.open";
   }
 
-  function overlayCloseCard(el) {
-    return persistIllust(el);
-  }
-
-  function isArticleCard(el) {
-    return Boolean(el?.hasAttribute("data-article-card"));
-  }
-
-  function usesInFlowClose(el) {
-    if (!el) return false;
-    if (persistIllust(el)) return false;
-    // Mobile expand cards close with the viewport X (Figma 141:968).
-    if (isMobile()) return false;
-    if (isArticleCard(el)) return true;
-    return el.hasAttribute("data-work-card") && el.classList.contains("is-work-open");
-  }
-
   function syncCloseBtn() {
-    const mobile = window.matchMedia("(max-width: 900px)").matches;
     const expanded = phase === "open" || phase === "opening";
-    const showGlobal =
-      mobile && expanded && card && !overlayCloseCard(card) && !usesInFlowClose(card);
+    const showGlobal = expanded && Boolean(card);
     if (closeBtn) {
       closeBtn.hidden = !showGlobal;
-      if (showGlobal && card) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
+      if (showGlobal) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
     }
     document.querySelectorAll("[data-article-close]").forEach((btn) => {
-      const host = btn.closest(FOCUS_SEL);
-      const show = mobile && expanded && host === card && usesInFlowClose(host);
-      btn.hidden = !show;
-      if (show) btn.setAttribute("aria-label", t(labelKey(host, true)));
+      btn.hidden = true;
     });
   }
 
   function syncIllustClose() {
     document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
-      const host = illust.closest(FOCUS_SEL);
-      const expanded = host === card && (phase === "open" || phase === "opening");
-      const closeControl = persistIllust(host) && expanded;
-      illust.setAttribute("aria-hidden", closeControl ? "false" : "true");
-      if (closeControl) {
-        illust.setAttribute("role", "button");
-        illust.setAttribute("aria-label", t(labelKey(host, true)));
-      } else {
-        illust.removeAttribute("role");
-        illust.removeAttribute("aria-label");
-      }
+      illust.setAttribute("aria-hidden", "true");
+      illust.removeAttribute("role");
+      illust.removeAttribute("aria-label");
       const cue = illust.querySelector(".works-card__key-cue, .card-illust__cue");
       if (!cue) return;
-      const key = closeControl ? "illust.close" : "illust.open";
-      cue.setAttribute("data-i18n", key);
-      cue.textContent = t(key);
+      cue.setAttribute("data-i18n", "illust.open");
+      cue.textContent = t("illust.open");
     });
   }
 
@@ -1490,11 +1459,10 @@ export function initProgramModal() {
   document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
     illust.addEventListener("click", (event) => {
       const host = illust.closest(FOCUS_SEL);
-      if (!persistIllust(host)) return;
-      if (host !== card || (phase !== "open" && phase !== "opening")) return;
-      event.preventDefault();
-      event.stopPropagation();
-      closeFocus();
+      if (host === card && (phase === "open" || phase === "opening")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     });
   });
 
