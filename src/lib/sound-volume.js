@@ -3,8 +3,8 @@ import { safeStorage } from "../embed.js";
 export const VOLUME_MIN = 0;
 export const VOLUME_MAX = 2;
 export const VOLUME_DEFAULT = 0.5;
-/** One global scale so production is 4.5× quieter than stored / default gain. */
-export const VOLUME_PLAYBACK_SCALE = 2 / 9;
+/** One global scale so production is 1.8× quieter than stored / default gain. */
+export const VOLUME_PLAYBACK_SCALE = 5 / 9;
 export const SLIDER_MIN = 0;
 export const SLIDER_MAX = 100;
 export const STORAGE_KEY = "kaik-sound-volume-v3";
