@@ -70,6 +70,9 @@
   --lockup-nudge-y: 0px;
   --cluster-nudge-x: -90px;
   --cluster-nudge-y: 0px;
+  --lockup-x: var(--cluster-nudge-x);
+  --lockup-y: var(--cluster-nudge-y);
+  --lockup-scale: 1;
   --nav-nudge-x: 0px;
   --nav-nudge-y: 0px;
   --lang-nudge-x: 0px;
@@ -271,7 +274,9 @@ a {
     height: var(--frame-h);
     z-index: var(--z-lockup);
     pointer-events: none;
-    transform: translate3d(var(--cluster-nudge-x), var(--cluster-nudge-y), 0);
+    transform: translate3d(var(--lockup-x), var(--lockup-y), 0) scale(var(--lockup-scale));
+    transform-origin: calc(var(--panel-cluster-left) + var(--panel-cluster-w) / 2)
+      calc(var(--panel-cluster-top) + var(--panel-lockup-h) / 2);
     transform-style: preserve-3d;
   }
 }
@@ -5928,8 +5933,10 @@ html:not(.is-mobile) .article-close:not([hidden]) {
 
 @media (min-width: 901px) {
   /* Keep the gear in the iframe viewport, above the deck (z-index 280 > --z-deck).
-     Top-right sits above the vertically centered cards so it stays clickable. */
+     Top-right sits above the vertically centered cards so it stays clickable.
+     Hidden on mobile — the left lockup is not this layout there. */
   .stage-settings {
+    display: block;
     top: var(--frame-clip-top);
     right: 8px;
   }

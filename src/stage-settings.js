@@ -30,6 +30,7 @@ const AXIS = { min: -240, max: 240, step: 1 };
 const MOBILE_CARD_Y = { min: -120, max: 280, step: 1 };
 const FOCUS_AXIS = { min: -400, max: 400, step: 1 };
 const FOCUS_SCALE = { min: 0.5, max: 2, step: 0.01 };
+const LOCKUP_SCALE = { min: 0.5, max: 1.5, step: 0.01 };
 
 export const DESKTOP_STAGE_DEFAULTS = {
   lift: 64,
@@ -48,6 +49,7 @@ export const DESKTOP_STAGE_DEFAULTS = {
   closeY: 0,
   clusterX: -90,
   clusterY: 0,
+  clusterScale: 1,
   clusterLinked: 1,
 };
 
@@ -69,10 +71,11 @@ const PREV_DESKTOP_DEFAULTS = {
   closeY: 0,
   clusterX: 0,
   clusterY: 0,
+  clusterScale: 1,
   clusterLinked: 1,
 };
 
-const CLUSTER_KEYS = new Set(["clusterX", "clusterY", "clusterLinked"]);
+const CLUSTER_KEYS = new Set(["clusterX", "clusterY", "clusterScale", "clusterLinked"]);
 
 /** Older uncustomized snapshots — treat as uncustomized too. */
 const PREV_DESKTOP_ALSO = {
@@ -161,6 +164,12 @@ const GROUPS = [
       },
       { key: "clusterX", labelKey: "stage.axisX", linkedOnly: true, ...AXIS },
       { key: "clusterY", labelKey: "stage.axisY", linkedOnly: true, ...AXIS },
+      {
+        key: "clusterScale",
+        labelKey: "stage.lockupScale",
+        desktopOnly: true,
+        ...LOCKUP_SCALE,
+      },
     ],
   },
   {
@@ -342,6 +351,9 @@ function migrateClusterDefaults(blob) {
   }
   if (next.clusterLinked == null) {
     next.clusterLinked = DESKTOP_STAGE_DEFAULTS.clusterLinked;
+  }
+  if (next.clusterScale == null) {
+    next.clusterScale = DESKTOP_STAGE_DEFAULTS.clusterScale;
   }
   return next;
 }
@@ -593,8 +605,14 @@ export function applyStageNudge({ notify = false } = {}) {
   root.style.setProperty("--stage-lift", `${s.lift}px`);
   root.style.setProperty("--lockup-nudge-x", `${s.lockupX}px`);
   root.style.setProperty("--lockup-nudge-y", `${s.lockupY}px`);
-  root.style.setProperty("--cluster-nudge-x", `${Number(s.clusterX) || 0}px`);
-  root.style.setProperty("--cluster-nudge-y", `${Number(s.clusterY) || 0}px`);
+  const clusterX = Number(s.clusterX) || 0;
+  const clusterY = Number(s.clusterY) || 0;
+  const clusterScale = mobile ? 1 : clampField("clusterScale", s.clusterScale) || 1;
+  root.style.setProperty("--cluster-nudge-x", `${clusterX}px`);
+  root.style.setProperty("--cluster-nudge-y", `${clusterY}px`);
+  root.style.setProperty("--lockup-x", `${clusterX}px`);
+  root.style.setProperty("--lockup-y", `${clusterY}px`);
+  root.style.setProperty("--lockup-scale", String(clusterScale));
   root.style.setProperty("--nav-nudge-x", `${s.navX}px`);
   root.style.setProperty("--nav-nudge-y", `${s.navY}px`);
   root.style.setProperty("--lang-nudge-x", `${s.langX}px`);
@@ -626,6 +644,7 @@ function layoutJson() {
     cluster.x = s.clusterX;
     cluster.y = s.clusterY;
   }
+  cluster.scale = clampField("clusterScale", s.clusterScale) || 1;
 
   return {
     lift: s.lift,
