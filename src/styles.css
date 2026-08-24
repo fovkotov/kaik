@@ -64,21 +64,21 @@
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
   /* Stage lift: desktop 64 / mobile 146. Cluster X/Y are extra nudges on left-half geometry.
-     JS stage-settings writes these; fallback X -90 matches the published default. */
+     JS stage-settings writes these; fallbacks match published desktop defaults. */
   --stage-lift: 0px;
   --lockup-nudge-x: 0px;
   --lockup-nudge-y: 0px;
-  --cluster-nudge-x: -90px;
-  --cluster-nudge-y: 0px;
+  --cluster-nudge-x: 14px;
+  --cluster-nudge-y: 42px;
   --lockup-x: var(--cluster-nudge-x);
   --lockup-y: var(--cluster-nudge-y);
-  --lockup-scale: 1;
+  --lockup-scale: 1.15;
   --nav-nudge-x: 0px;
   --nav-nudge-y: 0px;
   --lang-nudge-x: 0px;
   --lang-nudge-y: 0px;
-  --deck-nudge-x: 59px;
-  --deck-nudge-y: 41px;
+  --deck-nudge-x: 54px;
+  --deck-nudge-y: 68px;
   --focus-nudge-x: 0px;
   --focus-nudge-y: 0px;
   --close-nudge-x: 0px;
@@ -190,7 +190,7 @@ body.catalog {
   }
 
   .deck {
-    top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 41px));
+    top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 68px));
   }
 
   body:not(.admin):not(.catalog) .viewport {
@@ -568,7 +568,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
    desktop media-query rule above, so a Y-less top made СТОПКА Y a no-op. */
 .deck {
   position: fixed;
-  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 41px));
+  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 68px));
   left: var(--deck-nudge-x, 0px);
   z-index: var(--z-deck);
   width: var(--frame-w);

@@ -1,7 +1,7 @@
 /**
  * Stage nudge panel (desktop + mobile gear). Desktop chrome sits in the left
  * half of the frame (Figma 117:975), under cards. Cluster X/Y are optional
- * overrides on top of that geometry (default X -90). Mobile: lift → footer, deck → stack.
+ * overrides on top of that geometry (default cluster 14/42, scale 1.15). Mobile: lift → footer, deck → stack.
  */
 
 import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
@@ -40,20 +40,20 @@ export const DESKTOP_STAGE_DEFAULTS = {
   navY: 0,
   langX: 0,
   langY: 0,
-  deckX: 59,
-  deckY: 41,
+  deckX: 54,
+  deckY: 68,
   focusX: 0,
   focusY: 9,
   focusScale: 0.93,
   closeX: 0,
   closeY: 0,
-  clusterX: -90,
-  clusterY: 0,
-  clusterScale: 1,
+  clusterX: 14,
+  clusterY: 42,
+  clusterScale: 1.15,
   clusterLinked: 1,
 };
 
-/** Previous published defaults. Stored deck X 0 → 59, deck Y 44 → 41. */
+/** Previous published defaults. Deck 59/41, cluster -90/0 scale 1. */
 const PREV_DESKTOP_DEFAULTS = {
   lift: 64,
   lockupX: 0,
@@ -62,14 +62,14 @@ const PREV_DESKTOP_DEFAULTS = {
   navY: 0,
   langX: 0,
   langY: 0,
-  deckX: 0,
-  deckY: 44,
+  deckX: 59,
+  deckY: 41,
   focusX: 0,
   focusY: 9,
   focusScale: 0.93,
   closeX: 0,
   closeY: 0,
-  clusterX: 0,
+  clusterX: -90,
   clusterY: 0,
   clusterScale: 1,
   clusterLinked: 1,
@@ -85,7 +85,11 @@ const PREV_DESKTOP_ALSO = {
   langY: [18],
   focusY: [0, -47],
   focusScale: [1],
-  clusterX: [-65],
+  deckX: [0],
+  deckY: [44],
+  clusterX: [-65, -90],
+  clusterY: [0],
+  clusterScale: [1],
 };
 
 export const MOBILE_STAGE_DEFAULTS = {
@@ -354,6 +358,15 @@ function migrateClusterDefaults(blob) {
   }
   if (next.clusterScale == null) {
     next.clusterScale = DESKTOP_STAGE_DEFAULTS.clusterScale;
+  } else {
+    const scale = Number(next.clusterScale);
+    if (
+      Number.isFinite(scale) &&
+      previousDefaultValues("clusterScale").includes(scale) &&
+      scale !== DESKTOP_STAGE_DEFAULTS.clusterScale
+    ) {
+      next.clusterScale = DESKTOP_STAGE_DEFAULTS.clusterScale;
+    }
   }
   return next;
 }
