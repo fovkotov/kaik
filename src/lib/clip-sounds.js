@@ -1,4 +1,5 @@
 import { publicUrl } from "../public-url.js";
+import { createUnlockedContext, unlockHtmlAudio } from "./gesture-audio.js";
 import { beltHandle1Sound } from "./belt-handle-1.ts";
 import { beltHandle2Sound } from "./belt-handle-2.ts";
 import { cloth1Sound } from "./cloth-1.ts";
@@ -73,15 +74,7 @@ function resumeNow(ctx) {
 }
 
 function createClipContext() {
-  try {
-    return new AudioContext({ latencyHint: 0 });
-  } catch {
-    try {
-      return new AudioContext({ latencyHint: "interactive" });
-    } catch {
-      return new AudioContext();
-    }
-  }
+  return createUnlockedContext();
 }
 
 function isCold(ctx) {
@@ -116,6 +109,7 @@ function getClipContext() {
 }
 
 function playBuffer(buffer, volume, offset = 0, duration) {
+  unlockHtmlAudio();
   const ctx = getClipContext();
   resumeNow(ctx);
   const src = ctx.createBufferSource();
@@ -164,6 +158,7 @@ function loadSprite() {
 export function warmClipAudio() {
   if (reduced()) return;
   try {
+    unlockHtmlAudio();
     if (isCold(clipCtx)) {
       dropClipContext();
       clipCtx = createClipContext();
@@ -188,6 +183,8 @@ export function playSoundcn(name, volume = 1) {
   decodeUri(asset.dataUri);
   try {
     const audio = new Audio(asset.dataUri);
+    audio.setAttribute("playsinline", "");
+    audio.setAttribute("webkit-playsinline", "");
     audio.volume = Math.max(0, Math.min(1, volume));
     void audio.play();
   } catch {
@@ -207,6 +204,8 @@ export function playSnd(name, volume = 1) {
   loadSprite();
   try {
     const audio = new Audio(SND_URL);
+    audio.setAttribute("playsinline", "");
+    audio.setAttribute("webkit-playsinline", "");
     audio.volume = Math.max(0, Math.min(1, volume));
     audio.addEventListener(
       "loadedmetadata",

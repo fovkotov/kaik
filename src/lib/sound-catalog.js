@@ -1,6 +1,7 @@
 import { playUISound } from "./ui-sounds.js";
 import { playWikiSound, warmWikiAudio } from "./wiki-sounds.js";
 import { playSnd, playSoundcn, warmClipAudio } from "./clip-sounds.js";
+import { unlockHtmlAudio } from "./gesture-audio.js";
 import { getActionVolume } from "./sound-volume.js";
 import { safeStorage } from "../embed.js";
 
@@ -199,6 +200,7 @@ function selectedKinds() {
 }
 
 export function warmAllAudio() {
+  unlockHtmlAudio();
   const kinds = selectedKinds();
   if (kinds.has("wiki")) warmWikiAudio();
   if (kinds.has("soundcn") || kinds.has("snd")) warmClipAudio();

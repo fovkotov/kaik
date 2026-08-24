@@ -4,21 +4,15 @@
  * Copyright (c) 2026 Raphael Salaja
  */
 
+import { createUnlockedContext, unlockHtmlAudio } from "./gesture-audio.js";
+
 let audioContext = null;
 let masterGain = null;
 let keepAliveNode = null;
 let outputVolume = 1;
 
 function createContext() {
-  try {
-    return new AudioContext({ latencyHint: 0 });
-  } catch {
-    try {
-      return new AudioContext({ latencyHint: "interactive" });
-    } catch {
-      return new AudioContext();
-    }
-  }
+  return createUnlockedContext();
 }
 
 function isClosed(ctx) {
@@ -79,7 +73,8 @@ function startKeepAlive(ctx) {
 }
 
 function primeOutput(ctx) {
-  const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const frames = Math.max(1, Math.floor(ctx.sampleRate * 0.02));
+  const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
   const src = ctx.createBufferSource();
   src.buffer = buf;
   src.connect(ctx.destination);
@@ -127,6 +122,7 @@ function getDestination() {
 export function warmWikiAudio() {
   if (reduced()) return;
   try {
+    unlockHtmlAudio();
     if (audioContext && !isCold(audioContext)) {
       resumeNow(audioContext);
       primeOutput(audioContext);
@@ -138,6 +134,10 @@ export function warmWikiAudio() {
   } catch {
     // Web Audio failures are silent.
   }
+}
+
+export function isWikiAudioRunning() {
+  return Boolean(audioContext && audioContext.state === "running");
 }
 
 function reduced() {
@@ -469,8 +469,8 @@ export function playWikiSound(name, options = {}) {
   const volume = options.volume ?? 1;
   if (volume <= 0) return;
   try {
-    const ctx = getAudioContext();
-    resumeNow(ctx);
+    // Recreate if still suspended so this gesture owns a running context.
+    warmWikiAudio();
     // Same turn as the gesture — never await resume() / then() before oscillators.
     runSound(play, volume);
   } catch {

@@ -1,4 +1,4 @@
-import { playWikiSound, warmWikiAudio } from "./lib/wiki-sounds.js";
+import { isWikiAudioRunning, playWikiSound, warmWikiAudio } from "./lib/wiki-sounds.js";
 import { getActionVolume } from "./lib/sound-volume.js";
 
 const STEP_KEYS = new Set([
@@ -79,31 +79,92 @@ function isImmediateControl(target) {
 
 export function initTickClicks() {
   let skipClickUntil = 0;
+  let downX = 0;
+  let downY = 0;
+  let playedGesture = false;
+  const TAP_PX = 14;
+  const capture = { capture: true, passive: true };
+
+  function unlock() {
+    warmWikiAudio();
+  }
+
+  function playOnce() {
+    if (playedGesture) return false;
+    playAction();
+    // iOS: pointerdown often starts oscillators on a still-suspended context.
+    // Don't consume the later touchend/click that actually unlocks.
+    if (!isWikiAudioRunning()) return false;
+    playedGesture = true;
+    skipClickUntil = performance.now() + 700;
+    return true;
+  }
+
+  function blockedTarget(target) {
+    if (!target) return true;
+    if (target.closest?.("[data-sound-settings]")) return true;
+    if (isDisabledControl(target)) return true;
+    return false;
+  }
+
+  function onUnlockEvent(event) {
+    if (!event.isTrusted) return;
+    unlock();
+  }
+
+  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
+    document.addEventListener(type, onUnlockEvent, capture);
+    window.addEventListener(type, onUnlockEvent, capture);
+  }
 
   document.addEventListener(
     "pointerdown",
     (event) => {
       if (!event.isTrusted) return;
       if (event.button != null && event.button !== 0) return;
-      warmWikiAudio();
+      downX = event.clientX;
+      downY = event.clientY;
+      playedGesture = false;
+      unlock();
       const target = clickTarget(event);
-      if (!target) return;
-      if (target.closest?.("[data-sound-settings]")) return;
-      if (isDisabledControl(target)) return;
+      if (blockedTarget(target)) return;
       if (!isImmediateControl(target)) return;
-      playAction();
-      skipClickUntil = performance.now() + 700;
+      // Mouse: play here for snappy desktop clicks. Touch/pen: wait for
+      // touchend — that is the WebKit user-activation event. Empty
+      // pointerType on iOS must not play-and-skip the later unlock.
+      if (event.pointerType !== "mouse") return;
+      playOnce();
     },
     true,
   );
 
+  function onTapLift(event, x, y) {
+    if (!event.isTrusted) return;
+    unlock();
+    if (playedGesture) return;
+    if (Math.hypot((x ?? 0) - downX, (y ?? 0) - downY) > TAP_PX) return;
+    const target = clickTarget(event);
+    if (blockedTarget(target)) return;
+    playOnce();
+  }
+
   document.addEventListener(
-    "keydown",
+    "touchend",
     (event) => {
-      if (!event.isTrusted) return;
-      warmWikiAudio();
+      const touch = event.changedTouches?.[0];
+      onTapLift(event, touch?.clientX, touch?.clientY);
     },
-    true,
+    capture,
+  );
+
+  document.addEventListener(
+    "pointerup",
+    (event) => {
+      if (event.pointerType === "mouse") return;
+      if (event.button != null && event.button !== 0) return;
+      onTapLift(event, event.clientX, event.clientY);
+    },
+    capture,
   );
 
   document.addEventListener(
@@ -113,11 +174,9 @@ export function initTickClicks() {
       if (event.button !== 0) return;
       if (performance.now() < skipClickUntil) return;
       const target = clickTarget(event);
-      if (!target) return;
-      if (target.closest?.("[data-sound-settings]")) return;
-      if (isDisabledControl(target)) return;
-      warmWikiAudio();
-      playAction();
+      if (blockedTarget(target)) return;
+      unlock();
+      playOnce();
     },
     true,
   );
@@ -133,8 +192,9 @@ export function initTickClicks() {
       if (target && isDisabledControl(target)) return;
       if (target?.closest?.("input[type='range']")) return;
       if (target?.closest?.("[data-sound-settings]")) return;
-      warmWikiAudio();
-      playAction();
+      unlock();
+      playedGesture = false;
+      playOnce();
     },
     true,
   );

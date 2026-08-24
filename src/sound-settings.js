@@ -63,16 +63,14 @@ export function initSoundSettings() {
   document.addEventListener("wheel", onWheelGesture, capture);
   scrollRoot?.addEventListener("wheel", onWheelGesture, capture);
 
-  for (const type of ["pointerdown", "touchstart", "keydown", "click"]) {
-    document.addEventListener(
-      type,
-      (event) => {
-        if (!event.isTrusted) return;
-        warmAllAudio();
-        if (type === "touchstart") lastDriveY = event.touches?.[0]?.clientY ?? lastDriveY;
-      },
-      capture,
-    );
+  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
+    const onUnlock = (event) => {
+      if (!event.isTrusted) return;
+      warmAllAudio();
+      if (type === "touchstart") lastDriveY = event.touches?.[0]?.clientY ?? lastDriveY;
+    };
+    document.addEventListener(type, onUnlock, capture);
+    window.addEventListener(type, onUnlock, capture);
   }
 
   document.addEventListener(
