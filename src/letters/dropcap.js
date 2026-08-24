@@ -76,42 +76,48 @@ async function waitAnim(anim) {
   }
 }
 
-/** Parent lockup WAAPI transform flattens child rotateY — spin only after intro cancels it. */
-function waitForIntroDone() {
-  if (document.documentElement.classList.contains("intro-done")) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve) => {
-    const finish = () => {
-      observer.disconnect();
-      window.clearTimeout(timer);
-      resolve();
-    };
-    const observer = new MutationObserver(() => {
-      if (document.documentElement.classList.contains("intro-done")) finish();
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    const timer = window.setTimeout(finish, 5000);
-  });
+function introDone() {
+  return document.documentElement.classList.contains("intro-done");
 }
 
 function svgStamp(entry) {
   return entry?.updatedAt || entry?.createdAt || "";
 }
 
+function svgCacheKey(entry) {
+  return `${entry.id}:${svgStamp(entry)}`;
+}
+
+function svgReady(entry) {
+  return typeof svgCache.get(svgCacheKey(entry)) === "string";
+}
+
 async function fetchSvg(entry) {
-  const stamp = svgStamp(entry);
-  const key = `${entry.id}:${stamp}`;
-  if (svgCache.has(key)) return svgCache.get(key);
+  const key = svgCacheKey(entry);
+  const hit = svgCache.get(key);
+  if (typeof hit === "string") return hit;
+  if (hit) return hit;
   /* Same URL as <link rel="preload"> / first-paint <img> — no cache-bust query. */
-  const res = await fetch(publicUrl(`letters/${entry.file}`));
-  if (!res.ok) throw new Error("SVG missing");
-  const text = await res.text();
-  svgCache.set(key, text);
-  return text;
+  const req = (async () => {
+    const res = await fetch(publicUrl(`letters/${entry.file}`));
+    if (!res.ok) throw new Error("SVG missing");
+    const text = await res.text();
+    svgCache.set(key, text);
+    return text;
+  })();
+  svgCache.set(key, req);
+  try {
+    return await req;
+  } catch (err) {
+    if (svgCache.get(key) === req) svgCache.delete(key);
+    throw err;
+  }
+}
+
+function warmPool(pool) {
+  for (const entry of pool) {
+    fetchSvg(entry).catch(() => {});
+  }
 }
 
 function ensurePopover() {
@@ -236,46 +242,55 @@ function abortCycleSpin(button) {
   });
 }
 
-async function paintGlyph(button, entry, { animate = false } = {}) {
+async function paintGlyph(button, entry, { animate = false, onStart } = {}) {
   const gen = (button._paintGen = (button._paintGen || 0) + 1);
-  const glyph = await makeGlyph(button, entry);
-  if (button._paintGen !== gen) return;
-
   const swap = ensureSwap(button);
   const current = swap.querySelector(".dropcap__glyph");
-  const instant = !animate || reduceMotion() || !current;
+  /* Intro lockup WAAPI flattens rotateY — swap now, don't wait for it to end. */
+  const instant = !animate || reduceMotion() || !current || !introDone();
+  const glyphPromise = makeGlyph(button, entry);
+  applyMeta(button, entry);
+  onStart?.(entry);
 
   if (instant) {
+    const glyph = await glyphPromise;
+    if (button._paintGen !== gen) return false;
     stopSpin(button);
     swap.replaceChildren(glyph);
-    applyMeta(button, entry);
-    return;
-  }
-
-  if (!document.documentElement.classList.contains("intro-done")) {
-    await waitForIntroDone();
-    if (button._paintGen !== gen || !button.isConnected || !current.isConnected) return;
+    return true;
   }
 
   stopSpin(button);
   button.classList.add("is-spinning");
-  applyMeta(button, entry);
 
   const { outMs, inMs, easeIn, easeOut, blur } = spinTokens(button);
-  const outAnim = playSpin(current, 0, SPIN_OUT_DEG, outMs, easeIn, "0px", blur);
-  await waitAnim(outAnim);
-  if (button._paintGen !== gen) return;
+  const cached = svgReady(entry);
+  const outAnim = cached
+    ? null
+    : playSpin(current, 0, SPIN_OUT_DEG, outMs, easeIn, "0px", blur);
 
+  let glyph;
+  try {
+    glyph = await glyphPromise;
+  } catch (err) {
+    if (button._paintGen === gen) stopSpin(button);
+    throw err;
+  }
+  if (button._paintGen !== gen) return false;
+
+  /* Swap as soon as the SVG is ready — don't wait out the 300ms spin. */
+  outAnim?.cancel();
   current.remove();
   swap.append(glyph);
   const inAnim = playSpin(glyph, SPIN_IN_FROM_DEG, 0, inMs, easeOut, blur, "0px");
   await waitAnim(inAnim);
-  if (button._paintGen !== gen) return;
+  if (button._paintGen !== gen) return false;
 
   inAnim.cancel();
   glyph.style.transform = "";
   glyph.style.filter = "";
   button.classList.remove("is-spinning");
+  return true;
 }
 
 function stepInPool(pool, currentId, steps) {
@@ -295,23 +310,24 @@ function halfTurns(deg) {
 }
 
 /** Paint a preferred letter first; fall back to the pool if it is missing. */
-async function paintPreferred(button, pool, preferredId, { animate = false } = {}) {
+async function paintPreferred(button, pool, preferredId, opts = {}) {
   const preferred = preferredId
     ? pool.find((item) => item.id === preferredId)
     : null;
   if (preferred) {
     try {
-      await paintGlyph(button, preferred, { animate });
-      return preferred;
+      const painted = await paintGlyph(button, preferred, opts);
+      if (painted) return preferred;
+      return null;
     } catch {
       /* SVG missing — keep going through the pool. */
     }
   }
-  return paintFromPool(button, pool, preferredId, { animate });
+  return paintFromPool(button, pool, preferredId, opts);
 }
 
 /** Paint the first variant whose SVG loads. Prefer `excludeId` only as a skip. */
-async function paintFromPool(button, pool, excludeId, { animate = false } = {}) {
+async function paintFromPool(button, pool, excludeId, opts = {}) {
   if (!pool.length) return null;
   const remaining = pool.slice();
   let skip = excludeId;
@@ -319,8 +335,9 @@ async function paintFromPool(button, pool, excludeId, { animate = false } = {}) 
     const entry = pickVariant(remaining, skip);
     if (!entry) return null;
     try {
-      await paintGlyph(button, entry, { animate });
-      return entry;
+      const painted = await paintGlyph(button, entry, opts);
+      if (painted) return entry;
+      return null;
     } catch {
       const idx = remaining.findIndex((item) => item.id === entry.id);
       if (idx >= 0) remaining.splice(idx, 1);
@@ -554,13 +571,34 @@ export async function initDropcaps() {
   const hosts = [...document.querySelectorAll("[data-dropcap]")];
   if (!hosts.length) return;
 
-  ensurePopover();
+  warmPool(allLetters(catalog));
+
+  const popover = ensurePopover();
 
   let mountGen = 0;
   const scrubber = createScrubber();
   const runtime = new WeakMap();
 
   const bound = new WeakSet();
+  const POINTER_CYCLE_MS = 700;
+
+  const cycleButton = (button) => {
+    const state = runtime.get(button);
+    if (!state) return;
+    const scrub = scrubber.reset(button);
+    const cycleGen = (button._cycleGen = (button._cycleGen || 0) + 1);
+    if (scrub) scrub.clicking = true;
+    const prevId = button.dataset.letterId;
+    paintFromPool(button, state.cyclePool, prevId, {
+      animate: true,
+      onStart: (entry) => {
+        if (!isMobile()) showPopover(button, entry);
+      },
+    }).finally(() => {
+      if (scrub && button._cycleGen === cycleGen) scrub.clicking = false;
+    });
+  };
+
   const bindButton = (button) => {
     if (bound.has(button)) return;
     bound.add(button);
@@ -573,31 +611,45 @@ export async function initDropcaps() {
 
     button.addEventListener("pointerleave", (event) => {
       if (!canHoverPause() || event.pointerType === "touch") return;
+      if (event.relatedTarget?.closest?.("[data-dropcap-popover]")) return;
       hidePopover();
     });
 
-    button.addEventListener("click", async (event) => {
+    button.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      event.stopPropagation();
+      button._dropcapAt = performance.now();
+      cycleButton(button);
+    });
+
+    button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const state = runtime.get(button);
-      if (!state) return;
-      const scrub = scrubber.reset(button);
-      if (scrub) scrub.clicking = true;
-      const prevId = button.dataset.letterId;
-      const next = await paintFromPool(button, state.cyclePool, prevId, {
-        animate: true,
-      });
-      if (next && next.id !== prevId && button.dataset.letterId === next.id) {
-        if (!isMobile()) showPopover(button, next);
-      }
-      if (scrub) scrub.clicking = false;
+      if (performance.now() - (button._dropcapAt || 0) < POINTER_CYCLE_MS) return;
+      cycleButton(button);
     });
   };
 
   const attachRuntime = (button, cyclePool) => {
     scrubber.add(button, cyclePool);
     runtime.set(button, { cyclePool });
+    warmPool(cyclePool);
   };
+
+  popover.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    const slot = popover.dataset.slot;
+    const button = slot && document.querySelector(`.dropcap[data-slot="${slot}"]`);
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    button._dropcapAt = performance.now();
+    cycleButton(button);
+  });
+  popover.addEventListener("pointerleave", (event) => {
+    if (event.relatedTarget?.closest?.(".dropcap")) return;
+    hidePopover();
+  });
 
   const mount = async ({ animate = false } = {}) => {
     const gen = ++mountGen;

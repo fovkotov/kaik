@@ -637,6 +637,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: visible;
   perspective: var(--dropcap-spin-perspective);
   transform-style: preserve-3d;
+  touch-action: manipulation;
 }
 
 .dropcap__swap {
@@ -697,7 +698,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   -webkit-backdrop-filter: blur(1rem);
   color: var(--ink);
   border-radius: 0.375rem;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
   transform-origin: top center;
