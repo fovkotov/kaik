@@ -3,8 +3,10 @@ import {
   getScrollPx,
   playFirstScrollFromGesture,
   playScrollSound,
+  tryUnlockAllAudio,
   warmAllAudio,
 } from "./lib/sound-catalog.js";
+import { bindGestureUnlock, isDiscreteUnlock } from "./lib/gesture-audio.js";
 import { getScrollRoot } from "./embed.js";
 
 function reduced() {
@@ -40,12 +42,12 @@ export function initSoundSettings() {
   function onWheelGesture(event) {
     if (!event.isTrusted) return;
     if (reduced()) {
-      warmAllAudio();
+      warmAllAudio(event);
       return;
     }
     // Chromium: wheel is a user gesture. resume() then start() in this turn.
-    if (playFirstScrollFromGesture()) creditFirstPop();
-    else warmAllAudio();
+    if (playFirstScrollFromGesture(event)) creditFirstPop();
+    else warmAllAudio(event);
   }
 
   function onScrollDriveMove(event, y) {
@@ -53,25 +55,26 @@ export function initSoundSettings() {
     if (y == null || !Number.isFinite(y)) return;
     if (lastDriveY != null && Math.abs(y - lastDriveY) < 2) return;
     lastDriveY = y;
-    if (playFirstScrollFromGesture()) creditFirstPop();
-    else warmAllAudio();
+    if (playFirstScrollFromGesture(event)) creditFirstPop();
+    else warmAllAudio(event);
   }
 
   const scrollRoot = getScrollRoot();
   const capture = { capture: true, passive: true };
 
+  // Iframe ticks live on the scroll root. Document still sees wheel over the
+  // fixed panel so the first pop can unlock without a click.
   document.addEventListener("wheel", onWheelGesture, capture);
   scrollRoot?.addEventListener("wheel", onWheelGesture, capture);
 
-  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
-    const onUnlock = (event) => {
-      if (!event.isTrusted) return;
-      warmAllAudio();
-      if (type === "touchstart") lastDriveY = event.touches?.[0]?.clientY ?? lastDriveY;
-    };
-    document.addEventListener(type, onUnlock, capture);
-    window.addEventListener(type, onUnlock, capture);
-  }
+  bindGestureUnlock((event) => {
+    if (event.type === "touchstart") lastDriveY = event.touches?.[0]?.clientY ?? lastDriveY;
+    if (event.type === "wheel") return;
+    if (!isDiscreteUnlock(event.type) && event.type !== "pointermove" && event.type !== "mousemove" && event.type !== "touchmove") {
+      return;
+    }
+    tryUnlockAllAudio(event);
+  }, [scrollRoot]);
 
   document.addEventListener(
     "touchmove",
@@ -84,7 +87,10 @@ export function initSoundSettings() {
   document.addEventListener(
     "pointermove",
     (event) => {
-      if (event.pointerType === "mouse") return;
+      if (event.pointerType === "mouse") {
+        tryUnlockAllAudio(event);
+        return;
+      }
       onScrollDriveMove(event, event.clientY);
     },
     capture,

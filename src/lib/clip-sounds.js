@@ -1,5 +1,5 @@
 import { publicUrl } from "../public-url.js";
-import { createUnlockedContext, unlockHtmlAudio } from "./gesture-audio.js";
+import { createUnlockedContext, reviveAudioContext } from "./gesture-audio.js";
 import { beltHandle1Sound } from "./belt-handle-1.ts";
 import { beltHandle2Sound } from "./belt-handle-2.ts";
 import { cloth1Sound } from "./cloth-1.ts";
@@ -77,10 +77,6 @@ function createClipContext() {
   return createUnlockedContext();
 }
 
-function isCold(ctx) {
-  return !ctx || ctx.state === "closed" || ctx.state === "suspended" || ctx.state === "interrupted";
-}
-
 function dropClipContext() {
   const prev = clipCtx;
   clipCtx = null;
@@ -109,7 +105,6 @@ function getClipContext() {
 }
 
 function playBuffer(buffer, volume, offset = 0, duration) {
-  unlockHtmlAudio();
   const ctx = getClipContext();
   resumeNow(ctx);
   const src = ctx.createBufferSource();
@@ -155,15 +150,19 @@ function loadSprite() {
     });
 }
 
-export function warmClipAudio() {
+export function warmClipAudio(event) {
   if (reduced()) return;
   try {
-    unlockHtmlAudio();
-    if (isCold(clipCtx)) {
-      dropClipContext();
-      clipCtx = createClipContext();
-    }
-    resumeNow(clipCtx);
+    reviveAudioContext({
+      get: () => clipCtx,
+      set: (ctx) => {
+        clipCtx = ctx;
+      },
+      create: createClipContext,
+      drop: dropClipContext,
+      resume: resumeNow,
+      event,
+    });
     loadSprite();
     Object.values(SOUNDCN).forEach((asset) => decodeUri(asset.dataUri));
   } catch {

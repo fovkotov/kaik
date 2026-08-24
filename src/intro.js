@@ -1,4 +1,6 @@
 import { isMobile } from "./tweaks.js";
+import { playArriveSound, playFlySound, tryUnlockAllAudio } from "./lib/sound-catalog.js";
+import { isWikiAudioRunning } from "./lib/wiki-sounds.js";
 
 /** Entering cards: `--ease-out`. */
 const CARD_EASE = cubicBezierEase(0.23, 1, 0.32, 1);
@@ -82,10 +84,13 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
   const lastDelay = (n - 1) * stagger;
   return {
     armed: false,
+    started: new Set(),
+    arrived: new Set(),
     arm(now) {
       if (this.armed) return;
       this.armed = true;
       t0 = now;
+      tryUnlockAllAudio();
     },
     progress(index, now) {
       if (!this.armed) return 0;
@@ -99,6 +104,24 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
       return this.armed && now - t0 >= lastDelay + duration;
     },
   };
+}
+
+/** whoosh as each card starts, pop as it lands. Queued if AudioContext is still cold. */
+export function syncDeckIntroSounds(intro, count, now) {
+  if (!intro?.armed) return;
+  if (!isWikiAudioRunning()) tryUnlockAllAudio();
+  const n = Math.max(0, Number(count) || 0);
+  for (let i = 0; i < n; i += 1) {
+    const p = intro.progress(i, now);
+    if (p > 0.02 && !intro.started.has(i)) {
+      intro.started.add(i);
+      playFlySound();
+    }
+    if (p >= 0.96 && !intro.arrived.has(i)) {
+      intro.arrived.add(i);
+      playArriveSound();
+    }
+  }
 }
 
 function clearIntroStyles(el) {

@@ -15,6 +15,7 @@ import {
   markIntroDone,
   markIntroReady,
   playTextIntro,
+  syncDeckIntroSounds,
 } from "./intro.js";
 import { initTextAppear } from "./text-appear.js";
 import {
@@ -631,7 +632,7 @@ function initDeck() {
     const dy = event.clientY - drag.startY;
     if (!drag.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
       drag.moved = true;
-      playFirstScrollFromGesture();
+      playFirstScrollFromGesture(event);
     }
 
     const params = getParams();
@@ -686,37 +687,38 @@ function initDeck() {
   });
 
   // Kill page scroll on mobile — cards move only via drag
-  window.addEventListener(
-    "wheel",
-    (event) => {
-      if (eventFrom(event.target, ".is-program-open")) return;
-      if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button")) return;
-      if (programLocked()) {
-        event.preventDefault();
-        holdFlyLock();
-        return;
-      }
-      if (isMobile()) {
-        event.preventDefault();
-        if (drag) return;
-        cancelSnap();
-        const unit = cardUnitPx(getParams());
-        const px = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
-        if (!px) return;
-        playFirstScrollFromGesture();
-        // Wheel down (deltaY > 0) is native scroll-down — same advance as finger-up.
-        const delta = px / unit;
-        const raw = dragProgress + delta;
-        dragProgress = applyRubber(raw);
-        dragInertia = 0;
-        return;
-      }
-      playFirstScrollFromGesture();
+  const seenWheel = new WeakSet();
+  const onDeckWheel = (event) => {
+    if (seenWheel.has(event)) return;
+    seenWheel.add(event);
+    if (eventFrom(event.target, ".is-program-open")) return;
+    if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button")) return;
+    if (programLocked()) {
       event.preventDefault();
-      root.scrollTop += event.deltaY;
-    },
-    { passive: false },
-  );
+      holdFlyLock();
+      return;
+    }
+    if (isMobile()) {
+      event.preventDefault();
+      if (drag) return;
+      cancelSnap();
+      const unit = cardUnitPx(getParams());
+      const px = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+      if (!px) return;
+      playFirstScrollFromGesture(event);
+      // Wheel down (deltaY > 0) is native scroll-down — same advance as finger-up.
+      const delta = px / unit;
+      const raw = dragProgress + delta;
+      dragProgress = applyRubber(raw);
+      dragInertia = 0;
+      return;
+    }
+    playFirstScrollFromGesture(event);
+    event.preventDefault();
+    root.scrollTop += event.deltaY;
+  };
+  window.addEventListener("wheel", onDeckWheel, { passive: false });
+  root.addEventListener("wheel", onDeckWheel, { passive: false, capture: true });
 
   window.addEventListener(
     "touchmove",
@@ -1088,6 +1090,7 @@ function initDeck() {
       deckIntro.arm(now);
       markIntroReady();
     }
+    if (deckIntro) syncDeckIntroSounds(deckIntro, count, now);
     if (deckIntro?.done(now)) {
       deckIntro = null;
       if (canPlayTextIntro()) playTextIntro();

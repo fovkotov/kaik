@@ -1,5 +1,6 @@
 import { isWikiAudioRunning, playWikiSound, warmWikiAudio } from "./lib/wiki-sounds.js";
 import { getActionVolume } from "./lib/sound-volume.js";
+import { getScrollRoot } from "./embed.js";
 
 const STEP_KEYS = new Set([
   "ArrowLeft",
@@ -85,8 +86,8 @@ export function initTickClicks() {
   const TAP_PX = 14;
   const capture = { capture: true, passive: true };
 
-  function unlock() {
-    warmWikiAudio();
+  function unlock(event) {
+    warmWikiAudio(event);
   }
 
   function playOnce() {
@@ -109,12 +110,25 @@ export function initTickClicks() {
 
   function onUnlockEvent(event) {
     if (!event.isTrusted) return;
-    unlock();
+    unlock(event);
   }
 
-  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
+  const scrollRoot = getScrollRoot();
+  for (const type of [
+    "pointerdown",
+    "pointerup",
+    "pointermove",
+    "mousemove",
+    "touchstart",
+    "touchend",
+    "touchmove",
+    "wheel",
+    "keydown",
+    "click",
+  ]) {
     document.addEventListener(type, onUnlockEvent, capture);
     window.addEventListener(type, onUnlockEvent, capture);
+    scrollRoot?.addEventListener(type, onUnlockEvent, capture);
   }
 
   document.addEventListener(
@@ -125,7 +139,7 @@ export function initTickClicks() {
       downX = event.clientX;
       downY = event.clientY;
       playedGesture = false;
-      unlock();
+      unlock(event);
       const target = clickTarget(event);
       if (blockedTarget(target)) return;
       if (!isImmediateControl(target)) return;
@@ -140,7 +154,7 @@ export function initTickClicks() {
 
   function onTapLift(event, x, y) {
     if (!event.isTrusted) return;
-    unlock();
+    unlock(event);
     if (playedGesture) return;
     if (Math.hypot((x ?? 0) - downX, (y ?? 0) - downY) > TAP_PX) return;
     const target = clickTarget(event);
@@ -175,7 +189,7 @@ export function initTickClicks() {
       if (performance.now() < skipClickUntil) return;
       const target = clickTarget(event);
       if (blockedTarget(target)) return;
-      unlock();
+      unlock(event);
       playOnce();
     },
     true,
@@ -192,7 +206,7 @@ export function initTickClicks() {
       if (target && isDisabledControl(target)) return;
       if (target?.closest?.("input[type='range']")) return;
       if (target?.closest?.("[data-sound-settings]")) return;
-      unlock();
+      unlock(event);
       playedGesture = false;
       playOnce();
     },

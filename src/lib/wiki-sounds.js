@@ -4,26 +4,28 @@
  * Copyright (c) 2026 Raphael Salaja
  */
 
-import { createUnlockedContext, unlockHtmlAudio } from "./gesture-audio.js";
+import { getScrollRoot } from "../embed.js";
+import {
+  bindGestureUnlock,
+  createUnlockedContext,
+  isDesktopChromiumGesture,
+  isDiscreteUnlock,
+  reviveAudioContext,
+} from "./gesture-audio.js";
 
 let audioContext = null;
 let masterGain = null;
 let keepAliveNode = null;
 let outputVolume = 1;
+let pendingPlays = [];
+let stateHooked = false;
 
 function createContext() {
   return createUnlockedContext();
 }
 
-function isClosed(ctx) {
-  return !ctx || ctx.state === "closed";
-}
-
-function isCold(ctx) {
-  return isClosed(ctx) || ctx.state === "suspended" || ctx.state === "interrupted";
-}
-
 function dropContext() {
+  stateHooked = false;
   try {
     keepAliveNode?.stop();
   } catch {
@@ -42,6 +44,35 @@ function dropContext() {
   }
 }
 
+function flushPending() {
+  if (!isWikiAudioRunning()) return;
+  const batch = pendingPlays.splice(0);
+  for (const play of batch) {
+    try {
+      play();
+    } catch {
+      // Web Audio failures are silent.
+    }
+  }
+}
+
+function hookState(ctx) {
+  if (!ctx || stateHooked) return;
+  stateHooked = true;
+  ctx.addEventListener("statechange", () => {
+    if (ctx.state === "closed") {
+      stateHooked = false;
+      return;
+    }
+    if (ctx.state === "running") flushPending();
+  });
+}
+
+function enqueuePlay(play) {
+  pendingPlays.push(play);
+  if (audioContext) hookState(audioContext);
+}
+
 function attachGraph(ctx) {
   masterGain = ctx.createGain();
   masterGain.gain.value = 1;
@@ -49,6 +80,7 @@ function attachGraph(ctx) {
   startKeepAlive(ctx);
   resumeNow(ctx);
   primeOutput(ctx);
+  hookState(ctx);
   return ctx;
 }
 
@@ -115,22 +147,30 @@ function getDestination() {
 }
 
 /**
- * Call from a user gesture. A context created at import stays suspended and
- * resume() can take ~500ms (worse in an iframe). Recreate while we have
- * activation so the new context starts running in this turn.
+ * Call from a user gesture. iOS recreates the context in the same turn as
+ * touchstart/touchend + silent HTMLAudio. Desktop resumes (or creates) on
+ * wheel/pointer/key — never HTMLAudio-first, so Chrome can start oscillators
+ * in that wheel turn.
  */
-export function warmWikiAudio() {
+export function warmWikiAudio(event) {
   if (reduced()) return;
   try {
-    unlockHtmlAudio();
-    if (audioContext && !isCold(audioContext)) {
-      resumeNow(audioContext);
-      primeOutput(audioContext);
-      return;
-    }
-    dropContext();
-    audioContext = createContext();
-    attachGraph(audioContext);
+    reviveAudioContext({
+      get: () => audioContext,
+      set: (ctx) => {
+        audioContext = ctx;
+      },
+      create: () => attachGraph(createContext()),
+      drop: dropContext,
+      resume: (ctx) => {
+        const wasCold = ctx.state !== "running";
+        resumeNow(ctx);
+        if (wasCold) primeOutput(ctx);
+        hookState(ctx);
+        flushPending();
+      },
+      event,
+    });
   } catch {
     // Web Audio failures are silent.
   }
@@ -138,6 +178,17 @@ export function warmWikiAudio() {
 
 export function isWikiAudioRunning() {
   return Boolean(audioContext && audioContext.state === "running");
+}
+
+export function whenWikiAudioRunning(fn) {
+  if (typeof fn !== "function") return false;
+  if (isWikiAudioRunning()) {
+    fn();
+    return true;
+  }
+  enqueuePlay(fn);
+  warmWikiAudio();
+  return false;
 }
 
 function reduced() {
@@ -462,6 +513,12 @@ function runSound(play, volume) {
   }
 }
 
+function canStartInThisTurn(event) {
+  if (!event?.isTrusted) return false;
+  if (isDiscreteUnlock(event.type) || isDesktopChromiumGesture(event.type)) return true;
+  return Boolean(navigator.userActivation?.isActive);
+}
+
 export function playWikiSound(name, options = {}) {
   if (reduced()) return;
   const play = sounds[name];
@@ -469,11 +526,28 @@ export function playWikiSound(name, options = {}) {
   const volume = options.volume ?? 1;
   if (volume <= 0) return;
   try {
-    // Recreate if still suspended so this gesture owns a running context.
-    warmWikiAudio();
-    // Same turn as the gesture — never await resume() / then() before oscillators.
+    // Recreate/resume in this turn — never await resume() before oscillators.
+    warmWikiAudio(options.event);
+    if (isWikiAudioRunning() || canStartInThisTurn(options.event)) {
+      runSound(play, volume);
+      return;
+    }
+    if (options.queue) {
+      enqueuePlay(() => runSound(play, volume));
+      return;
+    }
     runSound(play, volume);
   } catch {
     // Web Audio failures are silent, matching ui-sounds.js.
   }
 }
+
+bindGestureUnlock((event) => {
+  warmWikiAudio(event);
+}, [getScrollRoot()]);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") warmWikiAudio();
+});
+window.addEventListener("pageshow", () => warmWikiAudio());
+window.addEventListener("focus", () => warmWikiAudio());

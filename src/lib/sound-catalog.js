@@ -156,11 +156,11 @@ export function formatScrollPx(px) {
   return `${Math.round(clamp(Number(px) || SCROLL_PX_DEFAULT, SCROLL_PX_MIN, SCROLL_PX_MAX))}px`;
 }
 
-export function playSoundOption(opt, volume = getActionVolume()) {
+export function playSoundOption(opt, volume = getActionVolume(), extra = {}) {
   if (reduced()) return;
   if (!opt || volume <= 0) return;
   if (opt.kind === "wiki") {
-    playWikiSound(opt.name, { volume });
+    playWikiSound(opt.name, { volume, ...extra });
     return;
   }
   if (opt.kind === "deslop") {
@@ -176,22 +176,37 @@ export function playSoundOption(opt, volume = getActionVolume()) {
   }
 }
 
-export function playActionSound() {
+export function playActionSound(extra = {}) {
   if (reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
-  playSoundOption(findSoundOption(actionId) || findSoundOption(DEFAULT_ACTION_ID), volume);
+  playSoundOption(findSoundOption(actionId) || findSoundOption(DEFAULT_ACTION_ID), volume, extra);
 }
 
-export function playScrollSound() {
+export function playScrollSound(extra = {}) {
   if (reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
-  playSoundOption(findSoundOption(scrollId) || findSoundOption(DEFAULT_SCROLL_ID), volume);
+  playSoundOption(findSoundOption(scrollId) || findSoundOption(DEFAULT_SCROLL_ID), volume, extra);
+}
+
+export function playFlySound(extra = {}) {
+  if (reduced()) return;
+  const volume = getActionVolume();
+  if (volume <= 0) return;
+  playWikiSound("whoosh", { volume, queue: true, ...extra });
+}
+
+export function playArriveSound(extra = {}) {
+  if (reduced()) return;
+  const volume = getActionVolume();
+  if (volume <= 0) return;
+  playWikiSound("pop", { volume, queue: true, ...extra });
 }
 
 let uiContextWarmed = false;
 let firstScrollFromGesture = false;
+let storageAccessTried = false;
 
 function selectedKinds() {
   const action = findSoundOption(actionId) || findSoundOption(DEFAULT_ACTION_ID);
@@ -199,11 +214,12 @@ function selectedKinds() {
   return new Set([action?.kind, scroll?.kind]);
 }
 
-export function warmAllAudio() {
+export function warmAllAudio(event) {
+  // iOS only — desktop HTMLAudio.play() spends the wheel/keydown activation.
   unlockHtmlAudio();
   const kinds = selectedKinds();
-  if (kinds.has("wiki")) warmWikiAudio();
-  if (kinds.has("soundcn") || kinds.has("snd")) warmClipAudio();
+  if (kinds.has("wiki")) warmWikiAudio(event);
+  if (kinds.has("soundcn") || kinds.has("snd")) warmClipAudio(event);
   if (!kinds.has("deslop") || uiContextWarmed) return;
   uiContextWarmed = true;
   try {
@@ -213,12 +229,30 @@ export function warmAllAudio() {
   }
 }
 
+/** Resume now even if autoplay later rejects. Safe on load / fly start. */
+export function tryUnlockAllAudio(event) {
+  warmAllAudio(event);
+  if (!storageAccessTried && typeof document.hasStorageAccess === "function") {
+    storageAccessTried = true;
+    try {
+      void document.hasStorageAccess().then((ok) => {
+        if (ok) warmAllAudio();
+      });
+    } catch {
+      // Storage Access is a hint, not required for playback.
+    }
+  }
+  if (navigator.userActivation?.isActive || navigator.userActivation?.hasBeenActive) {
+    warmAllAudio(event);
+  }
+}
+
 /** First wheel/drag: resume + start pop in this same turn. Do not await. */
-export function playFirstScrollFromGesture() {
-  warmAllAudio();
+export function playFirstScrollFromGesture(event) {
+  warmAllAudio(event);
   if (reduced()) return false;
   if (firstScrollFromGesture) return false;
   firstScrollFromGesture = true;
-  playScrollSound();
+  playScrollSound({ event, queue: true });
   return true;
 }
