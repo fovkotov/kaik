@@ -3624,6 +3624,21 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   justify-content: center;
 }
 
+/* Desktop never shows the frosted overlay X, even when a card is focused. */
+html:not(.is-mobile) .fly-close,
+html:not(.is-mobile) .fly-close:not([hidden]) {
+  display: none;
+  pointer-events: none;
+}
+
+@media (min-width: 901px) {
+  .fly-close,
+  .fly-close:not([hidden]) {
+    display: none;
+    pointer-events: none;
+  }
+}
+
 .fly-close__icon {
   display: block;
   width: 24px;

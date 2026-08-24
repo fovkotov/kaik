@@ -1285,7 +1285,7 @@ export function initProgramModal() {
 
   function syncCloseBtn() {
     const expanded = phase === "open" || phase === "opening";
-    const showGlobal = expanded && Boolean(card);
+    const showGlobal = expanded && Boolean(card) && isMobile();
     if (closeBtn) {
       closeBtn.hidden = !showGlobal;
       if (showGlobal) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
@@ -1487,6 +1487,7 @@ export function initProgramModal() {
 
   const onFrameResize = () => {
     if (phase !== "open") return;
+    syncCloseBtn();
     if (card?.hasAttribute("data-expand-host")) {
       applyExpandPose(card, expandOpenPose(fromLocal || captureExpandFrom(card)), false);
       card.style.borderRadius = "0px";
