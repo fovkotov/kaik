@@ -5931,16 +5931,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 }
 
-@media (min-width: 901px) {
-  /* Keep the gear in the iframe viewport, above the deck (z-index 280 > --z-deck).
-     Top-right sits above the vertically centered cards so it stays clickable.
-     Hidden on mobile — the left lockup is not this layout there. */
-  .stage-settings {
-    display: block;
-    top: var(--frame-clip-top);
-    right: 8px;
-  }
-}
+/* Stage gear/panel mount only with ?tweaks (see stage-settings.js). */
 
 @media (max-width: 900px) {
   .stage-settings {

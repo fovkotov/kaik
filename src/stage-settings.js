@@ -1,5 +1,5 @@
 /**
- * Stage nudge panel (desktop + mobile gear). Desktop chrome sits in the left
+ * Stage nudge panel (dev-only gear via ?tweaks). Desktop chrome sits in the left
  * half of the frame (Figma 117:975), under cards. Cluster X/Y are optional
  * overrides on top of that geometry (default cluster -6/42, scale 1.15). Mobile: lift → footer, deck → stack.
  */
@@ -805,10 +805,26 @@ function wireFabDrag(fab, root, { onTap, onDragStart } = {}) {
   });
 }
 
+function devTweaksEnabled() {
+  try {
+    return new URLSearchParams(window.location.search).has("tweaks");
+  } catch {
+    return false;
+  }
+}
+
 export function initStageSettings() {
   document.querySelector("[data-stage-settings]")?.remove();
   loadSaved();
   applyStageNudge();
+
+  if (!devTweaksEnabled()) {
+    onFrameMetrics(() => applyStageNudge());
+    window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
+      applyStageNudge({ notify: true });
+    });
+    return;
+  }
 
   const root = document.createElement("aside");
   root.className = "stage-settings";

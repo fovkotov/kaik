@@ -692,7 +692,7 @@ export function initTweaks(onChange) {
       </button>
       <button type="button" class="tweaks__action" data-tweaks-reset>сброс</button>
       <button type="button" class="tweaks__action" data-tweaks-copy>копировать JSON</button>
-      <button type="button" class="tweaks__action" data-tweaks-hide title="Скрыть панель (T)">скрыть</button>
+      <button type="button" class="tweaks__action" data-tweaks-hide>скрыть</button>
     </div>
     <div class="tweaks__mode">
       <span class="tweaks__mode-label">править</span>
@@ -708,7 +708,7 @@ export function initTweaks(onChange) {
   reopen.type = "button";
   reopen.className = "tweaks-reopen is-hidden";
   reopen.dataset.tweaksReopen = "";
-  reopen.title = "Показать настройки полёта (T)";
+  reopen.hidden = true;
   reopen.textContent = "настройки";
   reopen.setAttribute("aria-hidden", "true");
 
@@ -960,18 +960,6 @@ export function initTweaks(onChange) {
       save();
       notify();
     });
-  });
-
-  window.addEventListener("keydown", (event) => {
-    if (event.key !== "t" && event.key !== "T") return;
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
-    const tag = event.target?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || event.target?.isContentEditable) {
-      return;
-    }
-    const nextHidden = !root.classList.contains("is-hidden");
-    setHidden(nextHidden);
-    if (!nextHidden) setCollapsed(false);
   });
 
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
