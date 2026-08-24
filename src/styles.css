@@ -1683,16 +1683,22 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
     --works-gap-section: calc(24.17 / 318 * var(--card-w));
     --works-gap-item: calc(9.064 / 318 * var(--card-w));
     --works-gap-tight: calc(6.043 / 318 * var(--card-w));
-    /* Title + a short beat. The old +107.41 was the top-dog reserve. */
-    --works-list-top: calc(var(--works-title-size) + 8px);
-    --works-title-size: calc(17.384 / 318 * var(--card-w));
+    /* Figma 141:688 / 2136141325 — 16/20 title, then 32px beat to first art.
+       Not the old +107.41 top-dog reserve and not the over-tight 8px. */
+    --works-title-size: 16px;
+    --works-list-top: calc(20px + 32px);
     --works-who-size: 10px;
   }
 
   .card.is-program-open[data-works-card] .works-card {
-    --works-title-size: calc(20.5 / 374 * var(--card-w));
+    --works-title-size: 16px;
     --works-pad-x: 16px;
-    --works-list-top: calc(var(--works-title-size) + 8px);
+    --works-list-top: calc(20px + 32px);
+  }
+
+  .works-card__title {
+    font-size: 16px;
+    line-height: 20px;
   }
 
   .works-card__who--stack {
@@ -3740,10 +3746,18 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     --program-open-w: var(--focus-open-w);
   }
 
-  /* Peek dog hangs below the face — drop the 109 top reserve (Figma 76:897 / 2136141330).
-     Closed stack + расхлоп share this. Title is 16/1.2 at 4px; card already pads 4px. */
+  /* Figma 141:136 / 2136141324 — title 16/19 at y=4; 1 week at y=67.
+     Card already pads 4px, so sheet-top 63px. Closed stack + расхлоп share this. */
   [data-program-card] {
-    --program-sheet-top: calc(16px * 1.2 + 8px);
+    --program-sheet-top: 63px;
+  }
+
+  /* Peek lower than Figma's 74px hang so names/schedule stay above the head. */
+  [data-program-card],
+  [data-works-card],
+  [data-history-card],
+  [data-work-card] {
+    --program-dog-hang: calc(120 / var(--program-face-w) * var(--card-w));
   }
 }
 
@@ -4205,9 +4219,10 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     display: block;
   }
 
-  /* Figma 76:864 — card titles 16px. Chrome stays 16px (82:126). */
+  /* Figma 76:864 / 2136141324 / 2136141325 — card titles 16px. Chrome stays 16px (82:126). */
   .program-card__title,
   .program-card__week-title,
+  .works-card__title,
   .progress-card__title,
   .exercises-card__title,
   .preview-card__title,
@@ -4219,6 +4234,14 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     font-size: 16px;
     line-height: 1.2;
     letter-spacing: 0;
+  }
+
+  .program-card__title {
+    line-height: 19px;
+  }
+
+  .works-card__title {
+    line-height: 20px;
   }
 
   /* Figma 76:864 — 4px top inset before the first text.
@@ -4815,7 +4838,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     right: 0;
     text-align: center;
     font-size: 16px;
-    line-height: 1.2;
+    line-height: 19px;
     letter-spacing: 0;
   }
 
@@ -4917,7 +4940,10 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     padding-top: 4px;
   }
 
-  .program-card__title,
+  .program-card__title {
+    line-height: 19px;
+  }
+
   .program-card__week-title {
     line-height: 19.2px;
   }
@@ -4925,6 +4951,11 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   .program-card__sheet {
     gap: 32px;
     padding: var(--program-sheet-top) 12px 12px;
+  }
+
+  /* Keep schedule rows above the peeking dog on the stacked face. */
+  .card[data-program-card]:not(.is-program-open) .program-card__sheet {
+    padding-bottom: calc(var(--program-dog-h) - var(--program-dog-hang) + 12px);
   }
 
   .program-card__week {
