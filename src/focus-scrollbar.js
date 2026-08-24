@@ -54,47 +54,82 @@ function visualScale(card) {
   return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
+function placeInnerHost(card, track) {
+  if (isDesktopRail()) {
+    if (track.parentElement !== document.body) document.body.appendChild(track);
+    return;
+  }
+  if (track.parentElement !== card) card.prepend(track);
+  track.style.top = "";
+  track.style.left = "";
+  track.style.width = "";
+  track.style.height = "";
+  track.style.removeProperty("--focus-rail");
+}
+
 function paintInner(card, track, thumb, m) {
   const thumbTop = thumbOffset(m);
-  const desktop = isDesktopRail();
-  if (desktop) {
-    const localW = RAIL_W / visualScale(card);
-    track.style.setProperty("--focus-rail", `${localW}px`);
-    thumb.style.width = `${localW}px`;
-  } else {
-    track.style.removeProperty("--focus-rail");
-    thumb.style.width = "";
-  }
+  track.style.removeProperty("--focus-rail");
+  thumb.style.width = "";
   thumb.style.height = `${m.thumbH}px`;
   thumb.style.transform = `translateY(${thumbTop}px)`;
   return thumbTop;
 }
 
-function snapOuter(card, thumb, out, outThumb, thumbTop) {
+/**
+ * Desktop split capsule in viewport px, from the card box — never from a
+ * clipped inner thumb. Both halves share this geometry in the same paint.
+ */
+function splitGeometry(card, m) {
+  const box = card.getBoundingClientRect();
+  const view = Math.max(m.view, 1);
+  const scale = box.height > 0 ? box.height / view : visualScale(card);
+  const inset = INSET * scale;
+  const thumbH = Math.min(
+    Math.max(MIN_THUMB * scale, m.thumbH * scale),
+    Math.max(0, box.height - inset * 2),
+  );
+  const maxThumb = Math.max(0, box.height - inset * 2 - thumbH);
+  const ratio = m.maxScroll > 0 ? Math.min(1, Math.max(0, m.top / m.maxScroll)) : 0;
+  return { box, thumbH, y: inset + ratio * maxThumb };
+}
+
+function paintSplit(card, track, thumb, out, outThumb, m) {
+  const { box, thumbH, y } = splitGeometry(card, m);
+  const innerW = RAIL_W;
+  const outerW = RAIL_W + SEAM_OVERLAP;
+  const railH = Math.max(0, box.height);
+  const innerLeft = box.right - innerW;
+  const outerLeft = box.right - SEAM_OVERLAP;
+
+  track.style.top = `${box.top}px`;
+  track.style.left = `${innerLeft}px`;
+  track.style.width = `${innerW}px`;
+  track.style.height = `${railH}px`;
+  track.style.setProperty("--focus-view", `${railH}px`);
+  track.style.setProperty("--focus-rail", `${innerW}px`);
+  thumb.style.width = `${innerW}px`;
+  thumb.style.height = `${thumbH}px`;
+  thumb.style.transform = `translateY(${y}px)`;
+
   if (!out || !outThumb) return;
-  const inner = thumb.getBoundingClientRect();
-  const scale = visualScale(card);
-  const railTop = inner.top - thumbTop * scale;
-  const viewLocal = parseFloat(getComputedStyle(thumb.parentElement).getPropertyValue("--focus-view")) || 0;
-  const railH = viewLocal > 0 ? viewLocal * scale : card.getBoundingClientRect().height;
-  const w = inner.width || RAIL_W;
-  const outerW = w + SEAM_OVERLAP;
-  out.style.top = `${railTop}px`;
-  /* Overlap the inner half so subpixel snap / card clip cannot open a 1px seam. */
-  out.style.left = `${inner.right - SEAM_OVERLAP}px`;
+  out.style.top = `${box.top}px`;
+  out.style.left = `${outerLeft}px`;
   out.style.width = `${outerW}px`;
   out.style.height = `${railH}px`;
   out.style.setProperty("--focus-view", `${railH}px`);
-  outThumb.style.height = `${inner.height}px`;
   outThumb.style.width = `${outerW}px`;
-  outThumb.style.transform = `translateY(${inner.top - railTop}px)`;
+  outThumb.style.height = `${thumbH}px`;
+  outThumb.style.transform = `translateY(${y}px)`;
 }
 
 function paintLocked(card, track, thumb, out, outThumb, m) {
-  const thumbTop = paintInner(card, track, thumb, m);
-  if (out && outThumb && isDesktopRail() && !out.hidden) {
-    snapOuter(card, thumb, out, outThumb, thumbTop);
+  placeInnerHost(card, track);
+  if (isDesktopRail() && out && outThumb && !out.hidden) {
+    paintSplit(card, track, thumb, out, outThumb, m);
+    return { ...m, thumbTop: thumbOffset(m) };
   }
+  const thumbTop = paintInner(card, track, thumb, m);
   return { ...m, thumbTop };
 }
 
@@ -158,7 +193,8 @@ function metrics(card) {
 }
 
 function thumbOffset(m) {
-  return INSET + (m.maxScroll > 0 ? (m.top / m.maxScroll) * m.maxThumb : 0);
+  const ratio = m.maxScroll > 0 ? Math.min(1, Math.max(0, m.top / m.maxScroll)) : 0;
+  return INSET + ratio * m.maxThumb;
 }
 
 function layout(card, track, thumb, out, outThumb) {
@@ -174,7 +210,6 @@ function layout(card, track, thumb, out, outThumb) {
   if (out) out.hidden = !showOut;
   if (!show) return { ...m, thumbTop: thumbOffset(m) };
 
-  // Sticky host stays in the visible scrollport; only the rail height is layout.
   track.style.setProperty("--focus-view", `${m.view}px`);
   return paintLocked(card, track, thumb, out, outThumb, m);
 }
@@ -229,6 +264,7 @@ export function mountFocusScrollbar(card) {
   const endWheel = () => {
     wheelTimer = 0;
     card.classList.remove("is-wheel-scrolling");
+    track.classList.remove("is-wheel-scrolling");
     out.classList.remove("is-wheel-scrolling");
   };
 
@@ -236,6 +272,7 @@ export function mountFocusScrollbar(card) {
     if (drag) return;
     if (!card.classList.contains("is-wheel-scrolling")) {
       card.classList.add("is-wheel-scrolling");
+      track.classList.add("is-wheel-scrolling");
       out.classList.add("is-wheel-scrolling");
     }
     window.clearTimeout(wheelTimer);
@@ -252,14 +289,27 @@ export function mountFocusScrollbar(card) {
   const scrollFromClientY = (clientY, grabOffset) => {
     const root = focusScrollRoot(card);
     const m = metrics(card);
-    const scale = visualScale(card);
-    const insetV = INSET * scale;
-    const inner = thumb.getBoundingClientRect();
-    const railTop = inner.top - last.thumbTop * scale;
-    const viewLocal = parseFloat(getComputedStyle(track).getPropertyValue("--focus-view")) || m.view;
-    const railH = viewLocal * scale;
-    const thumbH = inner.height || last.thumbH * scale;
-    const maxThumb = Math.max(0, railH - insetV * 2 - thumbH);
+    let railTop;
+    let insetV;
+    let thumbH;
+    let maxThumb;
+    if (isDesktopRail()) {
+      const g = splitGeometry(card, m);
+      const scale = g.box.height / Math.max(m.view, 1);
+      railTop = g.box.top;
+      insetV = INSET * scale;
+      thumbH = g.thumbH;
+      maxThumb = Math.max(0, g.box.height - insetV * 2 - thumbH);
+    } else {
+      const scale = visualScale(card);
+      insetV = INSET * scale;
+      const inner = thumb.getBoundingClientRect();
+      railTop = inner.top - last.thumbTop * scale;
+      thumbH = inner.height || last.thumbH * scale;
+      const viewLocal = parseFloat(getComputedStyle(track).getPropertyValue("--focus-view")) || m.view;
+      const railH = viewLocal * scale;
+      maxThumb = Math.max(0, railH - insetV * 2 - thumbH);
+    }
     const y = clientY - railTop - insetV - grabOffset;
     const ratio = maxThumb > 0 ? y / maxThumb : 0;
     root.scrollTop = Math.min(m.maxScroll, Math.max(0, ratio * m.maxScroll));
@@ -395,6 +445,7 @@ export function mountFocusScrollbar(card) {
     window.clearTimeout(wheelTimer);
     wheelTimer = 0;
     card.classList.remove("is-wheel-scrolling");
+    track.classList.remove("is-wheel-scrolling");
     out.classList.remove("is-wheel-scrolling");
     ro.disconnect();
     mo.disconnect();

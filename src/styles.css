@@ -3369,6 +3369,7 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 }
 
 .card.is-program-open.is-wheel-scrolling [data-focus-scroll-thumb],
+[data-focus-scroll].is-wheel-scrolling [data-focus-scroll-thumb],
 [data-focus-scroll-out].is-wheel-scrolling [data-focus-scroll-thumb] {
   pointer-events: none;
 }
@@ -3382,6 +3383,15 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 @media (min-width: 901px) {
   html:not(.is-mobile) [data-focus-scroll] {
     --focus-rail: 14px;
+    /* Same fixed layer as the outer half — card overflow must not clip one side. */
+    position: fixed;
+    float: none;
+    top: 0;
+    right: auto;
+    left: auto;
+    z-index: 44;
+    width: 14px;
+    height: 0;
   }
 
   html:not(.is-mobile) [data-focus-scroll-thumb] {
