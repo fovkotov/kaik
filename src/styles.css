@@ -1684,21 +1684,23 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
     --works-gap-item: calc(9.064 / 318 * var(--card-w));
     --works-gap-tight: calc(6.043 / 318 * var(--card-w));
     /* Figma 141:688 / 2136141325 — 16/20 title, then 32px beat to first art.
+       68px list-top = 20px title + 48px visual beat after transform.
        Not the old +107.41 top-dog reserve and not the over-tight 8px. */
     --works-title-size: 16px;
-    --works-list-top: calc(20px + 32px);
+    --works-list-top: calc(20px + 48px);
     --works-who-size: 10px;
   }
 
   .card.is-program-open[data-works-card] .works-card {
     --works-title-size: 16px;
     --works-pad-x: 16px;
-    --works-list-top: calc(20px + 32px);
+    --works-list-top: calc(20px + 48px);
   }
 
   .works-card__title {
     font-size: 16px;
     line-height: 20px;
+    white-space: nowrap;
   }
 
   .works-card__who--stack {
@@ -3746,18 +3748,26 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     --program-open-w: var(--focus-open-w);
   }
 
-  /* Figma 141:136 / 2136141324 — title 16/19 at y=4; 1 week at y=67.
-     Card already pads 4px, so sheet-top 63px. Closed stack + расхлоп share this. */
+  /* Figma 141:136 is 4px / week at 67; stacked face needs more air above the title. */
   [data-program-card] {
     --program-sheet-top: 63px;
   }
 
-  /* Peek lower than Figma's 74px hang so names/schedule stay above the head. */
+  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card__title,
+  .card.is-program-open[data-program-card] .program-card__title {
+    top: 16px;
+  }
+
+  /* Peek lower than Figma's 74px hang so names/schedule stay above the head.
+     Works is a taller transformed face, so it needs more hang than program. */
   [data-program-card],
-  [data-works-card],
   [data-history-card],
   [data-work-card] {
-    --program-dog-hang: calc(120 / var(--program-face-w) * var(--card-w));
+    --program-dog-hang: calc(128 / var(--program-face-w) * var(--card-w));
+  }
+
+  [data-works-card] {
+    --program-dog-hang: calc(144 / var(--program-face-w) * var(--card-w));
   }
 }
 
@@ -4833,7 +4843,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 
   .card.is-program-open[data-program-card] .program-card__title {
-    top: 4px;
+    top: 16px;
     left: 0;
     right: 0;
     text-align: center;
@@ -4937,7 +4947,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
 
   .program-card {
     gap: 0;
-    padding-top: 4px;
+    padding-top: 16px;
   }
 
   .program-card__title {
@@ -4955,7 +4965,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
 
   /* Keep schedule rows above the peeking dog on the stacked face. */
   .card[data-program-card]:not(.is-program-open) .program-card__sheet {
-    padding-bottom: calc(var(--program-dog-h) - var(--program-dog-hang) + 12px);
+    padding-bottom: calc(var(--program-dog-h) - var(--program-dog-hang) + 40px);
   }
 
   .program-card__week {
