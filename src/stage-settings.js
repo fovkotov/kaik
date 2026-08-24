@@ -41,7 +41,7 @@ export const DESKTOP_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 54,
-  deckY: 68,
+  deckY: 76,
   focusX: 0,
   focusY: 9,
   focusScale: 0.93,
