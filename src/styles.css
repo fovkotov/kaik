@@ -611,6 +611,14 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   pointer-events: none !important;
 }
 
+/* Landing loop twin is a mobile-only stack closer — not a desktop card. */
+@media (min-width: 901px) {
+  .card[data-deck-loop] {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+
 .dropcap {
   --dropcap-spin-out: 300ms;
   --dropcap-spin-in: 380ms;

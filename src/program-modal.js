@@ -1,7 +1,7 @@
 import { getViewportSize } from "./embed.js";
 import { t } from "./scriptik.js";
 import { getFocusNudge, getFocusScale } from "./stage-settings.js";
-import { applyDeckParams, isMobile } from "./tweaks.js";
+import { applyDeckParams, inDeckFlow, isMobile } from "./tweaks.js";
 import {
   fadeFocusScrollbar,
   focusScrollRoot,
@@ -1160,11 +1160,12 @@ export function initProgramModal() {
 
   function neighborCard(dir) {
     if (!card) return null;
-    const idx = cards.indexOf(card);
+    const flow = cards.filter((el) => inDeckFlow(el));
+    const idx = flow.indexOf(card);
     if (idx < 0) return null;
     const next = idx + dir;
-    if (next < 0 || next >= cards.length) return null;
-    return cards[next];
+    if (next < 0 || next >= flow.length) return null;
+    return flow[next];
   }
 
   function goToNeighbor(dir) {
@@ -1194,7 +1195,7 @@ export function initProgramModal() {
     for (const node of hits) {
       if (!(node instanceof Element)) continue;
       const host = node.closest(FOCUS_SEL);
-      if (!host || !cards.includes(host)) continue;
+      if (!host || !cards.includes(host) || !inDeckFlow(host)) continue;
       if (host.classList.contains("is-stack-inert")) continue;
       return host;
     }
@@ -1219,7 +1220,7 @@ export function initProgramModal() {
     const cardEl = mobile
       ? topVisibleCard(event.clientX, event.clientY)
       : fallbackEl || raw?.closest?.(FOCUS_SEL);
-    if (!cardEl || !cards.includes(cardEl)) return null;
+    if (!cardEl || !cards.includes(cardEl) || !inDeckFlow(cardEl)) return null;
     if (mobile && cardEl !== topVisibleCard(event.clientX, event.clientY)) return null;
     const workSheet = cardEl.hasAttribute("data-work-card") ? sheet : null;
     if (mobile && !canOpenOnMobile(cardEl, workSheet)) return null;

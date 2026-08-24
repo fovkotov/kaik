@@ -135,6 +135,11 @@ export function isMobile() {
   return window.matchMedia(MOBILE_MQ).matches;
 }
 
+/** Loop twin of the landing card — mobile stack only; not a desktop slot. */
+export function inDeckFlow(el) {
+  return Boolean(el) && (isMobile() || !el.hasAttribute?.("data-deck-loop"));
+}
+
 export function normalizeViewMode(value) {
   return value === "fly" ? "fly" : "fade";
 }
@@ -170,6 +175,7 @@ function readCardPoseExtents() {
   let maxBaseY = 0;
   let maxTip = 0;
   document.querySelectorAll("[data-card]").forEach((el) => {
+    if (!inDeckFlow(el)) return;
     maxRotate = Math.max(maxRotate, Math.abs(Number(el.dataset.baseRotate) || 0));
     maxBaseY = Math.max(maxBaseY, Math.abs(Number(el.dataset.baseY) || 0));
     maxTip = Math.max(maxTip, Math.abs(Number(el.dataset.tip) || 0));
@@ -315,6 +321,7 @@ export function applyDeckParams() {
     observePanelFooter();
   }
   document.querySelectorAll("[data-card]").forEach((card) => {
+    if (!inDeckFlow(card)) return;
     if (card.hasAttribute("data-fly-lock") || card.classList.contains("is-fly-pinned")) return;
     // Desktop is right-pinned. Mobile stays centered at deckLeftPct 50
     // (left % + margin-left: -card-w/2); only a mobile slider moves it.

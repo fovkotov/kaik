@@ -23,6 +23,7 @@ import {
   easeByName,
   getParams,
   initTweaks,
+  inDeckFlow,
   isMobile,
   normalizeViewMode,
 } from "./tweaks.js";
@@ -167,8 +168,6 @@ function initDeck() {
   const root = getScrollRoot();
   if (!cards.length || !track || !root || !deck) return null;
 
-  document.documentElement.style.setProperty("--card-count", String(cards.length));
-
   const state = cards.map((card, index) => ({
     el: card,
     index,
@@ -234,6 +233,40 @@ function initDeck() {
   const programLocked = () => Boolean(deck.querySelector("[data-fly-lock]"));
   const reduceMotionSpread = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  /** Desktop drops the landing loop twin so it is not a stack/fly slot. */
+  function liveItems() {
+    return isMobile() ? state : state.filter((item) => inDeckFlow(item.el));
+  }
+
+  function liveCount() {
+    return liveItems().length;
+  }
+
+  function syncDeckCount() {
+    document.documentElement.style.setProperty("--card-count", String(liveCount()));
+  }
+
+  function parkLoopTwin() {
+    const mobile = isMobile();
+    state.forEach((item) => {
+      if (!item.el.hasAttribute("data-deck-loop")) return;
+      item.el.toggleAttribute("hidden", !mobile);
+      item.el.classList.toggle("is-stack-inert", !mobile);
+      if (mobile) {
+        item.el.style.pointerEvents = "";
+        item.el.style.opacity = "";
+        return;
+      }
+      item.el.style.opacity = "0";
+      item.el.style.pointerEvents = "none";
+      item.el.style.zIndex = "";
+      item.el.style.transform = "";
+    });
+  }
+
+  syncDeckCount();
+  parkLoopTwin();
+
   function eventFrom(target, selector) {
     const el = target instanceof Element ? target : target?.parentElement;
     return el?.closest?.(selector) || null;
@@ -253,7 +286,7 @@ function initDeck() {
   }
 
   function deckMax() {
-    return Math.max(0, state.length - 1) * focusSpanOf();
+    return Math.max(0, liveCount() - 1) * focusSpanOf();
   }
 
   /** Fully gone cards (opacity 0) pass hits through; any still-visible card stays tappable. */
@@ -435,7 +468,7 @@ function initDeck() {
       const destT = 0;
       const destB = vh;
       const gap = 28;
-      return state.map((item, i) => {
+      return liveItems().map((item, i) => {
         if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
         const box = homeBox(item, i);
         const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
@@ -469,7 +502,7 @@ function initDeck() {
     const stepR = 0.55;
     const peek = 64;
 
-    return state.map((item, i) => {
+    return liveItems().map((item, i) => {
       if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
       const box = homeBox(item, i);
       const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
@@ -506,6 +539,7 @@ function initDeck() {
   state.forEach((item) => {
     item.el.addEventListener("pointerenter", (event) => {
       if (isMobile()) return;
+      if (!inDeckFlow(item.el)) return;
       if (programLocked() || hoverLiftBlocked(item.el)) return;
       if (event.buttons) return;
       hoveredIndex = item.index;
@@ -723,6 +757,8 @@ function initDeck() {
 
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
     applyDeckParams();
+    syncDeckCount();
+    parkLoopTwin();
     root.scrollTop = 0;
     if (isMobile()) {
       cancelDeckDrag();
@@ -737,7 +773,7 @@ function initDeck() {
   if (isMobile()) root.scrollTop = 0;
 
   let deckIntro = canPlayCardIntro()
-    ? createDeckIntro(state.length, { frontFirst: isMobile() })
+    ? createDeckIntro(liveCount(), { frontFirst: isMobile() })
     : null;
   if (!deckIntro) {
     markIntroReady();
@@ -748,8 +784,10 @@ function initDeck() {
   function render() {
     const params = getParams();
     const mobile = isMobile();
+    const items = liveItems();
+    const count = items.length;
     const { width: vw, height: vh } = getViewportSize();
-    const totalScroll = maxProgress(state.length, params);
+    const totalScroll = maxProgress(count, params);
     const fan = mobile ? params.fanScale ?? 0.3 : 1;
     const travel = mobile ? 0 : vw * params.travelMult;
 
@@ -824,13 +862,14 @@ function initDeck() {
     const p = clamp(totalScroll ? y / totalScroll : 0, 0, 1);
 
     const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
-    const focusOpenIndex = state.findIndex((entry) => entry.el.hasAttribute("data-focus-open"));
-    const lockedIndex = state.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
-    const openingIndex = state.findIndex(
+    const focusOpenIndex = items.findIndex((entry) => entry.el.hasAttribute("data-focus-open"));
+    const lockedIndex = items.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
+    const openingIndex = items.findIndex(
       (entry) =>
         entry.el.classList.contains("is-program-open") &&
         !entry.el.classList.contains("is-fly-pinned"),
     );
+    const programLive = items.findIndex((entry) => entry.el.hasAttribute("data-program-card"));
     const spreadAround =
       focusOpenIndex >= 0
         ? focusOpenIndex
@@ -838,11 +877,13 @@ function initDeck() {
           ? openingIndex
           : lockedIndex >= 0
             ? lockedIndex
-            : programIndex;
+            : programLive >= 0
+              ? programLive
+              : programIndex;
     if (wantSpread && spreadPlanFor !== spreadAround) {
-      const next = measureSpread(spreadAround >= 0 ? state[spreadAround].el : null, spreadAround);
+      const next = measureSpread(spreadAround >= 0 ? items[spreadAround].el : null, spreadAround);
       if (spreadPlan && spreadPlanFor >= 0 && spreadAround >= 0 && spreadPlanFor !== spreadAround) {
-        spreadPlanFrom = state.map((_, i) => mixedSpread(i));
+        spreadPlanFrom = items.map((_, i) => mixedSpread(i));
         spreadMix = 0;
         spreadMixT0 = performance.now();
       } else {
@@ -885,14 +926,14 @@ function initDeck() {
       pointerSmooth.y = lerp(pointerSmooth.y, inputY, params.pointerLerp);
     }
 
-    state.forEach((item, i) => {
-      const t = mobile ? 0 : cardFlightT(i, state.length, params, p);
+    items.forEach((item, i) => {
+      const t = mobile ? 0 : cardFlightT(i, count, params, p);
       const slot = mobileStackSlot(i, mobile ? Math.max(0, y) : y, focusSpanOf(params));
 
       if (item.el.hasAttribute("data-rest-lock")) {
         if (spread > 0.001) {
           if (mobile) {
-            item.el.style.zIndex = String(state.length - i);
+            item.el.style.zIndex = String(count - i);
             item.el.style.opacity = "1";
           }
           setStackHit(item.el, { mobile, inert: false });
@@ -909,7 +950,7 @@ function initDeck() {
         if (hoveredIndex === i) hoveredIndex = -1;
         item.hover = 0;
         if (mobile) {
-          item.el.style.zIndex = String(state.length - i);
+          item.el.style.zIndex = String(count - i);
           item.el.style.opacity = "1";
         }
         setStackHit(item.el, { mobile, inert: false });
@@ -1035,7 +1076,7 @@ function initDeck() {
       });
       if (mobile) {
         // Current/earlier cards stay in front while they fade, next sits underneath.
-        item.el.style.zIndex = String(state.length - i);
+        item.el.style.zIndex = String(count - i);
       } else if (!item.el.matches(FOCUS_SEL)) {
         item.el.style.zIndex = String(item.baseZ);
       } else {
@@ -1076,9 +1117,9 @@ function initDeck() {
     const params = getParams();
     const target = (() => {
       if (isMobile()) return clamp(index * focusSpanOf(params), 0, deckMax());
-      const y = scrollYForCard(index, state.length, params);
+      const y = scrollYForCard(index, liveCount(), params);
       const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
-      return clamp(y, 0, maxTop || maxProgress(state.length, params));
+      return clamp(y, 0, maxTop || maxProgress(liveCount(), params));
     })();
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
