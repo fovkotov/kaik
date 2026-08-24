@@ -1,7 +1,7 @@
 /**
  * Stage nudge panel (desktop + mobile gear). Desktop chrome sits in the left
  * half of the frame (Figma 117:975), under cards. Cluster X/Y are optional
- * overrides on top of that geometry (default cluster 14/42, scale 1.15). Mobile: lift → footer, deck → stack.
+ * overrides on top of that geometry (default cluster -6/42, scale 1.15). Mobile: lift → footer, deck → stack.
  */
 
 import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
@@ -47,7 +47,7 @@ export const DESKTOP_STAGE_DEFAULTS = {
   focusScale: 0.93,
   closeX: 0,
   closeY: 0,
-  clusterX: 14,
+  clusterX: -6,
   clusterY: 42,
   clusterScale: 1.15,
   clusterLinked: 1,
@@ -86,8 +86,8 @@ const PREV_DESKTOP_ALSO = {
   focusY: [0, -47],
   focusScale: [1],
   deckX: [0],
-  deckY: [44],
-  clusterX: [-65, -90],
+  deckY: [44, 68],
+  clusterX: [14, -65, -90],
   clusterY: [0],
   clusterScale: [1],
 };
