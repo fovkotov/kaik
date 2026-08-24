@@ -78,7 +78,7 @@
   --lang-nudge-x: 0px;
   --lang-nudge-y: 0px;
   --deck-nudge-x: 54px;
-  --deck-nudge-y: 76px;
+  --deck-nudge-y: 68px;
   --focus-nudge-x: 0px;
   --focus-nudge-y: 0px;
   --close-nudge-x: 0px;
@@ -190,7 +190,7 @@ body.catalog {
   }
 
   .deck {
-    top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 76px));
+    top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 68px));
   }
 
   body:not(.admin):not(.catalog) .viewport {
@@ -568,7 +568,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
    desktop media-query rule above, so a Y-less top made СТОПКА Y a no-op. */
 .deck {
   position: fixed;
-  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 76px));
+  top: calc(var(--frame-clip-top) - var(--stage-lift) + var(--deck-nudge-y, 68px));
   left: var(--deck-nudge-x, 0px);
   z-index: var(--z-deck);
   width: var(--frame-w);
