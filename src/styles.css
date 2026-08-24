@@ -3469,7 +3469,19 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Desktop last-item inset. Mobile dachshund hang is restored below. */
+  padding-bottom: 16px;
+}
+
+html.is-mobile .card.is-program-open[data-works-card] .works-card {
   padding-bottom: calc(40 * var(--u) + 72px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 901px) {
+  .card.is-program-open[data-works-card] .works-card,
+  html.is-mobile .card.is-program-open[data-works-card] .works-card {
+    padding-bottom: 16px;
+  }
 }
 
 .card.is-program-open[data-works-card] .works-card::-webkit-scrollbar {
@@ -3626,16 +3638,20 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 /* Desktop never shows the frosted overlay X, even when a card is focused. */
 html:not(.is-mobile) .fly-close,
-html:not(.is-mobile) .fly-close:not([hidden]) {
-  display: none;
-  pointer-events: none;
+html:not(.is-mobile) .fly-close:not([hidden]),
+html:not(.is-mobile) .article-close,
+html:not(.is-mobile) .article-close:not([hidden]) {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 @media (min-width: 901px) {
   .fly-close,
-  .fly-close:not([hidden]) {
-    display: none;
-    pointer-events: none;
+  .fly-close:not([hidden]),
+  .article-close,
+  .article-close:not([hidden]) {
+    display: none !important;
+    pointer-events: none !important;
   }
 }
 
@@ -4557,6 +4573,10 @@ html:not(.is-mobile) .fly-close:not([hidden]) {
     transition: padding-bottom var(--fly-ms, 0ms) var(--fly-ease, var(--ease-out));
   }
 
+  .card.is-program-open[data-works-card] .works-card {
+    padding-bottom: calc(40 * var(--u) + 72px + env(safe-area-inset-bottom, 0px));
+  }
+
   .card.is-program-open[data-body-grow] .history-card,
   .card.is-program-open[data-expand-settled] .history-card,
   .card.is-program-open[data-body-grow] .work-card,
@@ -4602,6 +4622,7 @@ html:not(.is-mobile) .fly-close:not([hidden]) {
   }
 
 
+  html.is-mobile .fly-close:not([hidden]),
   .fly-close:not([hidden]) {
     display: flex;
     align-items: center;
