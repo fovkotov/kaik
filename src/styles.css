@@ -3783,10 +3783,6 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     --program-sheet-top: 63px;
   }
 
-  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card {
-    padding-top: 40px;
-  }
-
   .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card__title {
     top: 40px;
   }
@@ -3795,12 +3791,10 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     top: 16px;
   }
 
-  /* Peek hang: more below the card = dog sits lower, schedule stays readable.
-     Program undoes the +20/+40 stacked raises. Works stays a taller face. */
-  [data-program-card] {
-    --program-dog-hang: calc(128 / var(--program-face-w) * var(--card-w));
-  }
-
+  /* Peek lower than Figma's 74px hang so names/schedule stay above the head.
+     Works is a taller transformed face, so it needs more hang than program.
+     −60px raises the stacked peek (less below the card). */
+  [data-program-card],
   [data-history-card],
   [data-work-card] {
     --program-dog-hang: calc(128 / var(--program-face-w) * var(--card-w) - 60px);
