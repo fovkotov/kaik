@@ -144,9 +144,8 @@ export function initTickClicks() {
       unlock(event);
       const target = clickTarget(event);
       if (blockedTarget(target)) return;
-      // Mouse: play on pointerdown. Click is skipped via skipClickUntil so
-      // the pop is not deferred to mouseup.
-      if (event.pointerType !== "mouse") return;
+      // First click unlocks AND plays here. Do not wait for click/mouseup —
+      // that was the lag after the first-click gate.
       playOnce(event);
     },
     true,

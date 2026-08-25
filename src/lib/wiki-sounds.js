@@ -11,8 +11,6 @@ import {
   createUnlockedContext,
   eventCanUnlockAudio,
   hasAudioGesture,
-  isDesktopChromiumGesture,
-  isDiscreteUnlock,
   reviveAudioContext,
 } from "./gesture-audio.js";
 
@@ -173,7 +171,13 @@ export function warmWikiAudio(event) {
     return;
   }
   if (!event) {
-    // Load / fly / rAF: never create a context. Do not resume a cold one.
+    // Load / fly / rAF: never create a context. After the first tap, still
+    // resume() so a later start() is not waiting on state === "running".
+    if (!hasAudioGesture()) return;
+    if (audioContext && audioContext.state !== "closed") {
+      resumeNow(audioContext);
+      stopGestureUnlockListeners();
+    }
     return;
   }
   try {
@@ -541,15 +545,6 @@ function runSound(play, volume) {
   }
 }
 
-function canStartInThisTurn(event) {
-  if (eventCanUnlockAudio(event)) return true;
-  if (!hasAudioGesture()) return false;
-  if (event?.isTrusted && (isDiscreteUnlock(event.type) || isDesktopChromiumGesture(event.type))) {
-    return true;
-  }
-  return Boolean(typeof navigator !== "undefined" && navigator.userActivation?.isActive);
-}
-
 export function playWikiSound(name, options = {}) {
   if (isMobile() || reduced()) return;
   const play = sounds[name];
@@ -558,11 +553,10 @@ export function playWikiSound(name, options = {}) {
   if (volume <= 0) return;
   if (!hasAudioGesture() && !eventCanUnlockAudio(options.event)) return;
   try {
-    // resume() sync, then start() in this turn — never await resume().
+    // resume() without await, then oscillator start() in this turn.
+    // Do not wait for state === "running" — that deferred pops to click/mouseup.
     warmWikiAudio(options.event);
-    if (isWikiAudioRunning() || canStartInThisTurn(options.event)) {
-      runSound(play, volume);
-    }
+    runSound(play, volume);
     // Do not enqueue. Dumping fly/arrive (or ticks) when the context later
     // becomes running played a backlog a gesture behind the UI.
   } catch {

@@ -34,6 +34,7 @@ export function initSoundSettings() {
   let acc = 0;
   let unlocked = false;
   const unlockUnbinds = [];
+  const seenWheel = new WeakSet();
 
   function markUnlocked() {
     if (unlocked) return;
@@ -47,10 +48,19 @@ export function initSoundSettings() {
     }
   }
 
+  function wheelDeltaPx(event, fallback) {
+    if (event && Number.isFinite(event.deltaY)) {
+      if (event.deltaMode === 1) return event.deltaY * 16;
+      if (event.deltaMode === 2) return event.deltaY * (window.innerHeight || 800);
+      return event.deltaY;
+    }
+    return fallback;
+  }
+
   function onScrollPx(delta, event) {
     if (reduced()) return;
     if (!hasAudioGesture() && !isWikiAudioRunning()) return;
-    const d = Math.abs(Number(delta));
+    const d = Math.abs(Number(wheelDeltaPx(event, delta)));
     if (!Number.isFinite(d) || d === 0) return;
     if (takeFirstScrollCredit()) {
       acc -= getScrollPx() || SCROLL_PX_DEFAULT;
@@ -58,12 +68,14 @@ export function initSoundSettings() {
     acc += d;
     const step = getScrollPx() || SCROLL_PX_DEFAULT;
     while (acc >= step) {
-      playScrollSound(event ? { event } : {});
+      playScrollSound({ event });
       acc -= step;
     }
   }
 
   noteDesktopDeckDeltaImpl = (deltaPx, event) => {
+    if (event && seenWheel.has(event)) return;
+    if (event) seenWheel.add(event);
     onScrollPx(deltaPx, event);
   };
 
@@ -72,8 +84,12 @@ export function initSoundSettings() {
     // Do not unlock on wheel — only tick after the first tap.
     if (!hasAudioGesture() && !isWikiAudioRunning()) return;
     if (reduced()) return;
+    if (seenWheel.has(event)) return;
+    seenWheel.add(event);
     if (!unlocked) markUnlocked();
+    // Tick from this wheel delta in the same turn — not a deferred scroll/rAF.
     playFirstScrollFromGesture(event);
+    onScrollPx(wheelDeltaPx(event, event.deltaY), event);
   }
 
   const scrollRoot = getScrollRoot();
