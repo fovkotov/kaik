@@ -3778,17 +3778,17 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     --program-open-w: var(--focus-open-w);
   }
 
-  /* Figma 141:136 is 4px / week at 67; stacked face needs more air above the title. */
+  /* Figma 141:136 — title 4px from the top edge (stacked + open). */
   [data-program-card] {
     --program-sheet-top: 63px;
   }
 
   .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card__title {
-    top: 40px;
+    top: 4px;
   }
 
   .card.is-program-open[data-program-card] .program-card__title {
-    top: 16px;
+    top: 4px;
   }
 
   /* Peek lower than Figma's 74px hang so names/schedule stay above the head.
@@ -4922,7 +4922,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 
   .card.is-program-open[data-program-card] .program-card__title {
-    top: 16px;
+    top: 4px;
     left: 0;
     right: 0;
     text-align: center;
