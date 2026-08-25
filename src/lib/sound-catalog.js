@@ -255,6 +255,7 @@ export function playFirstScrollFromGesture(event) {
   if (firstScrollFromGesture) return false;
   warmAllAudio(event);
   firstScrollFromGesture = true;
-  playScrollSound({ event, queue: true });
+  // Play in this gesture or skip — never queue for a late touchend dump.
+  playScrollSound({ event });
   return true;
 }

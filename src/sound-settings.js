@@ -23,9 +23,7 @@ export function initSoundSettings() {
   let acc = 0;
   let lastMobileYPx = null;
   let unlocked = false;
-  let lastMobileTickAt = 0;
   const unlockUnbinds = [];
-  const MOBILE_TICK_MS = 90;
 
   function markUnlocked() {
     if (unlocked) return;
@@ -48,24 +46,14 @@ export function initSoundSettings() {
     const d = Math.abs(Number(delta));
     if (!Number.isFinite(d) || d === 0) return;
     // Mobile: never resume/decode from a scroll sample — only tick if Web
-    // Audio is already running from a real tap, and time-throttle pops.
-    if (isMobile()) {
-      if (!isWikiAudioRunning()) return;
-      const now = performance.now();
-      if (now - lastMobileTickAt < MOBILE_TICK_MS) {
-        acc += d;
-        return;
-      }
-    }
+    // Audio is already running from a real tap. Distance-only (no time
+    // throttle) so pops land in the same gesture turn as the drag.
+    if (isMobile() && !isWikiAudioRunning()) return;
     acc += d;
     const step = getScrollPx() || SCROLL_PX_DEFAULT;
     while (acc >= step) {
       playScrollSound();
       acc -= step;
-      if (isMobile()) {
-        lastMobileTickAt = performance.now();
-        break;
-      }
     }
   }
 

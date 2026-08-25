@@ -198,7 +198,7 @@ function initDeck() {
 
   /** Virtual progress used on mobile instead of page scroll (card units: 0 = first on top) */
   let dragProgress = 0;
-  /** Last emitted card-unit progress; `null` until the first render sample. */
+  /** Last emitted card-unit progress; `null` until the first drag or render sample. */
   let lastDeckProgress = null;
   /** Desktop: last time scrollTop moved, so inertia/wheel bursts stay `active`. */
   let lastDesktopDeltaAt = 0;
@@ -350,6 +350,33 @@ function initDeck() {
     // Floor 0.05 (was 0.3) so the speed slider works below 0.3.
     const sens = Number(params.dragSensitivity);
     return (h * 1.36) / Math.max(0.05, Number.isFinite(sens) ? sens : 1);
+  }
+
+  /**
+   * Mobile ticks must fire in the same pointer/wheel turn as dragProgress,
+   * not in the coalesced rAF that paints the stack. rAF left pops a frame
+   * (or a whole touchend) behind the finger.
+   */
+  function emitMobileScrollPx() {
+    const params = getParams();
+    const y = freezeY != null ? freezeY : dragProgress;
+    const span = focusSpanOf(params);
+    const cardProgress = y / Math.max(0.25, span);
+    const prevProgress = lastDeckProgress;
+    lastDeckProgress = cardProgress;
+    const deckDelta = prevProgress == null ? 0 : cardProgress - prevProgress;
+    const yPx = y * cardUnitPx(params);
+    document.dispatchEvent(
+      new CustomEvent("kaik:deck-progress", {
+        detail: {
+          progress: cardProgress,
+          delta: deckDelta,
+          yPx,
+          active: true,
+          mobile: true,
+        },
+      }),
+    );
   }
 
   /**
@@ -689,6 +716,7 @@ function initDeck() {
     const unit = cardUnitPx(params);
     // Finger up (dy < 0) = native scroll-down: next card comes from the top.
     dragProgress = applyRubber(drag.startProgress + mobilePointerDelta(dy, unit));
+    emitMobileScrollPx();
 
     const now = performance.now();
     const dt = Math.max(1, now - drag.lastT);
@@ -763,6 +791,7 @@ function initDeck() {
       const raw = dragProgress + delta;
       dragProgress = applyRubber(raw);
       dragInertia = 0;
+      emitMobileScrollPx();
       scheduleRender();
       return;
     }

@@ -610,9 +610,9 @@ export function playWikiSound(name, options = {}) {
       runSound(play, volume);
       return;
     }
-    // Queue until a wheel/key/tap actually starts the context. Never create a
-    // suspended context from load or fly-in.
-    enqueuePlay(() => runSound(play, volume));
+    // Fly/arrive may wait until warm. Scroll ticks must not — flushing them
+    // on touchend made mobile pops lag a whole gesture behind the finger.
+    if (options.queue) enqueuePlay(() => runSound(play, volume));
   } catch {
     // Web Audio failures are silent, matching ui-sounds.js.
   }
