@@ -675,6 +675,15 @@ function formatValue(key, value) {
   return Number.isInteger(n) || Math.abs(n) >= 10 ? String(Math.round(n * 100) / 100) : n.toFixed(2);
 }
 
+/** Dev board / gear: only with ?tweaks on the page URL. */
+export function devTweaksEnabled() {
+  try {
+    return new URLSearchParams(window.location.search).has("tweaks");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Load saved params, apply them, and mount the live panel.
  * @param {(params: typeof DESKTOP) => void} [onChange]
@@ -683,6 +692,8 @@ export function initTweaks(onChange) {
   loadSaved();
   applyDeckParams();
   onFrameMetrics(() => applyDeckParams());
+
+  if (!devTweaksEnabled()) return getParams();
 
   const root = document.createElement("aside");
   root.className = "tweaks";
@@ -891,14 +902,7 @@ export function initTweaks(onChange) {
   const ui = readUiState();
   if (ui.collapsed === true || (ui.collapsed == null && isMobile())) setCollapsed(true);
   setStripCollapsed(true);
-  const wantOpen = (() => {
-    try {
-      return new URLSearchParams(window.location.search).has("tweaks");
-    } catch {
-      return false;
-    }
-  })();
-  setHidden(!wantOpen);
+  setHidden(false);
 
   root.addEventListener("pointerdown", (event) => event.stopPropagation());
   reopen.addEventListener("pointerdown", (event) => event.stopPropagation());

@@ -8,6 +8,7 @@ import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
 import { t } from "./scriptik.js";
 import {
   CARD_SIZE,
+  devTweaksEnabled,
   getCardSize,
   isMobile,
   MOBILE_CARD_SIZE,
@@ -815,14 +816,6 @@ function wireFabDrag(fab, root, { onTap, onDragStart } = {}) {
     event.preventDefault();
     event.stopPropagation();
   });
-}
-
-function devTweaksEnabled() {
-  try {
-    return new URLSearchParams(window.location.search).has("tweaks");
-  } catch {
-    return false;
-  }
 }
 
 let stageFrameBound = false;

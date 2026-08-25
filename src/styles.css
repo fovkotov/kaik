@@ -5376,7 +5376,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 }
 
-/* —— Live flight tweaks panel —— */
+/* —— Live flight tweaks panel (mounted only with ?tweaks) —— */
 .tweaks {
   position: fixed;
   top: 10px;
