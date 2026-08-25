@@ -3507,22 +3507,23 @@ html.is-mobile .card.is-program-open[data-works-card] .works-card {
   html.is-mobile .card.is-program-open[data-works-card] .works-card {
     padding-bottom: 16px;
   }
+
+  /* Desktop open only — mobile peek stays bottom-anchored through close. */
+  .card.is-program-open[data-program-card] .program-card > .card-illust--program {
+    position: absolute;
+    top: var(--program-dog-y);
+    left: 0;
+    width: 100%;
+    height: var(--program-dog-h);
+    z-index: 5;
+    pointer-events: auto;
+  }
 }
 
 .card.is-program-open[data-works-card] .works-card::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
-}
-
-.card.is-program-open[data-program-card] .program-card > .card-illust--program {
-  position: absolute;
-  top: var(--program-dog-y);
-  left: 0;
-  width: 100%;
-  height: var(--program-dog-h);
-  z-index: 5;
-  pointer-events: auto;
 }
 
 .card.is-program-open[data-program-card] .program-card__title {
@@ -3782,15 +3783,24 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     --program-sheet-top: 63px;
   }
 
-  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card__title,
+  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card {
+    padding-top: 40px;
+  }
+
+  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card__title {
+    top: 40px;
+  }
+
   .card.is-program-open[data-program-card] .program-card__title {
     top: 16px;
   }
 
-  /* Peek lower than Figma's 74px hang so names/schedule stay above the head.
-     Works is a taller transformed face, so it needs more hang than program.
-     −60px raises the stacked peek (less below the card). */
-  [data-program-card],
+  /* Peek hang: more below the card = dog sits lower, schedule stays readable.
+     Program undoes the +20/+40 stacked raises. Works stays a taller face. */
+  [data-program-card] {
+    --program-dog-hang: calc(128 / var(--program-face-w) * var(--card-w));
+  }
+
   [data-history-card],
   [data-work-card] {
     --program-dog-hang: calc(128 / var(--program-face-w) * var(--card-w) - 60px);
@@ -4737,11 +4747,18 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     user-select: none;
   }
 
-  /* Figma 141:136 — peek dog stands on the bottom edge, overlapping from behind. */
+  /* Figma 141:136 — peek dog stands on the bottom edge, overlapping from behind.
+     Keep this through is-program-open / expand-closing so close never top-pins. */
   .card[data-program-card] .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open[data-expand-host] .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open[data-expand-closing] .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open.is-program-scroll .program-card > .card-illust--program,
   .card[data-works-card] > .card-illust--program,
   .card[data-history-card] > .card-illust--program,
-  .card-illust--program[data-fly-illust-close] {
+  .card-illust--program[data-fly-illust-close],
+  .card.is-program-open .card-illust--program[data-fly-illust-close],
+  .card.is-program-open[data-expand-closing] .card-illust--program[data-fly-illust-close] {
     position: absolute;
     inset: auto;
     top: auto;
@@ -4867,13 +4884,6 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     touch-action: auto;
   }
 
-  /* Closing: clip the article on the inner face, let the dog hang outside. */
-  .card.is-program-open[data-expand-host][data-expand-closing],
-  .card.is-program-open[data-expand-host][data-expand-closing][data-program-card],
-  .card.is-program-open[data-expand-host][data-expand-closing][data-works-card] {
-    overflow: visible;
-  }
-
   .card.is-program-open[data-program-card][data-expand-host] .program-card,
   .card.is-program-open[data-works-card][data-expand-host] .works-card,
   .card.is-program-open[data-expand-settled][data-program-card] .program-card,
@@ -4890,6 +4900,17 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     touch-action: pan-y;
     scrollbar-width: none;
     -ms-overflow-style: none;
+  }
+
+  /* Closing: clip the article on the inner face, let the dog hang outside. */
+  .card.is-program-open[data-expand-host][data-expand-closing],
+  .card.is-program-open[data-expand-host][data-expand-closing][data-program-card],
+  .card.is-program-open[data-expand-host][data-expand-closing][data-works-card] {
+    overflow: visible;
+  }
+
+  .card.is-program-open[data-expand-host][data-expand-closing][data-program-card] .program-card {
+    overflow: visible;
   }
 
   .card.is-program-open[data-program-card][data-expand-host] .program-card::-webkit-scrollbar,
