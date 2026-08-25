@@ -5712,9 +5712,9 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 }
 
-/* —— Stage position settings (gear on desktop + mobile) —— */
+/* —— Stage position settings (desktop: ?tweaks only; mobile: compact Y + scale) —— */
 .stage-settings {
-  display: none;
+  display: block;
   position: fixed;
   top: calc(var(--frame-clip-top) + env(safe-area-inset-top, 0px));
   right: 8px;
@@ -5877,8 +5877,22 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.stage-settings__pinned[hidden] {
+.stage-settings__pinned[hidden],
+.stage-settings__body[hidden] {
   display: none;
+}
+
+.stage-settings.is-compact .stage-settings__copy {
+  display: none;
+}
+
+.stage-settings.is-compact .stage-settings__body[hidden] {
+  display: none;
+  padding: 0;
+}
+
+.stage-settings.is-compact .stage-settings__pinned {
+  border-bottom: 0;
 }
 
 .stage-settings__body {
@@ -6005,7 +6019,14 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 }
 
-/* Stage gear/panel mount only with ?tweaks (see stage-settings.js). */
+/* Desktop gear mounts only with ?tweaks. Mobile always shows compact stack Y + scale. */
+
+@media (min-width: 901px) {
+  .stage-settings {
+    top: var(--frame-clip-top);
+    right: 8px;
+  }
+}
 
 @media (max-width: 900px) {
   .stage-settings {

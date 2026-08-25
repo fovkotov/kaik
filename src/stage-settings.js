@@ -1,7 +1,7 @@
 /**
- * Stage nudge panel (dev-only gear via ?tweaks). Desktop chrome sits in the left
- * half of the frame (Figma 117:975), under cards. Cluster X/Y are optional
- * overrides on top of that geometry (default cluster -6/42, scale 1.15). Mobile: lift → footer, deck → stack.
+ * Stage nudge panel. Desktop gear is ?tweaks-only. Mobile always mounts a compact
+ * stack Y + scale pair (deckY / cardSize). Full board stays behind ?tweaks.
+ * Desktop chrome sits in the left half of the frame (Figma 117:975), under cards.
  */
 
 import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
@@ -813,21 +813,41 @@ function devTweaksEnabled() {
   }
 }
 
+const COMPACT_STACK_KEYS = new Set(["deckY", "cardSize"]);
+
+function compactMobileUi() {
+  return isMobile() && !devTweaksEnabled();
+}
+
+let stageFrameBound = false;
+
 export function initStageSettings() {
   document.querySelector("[data-stage-settings]")?.remove();
   loadSaved();
   applyStageNudge();
 
-  if (!devTweaksEnabled()) {
-    onFrameMetrics(() => applyStageNudge());
+  if (!stageFrameBound) {
+    stageFrameBound = true;
+    onFrameMetrics(() => {
+      applyStageNudge();
+      const live = document.querySelector("[data-stage-settings]");
+      if (!live) return;
+      const liveFab = live.querySelector("[data-stage-open]");
+      const livePanel = live.querySelector("[data-stage-panel]");
+      if (liveFab) applyFabPos(live, liveFab);
+      if (liveFab && livePanel) layoutPanel(live, liveFab, livePanel);
+    });
     window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
       applyStageNudge({ notify: true });
+      initStageSettings();
     });
-    return;
   }
 
+  if (!devTweaksEnabled() && !isMobile()) return;
+
+  const compact = compactMobileUi();
   const root = document.createElement("aside");
-  root.className = "stage-settings";
+  root.className = compact ? "stage-settings is-compact" : "stage-settings";
   root.dataset.stageSettings = "";
   root.dataset.tweaks = "";
   root.innerHTML = `
@@ -864,6 +884,7 @@ export function initStageSettings() {
   const body = root.querySelector("[data-stage-body]");
   const copyBtn = root.querySelector("[data-stage-copy]");
   let copiedTimer = 0;
+  if (compact) copyBtn.hidden = true;
 
   function pinnedGroups() {
     return isMobile() ? MOBILE_PINNED_GROUPS : DESKTOP_PINNED_GROUPS;
@@ -877,6 +898,7 @@ export function initStageSettings() {
     const mobileView = isMobile();
     const linked = !mobileView && clusterLinked();
     return GROUPS.filter((group) => {
+      if (compactMobileUi()) return group.titleKey === "stage.group.deck";
       if (group.desktopOnly && mobileView) return false;
       if (group.mobileOnly && !mobileView) return false;
       if (mobileView && (group.titleKey === "stage.group.lockup" || group.titleKey === "stage.group.nav")) {
@@ -904,6 +926,7 @@ export function initStageSettings() {
     section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${titleKey}">${t(titleKey)}</h3>`;
     const linked = clusterLinked();
     group.items.forEach((field) => {
+      if (compactMobileUi() && !COMPACT_STACK_KEYS.has(field.key)) return;
       if (field.mobileOnly && !isMobile()) return;
       if (field.desktopOnly && isMobile()) return;
       if (field.linkedOnly && !linked) return;
@@ -957,6 +980,7 @@ export function initStageSettings() {
     pinned.append(pinFrag);
     body.append(bodyFrag);
     pinned.hidden = !pinned.childElementCount;
+    body.hidden = !body.childElementCount;
   }
 
   function setOpen(open) {
@@ -1009,12 +1033,6 @@ export function initStageSettings() {
   document.body.append(root);
   setOpen(false);
   applyFabPos(root, fab);
-
-  onFrameMetrics(() => {
-    applyStageNudge();
-    applyFabPos(root, fab);
-    layoutPanel(root, fab, panel);
-  });
 
   const stopDeck = (event) => event.stopPropagation();
   root.addEventListener("pointerdown", stopDeck);
@@ -1071,11 +1089,4 @@ export function initStageSettings() {
     },
     true,
   );
-
-  window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
-    applyStageNudge({ notify: true });
-    applyFabPos(root, fab);
-    buildFields();
-    layoutPanel(root, fab, panel);
-  });
 }
