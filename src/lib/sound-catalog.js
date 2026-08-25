@@ -195,14 +195,14 @@ export function playFlySound(extra = {}) {
   if (isMobile() || reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
-  playWikiSound("whoosh", { volume, queue: true, ...extra });
+  playWikiSound("whoosh", { volume, ...extra });
 }
 
 export function playArriveSound(extra = {}) {
   if (isMobile() || reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
-  playWikiSound("pop", { volume, queue: true, ...extra });
+  playWikiSound("pop", { volume, ...extra });
 }
 
 let uiContextWarmed = false;

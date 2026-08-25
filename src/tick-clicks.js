@@ -63,19 +63,11 @@ function reduced() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function playAction() {
+function playAction(event) {
   if (reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
-  playWikiSound("pop", { volume });
-}
-
-function isImmediateControl(target) {
-  return Boolean(
-    target.closest?.(
-      "a, button, [role='button'], [role='link'], [role='tab'], [role='menuitem'], [role='option'], summary, label, input, select, [data-work-nav], [data-program-nav], [data-fly-close], [data-article-close], [data-open-program], [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings]",
-    ),
-  );
+  playWikiSound("pop", { volume, event });
 }
 
 export function initTickClicks() {
@@ -110,12 +102,11 @@ export function initTickClicks() {
     if (isWikiAudioRunning()) stopUnlockListeners();
   }
 
-  function playOnce() {
+  function playOnce(event) {
     if (playedGesture) return false;
-    playAction();
-    // iOS: pointerdown often starts oscillators on a still-suspended context.
-    // Don't consume the later touchend/click that actually unlocks.
-    if (!isWikiAudioRunning()) return false;
+    playAction(event);
+    // Desktop: consume this pointerdown/key even if resume() has not settled.
+    // Waiting for `running` deferred the pop to click/mouseup.
     playedGesture = true;
     skipClickUntil = performance.now() + 700;
     return true;
@@ -149,12 +140,10 @@ export function initTickClicks() {
       unlock(event);
       const target = clickTarget(event);
       if (blockedTarget(target)) return;
-      if (!isImmediateControl(target)) return;
-      // Mouse: play here for snappy desktop clicks. Touch/pen: wait for
-      // touchend — that is the WebKit user-activation event. Empty
-      // pointerType on iOS must not play-and-skip the later unlock.
+      // Mouse: play on pointerdown. Click is skipped via skipClickUntil so
+      // the pop is not deferred to mouseup.
       if (event.pointerType !== "mouse") return;
-      playOnce();
+      playOnce(event);
     },
     true,
   );
@@ -166,7 +155,7 @@ export function initTickClicks() {
     if (Math.hypot((x ?? 0) - downX, (y ?? 0) - downY) > TAP_PX) return;
     const target = clickTarget(event);
     if (blockedTarget(target)) return;
-    playOnce();
+    playOnce(event);
   }
 
   document.addEventListener(
@@ -197,7 +186,7 @@ export function initTickClicks() {
       const target = clickTarget(event);
       if (blockedTarget(target)) return;
       unlock(event);
-      playOnce();
+      playOnce(event);
     },
     true,
   );
@@ -215,7 +204,7 @@ export function initTickClicks() {
       if (target?.closest?.("[data-sound-settings]")) return;
       unlock(event);
       playedGesture = false;
-      playOnce();
+      playOnce(event);
     },
     true,
   );

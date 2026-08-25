@@ -14,6 +14,13 @@ function reduced() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** Desktop deck wheel: ticks in that turn. No-op until init (and on mobile). */
+let noteDesktopDeckDeltaImpl = () => {};
+
+export function noteDesktopDeckDelta(deltaPx, event) {
+  noteDesktopDeckDeltaImpl(deltaPx, event);
+}
+
 export function initSoundSettings() {
   document.querySelector("[data-sound-settings]")?.remove();
   document.querySelectorAll(".sound-settings__fab, [data-sound-fab], [data-sound-open]").forEach((el) => {
@@ -43,17 +50,21 @@ export function initSoundSettings() {
     acc -= getScrollPx() || SCROLL_PX_DEFAULT;
   }
 
-  function onScrollPx(delta) {
+  function onScrollPx(delta, event) {
     if (reduced()) return;
     const d = Math.abs(Number(delta));
     if (!Number.isFinite(d) || d === 0) return;
     acc += d;
     const step = getScrollPx() || SCROLL_PX_DEFAULT;
     while (acc >= step) {
-      playScrollSound();
+      playScrollSound(event ? { event } : {});
       acc -= step;
     }
   }
+
+  noteDesktopDeckDeltaImpl = (deltaPx, event) => {
+    onScrollPx(deltaPx, event);
+  };
 
   function onWheelGesture(event) {
     if (!event.isTrusted) return;
@@ -67,7 +78,7 @@ export function initSoundSettings() {
     } else if (!unlocked) {
       warmAllAudio(event);
     }
-    if (isWikiAudioRunning()) markUnlocked();
+    markUnlocked();
   }
 
   const scrollRoot = getScrollRoot();
@@ -89,15 +100,4 @@ export function initSoundSettings() {
     unlockUnbinds.push(() => document.removeEventListener(type, onUnlock, capture));
   }
 
-  let lastScrollTop = scrollRoot?.scrollTop || 0;
-  scrollRoot?.addEventListener(
-    "scroll",
-    () => {
-      const top = scrollRoot.scrollTop || 0;
-      const delta = top - lastScrollTop;
-      lastScrollTop = top;
-      onScrollPx(delta);
-    },
-    { passive: true },
-  );
 }

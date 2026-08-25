@@ -106,10 +106,10 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
   };
 }
 
-/** whoosh as each card starts, pop as it lands. Queued if AudioContext is still cold. */
+/** whoosh as each card starts, pop as it lands. Skip if AudioContext is still cold. */
 export function syncDeckIntroSounds(intro, count, now) {
   if (isMobile() || !intro?.armed) return;
-  // Sounds queue until warm — do not thrash unlock every rAF frame.
+  // Play only if already running — do not thrash unlock every rAF frame.
   const n = Math.max(0, Number(count) || 0);
   for (let i = 0; i < n; i += 1) {
     const p = intro.progress(i, now);

@@ -1,7 +1,7 @@
 import { getScrollRoot, getViewportSize, initEmbed, onFrameMetrics } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
 import { initTickClicks } from "./tick-clicks.js";
-import { initSoundSettings } from "./sound-settings.js";
+import { initSoundSettings, noteDesktopDeckDelta } from "./sound-settings.js";
 import { initStageSettings } from "./stage-settings.js";
 import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
 import { initImgSliders } from "./img-slider.js";
@@ -767,6 +767,8 @@ function initDeck() {
     playFirstScrollFromGesture(event);
     event.preventDefault();
     root.scrollTop += event.deltaY;
+    // Ticks in this wheel turn — not the deferred `scroll` event / rAF paint.
+    noteDesktopDeckDelta(event.deltaY, event);
     scheduleRender();
   };
   window.addEventListener("wheel", onDeckWheel, { passive: false });

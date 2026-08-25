@@ -19,7 +19,6 @@ let audioContext = null;
 let masterGain = null;
 let keepAliveNode = null;
 let outputVolume = 1;
-let pendingPlays = [];
 let stateHooked = false;
 let unbindGestureUnlock = null;
 
@@ -48,20 +47,6 @@ function dropContext() {
   }
 }
 
-function flushPending({ allowSuspended = false } = {}) {
-  const ctx = audioContext;
-  if (!ctx || ctx.state === "closed") return;
-  if (!allowSuspended && ctx.state !== "running") return;
-  const batch = pendingPlays.splice(0);
-  for (const play of batch) {
-    try {
-      play();
-    } catch {
-      // Web Audio failures are silent.
-    }
-  }
-}
-
 function hookState(ctx) {
   if (!ctx || stateHooked) return;
   stateHooked = true;
@@ -70,16 +55,8 @@ function hookState(ctx) {
       stateHooked = false;
       return;
     }
-    if (ctx.state === "running") {
-      flushPending();
-      stopGestureUnlockListeners();
-    }
+    if (ctx.state === "running") stopGestureUnlockListeners();
   });
-}
-
-function enqueuePlay(play) {
-  pendingPlays.push(play);
-  if (audioContext) hookState(audioContext);
 }
 
 function attachGraph(ctx) {
@@ -211,9 +188,6 @@ export function warmWikiAudio(event) {
         resumeNow(ctx);
         if (wasCold) primeOutput(ctx);
         hookState(ctx);
-        // Same-turn start() is what unblocks Chromium wheel/key, even if
-        // state is still "suspended" until the resume promise settles.
-        flushPending({ allowSuspended: true });
       },
       event,
     });
@@ -232,22 +206,17 @@ export function probeWikiAutoplay() {
   if (isMobile() || reduced() || isAppleTouchWebKit()) return;
   if (isWikiAudioRunning()) {
     stopGestureUnlockListeners();
-    flushPending();
     return;
   }
   if (audioContext) {
     resumeNow(audioContext);
-    if (isWikiAudioRunning()) {
-      stopGestureUnlockListeners();
-      flushPending();
-    }
+    if (isWikiAudioRunning()) stopGestureUnlockListeners();
     return;
   }
   try {
     const ctx = createContext();
     if (ctx.state === "running") {
       audioContext = attachGraph(ctx);
-      flushPending();
       stopGestureUnlockListeners();
       return;
     }
@@ -264,13 +233,9 @@ export function isWikiAudioRunning() {
 export function whenWikiAudioRunning(fn) {
   if (isMobile()) return false;
   if (typeof fn !== "function") return false;
-  if (isWikiAudioRunning()) {
-    fn();
-    return true;
-  }
-  enqueuePlay(fn);
-  warmWikiAudio();
-  return false;
+  if (!isWikiAudioRunning()) return false;
+  fn();
+  return true;
 }
 
 function reduced() {
@@ -596,9 +561,10 @@ function runSound(play, volume) {
 }
 
 function canStartInThisTurn(event) {
-  if (!event?.isTrusted) return false;
-  if (isDiscreteUnlock(event.type) || isDesktopChromiumGesture(event.type)) return true;
-  return Boolean(navigator.userActivation?.isActive);
+  if (event?.isTrusted && (isDiscreteUnlock(event.type) || isDesktopChromiumGesture(event.type))) {
+    return true;
+  }
+  return Boolean(typeof navigator !== "undefined" && navigator.userActivation?.isActive);
 }
 
 export function playWikiSound(name, options = {}) {
@@ -612,11 +578,9 @@ export function playWikiSound(name, options = {}) {
     warmWikiAudio(options.event);
     if (isWikiAudioRunning() || canStartInThisTurn(options.event)) {
       runSound(play, volume);
-      return;
     }
-    // Fly/arrive may wait until warm. Scroll ticks must not — flushing them
-    // on touchend made mobile pops lag a whole gesture behind the finger.
-    if (options.queue) enqueuePlay(() => runSound(play, volume));
+    // Do not enqueue. Dumping fly/arrive (or ticks) when the context later
+    // becomes running played a backlog a gesture behind the UI.
   } catch {
     // Web Audio failures are silent, matching ui-sounds.js.
   }
