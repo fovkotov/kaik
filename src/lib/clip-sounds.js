@@ -1,4 +1,5 @@
 import { publicUrl } from "../public-url.js";
+import { isMobile } from "../tweaks.js";
 import { createUnlockedContext, reviveAudioContext } from "./gesture-audio.js";
 import { beltHandle1Sound } from "./belt-handle-1.ts";
 import { beltHandle2Sound } from "./belt-handle-2.ts";
@@ -90,6 +91,7 @@ function dropClipContext() {
 }
 
 function ensureClipContext() {
+  if (isMobile()) return null;
   if (clipCtx && clipCtx.state === "closed") dropClipContext();
   if (clipCtx) {
     resumeNow(clipCtx);
@@ -106,6 +108,7 @@ function getClipContext() {
 
 function playBuffer(buffer, volume, offset = 0, duration) {
   const ctx = getClipContext();
+  if (!ctx) return;
   resumeNow(ctx);
   const src = ctx.createBufferSource();
   src.buffer = buffer;
@@ -131,6 +134,7 @@ function playBuffer(buffer, volume, offset = 0, duration) {
 }
 
 function decodeUri(dataUri) {
+  if (isMobile()) return;
   if (uriBuffers.has(dataUri) || !dataUri) return;
   let ctx;
   try {
@@ -149,6 +153,7 @@ function decodeUri(dataUri) {
 }
 
 function loadSprite() {
+  if (isMobile()) return;
   if (spriteBuffer || spriteLoading) return;
   spriteLoading = true;
   fetch(SND_URL)
@@ -163,7 +168,7 @@ function loadSprite() {
 }
 
 export function warmClipAudio(event) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   try {
     if (clipCtx && clipCtx.state === "running") return;
     reviveAudioContext({
@@ -182,7 +187,7 @@ export function warmClipAudio(event) {
 }
 
 export function playSoundcn(name, volume = 1) {
-  if (reduced() || volume <= 0) return;
+  if (isMobile() || reduced() || volume <= 0) return;
   const asset = SOUNDCN[name];
   if (!asset) return;
   const cached = uriBuffers.get(asset.dataUri);
@@ -203,7 +208,7 @@ export function playSoundcn(name, volume = 1) {
 }
 
 export function playSnd(name, volume = 1) {
-  if (reduced() || volume <= 0) return;
+  if (isMobile() || reduced() || volume <= 0) return;
   const slice = SND_SPRITES[name];
   if (!slice) return;
   const dur = Math.max(0.01, slice.end - slice.start);

@@ -5,6 +5,7 @@
  */
 
 import { getScrollRoot } from "../embed.js";
+import { isMobile } from "../tweaks.js";
 import {
   bindGestureUnlock,
   createUnlockedContext,
@@ -23,6 +24,7 @@ let stateHooked = false;
 let unbindGestureUnlock = null;
 
 function createContext() {
+  if (isMobile()) throw new Error("AudioContext disabled on mobile");
   return createUnlockedContext();
 }
 
@@ -131,6 +133,7 @@ function resumeNow(ctx) {
 }
 
 function ensureContext() {
+  if (isMobile()) return null;
   if (audioContext && audioContext.state === "closed") dropContext();
   if (audioContext) {
     resumeNow(audioContext);
@@ -185,7 +188,7 @@ function stopGestureUnlockListeners() {
  * wheel turn. No-op once the context is running (listeners are dropped then).
  */
 export function warmWikiAudio(event) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   if (isWikiAudioRunning()) {
     stopGestureUnlockListeners();
     return;
@@ -226,7 +229,7 @@ export function warmWikiAudio(event) {
  * that activation turn.
  */
 export function probeWikiAutoplay() {
-  if (reduced() || isAppleTouchWebKit()) return;
+  if (isMobile() || reduced() || isAppleTouchWebKit()) return;
   if (isWikiAudioRunning()) {
     stopGestureUnlockListeners();
     flushPending();
@@ -259,6 +262,7 @@ export function isWikiAudioRunning() {
 }
 
 export function whenWikiAudioRunning(fn) {
+  if (isMobile()) return false;
   if (typeof fn !== "function") return false;
   if (isWikiAudioRunning()) {
     fn();
@@ -598,7 +602,7 @@ function canStartInThisTurn(event) {
 }
 
 export function playWikiSound(name, options = {}) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   const play = sounds[name];
   if (!play) return;
   const volume = options.volume ?? 1;
@@ -618,18 +622,20 @@ export function playWikiSound(name, options = {}) {
   }
 }
 
-unbindGestureUnlock = bindGestureUnlock((event) => {
-  warmWikiAudio(event);
-}, [getScrollRoot()]);
+if (!isMobile()) {
+  unbindGestureUnlock = bindGestureUnlock((event) => {
+    warmWikiAudio(event);
+  }, [getScrollRoot()]);
 
-document.addEventListener("visibilitychange", () => {
-  // Resume only — never recreate / rebind from visibility alone.
-  if (document.visibilityState !== "visible") return;
-  if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
-});
-window.addEventListener("pageshow", () => {
-  if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
-});
-window.addEventListener("focus", () => {
-  if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
-});
+  document.addEventListener("visibilitychange", () => {
+    // Resume only — never recreate / rebind from visibility alone.
+    if (document.visibilityState !== "visible") return;
+    if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
+  });
+  window.addEventListener("pageshow", () => {
+    if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
+  });
+  window.addEventListener("focus", () => {
+    if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
+  });
+}

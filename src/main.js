@@ -353,33 +353,6 @@ function initDeck() {
   }
 
   /**
-   * Mobile ticks must fire in the same pointer/wheel turn as dragProgress,
-   * not in the coalesced rAF that paints the stack. rAF left pops a frame
-   * (or a whole touchend) behind the finger.
-   */
-  function emitMobileScrollPx() {
-    const params = getParams();
-    const y = freezeY != null ? freezeY : dragProgress;
-    const span = focusSpanOf(params);
-    const cardProgress = y / Math.max(0.25, span);
-    const prevProgress = lastDeckProgress;
-    lastDeckProgress = cardProgress;
-    const deckDelta = prevProgress == null ? 0 : cardProgress - prevProgress;
-    const yPx = y * cardUnitPx(params);
-    document.dispatchEvent(
-      new CustomEvent("kaik:deck-progress", {
-        detail: {
-          progress: cardProgress,
-          delta: deckDelta,
-          yPx,
-          active: true,
-          mobile: true,
-        },
-      }),
-    );
-  }
-
-  /**
    * Mobile progress delta from a vertical pointer move.
    * Native “scroll down” (finger moves up, dy < 0) advances the deck so the
    * next card comes forward from the upper/rear stack. Wheel uses +deltaY
@@ -709,14 +682,12 @@ function initDeck() {
     const dy = event.clientY - drag.startY;
     if (!drag.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
       drag.moved = true;
-      playFirstScrollFromGesture(event);
     }
 
     const params = getParams();
     const unit = cardUnitPx(params);
     // Finger up (dy < 0) = native scroll-down: next card comes from the top.
     dragProgress = applyRubber(drag.startProgress + mobilePointerDelta(dy, unit));
-    emitMobileScrollPx();
 
     const now = performance.now();
     const dt = Math.max(1, now - drag.lastT);
@@ -785,13 +756,11 @@ function initDeck() {
       const unit = cardUnitPx(getParams());
       const px = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
       if (!px) return;
-      playFirstScrollFromGesture(event);
       // Wheel down (deltaY > 0) is native scroll-down — same advance as finger-up.
       const delta = px / unit;
       const raw = dragProgress + delta;
       dragProgress = applyRubber(raw);
       dragInertia = 0;
-      emitMobileScrollPx();
       scheduleRender();
       return;
     }
@@ -1162,7 +1131,7 @@ function initDeck() {
       deckIntro.arm(now);
       markIntroReady();
     }
-    if (deckIntro) syncDeckIntroSounds(deckIntro, count, now);
+    if (deckIntro && !mobile) syncDeckIntroSounds(deckIntro, count, now);
     if (deckIntro?.done(now)) {
       deckIntro = null;
       if (canPlayTextIntro()) playTextIntro();

@@ -13,6 +13,8 @@
  * thread. Unlock once on a real gesture, then drop listeners.
  */
 
+import { isMobile } from "../tweaks.js";
+
 const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
@@ -51,6 +53,7 @@ export function isDiscreteUnlock(type) {
 }
 
 export function unlockHtmlAudio() {
+  if (isMobile()) return;
   // Desktop Chromium: HTMLMediaElement.play() spends the wheel/keydown
   // activation before AudioContext.resume() can use it. iOS still needs this.
   if (!isAppleTouchWebKit()) return;
@@ -87,6 +90,7 @@ export function unlockHtmlAudio() {
 }
 
 export function createUnlockedContext() {
+  if (isMobile()) throw new Error("AudioContext disabled on mobile");
   const Ctor = audioContextCtor();
   if (!Ctor) throw new Error("AudioContext unavailable");
   const apple = isAppleTouchWebKit();
@@ -120,6 +124,7 @@ export function isDesktopChromiumGesture(type) {
  * No mousemove / pointermove / touchmove path.
  */
 export function reviveAudioContext({ get, set, create, drop, resume, event } = {}) {
+  if (isMobile()) return typeof get === "function" ? get() : null;
   let ctx = typeof get === "function" ? get() : null;
   // Fast path: already running — no HTMLAudio, no resume spam.
   if (ctx && ctx.state === "running") {
@@ -174,6 +179,7 @@ export function reviveAudioContext({ get, set, create, drop, resume, event } = {
  * unlock so move/wheel floods never keep thrashing the main thread.
  */
 export function bindGestureUnlock(fn, extraTargets = []) {
+  if (isMobile()) return () => {};
   const opts = { capture: true, passive: true };
   const onEvent = (event) => {
     if (!event.isTrusted) return;

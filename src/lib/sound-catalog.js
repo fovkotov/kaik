@@ -4,6 +4,7 @@ import { playSnd, playSoundcn, warmClipAudio } from "./clip-sounds.js";
 import { unlockHtmlAudio } from "./gesture-audio.js";
 import { getActionVolume } from "./sound-volume.js";
 import { safeStorage } from "../embed.js";
+import { isMobile } from "../tweaks.js";
 
 export const ACTION_STORAGE_KEY = "kaik-action-sound-v1";
 export const SCROLL_STORAGE_KEY = "kaik-scroll-sound-v1";
@@ -157,7 +158,7 @@ export function formatScrollPx(px) {
 }
 
 export function playSoundOption(opt, volume = getActionVolume(), extra = {}) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   if (!opt || volume <= 0) return;
   if (opt.kind === "wiki") {
     playWikiSound(opt.name, { volume, ...extra });
@@ -177,28 +178,28 @@ export function playSoundOption(opt, volume = getActionVolume(), extra = {}) {
 }
 
 export function playActionSound(extra = {}) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
   playSoundOption(findSoundOption(actionId) || findSoundOption(DEFAULT_ACTION_ID), volume, extra);
 }
 
 export function playScrollSound(extra = {}) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
   playSoundOption(findSoundOption(scrollId) || findSoundOption(DEFAULT_SCROLL_ID), volume, extra);
 }
 
 export function playFlySound(extra = {}) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
   playWikiSound("whoosh", { volume, queue: true, ...extra });
 }
 
 export function playArriveSound(extra = {}) {
-  if (reduced()) return;
+  if (isMobile() || reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
   playWikiSound("pop", { volume, queue: true, ...extra });
@@ -215,6 +216,7 @@ function selectedKinds() {
 }
 
 export function warmAllAudio(event) {
+  if (isMobile()) return;
   // iOS only — desktop HTMLAudio.play() spends the wheel/keydown activation.
   unlockHtmlAudio();
   const kinds = selectedKinds();
@@ -231,6 +233,7 @@ export function warmAllAudio(event) {
 
 /** Resume now even if autoplay later rejects. Safe on load / fly start. */
 export function tryUnlockAllAudio(event) {
+  if (isMobile()) return;
   if (!event) {
     // Fly / load: probe autoplay, never leave a suspended context behind.
     probeWikiAutoplay();
@@ -251,7 +254,7 @@ export function tryUnlockAllAudio(event) {
 
 /** First wheel/drag: resume + start pop in this same turn. Do not await. */
 export function playFirstScrollFromGesture(event) {
-  if (reduced()) return false;
+  if (isMobile() || reduced()) return false;
   if (firstScrollFromGesture) return false;
   warmAllAudio(event);
   firstScrollFromGesture = true;

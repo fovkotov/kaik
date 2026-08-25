@@ -20,8 +20,10 @@ export function initSoundSettings() {
     el.remove();
   });
 
+  // Mobile: no AudioContext, no unlock listeners, no scroll ticks.
+  if (isMobile()) return;
+
   let acc = 0;
-  let lastMobileYPx = null;
   let unlocked = false;
   const unlockUnbinds = [];
 
@@ -45,10 +47,6 @@ export function initSoundSettings() {
     if (reduced()) return;
     const d = Math.abs(Number(delta));
     if (!Number.isFinite(d) || d === 0) return;
-    // Mobile: never resume/decode from a scroll sample — only tick if Web
-    // Audio is already running from a real tap. Distance-only (no time
-    // throttle) so pops land in the same gesture turn as the drag.
-    if (isMobile() && !isWikiAudioRunning()) return;
     acc += d;
     const step = getScrollPx() || SCROLL_PX_DEFAULT;
     while (acc >= step) {
@@ -91,16 +89,10 @@ export function initSoundSettings() {
     unlockUnbinds.push(() => document.removeEventListener(type, onUnlock, capture));
   }
 
-  // Desktop native scroll ticks. Mobile stack is not this scroller — zeroing
-  // scrollTop there would both jank and double-fire pops.
   let lastScrollTop = scrollRoot?.scrollTop || 0;
   scrollRoot?.addEventListener(
     "scroll",
     () => {
-      if (isMobile()) {
-        lastScrollTop = scrollRoot.scrollTop || 0;
-        return;
-      }
       const top = scrollRoot.scrollTop || 0;
       const delta = top - lastScrollTop;
       lastScrollTop = top;
@@ -108,18 +100,4 @@ export function initSoundSettings() {
     },
     { passive: true },
   );
-
-  document.addEventListener("kaik:deck-progress", (event) => {
-    const detail = event.detail || {};
-    if (!detail.mobile) return;
-    const yPx = Number(detail.yPx);
-    if (!Number.isFinite(yPx)) return;
-    if (lastMobileYPx == null) {
-      lastMobileYPx = yPx;
-      return;
-    }
-    const delta = yPx - lastMobileYPx;
-    lastMobileYPx = yPx;
-    onScrollPx(delta);
-  });
 }

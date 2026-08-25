@@ -89,9 +89,8 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
       if (this.armed) return;
       this.armed = true;
       t0 = now;
-      // Probe only — do not create a suspended context on load. Queued fly
-      // sounds play in this intro if autoplay allows, else on first wheel.
-      tryUnlockAllAudio();
+      // Desktop only — mobile never creates AudioContext / queues fly sounds.
+      if (!isMobile()) tryUnlockAllAudio();
     },
     progress(index, now) {
       if (!this.armed) return 0;
@@ -109,7 +108,7 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
 
 /** whoosh as each card starts, pop as it lands. Queued if AudioContext is still cold. */
 export function syncDeckIntroSounds(intro, count, now) {
-  if (!intro?.armed) return;
+  if (isMobile() || !intro?.armed) return;
   // Sounds queue until warm — do not thrash unlock every rAF frame.
   const n = Math.max(0, Number(count) || 0);
   for (let i = 0; i < n; i += 1) {

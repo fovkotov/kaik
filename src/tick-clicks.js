@@ -1,5 +1,6 @@
 import { isWikiAudioRunning, playWikiSound, warmWikiAudio } from "./lib/wiki-sounds.js";
 import { getActionVolume } from "./lib/sound-volume.js";
+import { isMobile } from "./tweaks.js";
 
 const STEP_KEYS = new Set([
   "ArrowLeft",
@@ -78,6 +79,8 @@ function isImmediateControl(target) {
 }
 
 export function initTickClicks() {
+  if (isMobile()) return;
+
   let skipClickUntil = 0;
   let downX = 0;
   let downY = 0;
