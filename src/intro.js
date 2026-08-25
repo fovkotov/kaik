@@ -89,6 +89,8 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
       if (this.armed) return;
       this.armed = true;
       t0 = now;
+      // Probe only — do not create a suspended context on load. Queued fly
+      // sounds play in this intro if autoplay allows, else on first wheel.
       tryUnlockAllAudio();
     },
     progress(index, now) {

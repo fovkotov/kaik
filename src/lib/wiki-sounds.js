@@ -8,6 +8,7 @@ import { getScrollRoot } from "../embed.js";
 import {
   bindGestureUnlock,
   createUnlockedContext,
+  isAppleTouchWebKit,
   isDesktopChromiumGesture,
   isDiscreteUnlock,
   reviveAudioContext,
@@ -45,8 +46,10 @@ function dropContext() {
   }
 }
 
-function flushPending() {
-  if (!isWikiAudioRunning()) return;
+function flushPending({ allowSuspended = false } = {}) {
+  const ctx = audioContext;
+  if (!ctx || ctx.state === "closed") return;
+  if (!allowSuspended && ctx.state !== "running") return;
   const batch = pendingPlays.splice(0);
   for (const play of batch) {
     try {
@@ -65,7 +68,10 @@ function hookState(ctx) {
       stateHooked = false;
       return;
     }
-    if (ctx.state === "running") flushPending();
+    if (ctx.state === "running") {
+      flushPending();
+      stopGestureUnlockListeners();
+    }
   });
 }
 
@@ -169,6 +175,11 @@ export function warmWikiAudio(event) {
     stopGestureUnlockListeners();
     return;
   }
+  if (!event) {
+    // Load / fly / rAF: never create a suspended context. Probe is separate.
+    if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
+    return;
+  }
   try {
     reviveAudioContext({
       get: () => audioContext,
@@ -182,13 +193,49 @@ export function warmWikiAudio(event) {
         resumeNow(ctx);
         if (wasCold) primeOutput(ctx);
         hookState(ctx);
-        flushPending();
+        // Same-turn start() is what unblocks Chromium wheel/key, even if
+        // state is still "suspended" until the resume promise settles.
+        flushPending({ allowSuspended: true });
       },
       event,
     });
     if (isWikiAudioRunning()) stopGestureUnlockListeners();
   } catch {
     // Web Audio failures are silent.
+  }
+}
+
+/**
+ * Fly start: if Chrome allows autoplay, keep a running context. If it would
+ * be suspended, close it immediately so the first wheel can create one in
+ * that activation turn.
+ */
+export function probeWikiAutoplay() {
+  if (reduced() || isAppleTouchWebKit()) return;
+  if (isWikiAudioRunning()) {
+    stopGestureUnlockListeners();
+    flushPending();
+    return;
+  }
+  if (audioContext) {
+    resumeNow(audioContext);
+    if (isWikiAudioRunning()) {
+      stopGestureUnlockListeners();
+      flushPending();
+    }
+    return;
+  }
+  try {
+    const ctx = createContext();
+    if (ctx.state === "running") {
+      audioContext = attachGraph(ctx);
+      flushPending();
+      stopGestureUnlockListeners();
+      return;
+    }
+    void ctx.close();
+  } catch {
+    // Autoplay probe failures are silent.
   }
 }
 
@@ -548,11 +595,9 @@ export function playWikiSound(name, options = {}) {
       runSound(play, volume);
       return;
     }
-    if (options.queue) {
-      enqueuePlay(() => runSound(play, volume));
-      return;
-    }
-    runSound(play, volume);
+    // Queue until a wheel/key/tap actually starts the context. Never create a
+    // suspended context from load or fly-in.
+    enqueuePlay(() => runSound(play, volume));
   } catch {
     // Web Audio failures are silent, matching ui-sounds.js.
   }

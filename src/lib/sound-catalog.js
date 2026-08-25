@@ -1,5 +1,5 @@
 import { playUISound } from "./ui-sounds.js";
-import { playWikiSound, warmWikiAudio } from "./wiki-sounds.js";
+import { playWikiSound, probeWikiAutoplay, warmWikiAudio } from "./wiki-sounds.js";
 import { playSnd, playSoundcn, warmClipAudio } from "./clip-sounds.js";
 import { unlockHtmlAudio } from "./gesture-audio.js";
 import { getActionVolume } from "./sound-volume.js";
@@ -231,6 +231,11 @@ export function warmAllAudio(event) {
 
 /** Resume now even if autoplay later rejects. Safe on load / fly start. */
 export function tryUnlockAllAudio(event) {
+  if (!event) {
+    // Fly / load: probe autoplay, never leave a suspended context behind.
+    probeWikiAutoplay();
+    return;
+  }
   warmAllAudio(event);
   if (!storageAccessTried && typeof document.hasStorageAccess === "function") {
     storageAccessTried = true;

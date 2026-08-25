@@ -85,10 +85,26 @@ export function initTickClicks() {
   const TAP_PX = 14;
   const capture = { capture: true, passive: true };
 
+  const unlockUnbinds = [];
+
+  function stopUnlockListeners() {
+    while (unlockUnbinds.length) {
+      try {
+        unlockUnbinds.pop()();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   function unlock(event) {
     // Central wiki bind already unlocks on discrete gestures; only nudge if cold.
-    if (isWikiAudioRunning()) return;
+    if (isWikiAudioRunning()) {
+      stopUnlockListeners();
+      return;
+    }
     warmWikiAudio(event);
+    if (isWikiAudioRunning()) stopUnlockListeners();
   }
 
   function playOnce() {
@@ -111,14 +127,12 @@ export function initTickClicks() {
 
   // Discrete only — never mousemove / pointermove / touchmove (main-thread thrash).
   for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
-    document.addEventListener(
-      type,
-      (event) => {
-        if (!event.isTrusted) return;
-        unlock(event);
-      },
-      capture,
-    );
+    const onUnlock = (event) => {
+      if (!event.isTrusted) return;
+      unlock(event);
+    };
+    document.addEventListener(type, onUnlock, capture);
+    unlockUnbinds.push(() => document.removeEventListener(type, onUnlock, capture));
   }
 
   document.addEventListener(

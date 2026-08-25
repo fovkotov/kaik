@@ -58,7 +58,6 @@ let clipCtx = null;
 const uriBuffers = new Map();
 let spriteBuffer = null;
 let spriteLoading = false;
-let assetsPrimed = false;
 
 function reduced() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -154,14 +153,7 @@ function loadSprite() {
 export function warmClipAudio(event) {
   if (reduced()) return;
   try {
-    if (clipCtx && clipCtx.state === "running") {
-      if (!assetsPrimed) {
-        assetsPrimed = true;
-        loadSprite();
-        Object.values(SOUNDCN).forEach((asset) => decodeUri(asset.dataUri));
-      }
-      return;
-    }
+    if (clipCtx && clipCtx.state === "running") return;
     reviveAudioContext({
       get: () => clipCtx,
       set: (ctx) => {
@@ -172,11 +164,6 @@ export function warmClipAudio(event) {
       resume: resumeNow,
       event,
     });
-    if (!assetsPrimed) {
-      assetsPrimed = true;
-      loadSprite();
-      Object.values(SOUNDCN).forEach((asset) => decodeUri(asset.dataUri));
-    }
   } catch {
     // Web Audio failures are silent.
   }

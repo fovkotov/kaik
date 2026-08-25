@@ -113,11 +113,11 @@ export function isDesktopChromiumGesture(type) {
 }
 
 /**
- * iOS: silent HTMLAudio + drop/recreate on a discrete gesture so the new
+ * iOS: silent HTMLAudio + drop/recreate on a discrete tap so the new
  * context starts in this turn. Desktop: never HTMLAudio (it spends the
- * wheel/keydown activation). Recreate while cold only when this turn is a
- * real activation (Chrome wheel/key) — not on pointermove floods, and not
- * on Safari wheel which is not a gesture.
+ * wheel/keydown activation). Create once on the first wheel/key, then only
+ * resume() — closing on every wheel leaves resume() unable to settle.
+ * No mousemove / pointermove / touchmove path.
  */
 export function reviveAudioContext({ get, set, create, drop, resume, event } = {}) {
   let ctx = typeof get === "function" ? get() : null;
@@ -129,15 +129,29 @@ export function reviveAudioContext({ get, set, create, drop, resume, event } = {
   const apple = isAppleTouchWebKit();
   const activated = typeof navigator !== "undefined" && Boolean(navigator.userActivation?.isActive);
   const discrete = isDiscreteUnlock(event?.type);
-  const gesture = apple || activated || isDesktopChromiumGesture(event?.type);
+  // Never treat Apple as a perpetual gesture — that made touchmove/rAF resume
+  // the context on every sample. Unlock only on a real activation this turn.
+  const gesture = discrete || activated || isDesktopChromiumGesture(event?.type);
 
   // Silent HTMLAudio only on Apple, and only while we still need a gesture.
   if (apple && gesture) unlockHtmlAudio();
 
   if (isColdCtx(ctx) && discrete && gesture) {
-    drop?.();
-    ctx = create();
-    set?.(ctx);
+    if (apple) {
+      drop?.();
+      ctx = create();
+      set?.(ctx);
+      resume?.(ctx);
+      return ctx;
+    }
+    // Desktop wheel floods: resume the existing context. Recreate only if
+    // there isn't one yet — do not close a pending resume().
+    if (!ctx || ctx.state === "closed") {
+      ctx = create();
+      set?.(ctx);
+      resume?.(ctx);
+      return ctx;
+    }
     resume?.(ctx);
     return ctx;
   }
