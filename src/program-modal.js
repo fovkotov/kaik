@@ -582,7 +582,7 @@ export function initProgramModal() {
 
   function persistIllust(el) {
     if (!el?.querySelector("[data-fly-illust-close]")) return false;
-    // Desktop program dog stays painted; close is always the viewport X.
+    // Desktop program dog stays painted and is the close control. Mobile uses fly-close.
     return el.hasAttribute("data-program-card") && !isMobile();
   }
 
@@ -592,7 +592,7 @@ export function initProgramModal() {
 
   function setIllustOut(el, hidden) {
     if (!el) return;
-    // Desktop program dog stays painted through expand. Close is the viewport X.
+    // Desktop program dog stays painted through expand (it is the close control).
     if (hidden && persistIllust(el)) {
       el.removeAttribute("data-illust-out");
       return;
@@ -1298,14 +1298,20 @@ export function initProgramModal() {
 
   function syncIllustClose() {
     document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
-      illust.setAttribute("aria-hidden", "true");
-      illust.removeAttribute("role");
-      illust.removeAttribute("aria-label");
-      const cue = illust.querySelector(".works-card__key-cue, .card-illust__cue");
-      if (!cue) return;
       const host = illust.closest(FOCUS_SEL);
       const expanded = host === card && (phase === "open" || phase === "opening");
-      const key = persistIllust(host) && expanded ? "illust.close" : "illust.open";
+      const closeControl = persistIllust(host) && expanded;
+      illust.setAttribute("aria-hidden", closeControl ? "false" : "true");
+      if (closeControl) {
+        illust.setAttribute("role", "button");
+        illust.setAttribute("aria-label", t("illust.close"));
+      } else {
+        illust.removeAttribute("role");
+        illust.removeAttribute("aria-label");
+      }
+      const cue = illust.querySelector(".works-card__key-cue, .card-illust__cue");
+      if (!cue) return;
+      const key = closeControl ? "illust.close" : "illust.open";
       cue.setAttribute("data-i18n", key);
       cue.textContent = t(key);
     });
@@ -1463,10 +1469,11 @@ export function initProgramModal() {
   document.querySelectorAll("[data-fly-illust-close]").forEach((illust) => {
     illust.addEventListener("click", (event) => {
       const host = illust.closest(FOCUS_SEL);
-      if (host === card && (phase === "open" || phase === "opening")) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      if (!persistIllust(host)) return;
+      if (host !== card || (phase !== "open" && phase !== "opening")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeFocus();
     });
   });
 
