@@ -9,9 +9,10 @@ import { isMobile } from "../tweaks.js";
 import {
   bindGestureUnlock,
   createUnlockedContext,
-  isAppleTouchWebKit,
+  hasAudioGesture,
   isDesktopChromiumGesture,
   isDiscreteUnlock,
+  isTapUnlockEvent,
   reviveAudioContext,
 } from "./gesture-audio.js";
 
@@ -116,6 +117,7 @@ function ensureContext() {
     resumeNow(audioContext);
     return audioContext;
   }
+  if (!hasAudioGesture()) return null;
   audioContext = createContext();
   return attachGraph(audioContext);
 }
@@ -159,10 +161,9 @@ function stopGestureUnlockListeners() {
 }
 
 /**
- * Call from a user gesture. iOS recreates the context in the same turn as
- * touchstart/touchend + silent HTMLAudio. Desktop resumes (or creates) on
- * wheel/key — never HTMLAudio-first, so Chrome can start oscillators in that
- * wheel turn. No-op once the context is running (listeners are dropped then).
+ * Call from a user gesture. Create only on the first tap/click. After that,
+ * desktop may resume on wheel in the same turn so ticks are not a frame late.
+ * No-op once the context is running (listeners are dropped then).
  */
 export function warmWikiAudio(event) {
   if (isMobile() || reduced()) return;
@@ -171,8 +172,7 @@ export function warmWikiAudio(event) {
     return;
   }
   if (!event) {
-    // Load / fly / rAF: never create a suspended context. Probe is separate.
-    if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
+    // Load / fly / rAF: never create a context. Do not resume a cold one.
     return;
   }
   try {
@@ -198,32 +198,11 @@ export function warmWikiAudio(event) {
 }
 
 /**
- * Fly start: if Chrome allows autoplay, keep a running context. If it would
- * be suspended, close it immediately so the first wheel can create one in
- * that activation turn.
+ * Do not create AudioContext on load / fly-in. Autoplay whooshes and a later
+ * backlog dump were the stray desktop sounds.
  */
 export function probeWikiAutoplay() {
-  if (isMobile() || reduced() || isAppleTouchWebKit()) return;
-  if (isWikiAudioRunning()) {
-    stopGestureUnlockListeners();
-    return;
-  }
-  if (audioContext) {
-    resumeNow(audioContext);
-    if (isWikiAudioRunning()) stopGestureUnlockListeners();
-    return;
-  }
-  try {
-    const ctx = createContext();
-    if (ctx.state === "running") {
-      audioContext = attachGraph(ctx);
-      stopGestureUnlockListeners();
-      return;
-    }
-    void ctx.close();
-  } catch {
-    // Autoplay probe failures are silent.
-  }
+  if (isWikiAudioRunning()) stopGestureUnlockListeners();
 }
 
 export function isWikiAudioRunning() {
@@ -549,6 +528,7 @@ const sounds = {
 };
 
 function runSound(play, volume) {
+  if (!ensureContext()) return;
   const prev = outputVolume;
   outputVolume = volume;
   try {
@@ -561,6 +541,8 @@ function runSound(play, volume) {
 }
 
 function canStartInThisTurn(event) {
+  const tap = Boolean(event?.isTrusted && isTapUnlockEvent(event.type));
+  if (!hasAudioGesture() && !tap) return false;
   if (event?.isTrusted && (isDiscreteUnlock(event.type) || isDesktopChromiumGesture(event.type))) {
     return true;
   }
@@ -573,6 +555,8 @@ export function playWikiSound(name, options = {}) {
   if (!play) return;
   const volume = options.volume ?? 1;
   if (volume <= 0) return;
+  const tap = Boolean(options.event?.isTrusted && isTapUnlockEvent(options.event.type));
+  if (!hasAudioGesture() && !tap) return;
   try {
     // Recreate/resume in this turn — never await resume() before oscillators.
     warmWikiAudio(options.event);

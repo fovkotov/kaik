@@ -1,5 +1,5 @@
 import { isMobile } from "./tweaks.js";
-import { playArriveSound, playFlySound, tryUnlockAllAudio } from "./lib/sound-catalog.js";
+import { playArriveSound, playFlySound } from "./lib/sound-catalog.js";
 
 /** Entering cards: `--ease-out`. */
 const CARD_EASE = cubicBezierEase(0.23, 1, 0.32, 1);
@@ -89,8 +89,6 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
       if (this.armed) return;
       this.armed = true;
       t0 = now;
-      // Desktop only — mobile never creates AudioContext / queues fly sounds.
-      if (!isMobile()) tryUnlockAllAudio();
     },
     progress(index, now) {
       if (!this.armed) return 0;

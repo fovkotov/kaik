@@ -4,9 +4,9 @@ import {
   playFirstScrollFromGesture,
   playScrollSound,
   tryUnlockAllAudio,
-  warmAllAudio,
 } from "./lib/sound-catalog.js";
 import { isWikiAudioRunning } from "./lib/wiki-sounds.js";
+import { hasAudioGesture } from "./lib/gesture-audio.js";
 import { getScrollRoot } from "./embed.js";
 import { isMobile } from "./tweaks.js";
 
@@ -51,6 +51,7 @@ export function initSoundSettings() {
   }
 
   function onScrollPx(delta, event) {
+    if (!hasAudioGesture() && !isWikiAudioRunning()) return;
     if (reduced()) return;
     const d = Math.abs(Number(delta));
     if (!Number.isFinite(d) || d === 0) return;
@@ -68,33 +69,28 @@ export function initSoundSettings() {
 
   function onWheelGesture(event) {
     if (!event.isTrusted) return;
-    if (reduced()) {
-      if (!unlocked) warmAllAudio(event);
-      return;
-    }
-    // Chromium: wheel is a user gesture. resume() then start() in this turn.
+    // Do not unlock on wheel — only tick after the first tap.
+    if (!hasAudioGesture() && !isWikiAudioRunning()) return;
+    if (reduced()) return;
     if (playFirstScrollFromGesture(event)) {
       creditFirstPop();
-    } else if (!unlocked) {
-      warmAllAudio(event);
     }
-    markUnlocked();
   }
 
   const scrollRoot = getScrollRoot();
   const capture = { capture: true, passive: true };
 
-  // Iframe ticks live on the scroll root. Document still sees wheel over the
-  // fixed panel so the first pop can unlock without a click.
+  // Iframe ticks live on the scroll root. After the first tap, wheel over
+  // the fixed panel still ticks in that same turn.
   document.addEventListener("wheel", onWheelGesture, capture);
   scrollRoot?.addEventListener("wheel", onWheelGesture, capture);
 
-  // Discrete unlock only — never touchmove / pointermove (iOS main-thread jank).
-  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
+  // First unlock: tap/click only — never wheel, key, or move.
+  for (const type of ["pointerdown", "click"]) {
     const onUnlock = (event) => {
       if (!event.isTrusted || unlocked) return;
       tryUnlockAllAudio(event);
-      if (isWikiAudioRunning()) markUnlocked();
+      if (isWikiAudioRunning() || hasAudioGesture()) markUnlocked();
     };
     document.addEventListener(type, onUnlock, capture);
     unlockUnbinds.push(() => document.removeEventListener(type, onUnlock, capture));

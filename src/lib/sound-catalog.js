@@ -1,7 +1,7 @@
 import { playUISound } from "./ui-sounds.js";
-import { playWikiSound, probeWikiAutoplay, warmWikiAudio } from "./wiki-sounds.js";
+import { playWikiSound, warmWikiAudio, isWikiAudioRunning } from "./wiki-sounds.js";
 import { playSnd, playSoundcn, warmClipAudio } from "./clip-sounds.js";
-import { unlockHtmlAudio } from "./gesture-audio.js";
+import { hasAudioGesture, isTapUnlockEvent, unlockHtmlAudio } from "./gesture-audio.js";
 import { getActionVolume } from "./sound-volume.js";
 import { safeStorage } from "../embed.js";
 import { isMobile } from "../tweaks.js";
@@ -159,6 +159,8 @@ export function formatScrollPx(px) {
 
 export function playSoundOption(opt, volume = getActionVolume(), extra = {}) {
   if (isMobile() || reduced()) return;
+  const tap = Boolean(extra.event?.isTrusted && isTapUnlockEvent(extra.event.type));
+  if (!hasAudioGesture() && !isWikiAudioRunning() && !tap) return;
   if (!opt || volume <= 0) return;
   if (opt.kind === "wiki") {
     playWikiSound(opt.name, { volume, ...extra });
@@ -193,6 +195,8 @@ export function playScrollSound(extra = {}) {
 
 export function playFlySound(extra = {}) {
   if (isMobile() || reduced()) return;
+  // Never play or queue fly whooshes before the first tap.
+  if (!isWikiAudioRunning()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
   playWikiSound("whoosh", { volume, ...extra });
@@ -200,6 +204,7 @@ export function playFlySound(extra = {}) {
 
 export function playArriveSound(extra = {}) {
   if (isMobile() || reduced()) return;
+  if (!isWikiAudioRunning()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
   playWikiSound("pop", { volume, ...extra });
@@ -217,7 +222,9 @@ function selectedKinds() {
 
 export function warmAllAudio(event) {
   if (isMobile()) return;
-  // iOS only — desktop HTMLAudio.play() spends the wheel/keydown activation.
+  const tap = Boolean(event?.isTrusted && isTapUnlockEvent(event.type));
+  if (!hasAudioGesture() && !tap) return;
+  // iOS only — desktop HTMLAudio.play() spends the tap activation.
   unlockHtmlAudio();
   const kinds = selectedKinds();
   if (kinds.has("wiki")) warmWikiAudio(event);
@@ -231,12 +238,11 @@ export function warmAllAudio(event) {
   }
 }
 
-/** Resume now even if autoplay later rejects. Safe on load / fly start. */
+/** Resume now even if autoplay later rejects. No-op on load / fly without a tap. */
 export function tryUnlockAllAudio(event) {
   if (isMobile()) return;
   if (!event) {
-    // Fly / load: probe autoplay, never leave a suspended context behind.
-    probeWikiAutoplay();
+    // Fly / load: never create a context.
     return;
   }
   warmAllAudio(event);
@@ -252,9 +258,10 @@ export function tryUnlockAllAudio(event) {
   }
 }
 
-/** First wheel/drag: resume + start pop in this same turn. Do not await. */
+/** After the first tap: first wheel tick in this same turn. Do not await. */
 export function playFirstScrollFromGesture(event) {
   if (isMobile() || reduced()) return false;
+  if (!hasAudioGesture() && !isWikiAudioRunning()) return false;
   if (firstScrollFromGesture) return false;
   warmAllAudio(event);
   firstScrollFromGesture = true;

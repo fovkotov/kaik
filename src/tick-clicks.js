@@ -1,4 +1,5 @@
 import { isWikiAudioRunning, playWikiSound, warmWikiAudio } from "./lib/wiki-sounds.js";
+import { hasAudioGesture } from "./lib/gesture-audio.js";
 import { getActionVolume } from "./lib/sound-volume.js";
 import { isMobile } from "./tweaks.js";
 
@@ -93,7 +94,10 @@ export function initTickClicks() {
   }
 
   function unlock(event) {
-    // Central wiki bind already unlocks on discrete gestures; only nudge if cold.
+    // Unlock only on tap/click. Key/wheel must not create a context.
+    if (event && (event.type === "keydown" || event.type === "keyup" || event.type === "wheel")) {
+      if (!hasAudioGesture() && !isWikiAudioRunning()) return;
+    }
     if (isWikiAudioRunning()) {
       stopUnlockListeners();
       return;
@@ -119,8 +123,8 @@ export function initTickClicks() {
     return false;
   }
 
-  // Discrete only — never mousemove / pointermove / touchmove (main-thread thrash).
-  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
+  // Tap/click only — never wheel, key, or move (those caused lag and ghost ticks).
+  for (const type of ["pointerdown", "click"]) {
     const onUnlock = (event) => {
       if (!event.isTrusted) return;
       unlock(event);
@@ -195,6 +199,7 @@ export function initTickClicks() {
     "keydown",
     (event) => {
       if (!event.isTrusted) return;
+      if (!hasAudioGesture() && !isWikiAudioRunning()) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (!isStepKey(event)) return;
       const target = clickTarget(event);

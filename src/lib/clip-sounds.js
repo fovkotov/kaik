@@ -1,6 +1,6 @@
 import { publicUrl } from "../public-url.js";
 import { isMobile } from "../tweaks.js";
-import { createUnlockedContext, reviveAudioContext } from "./gesture-audio.js";
+import { createUnlockedContext, hasAudioGesture, reviveAudioContext } from "./gesture-audio.js";
 import { beltHandle1Sound } from "./belt-handle-1.ts";
 import { beltHandle2Sound } from "./belt-handle-2.ts";
 import { cloth1Sound } from "./cloth-1.ts";
@@ -97,6 +97,7 @@ function ensureClipContext() {
     resumeNow(clipCtx);
     return clipCtx;
   }
+  if (!hasAudioGesture()) return null;
   clipCtx = createClipContext();
   resumeNow(clipCtx);
   return clipCtx;
@@ -142,6 +143,7 @@ function decodeUri(dataUri) {
   } catch {
     return;
   }
+  if (!ctx) return;
   const base64 = dataUri.split(",")[1];
   if (!base64) return;
   const binary = atob(base64);
@@ -158,9 +160,17 @@ function loadSprite() {
   spriteLoading = true;
   fetch(SND_URL)
     .then((res) => res.arrayBuffer())
-    .then((raw) => getClipContext().decodeAudioData(raw))
+    .then((raw) => {
+      const ctx = getClipContext();
+      if (!ctx) {
+        spriteLoading = false;
+        return null;
+      }
+      return ctx.decodeAudioData(raw);
+    })
     .then((buf) => {
-      spriteBuffer = buf;
+      if (buf) spriteBuffer = buf;
+      else spriteLoading = false;
     })
     .catch(() => {
       spriteLoading = false;
