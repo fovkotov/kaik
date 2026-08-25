@@ -1,12 +1,14 @@
 /**
- * Desktop audio starts only after the first real tap/click. Wheel, keydown,
- * fly-in, and mousemove must not create an AudioContext — they caused lag and
- * stray ticks/whooshes (queued fly-ins dumping on the first click, wheel
- * unlocking a suspended context).
+ * Desktop Web Audio, Cuelume-style: create the context lazily on the first
+ * real gesture (wheel, keydown, or tap), resume() synchronously in that
+ * handler, and start() oscillators in the same turn. Do not await resume.
  *
- * After that tap, Chromium can still start oscillators in the same wheel
- * turn (resume()+start(), no HTMLAudio-first). Continuous move events must
- * NEVER run unlock work — they thrash the main thread.
+ * Fly-in, mousemove, and load must not create a context — they caused lag
+ * and stray ticks (queued whooshes dumping on the first gesture).
+ *
+ * Continuous move events must NEVER run unlock work. Extra unlock listeners
+ * unbind after the first create so later wheel floods stay cheap. Silent
+ * HTMLAudio.play() is Apple-touch only — never on desktop Chromium.
  */
 
 import { isMobile } from "../tweaks.js";
@@ -14,13 +16,16 @@ import { isMobile } from "../tweaks.js";
 const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
-/** First unlock: tap/click only. No wheel, key, or move floods. */
+/** Tap/click. Not wheel — that lives on DESKTOP_UNLOCK_EVENTS. */
 export const UNLOCK_EVENTS = [
   "pointerdown",
   "mousedown",
   "touchstart",
   "click",
 ];
+
+/** One-shot unlock: tap plus Chromium wheel/key. No mousemove. */
+export const DESKTOP_UNLOCK_EVENTS = [...UNLOCK_EVENTS, "wheel", "keydown"];
 
 const DISCRETE_UNLOCK = new Set(UNLOCK_EVENTS);
 
@@ -46,6 +51,18 @@ export function isDiscreteUnlock(type) {
 /** pointerdown / click (and mousedown / touchstart). Not wheel or key. */
 export function isTapUnlockEvent(type) {
   return DISCRETE_UNLOCK.has(type);
+}
+
+/** Chromium user-activation: resume()+start() in this same turn. */
+export function isDesktopChromiumGesture(type) {
+  if (isAppleTouchWebKit()) return false;
+  return type === "wheel" || type === "keydown";
+}
+
+export function eventCanUnlockAudio(event) {
+  if (!event?.isTrusted) return false;
+  if (isTapUnlockEvent(event.type)) return true;
+  return isDesktopChromiumGesture(event.type);
 }
 
 export function hasAudioGesture() {
@@ -110,21 +127,9 @@ export function createUnlockedContext() {
   }
 }
 
-function isColdCtx(ctx) {
-  return !ctx || ctx.state === "closed" || ctx.state === "suspended" || ctx.state === "interrupted";
-}
-
-/** Chromium: after the first tap, wheel/key may start() in that same turn. */
-export function isDesktopChromiumGesture(type) {
-  if (isAppleTouchWebKit()) return false;
-  return type === "wheel" || type === "keydown" || type === "keyup";
-}
-
 /**
- * Create the context only on the first tap/click. Wheel/key/userActivation
- * must not open a new one — they used to dump a backlog on the next click.
- * After that tap: resume an existing context (do not close on every wheel).
- * No mousemove / pointermove / touchmove path.
+ * Create once on the first wheel/key/tap. Resume in that same turn.
+ * Never recreate on later wheels. No mousemove path.
  */
 export function reviveAudioContext({ get, set, create, drop, resume, event } = {}) {
   if (isMobile()) return typeof get === "function" ? get() : null;
@@ -135,56 +140,48 @@ export function reviveAudioContext({ get, set, create, drop, resume, event } = {
   }
 
   const tap = Boolean(event?.isTrusted && isTapUnlockEvent(event.type));
-  if (tap) markAudioUnlocked();
+  const wheelOrKey = Boolean(event?.isTrusted && isDesktopChromiumGesture(event.type));
+  if (tap || wheelOrKey) markAudioUnlocked();
 
-  // Until the first tap: no create, no resume, no HTMLAudio.
+  // Until a real gesture: no create, no resume, no HTMLAudio.
+  // Wheel is enough on desktop Chromium — no prior click required.
   if (!hasAudioGesture()) return ctx;
 
   const apple = isAppleTouchWebKit();
-  const discrete = isDiscreteUnlock(event?.type);
-  const wheelOrKey = isDesktopChromiumGesture(event?.type);
-  const activated = typeof navigator !== "undefined" && Boolean(navigator.userActivation?.isActive);
+  const discrete = Boolean(event?.isTrusted && isDiscreteUnlock(event.type));
+  const activated =
+    typeof navigator !== "undefined" && Boolean(navigator.userActivation?.isActive);
   const gesture = discrete || wheelOrKey || activated;
 
-  // Silent HTMLAudio only on Apple, and only on a tap.
+  // Silent HTMLAudio only on Apple touch, and only on a tap — never desktop.
   if (apple && tap) unlockHtmlAudio();
 
-  if (isColdCtx(ctx) && tap) {
-    if (apple) {
-      drop?.();
-      ctx = create();
-      set?.(ctx);
-      resume?.(ctx);
-      return ctx;
-    }
-    if (!ctx || ctx.state === "closed") {
-      ctx = create();
-      set?.(ctx);
-      resume?.(ctx);
-      return ctx;
-    }
-    resume?.(ctx);
-    return ctx;
-  }
-
   if (!ctx || ctx.state === "closed") {
-    // Recreate only after a tap already happened — never on first wheel.
-    if (!tap && !hasAudioGesture()) return ctx;
-    if (!gesture) return ctx;
+    if (!tap && !wheelOrKey && !gesture) return ctx;
     ctx = create();
     set?.(ctx);
     resume?.(ctx);
     return ctx;
   }
 
-  if (gesture) resume?.(ctx);
+  // Existing suspended context: resume in this turn. Do not drop/recreate
+  // on wheel — that was the lag + stray-sound path.
+  if (apple && tap && drop && create) {
+    drop();
+    ctx = create();
+    set?.(ctx);
+    resume?.(ctx);
+    return ctx;
+  }
+
+  if (gesture || hasAudioGesture()) resume?.(ctx);
   return ctx;
 }
 
 /**
- * Capture-phase listeners on document + window (+ extra) so iframe taps hit.
- * Returns an unbind function. Callers should unbind after the first successful
- * unlock so later wheel floods never keep thrashing the main thread.
+ * Capture-phase listeners so iframe gestures hit. Wheel/key bind once on
+ * document only (not window+root) so the first burst is cheap. Callers
+ * unbind after the first successful create; the tick handler stays.
  */
 export function bindGestureUnlock(fn, extraTargets = []) {
   if (isMobile()) return () => {};
@@ -193,9 +190,9 @@ export function bindGestureUnlock(fn, extraTargets = []) {
     if (!event.isTrusted) return;
     fn(event);
   };
-  const targets = [document, window, ...extraTargets.filter(Boolean)];
+  const tapTargets = [document, window, ...extraTargets.filter(Boolean)];
   for (const type of UNLOCK_EVENTS) {
-    for (const target of targets) {
+    for (const target of tapTargets) {
       try {
         target.addEventListener(type, onEvent, opts);
       } catch {
@@ -203,14 +200,29 @@ export function bindGestureUnlock(fn, extraTargets = []) {
       }
     }
   }
+  const desktopTypes = DESKTOP_UNLOCK_EVENTS.filter((type) => !DISCRETE_UNLOCK.has(type));
+  for (const type of desktopTypes) {
+    try {
+      document.addEventListener(type, onEvent, opts);
+    } catch {
+      // ignore
+    }
+  }
   return () => {
     for (const type of UNLOCK_EVENTS) {
-      for (const target of targets) {
+      for (const target of tapTargets) {
         try {
           target.removeEventListener(type, onEvent, opts);
         } catch {
           // ignore
         }
+      }
+    }
+    for (const type of desktopTypes) {
+      try {
+        document.removeEventListener(type, onEvent, opts);
+      } catch {
+        // ignore
       }
     }
   };

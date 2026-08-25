@@ -1,7 +1,7 @@
 import { playUISound } from "./ui-sounds.js";
 import { playWikiSound, warmWikiAudio, isWikiAudioRunning } from "./wiki-sounds.js";
 import { playSnd, playSoundcn, warmClipAudio } from "./clip-sounds.js";
-import { hasAudioGesture, isTapUnlockEvent, unlockHtmlAudio } from "./gesture-audio.js";
+import { eventCanUnlockAudio, hasAudioGesture, markAudioUnlocked, unlockHtmlAudio } from "./gesture-audio.js";
 import { getActionVolume } from "./sound-volume.js";
 import { safeStorage } from "../embed.js";
 import { isMobile } from "../tweaks.js";
@@ -159,8 +159,7 @@ export function formatScrollPx(px) {
 
 export function playSoundOption(opt, volume = getActionVolume(), extra = {}) {
   if (isMobile() || reduced()) return;
-  const tap = Boolean(extra.event?.isTrusted && isTapUnlockEvent(extra.event.type));
-  if (!hasAudioGesture() && !isWikiAudioRunning() && !tap) return;
+  if (!hasAudioGesture() && !isWikiAudioRunning() && !eventCanUnlockAudio(extra.event)) return;
   if (!opt || volume <= 0) return;
   if (opt.kind === "wiki") {
     playWikiSound(opt.name, { volume, ...extra });
@@ -195,7 +194,8 @@ export function playScrollSound(extra = {}) {
 
 export function playFlySound(extra = {}) {
   if (isMobile() || reduced()) return;
-  // Never play or queue fly whooshes before the first tap.
+  // Never play or queue fly whooshes before the context is running.
+  // First wheel may start them later in-turn; do not dump a backlog.
   if (!isWikiAudioRunning()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
@@ -212,6 +212,7 @@ export function playArriveSound(extra = {}) {
 
 let uiContextWarmed = false;
 let firstScrollFromGesture = false;
+let firstScrollNeedsCredit = false;
 let storageAccessTried = false;
 
 function selectedKinds() {
@@ -222,8 +223,8 @@ function selectedKinds() {
 
 export function warmAllAudio(event) {
   if (isMobile()) return;
-  const tap = Boolean(event?.isTrusted && isTapUnlockEvent(event.type));
-  if (!hasAudioGesture() && !tap) return;
+  if (!hasAudioGesture() && !eventCanUnlockAudio(event)) return;
+  if (eventCanUnlockAudio(event)) markAudioUnlocked();
   // iOS only — desktop HTMLAudio.play() spends the tap activation.
   unlockHtmlAudio();
   const kinds = selectedKinds();
@@ -258,14 +259,27 @@ export function tryUnlockAllAudio(event) {
   }
 }
 
-/** After the first tap: first wheel tick in this same turn. Do not await. */
+/**
+ * First wheel: create lazily, resume() sync, play one tick in this turn.
+ * Do not await. Do not dump a fly-in backlog. Later wheels only tick.
+ */
 export function playFirstScrollFromGesture(event) {
   if (isMobile() || reduced()) return false;
-  if (!hasAudioGesture() && !isWikiAudioRunning()) return false;
   if (firstScrollFromGesture) return false;
+  if (!eventCanUnlockAudio(event) && !hasAudioGesture() && !isWikiAudioRunning()) {
+    return false;
+  }
   warmAllAudio(event);
   firstScrollFromGesture = true;
-  // Play in this gesture or skip — never queue for a late touchend dump.
+  firstScrollNeedsCredit = true;
+  // Play in this gesture or skip — never queue for a late dump.
   playScrollSound({ event });
+  return true;
+}
+
+/** Subtract one step from scroll acc so the first-wheel tick is not doubled. */
+export function takeFirstScrollCredit() {
+  if (!firstScrollNeedsCredit) return false;
+  firstScrollNeedsCredit = false;
   return true;
 }

@@ -3,10 +3,11 @@ import {
   getScrollPx,
   playFirstScrollFromGesture,
   playScrollSound,
+  takeFirstScrollCredit,
   tryUnlockAllAudio,
 } from "./lib/sound-catalog.js";
 import { isWikiAudioRunning } from "./lib/wiki-sounds.js";
-import { hasAudioGesture } from "./lib/gesture-audio.js";
+import { eventCanUnlockAudio, hasAudioGesture } from "./lib/gesture-audio.js";
 import { getScrollRoot } from "./embed.js";
 import { isMobile } from "./tweaks.js";
 
@@ -46,15 +47,14 @@ export function initSoundSettings() {
     }
   }
 
-  function creditFirstPop() {
-    acc -= getScrollPx() || SCROLL_PX_DEFAULT;
-  }
-
   function onScrollPx(delta, event) {
-    if (!hasAudioGesture() && !isWikiAudioRunning()) return;
     if (reduced()) return;
+    if (!hasAudioGesture() && !isWikiAudioRunning() && !eventCanUnlockAudio(event)) return;
     const d = Math.abs(Number(delta));
     if (!Number.isFinite(d) || d === 0) return;
+    if (takeFirstScrollCredit()) {
+      acc -= getScrollPx() || SCROLL_PX_DEFAULT;
+    }
     acc += d;
     const step = getScrollPx() || SCROLL_PX_DEFAULT;
     while (acc >= step) {
@@ -69,23 +69,23 @@ export function initSoundSettings() {
 
   function onWheelGesture(event) {
     if (!event.isTrusted) return;
-    // Do not unlock on wheel — only tick after the first tap.
-    if (!hasAudioGesture() && !isWikiAudioRunning()) return;
     if (reduced()) return;
-    if (playFirstScrollFromGesture(event)) {
-      creditFirstPop();
+    if (!unlocked) {
+      // First wheel is the Chromium unlock — resume()+start() in this turn.
+      tryUnlockAllAudio(event);
+      if (hasAudioGesture() || isWikiAudioRunning()) markUnlocked();
     }
+    playFirstScrollFromGesture(event);
   }
 
   const scrollRoot = getScrollRoot();
   const capture = { capture: true, passive: true };
 
-  // Iframe ticks live on the scroll root. After the first tap, wheel over
-  // the fixed panel still ticks in that same turn.
+  // Iframe ticks live on the scroll root. First wheel unlocks in this turn.
   document.addEventListener("wheel", onWheelGesture, capture);
   scrollRoot?.addEventListener("wheel", onWheelGesture, capture);
 
-  // First unlock: tap/click only — never wheel, key, or move.
+  // Extra tap unlock — unbind after first wheel/tap. Tick handler stays.
   for (const type of ["pointerdown", "click"]) {
     const onUnlock = (event) => {
       if (!event.isTrusted || unlocked) return;

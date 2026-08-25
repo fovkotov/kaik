@@ -9,10 +9,10 @@ import { isMobile } from "../tweaks.js";
 import {
   bindGestureUnlock,
   createUnlockedContext,
+  eventCanUnlockAudio,
   hasAudioGesture,
   isDesktopChromiumGesture,
   isDiscreteUnlock,
-  isTapUnlockEvent,
   reviveAudioContext,
 } from "./gesture-audio.js";
 
@@ -161,9 +161,9 @@ function stopGestureUnlockListeners() {
 }
 
 /**
- * Call from a user gesture. Create only on the first tap/click. After that,
- * desktop may resume on wheel in the same turn so ticks are not a frame late.
- * No-op once the context is running (listeners are dropped then).
+ * Call from a user gesture. Create lazily on the first wheel/key/tap
+ * (Cuelume-style). resume() is sync — do not await. Unbind extra unlock
+ * listeners as soon as the context exists so later wheels only tick.
  */
 export function warmWikiAudio(event) {
   if (isMobile() || reduced()) return;
@@ -184,14 +184,14 @@ export function warmWikiAudio(event) {
       create: () => attachGraph(createContext()),
       drop: dropContext,
       resume: (ctx) => {
-        const wasCold = ctx.state !== "running";
         resumeNow(ctx);
-        if (wasCold) primeOutput(ctx);
         hookState(ctx);
       },
       event,
     });
-    if (isWikiAudioRunning()) stopGestureUnlockListeners();
+    // Drop extra unlock as soon as we have a context — do not wait for
+    // `running` (resume is async). The tick handler stays elsewhere.
+    if (audioContext) stopGestureUnlockListeners();
   } catch {
     // Web Audio failures are silent.
   }
@@ -541,8 +541,8 @@ function runSound(play, volume) {
 }
 
 function canStartInThisTurn(event) {
-  const tap = Boolean(event?.isTrusted && isTapUnlockEvent(event.type));
-  if (!hasAudioGesture() && !tap) return false;
+  if (eventCanUnlockAudio(event)) return true;
+  if (!hasAudioGesture()) return false;
   if (event?.isTrusted && (isDiscreteUnlock(event.type) || isDesktopChromiumGesture(event.type))) {
     return true;
   }
@@ -555,10 +555,9 @@ export function playWikiSound(name, options = {}) {
   if (!play) return;
   const volume = options.volume ?? 1;
   if (volume <= 0) return;
-  const tap = Boolean(options.event?.isTrusted && isTapUnlockEvent(options.event.type));
-  if (!hasAudioGesture() && !tap) return;
+  if (!hasAudioGesture() && !eventCanUnlockAudio(options.event)) return;
   try {
-    // Recreate/resume in this turn — never await resume() before oscillators.
+    // resume() sync, then start() in this turn — never await resume().
     warmWikiAudio(options.event);
     if (isWikiAudioRunning() || canStartInThisTurn(options.event)) {
       runSound(play, volume);
@@ -572,6 +571,10 @@ export function playWikiSound(name, options = {}) {
 
 if (!isMobile()) {
   unbindGestureUnlock = bindGestureUnlock((event) => {
+    if (audioContext) {
+      stopGestureUnlockListeners();
+      return;
+    }
     warmWikiAudio(event);
   }, [getScrollRoot()]);
 
