@@ -12,6 +12,16 @@ export const DEFAULT_LOCALE = "en";
 export const STORAGE_KEY = "kaik-course-locale";
 const storage = safeStorage();
 
+/** English waitlist form; Russian still goes to Tribute payment. */
+export const ENROLL_HREF = {
+  en: "https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform",
+  ru: "https://web.tribute.tg/p/AOo",
+};
+
+function enrollHref(locale) {
+  return ENROLL_HREF[locale] || ENROLL_HREF[DEFAULT_LOCALE];
+}
+
 const dictionaries = {
   en: {
     title: "ETTER II",
@@ -23,7 +33,7 @@ const dictionaries = {
     "nav.program": "program",
     "nav.work": "student work",
     "nav.catalog": "catalog",
-    "nav.enroll": "enroll",
+    "nav.enroll": "join waitlist",
     "lang.label": "Language",
     "stage.settings": "settings",
     "stage.title": "position",
@@ -588,6 +598,9 @@ export function applyTranslations(locale = getLocale()) {
     const key = node.getAttribute("data-i18n");
     if (!key) return;
     node.textContent = t(key, locale);
+    if (key === "nav.enroll" && node instanceof HTMLAnchorElement) {
+      node.setAttribute("href", enrollHref(locale));
+    }
   });
 
   document.querySelectorAll("[data-i18n-aria]").forEach((node) => {
