@@ -161,9 +161,10 @@ function stopGestureUnlockListeners() {
 }
 
 /**
- * Call from a user gesture. Create lazily on the first wheel/key/tap
- * (Cuelume-style). resume() is sync — do not await. Unbind extra unlock
- * listeners as soon as the context exists so later wheels only tick.
+ * Call from a user gesture. Create only on the first tap/click. After that,
+ * desktop may resume on wheel in the same turn so ticks are not a frame late.
+ * resume() is sync — do not await. Unbind extra unlock listeners as soon as
+ * the context exists so later wheels only tick.
  */
 export function warmWikiAudio(event) {
   if (isMobile() || reduced()) return;

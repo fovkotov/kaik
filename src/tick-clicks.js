@@ -94,11 +94,14 @@ export function initTickClicks() {
   }
 
   function unlock(event) {
+    // Unlock only on tap/click. Key/wheel must not create a context.
+    if (event && (event.type === "keydown" || event.type === "keyup" || event.type === "wheel")) {
+      if (!hasAudioGesture() && !isWikiAudioRunning()) return;
+    }
     if (isWikiAudioRunning() || hasAudioGesture()) {
       stopUnlockListeners();
       if (isWikiAudioRunning()) return;
     }
-    // Wheel/key may create the context (Chromium). Do not play a click here.
     warmWikiAudio(event);
     if (isWikiAudioRunning() || hasAudioGesture()) stopUnlockListeners();
   }
@@ -120,8 +123,7 @@ export function initTickClicks() {
     return false;
   }
 
-  // Extra tap unlock — never wheel (that would pop on scroll). Wheel lives
-  // on bindGestureUnlock / the tick handler. Unbind after first gesture.
+  // Tap/click only — never wheel, key, or move (those caused lag and ghost ticks).
   for (const type of ["pointerdown", "click"]) {
     const onUnlock = (event) => {
       if (!event.isTrusted) return;
@@ -197,6 +199,7 @@ export function initTickClicks() {
     "keydown",
     (event) => {
       if (!event.isTrusted) return;
+      if (!hasAudioGesture() && !isWikiAudioRunning()) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (!isStepKey(event)) return;
       const target = clickTarget(event);

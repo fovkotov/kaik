@@ -7,7 +7,7 @@ import {
   tryUnlockAllAudio,
 } from "./lib/sound-catalog.js";
 import { isWikiAudioRunning } from "./lib/wiki-sounds.js";
-import { eventCanUnlockAudio, hasAudioGesture } from "./lib/gesture-audio.js";
+import { hasAudioGesture } from "./lib/gesture-audio.js";
 import { getScrollRoot } from "./embed.js";
 import { isMobile } from "./tweaks.js";
 
@@ -49,7 +49,7 @@ export function initSoundSettings() {
 
   function onScrollPx(delta, event) {
     if (reduced()) return;
-    if (!hasAudioGesture() && !isWikiAudioRunning() && !eventCanUnlockAudio(event)) return;
+    if (!hasAudioGesture() && !isWikiAudioRunning()) return;
     const d = Math.abs(Number(delta));
     if (!Number.isFinite(d) || d === 0) return;
     if (takeFirstScrollCredit()) {
@@ -69,23 +69,22 @@ export function initSoundSettings() {
 
   function onWheelGesture(event) {
     if (!event.isTrusted) return;
+    // Do not unlock on wheel — only tick after the first tap.
+    if (!hasAudioGesture() && !isWikiAudioRunning()) return;
     if (reduced()) return;
-    if (!unlocked) {
-      // First wheel is the Chromium unlock — resume()+start() in this turn.
-      tryUnlockAllAudio(event);
-      if (hasAudioGesture() || isWikiAudioRunning()) markUnlocked();
-    }
+    if (!unlocked) markUnlocked();
     playFirstScrollFromGesture(event);
   }
 
   const scrollRoot = getScrollRoot();
   const capture = { capture: true, passive: true };
 
-  // Iframe ticks live on the scroll root. First wheel unlocks in this turn.
+  // Iframe ticks live on the scroll root. After the first tap, wheel over
+  // the fixed panel still ticks in that same turn.
   document.addEventListener("wheel", onWheelGesture, capture);
   scrollRoot?.addEventListener("wheel", onWheelGesture, capture);
 
-  // Extra tap unlock — unbind after first wheel/tap. Tick handler stays.
+  // First unlock: tap/click only — never wheel, key, or move.
   for (const type of ["pointerdown", "click"]) {
     const onUnlock = (event) => {
       if (!event.isTrusted || unlocked) return;

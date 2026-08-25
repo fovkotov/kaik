@@ -194,8 +194,8 @@ export function playScrollSound(extra = {}) {
 
 export function playFlySound(extra = {}) {
   if (isMobile() || reduced()) return;
-  // Never play or queue fly whooshes before the context is running.
-  // First wheel may start them later in-turn; do not dump a backlog.
+  // Never play or queue fly whooshes before the first tap.
+  // Do not dump a backlog when the context later starts.
   if (!isWikiAudioRunning()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
@@ -260,13 +260,13 @@ export function tryUnlockAllAudio(event) {
 }
 
 /**
- * First wheel: create lazily, resume() sync, play one tick in this turn.
+ * After the first tap: first wheel tick in this same turn.
  * Do not await. Do not dump a fly-in backlog. Later wheels only tick.
  */
 export function playFirstScrollFromGesture(event) {
   if (isMobile() || reduced()) return false;
   if (firstScrollFromGesture) return false;
-  if (!eventCanUnlockAudio(event) && !hasAudioGesture() && !isWikiAudioRunning()) {
+  if (!hasAudioGesture() && !isWikiAudioRunning()) {
     return false;
   }
   warmAllAudio(event);
@@ -277,7 +277,7 @@ export function playFirstScrollFromGesture(event) {
   return true;
 }
 
-/** Subtract one step from scroll acc so the first-wheel tick is not doubled. */
+/** Subtract one step from scroll acc so the first post-tap wheel tick is not doubled. */
 export function takeFirstScrollCredit() {
   if (!firstScrollNeedsCredit) return false;
   firstScrollNeedsCredit = false;
