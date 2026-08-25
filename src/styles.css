@@ -2974,7 +2974,6 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 
 .img-slider.is-dragging {
   cursor: grabbing;
-  touch-action: none;
 }
 
 /* One gallery at a time: siblings keep article pan-y and ignore the extra finger. */
@@ -3621,8 +3620,23 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
     transition: none !important;
   }
 
+  .card.is-program-open .history-card,
+  .card.is-program-open .work-card,
+  .card.is-program-open .format-card,
+  .card.is-program-open .author-card,
+  .card.is-program-open .preview-card,
+  .card.is-program-open .progress-card,
+  .card.is-program-open .exercises-card,
+  .card.is-program-open .faq-card {
+    transition: none;
+  }
+
   [data-focus-scroll],
   [data-focus-scroll-out] {
+    transition: none;
+  }
+
+  .fly-close {
     transition: none;
   }
 }
@@ -3654,6 +3668,13 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
   pointer-events: auto;
   overscroll-behavior: contain;
   -webkit-tap-highlight-color: transparent;
+  opacity: 1;
+  transition: opacity 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.fly-close.is-leaving {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .fly-close:not([hidden]) {
@@ -4625,6 +4646,17 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     transition: padding-bottom var(--fly-ms, 0ms) var(--fly-ease, var(--ease-out));
   }
 
+  .card.is-program-open .history-card,
+  .card.is-program-open .work-card,
+  .card.is-program-open .format-card,
+  .card.is-program-open .author-card,
+  .card.is-program-open .preview-card,
+  .card.is-program-open .progress-card,
+  .card.is-program-open .exercises-card,
+  .card.is-program-open .faq-card {
+    transition: padding-bottom var(--fly-ms, 0ms) var(--fly-ease, var(--ease-out));
+  }
+
   .card.is-program-open[data-works-card] .works-card {
     padding-bottom: calc(40 * var(--u) + 72px + env(safe-area-inset-bottom, 0px));
   }
@@ -4802,13 +4834,28 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     filter: none;
   }
 
+  /* Instant hide while expanded; fade back in on close (no display pop). */
   .card.is-program-open > .card-illust--program,
   .card.is-program-open > .card-illust--fly-close,
   .card.is-program-open .program-card > .card-illust--program,
   .card.is-program-open .card-illust--program[data-fly-illust-close],
-  body:has(.card.is-program-open) .card-illust--program[data-fly-illust-close] {
-    display: none;
+  body:has(.card.is-program-open:not([data-expand-closing])) .card-illust--program[data-fly-illust-close] {
+    opacity: 0;
+    visibility: hidden;
     pointer-events: none;
+  }
+
+  .card.is-program-open[data-expand-closing] > .card-illust--program,
+  .card.is-program-open[data-expand-closing] > .card-illust--fly-close,
+  .card.is-program-open[data-expand-closing] .program-card > .card-illust--program,
+  .card.is-program-open[data-expand-closing] .card-illust--program[data-fly-illust-close] {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: none;
+    transition:
+      opacity var(--fly-ms, 0.5s) var(--fly-ease, var(--ease-out)),
+      visibility var(--fly-ms, 0.5s) var(--fly-ease, var(--ease-out));
   }
 
   /* Face stays the fullscreen chrome. Inner program/works columns scroll. */
@@ -4818,6 +4865,13 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   .card.is-program-open[data-expand-host][data-works-card].is-program-scroll {
     overflow: hidden;
     touch-action: auto;
+  }
+
+  /* Closing: clip the article on the inner face, let the dog hang outside. */
+  .card.is-program-open[data-expand-host][data-expand-closing],
+  .card.is-program-open[data-expand-host][data-expand-closing][data-program-card],
+  .card.is-program-open[data-expand-host][data-expand-closing][data-works-card] {
+    overflow: visible;
   }
 
   .card.is-program-open[data-program-card][data-expand-host] .program-card,
@@ -4845,9 +4899,10 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     height: 0;
   }
 
-  .card.is-program-open[data-expand-host][data-program-card] .program-card > .card-illust--program,
-  .card.is-program-open .card-illust--program[data-fly-illust-close] {
-    display: none;
+  .card.is-program-open[data-expand-host][data-program-card]:not([data-expand-closing]) .program-card > .card-illust--program,
+  .card.is-program-open:not([data-expand-closing]) .card-illust--program[data-fly-illust-close] {
+    opacity: 0;
+    visibility: hidden;
     pointer-events: none;
   }
 

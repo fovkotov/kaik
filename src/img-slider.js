@@ -97,6 +97,8 @@ function bindSlider(root) {
   let stopSpring = null;
   let gesture = null;
   let didSlide = false;
+  /** Ignore the synthetic click that follows a swipe (iOS ghost click included). */
+  let ignoreClickUntil = 0;
   /** Pointer down that may become a tap-to-next (no swipe / no scroll). */
   let press = null;
   const dots = [];
@@ -208,9 +210,17 @@ function bindSlider(root) {
     settleShift(-steps * widthOf(), vel, target);
   };
 
+  /** Keep the painted offset when adopting `pending` as the live index. */
+  const adoptPending = () => {
+    if (pending === index) return;
+    shift += shortestSteps(index, pending) * widthOf();
+    index = pending;
+    paint(shift);
+  };
+
   const commitFromRelease = (vel) => {
     const steps = committedSteps(vel);
-    settleShift(-steps * widthOf(), 0, index + steps);
+    settleShift(-steps * widthOf(), vel, index + steps);
   };
 
   const holdFocus = (event) => {
@@ -273,26 +283,16 @@ function bindSlider(root) {
     document.dispatchEvent(new CustomEvent("kaik:cancel-deck-drag"));
   };
 
-  const capturePointer = (id) => {
-    try {
-      root.setPointerCapture(id);
-    } catch {
-      // ignore
-    }
-  };
-
-  const releasePointer = (id) => {
-    try {
-      if (id != null && root.hasPointerCapture?.(id)) root.releasePointerCapture(id);
-    } catch {
-      // ignore
-    }
-  };
-
   const detachPointer = () => {
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     window.removeEventListener("pointercancel", onCancel);
+  };
+
+  const suppressClick = () => {
+    ignoreClickUntil = performance.now() + 450;
+    didSlide = true;
+    if (press) press.moved = true;
   };
 
   const markPressMoved = (event) => {
@@ -305,18 +305,19 @@ function bindSlider(root) {
   const endGesture = (event, cancelled) => {
     if (!gesture || (event && event.pointerId !== gesture.id)) return;
     const axis = gesture.axis;
-    const id = gesture.id;
     gesture = null;
-    releasePointer(id);
     detachPointer();
     releaseSlider(root);
     if (axis === "y" && press && (!event || event.pointerId === press.id)) {
       press.moved = true;
     }
     if (axis !== "x") {
-      if (Math.abs(shift) > 1) commitFromRelease(0);
+      // Vertical / cancelled axis: finish the slide we already adopted, don't
+      // treat leftover spring offset as a new swipe (that skipped or stuck).
+      if (Math.abs(shift) > 0.5) settleShift(0, 0, index);
       return;
     }
+    suppressClick();
     if (cancelled) {
       settleShift(0, 0, index);
       return;
@@ -336,14 +337,13 @@ function bindSlider(root) {
       if (Math.abs(dx) < AXIS_PX && Math.abs(dy) < AXIS_PX) return;
       if (Math.abs(dx) > Math.abs(dy) * 1.05) {
         gesture.axis = "x";
-        didSlide = true;
-        if (press) press.moved = true;
+        suppressClick();
         root.classList.add("is-dragging");
         releaseDeck();
-        capturePointer(event.pointerId);
       } else {
         gesture.axis = "y";
         if (press) press.moved = true;
+        releaseSlider(root);
         return;
       }
     }
@@ -385,14 +385,14 @@ function bindSlider(root) {
   root.addEventListener(
     "pointerdown",
     (event) => {
-      if (gesture && event.pointerId !== gesture.id) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
       if (event.isPrimary === false) return;
       if (event.button && event.button !== 0) return;
       if (event.target.closest?.(IGNORE)) return;
+      event.stopPropagation();
+      if (gesture && event.pointerId !== gesture.id) {
+        event.preventDefault();
+        return;
+      }
       if (gesture) return;
 
       detachPointer();
@@ -405,7 +405,9 @@ function bindSlider(root) {
 
       if (allowSwipe(event) && claimSlider(root)) {
         cancelSpring();
-        didSlide = Math.abs(shift) > 4;
+        adoptPending();
+        releaseDeck();
+        didSlide = false;
         gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
         gesture = {
           id: event.pointerId,
@@ -423,25 +425,27 @@ function bindSlider(root) {
     true,
   );
 
-  root.addEventListener("lostpointercapture", (event) => {
-    if (!gesture || event.pointerId !== gesture.id) return;
-    endGesture(event, true);
-  });
+  root.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!gesture || gesture.axis !== "x") return;
+      if (event.cancelable) event.preventDefault();
+    },
+    { passive: false },
+  );
 
   root.addEventListener(
     "click",
     (event) => {
-      const swiped = didSlide;
+      const swiped = didSlide || performance.now() < ignoreClickUntil;
       const moved = press?.moved;
       didSlide = false;
       press = null;
 
       if (event.target.closest?.(IGNORE)) return;
       if (swiped || moved) {
-        if (swiped) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
+        event.preventDefault();
+        event.stopPropagation();
         return;
       }
       if (!articleOpen()) return;

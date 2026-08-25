@@ -13,7 +13,7 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-article-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+  "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-article-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
   const SIDE_CHROME =
   "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-article-close], [data-fly-illust-close], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select";
 const DRAG_CLICK_PX = 6;
@@ -398,6 +398,7 @@ export function initProgramModal() {
   function clearExpandHost(el) {
     el.removeAttribute("data-expand-host");
     el.removeAttribute("data-expand-settled");
+    el.removeAttribute("data-expand-closing");
     el.removeAttribute("data-body-grow");
     el.style.position = "";
     el.style.zIndex = "";
@@ -641,6 +642,7 @@ export function initProgramModal() {
     unmountFocusScrollbar(card);
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
+    resetCardScroll(card);
     card.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     clearExpandHost(card);
     card.style.transform = restTransform;
@@ -670,7 +672,7 @@ export function initProgramModal() {
     const clone = host.cloneNode(false);
     clone.className = host.className;
     clone.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
-    ["data-expand-host", "data-expand-settled", "data-body-grow", "data-fly-lock", "data-focus-open"].forEach(
+    ["data-expand-host", "data-expand-settled", "data-expand-closing", "data-body-grow", "data-fly-lock", "data-focus-open"].forEach(
       (name) => clone.removeAttribute(name),
     );
     clone.setAttribute("data-rest-lock", "");
@@ -689,6 +691,7 @@ export function initProgramModal() {
     unmountFocusScrollbar(host);
     host.removeEventListener("wheel", trapCardScroll);
     host.removeEventListener("touchmove", trapCardScroll);
+    resetCardScroll(host);
     host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     clearExpandHost(host);
     clearFlyBox(host);
@@ -883,6 +886,7 @@ export function initProgramModal() {
     if (reduceMotion()) {
       card.removeAttribute("data-expand-settled");
       card.removeAttribute("data-body-grow");
+      card.removeAttribute("data-expand-closing");
       applyExpandPose(card, origin, false);
       setIllustOut(card, false);
       onFlySettled();
@@ -891,12 +895,14 @@ export function initProgramModal() {
     card.style.setProperty("--fly-ms", `${EXPAND_MS}ms`);
     card.style.setProperty("--fly-ease", EXPAND_EASE);
     const run = () => {
+      card.setAttribute("data-expand-closing", "");
       card.removeAttribute("data-expand-settled");
       card.removeAttribute("data-body-grow");
       applyExpandPose(card, origin, true);
       setIllustOut(card, false);
       afterFly(onFlySettled);
     };
+    applyExpandPose(card, expandOpenPose(fromLocal || captureExpandFrom(card)), false);
     card.getBoundingClientRect();
     requestAnimationFrame(() => requestAnimationFrame(run));
   }
@@ -943,6 +949,7 @@ export function initProgramModal() {
     unmountFocusScrollbar(el);
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
+    resetCardScroll(el);
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     el.style.transform = restTf;
     clearFlyBox(el);
@@ -1042,7 +1049,6 @@ export function initProgramModal() {
     phase = "closing";
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
-    resetCardScroll(card);
     fadeFocusScrollbar(card, false);
     card?.classList.remove("is-work-open", "is-program-scroll");
     cards.forEach((el) => {
@@ -1286,10 +1292,12 @@ export function initProgramModal() {
 
   function syncCloseBtn() {
     const expanded = phase === "open" || phase === "opening";
-    const showGlobal = expanded && Boolean(card) && isMobile();
+    const closing = phase === "closing";
+    const showGlobal = (expanded || closing) && Boolean(card) && isMobile();
     if (closeBtn) {
       closeBtn.hidden = !showGlobal;
-      if (showGlobal) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
+      closeBtn.classList.toggle("is-leaving", closing);
+      if (showGlobal && !closing) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
     }
     document.querySelectorAll("[data-article-close]").forEach((btn) => {
       btn.hidden = true;
