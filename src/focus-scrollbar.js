@@ -246,12 +246,12 @@ export function mountFocusScrollbar(card) {
   const sync = () => {
     followStable = 0;
     last = layout(card, track, thumb, out, outThumb) || last;
-    if (!out.hidden && !follow) follow = requestAnimationFrame(followOuter);
+    if (isDesktopRail() && !out.hidden && !follow) follow = requestAnimationFrame(followOuter);
   };
 
   const followOuter = () => {
     follow = 0;
-    if (!attached.has(card) || out.hidden) return;
+    if (!isDesktopRail() || !attached.has(card) || out.hidden) return;
     const m = metrics(card);
     const rect = card.getBoundingClientRect();
     const key = `${rect.left|0},${rect.top|0},${rect.width|0},${rect.height|0},${m.thumbH},${m.scroll}`;
@@ -294,7 +294,7 @@ export function mountFocusScrollbar(card) {
     // Same frame as the scroll, not rAF — rAF left the thumb one tick behind.
     followStable = 0;
     last = paintLocked(card, track, thumb, out, outThumb, metrics(card));
-    if (!out.hidden && !follow) follow = requestAnimationFrame(followOuter);
+    if (isDesktopRail() && !out.hidden && !follow) follow = requestAnimationFrame(followOuter);
   };
 
   const onScrollEnd = () => {
@@ -368,9 +368,11 @@ export function mountFocusScrollbar(card) {
   const ro = new ResizeObserver(schedule);
   ro.observe(card);
   if (root !== card) ro.observe(root);
-  [...card.children].forEach((child) => {
-    if (child !== track) ro.observe(child);
-  });
+  if (isDesktopRail()) {
+    [...card.children].forEach((child) => {
+      if (child !== track) ro.observe(child);
+    });
+  }
 
   const mo = new MutationObserver(schedule);
   mo.observe(card, { attributes: true, attributeFilter: ["class", "data-work-student"] });
@@ -379,7 +381,7 @@ export function mountFocusScrollbar(card) {
   root.addEventListener("scrollend", onScrollEnd, { passive: true });
   thumbs().forEach((el) => {
     el.addEventListener("pointerdown", onPointerDown);
-    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointermove", onPointerMove, { passive: false });
     el.addEventListener("pointerup", endDrag);
     el.addEventListener("pointercancel", endDrag);
     el.addEventListener("click", onClick);
@@ -490,7 +492,7 @@ export function mountFocusScrollbar(card) {
     track.classList.add("is-on");
     out.classList.add("is-on");
     sync();
-    if (!follow && !out.hidden) follow = requestAnimationFrame(followOuter);
+    if (!follow && isDesktopRail() && !out.hidden) follow = requestAnimationFrame(followOuter);
   };
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     reveal();

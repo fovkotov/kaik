@@ -25,7 +25,6 @@ export function initSoundSettings() {
   let unlocked = false;
   let lastMobileTickAt = 0;
   const unlockUnbinds = [];
-  const mobile = () => isMobile();
   const MOBILE_TICK_MS = 90;
 
   function markUnlocked() {
@@ -50,7 +49,7 @@ export function initSoundSettings() {
     if (!Number.isFinite(d) || d === 0) return;
     // Mobile: never resume/decode from a scroll sample — only tick if Web
     // Audio is already running from a real tap, and time-throttle pops.
-    if (mobile()) {
+    if (isMobile()) {
       if (!isWikiAudioRunning()) return;
       const now = performance.now();
       if (now - lastMobileTickAt < MOBILE_TICK_MS) {
@@ -63,7 +62,7 @@ export function initSoundSettings() {
     while (acc >= step) {
       playScrollSound();
       acc -= step;
-      if (mobile()) {
+      if (isMobile()) {
         lastMobileTickAt = performance.now();
         break;
       }
@@ -106,19 +105,21 @@ export function initSoundSettings() {
 
   // Desktop native scroll ticks. Mobile stack is not this scroller — zeroing
   // scrollTop there would both jank and double-fire pops.
-  if (!mobile()) {
-    let lastScrollTop = scrollRoot?.scrollTop || 0;
-    scrollRoot?.addEventListener(
-      "scroll",
-      () => {
-        const top = scrollRoot.scrollTop || 0;
-        const delta = top - lastScrollTop;
-        lastScrollTop = top;
-        onScrollPx(delta);
-      },
-      { passive: true },
-    );
-  }
+  let lastScrollTop = scrollRoot?.scrollTop || 0;
+  scrollRoot?.addEventListener(
+    "scroll",
+    () => {
+      if (isMobile()) {
+        lastScrollTop = scrollRoot.scrollTop || 0;
+        return;
+      }
+      const top = scrollRoot.scrollTop || 0;
+      const delta = top - lastScrollTop;
+      lastScrollTop = top;
+      onScrollPx(delta);
+    },
+    { passive: true },
+  );
 
   document.addEventListener("kaik:deck-progress", (event) => {
     const detail = event.detail || {};

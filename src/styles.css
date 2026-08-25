@@ -2015,6 +2015,13 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   .card:not([data-program-card]) .card-illust--fly-close {
     display: none;
   }
+
+  .card.is-program-open[data-program-card] .card-illust--program[data-fly-illust-close],
+  .card.is-program-open[data-program-card] .card-illust--program[data-fly-illust-close] .card-illust__art,
+  .card.is-program-open[data-program-card] .card-illust--program[data-fly-illust-close] .card-illust__cue {
+    pointer-events: auto;
+    cursor: pointer;
+  }
 }
 
 /* Progress face does not open as a modal — keep student sheets tappable. */
@@ -3529,10 +3536,10 @@ html.is-mobile .card.is-program-open[data-works-card] .works-card {
   pointer-events: none;
 }
 
-.card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
-.card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
-  pointer-events: none;
-  cursor: default;
+html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--program .card-illust__art,
+html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .card.is-program-open .faq-card {

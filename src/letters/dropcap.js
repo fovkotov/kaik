@@ -571,7 +571,7 @@ export async function initDropcaps() {
   const hosts = [...document.querySelectorAll("[data-dropcap]")];
   if (!hosts.length) return;
 
-  warmPool(allLetters(catalog));
+  if (!isMobile()) warmPool(allLetters(catalog));
 
   const popover = ensurePopover();
 
