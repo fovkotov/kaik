@@ -1,7 +1,7 @@
 /**
- * Stage nudge panel. Desktop gear is ?tweaks-only. Mobile always mounts a compact
- * stack Y + scale pair (deckY / cardSize). Full board stays behind ?tweaks.
- * Desktop chrome sits in the left half of the frame (Figma 117:975), under cards.
+ * Stage nudge panel (dev-only gear via ?tweaks). Desktop chrome sits in the left
+ * half of the frame (Figma 117:975), under cards. Cluster X/Y are optional
+ * overrides on top of that geometry (default cluster -6/42, scale 1.15). Mobile: lift → footer, deck → stack.
  */
 
 import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
@@ -101,7 +101,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
-  deckY: 50,
+  deckY: 37,
   focusX: 0,
   focusY: 0,
   focusScale: 1,
@@ -109,7 +109,7 @@ export const MOBILE_STAGE_DEFAULTS = {
   closeY: 0,
 };
 
-/** Previous published mobile defaults (deck Y 71). */
+/** Previous published mobile defaults (deck Y 50). */
 const PREV_MOBILE_DEFAULTS = {
   lift: 146,
   lockupX: 0,
@@ -119,7 +119,7 @@ const PREV_MOBILE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
-  deckY: 71,
+  deckY: 50,
   focusX: 0,
   focusY: 0,
   focusScale: 1,
@@ -130,7 +130,7 @@ const PREV_MOBILE_DEFAULTS = {
 /** Older uncustomized mobile snapshots — treat as uncustomized too. */
 const PREV_MOBILE_ALSO = {
   lift: [110],
-  deckY: [0, 70, 81],
+  deckY: [0, 70, 71, 81],
 };
 
 const GROUPS = [
@@ -825,12 +825,6 @@ function devTweaksEnabled() {
   }
 }
 
-const COMPACT_STACK_KEYS = new Set(["deckY", "cardSize"]);
-
-function compactMobileUi() {
-  return isMobile() && !devTweaksEnabled();
-}
-
 let stageFrameBound = false;
 
 export function initStageSettings() {
@@ -855,11 +849,10 @@ export function initStageSettings() {
     });
   }
 
-  if (!devTweaksEnabled() && !isMobile()) return;
+  if (!devTweaksEnabled()) return;
 
-  const compact = compactMobileUi();
   const root = document.createElement("aside");
-  root.className = compact ? "stage-settings is-compact" : "stage-settings";
+  root.className = "stage-settings";
   root.dataset.stageSettings = "";
   root.dataset.tweaks = "";
   root.innerHTML = `
@@ -896,7 +889,6 @@ export function initStageSettings() {
   const body = root.querySelector("[data-stage-body]");
   const copyBtn = root.querySelector("[data-stage-copy]");
   let copiedTimer = 0;
-  if (compact) copyBtn.hidden = true;
 
   function pinnedGroups() {
     return isMobile() ? MOBILE_PINNED_GROUPS : DESKTOP_PINNED_GROUPS;
@@ -910,7 +902,6 @@ export function initStageSettings() {
     const mobileView = isMobile();
     const linked = !mobileView && clusterLinked();
     return GROUPS.filter((group) => {
-      if (compactMobileUi()) return group.titleKey === "stage.group.deck";
       if (group.desktopOnly && mobileView) return false;
       if (group.mobileOnly && !mobileView) return false;
       if (mobileView && (group.titleKey === "stage.group.lockup" || group.titleKey === "stage.group.nav")) {
@@ -938,7 +929,6 @@ export function initStageSettings() {
     section.innerHTML = `<h3 class="stage-settings__group-title" data-i18n="${titleKey}">${t(titleKey)}</h3>`;
     const linked = clusterLinked();
     group.items.forEach((field) => {
-      if (compactMobileUi() && !COMPACT_STACK_KEYS.has(field.key)) return;
       if (field.mobileOnly && !isMobile()) return;
       if (field.desktopOnly && isMobile()) return;
       if (field.linkedOnly && !linked) return;

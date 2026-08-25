@@ -4125,13 +4125,13 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   :root {
     --host-bar: 0px;
     --panel-footer-h: 0px;
-    --deck-nudge-y: 50px;
+    --deck-nudge-y: 37px;
     --panel-chrome-top: max(12px, env(safe-area-inset-top, 0px));
     --panel-chrome-bot: 0px;
     --focus-close-inset: calc(var(--frame-clip-top) + 16px + var(--close-nudge-y));
     --deck-scale: 1;
     --card-aspect: calc(450 / 320);
-    --stack-card-w: min(320px, var(--frame-w));
+    --stack-card-w: calc(min(320px, var(--frame-w)) * 1.07);
     --card-w: var(--stack-card-w);
     --card-h: calc(var(--stack-card-w) * 450 / 320);
     --stack-card-h: var(--card-h);
@@ -4144,7 +4144,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
 
   .deck {
     z-index: 20;
-    top: calc(var(--frame-clip-top) + var(--deck-nudge-y, 50px));
+    top: calc(var(--frame-clip-top) + var(--deck-nudge-y, 37px));
     perspective-origin: 50% 50%;
     transform-origin: 50% 50%;
     pointer-events: none;
@@ -5712,7 +5712,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 }
 
-/* —— Stage position settings (desktop: ?tweaks only; mobile: compact Y + scale) —— */
+/* —— Stage position settings (dev gear via ?tweaks) —— */
 .stage-settings {
   display: block;
   position: fixed;
@@ -5882,19 +5882,6 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   display: none;
 }
 
-.stage-settings.is-compact .stage-settings__copy {
-  display: none;
-}
-
-.stage-settings.is-compact .stage-settings__body[hidden] {
-  display: none;
-  padding: 0;
-}
-
-.stage-settings.is-compact .stage-settings__pinned {
-  border-bottom: 0;
-}
-
 .stage-settings__body {
   flex: 1 1 auto;
   min-height: 0;
@@ -6019,7 +6006,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 }
 
-/* Desktop gear mounts only with ?tweaks. Mobile always shows compact stack Y + scale. */
+/* Stage gear/panel mount only with ?tweaks (see stage-settings.js). */
 
 @media (min-width: 901px) {
   .stage-settings {
