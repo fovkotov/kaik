@@ -1,10 +1,13 @@
 import { safeStorage } from "../embed.js";
+import { isMobile } from "../tweaks.js";
 
 export const VOLUME_MIN = 0;
 export const VOLUME_MAX = 2;
 export const VOLUME_DEFAULT = 0.5;
-/** One global scale so production is 1.8× quieter than stored / default gain. */
+/** Mobile playback scale (1.8× quieter than stored / default). Desktop is 2× this. */
 export const VOLUME_PLAYBACK_SCALE = 5 / 9;
+/** Desktop-only: 2× mobile so clicks sit twice as loud without changing phones. */
+export const VOLUME_DESKTOP_PLAYBACK_SCALE = 10 / 9;
 export const SLIDER_MIN = 0;
 export const SLIDER_MAX = 100;
 export const STORAGE_KEY = "kaik-sound-volume-v3";
@@ -49,8 +52,12 @@ export function formatVolumePercent(volume) {
   return `${Math.round(clamp(v, VOLUME_MIN, VOLUME_MAX) * 100)}%`;
 }
 
+export function getPlaybackScale() {
+  return isMobile() ? VOLUME_PLAYBACK_SCALE : VOLUME_DESKTOP_PLAYBACK_SCALE;
+}
+
 export function getActionVolume() {
-  return current * VOLUME_PLAYBACK_SCALE;
+  return current * getPlaybackScale();
 }
 
 export function setActionVolume(volume) {

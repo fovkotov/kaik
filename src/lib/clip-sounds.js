@@ -108,11 +108,23 @@ function playBuffer(buffer, volume, offset = 0, duration) {
   const ctx = getClipContext();
   resumeNow(ctx);
   const src = ctx.createBufferSource();
-  const gain = ctx.createGain();
   src.buffer = buffer;
-  gain.gain.value = volume;
-  src.connect(gain);
-  gain.connect(ctx.destination);
+  const destGain = Math.min(1, volume);
+  const sourceBoost = volume > 1 ? volume : 1;
+  let node = ctx.destination;
+  if (destGain < 1) {
+    const tap = ctx.createGain();
+    tap.gain.value = destGain;
+    tap.connect(node);
+    node = tap;
+  }
+  if (sourceBoost > 1) {
+    const boost = ctx.createGain();
+    boost.gain.value = sourceBoost;
+    boost.connect(node);
+    node = boost;
+  }
+  src.connect(node);
   const when = ctx.currentTime;
   if (duration != null && duration > 0) src.start(when, offset, duration);
   else src.start(when, offset);

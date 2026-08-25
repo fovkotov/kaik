@@ -146,11 +146,26 @@ function getAudioContext() {
 
 function getDestination() {
   const ctx = getAudioContext();
-  if (outputVolume === 1) return masterGain || ctx.destination;
-  const tap = ctx.createGain();
-  tap.gain.value = outputVolume;
-  tap.connect(masterGain || ctx.destination);
-  return tap;
+  const sink = masterGain || ctx.destination;
+  if (outputVolume === 1) return sink;
+  // Destination stays ≤1 so 10/9 desktop scale cannot clip the DAC.
+  // Extra gain lives on a prior node (oscillator/sample path).
+  const destGain = Math.min(1, outputVolume);
+  const sourceBoost = outputVolume > 1 ? outputVolume : 1;
+  let node = sink;
+  if (destGain < 1) {
+    const tap = ctx.createGain();
+    tap.gain.value = destGain;
+    tap.connect(node);
+    node = tap;
+  }
+  if (sourceBoost > 1) {
+    const boost = ctx.createGain();
+    boost.gain.value = sourceBoost;
+    boost.connect(node);
+    node = boost;
+  }
+  return node;
 }
 
 function stopGestureUnlockListeners() {
