@@ -543,10 +543,10 @@ function isStaleMobileSnapshot(mobile) {
 }
 
 function applyMobileSaved(mobile) {
-  if (!mobile) return;
+  if (!mobile) return false;
   if (isStaleMobileSnapshot(mobile)) {
     Object.assign(MOBILE, MOBILE_DEFAULTS);
-    return;
+    return true;
   }
   Object.assign(MOBILE, mobile);
   for (const key of [
@@ -567,7 +567,9 @@ function applyMobileSaved(mobile) {
   MOBILE.viewMode = normalizeViewMode(MOBILE.viewMode);
   if (MOBILE.cardSize == null || MOBILE.cardSize === 1) {
     MOBILE.cardSize = MOBILE_DEFAULTS.cardSize;
+    return true;
   }
+  return false;
 }
 
 function applyEditMode(data) {
@@ -583,7 +585,7 @@ function loadSaved() {
     const raw = storage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      applyMobileSaved(data.mobile);
+      if (applyMobileSaved(data.mobile)) persist = true;
       if (desktopRevOk(data.desktopRev) && data.desktop) {
         applyDesktopSaved(data.desktop);
         overwriteDesktop = false;

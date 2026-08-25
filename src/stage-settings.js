@@ -101,6 +101,24 @@ export const MOBILE_STAGE_DEFAULTS = {
   langX: 0,
   langY: 0,
   deckX: 0,
+  deckY: 50,
+  focusX: 0,
+  focusY: 0,
+  focusScale: 1,
+  closeX: 0,
+  closeY: 0,
+};
+
+/** Previous published mobile defaults (deck Y 71). */
+const PREV_MOBILE_DEFAULTS = {
+  lift: 146,
+  lockupX: 0,
+  lockupY: 0,
+  navX: 0,
+  navY: 0,
+  langX: 0,
+  langY: 0,
+  deckX: 0,
   deckY: 71,
   focusX: 0,
   focusY: 0,
@@ -109,22 +127,10 @@ export const MOBILE_STAGE_DEFAULTS = {
   closeY: 0,
 };
 
-/** Previous published mobile defaults (lift 110, deck Y 81). */
-const PREV_MOBILE_DEFAULTS = {
-  lift: 110,
-  lockupX: 0,
-  lockupY: 0,
-  navX: 0,
-  navY: 0,
-  langX: 0,
-  langY: 0,
-  deckX: 0,
-  deckY: 81,
-  focusX: 0,
-  focusY: 0,
-  focusScale: 1,
-  closeX: 0,
-  closeY: 0,
+/** Older uncustomized mobile snapshots — treat as uncustomized too. */
+const PREV_MOBILE_ALSO = {
+  lift: [110],
+  deckY: [0, 70, 81],
 };
 
 const GROUPS = [
@@ -339,6 +345,13 @@ function previousDefaultValues(key) {
   return values;
 }
 
+function previousMobileDefaultValues(key) {
+  const values = [PREV_MOBILE_DEFAULTS[key]];
+  const extra = PREV_MOBILE_ALSO[key];
+  if (extra) values.push(...extra);
+  return values.filter((value) => value != null);
+}
+
 function migrateClusterDefaults(blob) {
   if (!blob || typeof blob !== "object") return blob;
   const next = { ...blob };
@@ -392,8 +405,7 @@ function migrateOldMobileDefaults(blob) {
   for (const key of Object.keys(MOBILE_STAGE_DEFAULTS)) {
     if (next[key] == null) continue;
     const fresh = MOBILE_STAGE_DEFAULTS[key];
-    const prev = PREV_MOBILE_DEFAULTS[key];
-    if (prev != null && next[key] === prev && next[key] !== fresh) {
+    if (previousMobileDefaultValues(key).includes(next[key]) && next[key] !== fresh) {
       next[key] = fresh;
     }
   }
@@ -606,7 +618,7 @@ export function getFocusScale() {
 function deckNudgeY(s = getTarget()) {
   const y = Number(s.deckY);
   if (Number.isFinite(y)) return y;
-  return isMobile() ? 0 : DESKTOP_STAGE_DEFAULTS.deckY;
+  return isMobile() ? MOBILE_STAGE_DEFAULTS.deckY : DESKTOP_STAGE_DEFAULTS.deckY;
 }
 
 export function applyStageNudge({ notify = false } = {}) {

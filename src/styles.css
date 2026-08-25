@@ -4125,7 +4125,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   :root {
     --host-bar: 0px;
     --panel-footer-h: 0px;
-    --deck-nudge-y: 0px;
+    --deck-nudge-y: 50px;
     --panel-chrome-top: max(12px, env(safe-area-inset-top, 0px));
     --panel-chrome-bot: 0px;
     --focus-close-inset: calc(var(--frame-clip-top) + 16px + var(--close-nudge-y));
@@ -4144,7 +4144,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
 
   .deck {
     z-index: 20;
-    top: calc(var(--frame-clip-top) + var(--deck-nudge-y, 0px));
+    top: calc(var(--frame-clip-top) + var(--deck-nudge-y, 50px));
     perspective-origin: 50% 50%;
     transform-origin: 50% 50%;
     pointer-events: none;
