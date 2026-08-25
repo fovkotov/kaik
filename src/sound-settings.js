@@ -6,7 +6,7 @@ import {
   tryUnlockAllAudio,
   warmAllAudio,
 } from "./lib/sound-catalog.js";
-import { bindGestureUnlock, isDiscreteUnlock } from "./lib/gesture-audio.js";
+import { isWikiAudioRunning } from "./lib/wiki-sounds.js";
 import { getScrollRoot } from "./embed.js";
 
 function reduced() {
@@ -22,6 +22,11 @@ export function initSoundSettings() {
   let acc = 0;
   let lastMobileYPx = null;
   let lastDriveY = null;
+  let unlocked = false;
+
+  function markUnlocked() {
+    unlocked = true;
+  }
 
   function creditFirstPop() {
     acc -= getScrollPx() || SCROLL_PX_DEFAULT;
@@ -42,12 +47,17 @@ export function initSoundSettings() {
   function onWheelGesture(event) {
     if (!event.isTrusted) return;
     if (reduced()) {
-      warmAllAudio(event);
+      if (!unlocked) warmAllAudio(event);
       return;
     }
     // Chromium: wheel is a user gesture. resume() then start() in this turn.
-    if (playFirstScrollFromGesture(event)) creditFirstPop();
-    else warmAllAudio(event);
+    if (playFirstScrollFromGesture(event)) {
+      creditFirstPop();
+      markUnlocked();
+    } else if (!unlocked) {
+      warmAllAudio(event);
+      if (isWikiAudioRunning()) markUnlocked();
+    }
   }
 
   function onScrollDriveMove(event, y) {
@@ -55,8 +65,13 @@ export function initSoundSettings() {
     if (y == null || !Number.isFinite(y)) return;
     if (lastDriveY != null && Math.abs(y - lastDriveY) < 2) return;
     lastDriveY = y;
-    if (playFirstScrollFromGesture(event)) creditFirstPop();
-    else warmAllAudio(event);
+    if (playFirstScrollFromGesture(event)) {
+      creditFirstPop();
+      markUnlocked();
+    } else if (!unlocked) {
+      warmAllAudio(event);
+      if (isWikiAudioRunning()) markUnlocked();
+    }
   }
 
   const scrollRoot = getScrollRoot();
@@ -67,14 +82,16 @@ export function initSoundSettings() {
   document.addEventListener("wheel", onWheelGesture, capture);
   scrollRoot?.addEventListener("wheel", onWheelGesture, capture);
 
-  bindGestureUnlock((event) => {
-    if (event.type === "touchstart") lastDriveY = event.touches?.[0]?.clientY ?? lastDriveY;
-    if (event.type === "wheel") return;
-    if (!isDiscreteUnlock(event.type) && event.type !== "pointermove" && event.type !== "mousemove" && event.type !== "touchmove") {
-      return;
-    }
-    tryUnlockAllAudio(event);
-  }, [scrollRoot]);
+  // Discrete unlock only — never mousemove / pointermove floods.
+  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
+    const onUnlock = (event) => {
+      if (!event.isTrusted || unlocked) return;
+      if (type === "touchstart") lastDriveY = event.touches?.[0]?.clientY ?? lastDriveY;
+      tryUnlockAllAudio(event);
+      if (isWikiAudioRunning()) markUnlocked();
+    };
+    document.addEventListener(type, onUnlock, capture);
+  }
 
   document.addEventListener(
     "touchmove",
@@ -87,10 +104,8 @@ export function initSoundSettings() {
   document.addEventListener(
     "pointermove",
     (event) => {
-      if (event.pointerType === "mouse") {
-        tryUnlockAllAudio(event);
-        return;
-      }
+      // Mouse moves must not unlock — that was the main-thread thrash.
+      if (event.pointerType === "mouse") return;
       onScrollDriveMove(event, event.clientY);
     },
     capture,

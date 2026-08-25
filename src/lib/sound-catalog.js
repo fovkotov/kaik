@@ -242,16 +242,13 @@ export function tryUnlockAllAudio(event) {
       // Storage Access is a hint, not required for playback.
     }
   }
-  if (navigator.userActivation?.isActive || navigator.userActivation?.hasBeenActive) {
-    warmAllAudio(event);
-  }
 }
 
 /** First wheel/drag: resume + start pop in this same turn. Do not await. */
 export function playFirstScrollFromGesture(event) {
-  warmAllAudio(event);
   if (reduced()) return false;
   if (firstScrollFromGesture) return false;
+  warmAllAudio(event);
   firstScrollFromGesture = true;
   playScrollSound({ event, queue: true });
   return true;

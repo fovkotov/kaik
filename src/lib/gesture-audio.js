@@ -8,41 +8,32 @@
  * oscillator.start() run in that same turn. Do not call HTMLAudio.play()
  * first on desktop — it consumes the activation and leaves the context
  * suspended until a click.
+ *
+ * Continuous move events must NEVER run unlock work — they thrash the main
+ * thread. Unlock once on a real gesture, then drop listeners.
  */
 
 const SILENT_WAV =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
+/** Discrete gestures only — no mousemove / pointermove / touchmove floods. */
 export const UNLOCK_EVENTS = [
   "pointerdown",
   "pointerup",
-  "pointermove",
   "mousedown",
   "mouseup",
-  "mousemove",
   "touchstart",
   "touchend",
-  "touchmove",
   "wheel",
   "keydown",
   "keyup",
   "click",
 ];
 
-const DISCRETE_UNLOCK = new Set([
-  "pointerdown",
-  "pointerup",
-  "mousedown",
-  "mouseup",
-  "touchstart",
-  "touchend",
-  "wheel",
-  "keydown",
-  "keyup",
-  "click",
-]);
+const DISCRETE_UNLOCK = new Set(UNLOCK_EVENTS);
 
 let htmlAudio = null;
+let htmlUnlocked = false;
 
 export function audioContextCtor() {
   return window.AudioContext || window.webkitAudioContext;
@@ -63,6 +54,7 @@ export function unlockHtmlAudio() {
   // Desktop Chromium: HTMLMediaElement.play() spends the wheel/keydown
   // activation before AudioContext.resume() can use it. iOS still needs this.
   if (!isAppleTouchWebKit()) return;
+  if (htmlUnlocked) return;
   try {
     if (!htmlAudio) {
       htmlAudio = new Audio(SILENT_WAV);
@@ -82,8 +74,12 @@ export function unlockHtmlAudio() {
       (document.documentElement || document.body)?.appendChild(htmlAudio);
     }
     const pending = htmlAudio.play();
-    if (pending && typeof pending.catch === "function") {
-      void pending.catch(() => {});
+    if (pending && typeof pending.then === "function") {
+      void pending.then(() => {
+        htmlUnlocked = true;
+      }).catch(() => {});
+    } else {
+      htmlUnlocked = true;
     }
   } catch {
     // Web Audio / media failures are silent.
@@ -124,16 +120,19 @@ export function isDesktopChromiumGesture(type) {
  * on Safari wheel which is not a gesture.
  */
 export function reviveAudioContext({ get, set, create, drop, resume, event } = {}) {
+  let ctx = typeof get === "function" ? get() : null;
+  // Fast path: already running — no HTMLAudio, no resume spam.
+  if (ctx && ctx.state === "running") {
+    return ctx;
+  }
+
   const apple = isAppleTouchWebKit();
   const activated = typeof navigator !== "undefined" && Boolean(navigator.userActivation?.isActive);
   const discrete = isDiscreteUnlock(event?.type);
   const gesture = apple || activated || isDesktopChromiumGesture(event?.type);
-  if (apple) unlockHtmlAudio();
 
-  let ctx = typeof get === "function" ? get() : null;
-  if (ctx && ctx.state === "running") {
-    return ctx;
-  }
+  // Silent HTMLAudio only on Apple, and only while we still need a gesture.
+  if (apple && gesture) unlockHtmlAudio();
 
   if (isColdCtx(ctx) && discrete && gesture) {
     drop?.();
@@ -155,7 +154,11 @@ export function reviveAudioContext({ get, set, create, drop, resume, event } = {
   return ctx;
 }
 
-/** Capture-phase listeners on document + window (+ extra) so iframe gestures hit. */
+/**
+ * Capture-phase listeners on document + window (+ extra) so iframe gestures hit.
+ * Returns an unbind function. Callers should unbind after the first successful
+ * unlock so move/wheel floods never keep thrashing the main thread.
+ */
 export function bindGestureUnlock(fn, extraTargets = []) {
   const opts = { capture: true, passive: true };
   const onEvent = (event) => {
@@ -172,4 +175,15 @@ export function bindGestureUnlock(fn, extraTargets = []) {
       }
     }
   }
+  return () => {
+    for (const type of UNLOCK_EVENTS) {
+      for (const target of targets) {
+        try {
+          target.removeEventListener(type, onEvent, opts);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  };
 }

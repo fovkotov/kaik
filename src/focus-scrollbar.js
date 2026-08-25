@@ -236,12 +236,15 @@ export function mountFocusScrollbar(card) {
   let drag = null;
   let raf = 0;
   let follow = 0;
+  let followStable = 0;
   let wheelTimer = 0;
   let last = { thumbTop: INSET, thumbH: MIN_THUMB };
+  let lastRectKey = "";
 
   const thumbs = () => [thumb, outThumb];
 
   const sync = () => {
+    followStable = 0;
     last = layout(card, track, thumb, out, outThumb) || last;
     if (!out.hidden && !follow) follow = requestAnimationFrame(followOuter);
   };
@@ -249,7 +252,18 @@ export function mountFocusScrollbar(card) {
   const followOuter = () => {
     follow = 0;
     if (!attached.has(card) || out.hidden) return;
-    last = paintLocked(card, track, thumb, out, outThumb, metrics(card));
+    const m = metrics(card);
+    const rect = card.getBoundingClientRect();
+    const key = `${rect.left|0},${rect.top|0},${rect.width|0},${rect.height|0},${m.thumbH},${m.scroll}`;
+    last = paintLocked(card, track, thumb, out, outThumb, m);
+    if (key === lastRectKey) {
+      followStable += 1;
+      // Stop perpetual paint once the card + thumb settle (was a permanent rAF loop).
+      if (followStable > 6) return;
+    } else {
+      followStable = 0;
+      lastRectKey = key;
+    }
     follow = requestAnimationFrame(followOuter);
   };
 
@@ -278,7 +292,9 @@ export function mountFocusScrollbar(card) {
     window.clearTimeout(wheelTimer);
     wheelTimer = window.setTimeout(endWheel, 140);
     // Same frame as the scroll, not rAF — rAF left the thumb one tick behind.
+    followStable = 0;
     last = paintLocked(card, track, thumb, out, outThumb, metrics(card));
+    if (!out.hidden && !follow) follow = requestAnimationFrame(followOuter);
   };
 
   const onScrollEnd = () => {

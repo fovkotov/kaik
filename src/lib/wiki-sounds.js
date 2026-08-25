@@ -19,6 +19,7 @@ let keepAliveNode = null;
 let outputVolume = 1;
 let pendingPlays = [];
 let stateHooked = false;
+let unbindGestureUnlock = null;
 
 function createContext() {
   return createUnlockedContext();
@@ -146,14 +147,28 @@ function getDestination() {
   return tap;
 }
 
+function stopGestureUnlockListeners() {
+  if (!unbindGestureUnlock) return;
+  try {
+    unbindGestureUnlock();
+  } catch {
+    // ignore
+  }
+  unbindGestureUnlock = null;
+}
+
 /**
  * Call from a user gesture. iOS recreates the context in the same turn as
  * touchstart/touchend + silent HTMLAudio. Desktop resumes (or creates) on
- * wheel/pointer/key — never HTMLAudio-first, so Chrome can start oscillators
- * in that wheel turn.
+ * wheel/key — never HTMLAudio-first, so Chrome can start oscillators in that
+ * wheel turn. No-op once the context is running (listeners are dropped then).
  */
 export function warmWikiAudio(event) {
   if (reduced()) return;
+  if (isWikiAudioRunning()) {
+    stopGestureUnlockListeners();
+    return;
+  }
   try {
     reviveAudioContext({
       get: () => audioContext,
@@ -171,6 +186,7 @@ export function warmWikiAudio(event) {
       },
       event,
     });
+    if (isWikiAudioRunning()) stopGestureUnlockListeners();
   } catch {
     // Web Audio failures are silent.
   }
@@ -542,12 +558,18 @@ export function playWikiSound(name, options = {}) {
   }
 }
 
-bindGestureUnlock((event) => {
+unbindGestureUnlock = bindGestureUnlock((event) => {
   warmWikiAudio(event);
 }, [getScrollRoot()]);
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") warmWikiAudio();
+  // Resume only — never recreate / rebind from visibility alone.
+  if (document.visibilityState !== "visible") return;
+  if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
 });
-window.addEventListener("pageshow", () => warmWikiAudio());
-window.addEventListener("focus", () => warmWikiAudio());
+window.addEventListener("pageshow", () => {
+  if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
+});
+window.addEventListener("focus", () => {
+  if (audioContext && audioContext.state !== "closed") resumeNow(audioContext);
+});

@@ -1,6 +1,5 @@
 import { isWikiAudioRunning, playWikiSound, warmWikiAudio } from "./lib/wiki-sounds.js";
 import { getActionVolume } from "./lib/sound-volume.js";
-import { getScrollRoot } from "./embed.js";
 
 const STEP_KEYS = new Set([
   "ArrowLeft",
@@ -87,6 +86,8 @@ export function initTickClicks() {
   const capture = { capture: true, passive: true };
 
   function unlock(event) {
+    // Central wiki bind already unlocks on discrete gestures; only nudge if cold.
+    if (isWikiAudioRunning()) return;
     warmWikiAudio(event);
   }
 
@@ -108,27 +109,16 @@ export function initTickClicks() {
     return false;
   }
 
-  function onUnlockEvent(event) {
-    if (!event.isTrusted) return;
-    unlock(event);
-  }
-
-  const scrollRoot = getScrollRoot();
-  for (const type of [
-    "pointerdown",
-    "pointerup",
-    "pointermove",
-    "mousemove",
-    "touchstart",
-    "touchend",
-    "touchmove",
-    "wheel",
-    "keydown",
-    "click",
-  ]) {
-    document.addEventListener(type, onUnlockEvent, capture);
-    window.addEventListener(type, onUnlockEvent, capture);
-    scrollRoot?.addEventListener(type, onUnlockEvent, capture);
+  // Discrete only — never mousemove / pointermove / touchmove (main-thread thrash).
+  for (const type of ["pointerdown", "pointerup", "touchstart", "touchend", "keydown", "click"]) {
+    document.addEventListener(
+      type,
+      (event) => {
+        if (!event.isTrusted) return;
+        unlock(event);
+      },
+      capture,
+    );
   }
 
   document.addEventListener(
