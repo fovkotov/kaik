@@ -1303,8 +1303,11 @@ export function initProgramModal() {
       illust.removeAttribute("aria-label");
       const cue = illust.querySelector(".works-card__key-cue, .card-illust__cue");
       if (!cue) return;
-      cue.setAttribute("data-i18n", "illust.open");
-      cue.textContent = t("illust.open");
+      const host = illust.closest(FOCUS_SEL);
+      const expanded = host === card && (phase === "open" || phase === "opening");
+      const key = persistIllust(host) && expanded ? "illust.close" : "illust.open";
+      cue.setAttribute("data-i18n", key);
+      cue.textContent = t(key);
     });
   }
 

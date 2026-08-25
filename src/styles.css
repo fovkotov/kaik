@@ -2006,10 +2006,6 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   cursor: default;
 }
 
-.card.is-program-open[data-program-card] .card-illust--program .card-illust__cue {
-  display: none;
-}
-
 /* Extra dogs are mobile-only. Program keeps its desktop dachshund. */
 html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   display: none;
@@ -3764,15 +3760,16 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 
   /* Peek lower than Figma's 74px hang so names/schedule stay above the head.
-     Works is a taller transformed face, so it needs more hang than program. */
+     Works is a taller transformed face, so it needs more hang than program.
+     −20px raises the stacked peek (less below the card). */
   [data-program-card],
   [data-history-card],
   [data-work-card] {
-    --program-dog-hang: calc(128 / var(--program-face-w) * var(--card-w));
+    --program-dog-hang: calc(128 / var(--program-face-w) * var(--card-w) - 20px);
   }
 
   [data-works-card] {
-    --program-dog-hang: calc(144 / var(--program-face-w) * var(--card-w));
+    --program-dog-hang: calc(144 / var(--program-face-w) * var(--card-w) - 20px);
   }
 }
 
