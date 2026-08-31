@@ -1,3 +1,6 @@
+import { mountLoopDots, paintLoopDots, SLIDE_FADE_EASE, SLIDE_FADE_MS } from "./loop-dots.js";
+import { isMobile } from "./tweaks.js";
+
 const SLIDE = "[data-img-slider-slide]";
 const PREV = "[data-img-slider-prev]";
 const NEXT = "[data-img-slider-next]";
@@ -101,29 +104,43 @@ function bindSlider(root) {
   let ignoreClickUntil = 0;
   /** Pointer down that may become a tap-to-next (no swipe / no scroll). */
   let press = null;
-  const dots = [];
+  let dots = [];
+  let fadeGen = 0;
+  let fading = false;
 
   const widthOf = () => root.clientWidth || 1;
 
   const wrapIndex = (next) => (next + slides.length) % slides.length;
 
+  const paintDots = (progress = 0) => {
+    paintLoopDots(dots, { count: slides.length, index, progress });
+  };
+
+  const stackDesktop = () => {
+    slides.forEach((slide) => {
+      slide.style.transform = "translate3d(0,0,0)";
+    });
+  };
+
   const paint = (offset) => {
+    if (!isMobile()) {
+      stackDesktop();
+      if (!fading) paintDots(0);
+      return;
+    }
     const w = widthOf();
     const n = slides.length;
     slides.forEach((slide, i) => {
       const x = wrapDelta(i, index, n, offset) * w + offset;
       slide.style.transform = `translate3d(${x}px,0,0)`;
+      slide.style.opacity = "";
     });
+    paintDots(w ? -offset / w : 0);
   };
 
-  const syncDots = (active = index) => {
+  const syncSlides = (active = index) => {
     const current = wrapIndex(active);
     slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
-    dots.forEach((dot, i) => {
-      const on = i === current;
-      dot.classList.toggle("is-active", on);
-      dot.setAttribute("aria-current", on ? "true" : "false");
-    });
   };
 
   const shortestSteps = (from, to) => {
@@ -135,12 +152,24 @@ function bindSlider(root) {
   };
 
   const finishIndex = (next) => {
+    fading = false;
     index = wrapIndex(next);
     pending = index;
     shift = 0;
     velocity = 0;
+    slides.forEach((slide, i) => {
+      slide.classList.remove("is-fade-in");
+      slide.style.transition = "none";
+      if (!isMobile()) {
+        slide.style.opacity = i === index ? "1" : "0";
+        slide.style.zIndex = i === index ? "1" : "0";
+      } else {
+        slide.style.opacity = "";
+        slide.style.zIndex = "";
+      }
+    });
     paint(0);
-    syncDots();
+    syncSlides();
   };
 
   const cancelSpring = () => {
@@ -195,13 +224,66 @@ function bindSlider(root) {
 
   const settleShift = (dest, vel, nextIndex) => {
     pending = wrapIndex(nextIndex);
-    syncDots(nextIndex);
+    syncSlides(nextIndex);
     springTo(dest, vel, () => finishIndex(nextIndex));
+  };
+
+  const fadeTo = (target) => {
+    const to = wrapIndex(target);
+    const from = index;
+    cancelSpring();
+    const gen = ++fadeGen;
+    fading = true;
+    pending = to;
+    slides.forEach((slide, i) => {
+      slide.classList.remove("is-fade-in");
+      slide.style.transition = "none";
+      slide.style.transform = "translate3d(0,0,0)";
+      if (i === from) {
+        slide.style.opacity = "1";
+        slide.style.zIndex = "1";
+      } else if (i === to) {
+        slide.style.opacity = "0";
+        slide.style.zIndex = "2";
+      } else {
+        slide.style.opacity = "0";
+        slide.style.zIndex = "0";
+      }
+    });
+    syncSlides(to);
+    if (from === to) {
+      finishIndex(to);
+      return;
+    }
+    const incoming = slides[to];
+    const dir = shortestSteps(from, to) || 1;
+    const start = performance.now();
+    const tickDots = (now) => {
+      if (gen !== fadeGen) return;
+      const t = REDUCE.matches ? 1 : Math.min(1, (now - start) / SLIDE_FADE_MS);
+      paintLoopDots(dots, { count: slides.length, index: from, progress: dir * t });
+      if (t < 1) requestAnimationFrame(tickDots);
+    };
+    requestAnimationFrame(() => {
+      if (gen !== fadeGen) return;
+      incoming.classList.add("is-fade-in");
+      incoming.style.transition = REDUCE.matches ? "none" : `opacity ${SLIDE_FADE_MS}ms ${SLIDE_FADE_EASE}`;
+      incoming.style.opacity = "1";
+      requestAnimationFrame(tickDots);
+    });
+    window.setTimeout(() => {
+      if (gen !== fadeGen) return;
+      finishIndex(to);
+    }, REDUCE.matches ? 0 : SLIDE_FADE_MS + 24);
   };
 
   const goTo = (next, vel = 0) => {
     const target = wrapIndex(next);
     pending = target;
+    if (!isMobile()) {
+      fadeTo(target);
+      return;
+    }
     const steps = shortestSteps(index, target);
     if (!steps && Math.abs(shift) < 0.5) {
       finishIndex(target);
@@ -235,22 +317,12 @@ function bindSlider(root) {
     pager.setAttribute("data-img-slider-dots", "");
     pager.setAttribute("role", "tablist");
     root.append(pager);
-  } else {
-    pager.replaceChildren();
   }
 
-  slides.forEach((_, i) => {
-    const dot = document.createElement("button");
-    dot.type = "button";
-    dot.className = "img-slider__dot";
-    dot.setAttribute("data-img-slider-dot", "");
-    dot.setAttribute("aria-label", `${i + 1} / ${slides.length}`);
-    dot.addEventListener("click", (event) => {
-      holdFocus(event);
-      goTo(i);
-    });
-    pager.append(dot);
-    dots.push(dot);
+  dots = mountLoopDots(pager, {
+    count: slides.length,
+    attr: "data-img-slider-dot",
+    onPick: (i) => goTo(i),
   });
 
   const bindNav = (sel, step) => {
@@ -271,8 +343,9 @@ function bindSlider(root) {
   bindNav(PREV, -1);
   bindNav(NEXT, 1);
 
-  /** Mouse: no drag-to-change (wheel scrolls the article). Touch keeps swipe. */
+  /** Mobile only: article-style drag. Desktop fades the incoming slide in place. */
   const allowSwipe = (event) => {
+    if (!isMobile()) return false;
     if (event.pointerType === "mouse") return false;
     return event.pointerType === "touch" || COARSE.matches;
   };
@@ -358,7 +431,6 @@ function bindSlider(root) {
     if (gestureSamples.length > 5) gestureSamples.shift();
     if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
     paint(shift);
-    syncDots(index + committedSteps(0));
   };
 
   const onUp = (event) => {

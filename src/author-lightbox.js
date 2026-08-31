@@ -1,7 +1,9 @@
 import { getScrollRoot } from "./embed.js";
 import { focusScrollRoot } from "./focus-scrollbar.js";
+import { mountLoopDots, paintLoopDots, SLIDE_FADE_EASE, SLIDE_FADE_MS } from "./loop-dots.js";
 import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
+import { isMobile } from "./tweaks.js";
 
 /** Full works, same order as the author collage (aspect-matched to each tile). */
 export const AUTHOR_WORKS = [
@@ -44,6 +46,8 @@ let pending = 0;
 let shift = 0;
 let velocity = 0;
 let stopSpring = null;
+let fadeGen = 0;
+let fading = false;
 let open = false;
 let savedScroll = 0;
 let savedDeckY = 0;
@@ -125,23 +129,31 @@ function activeImg() {
   return slides[index]?.querySelector("img") ?? null;
 }
 
-function syncDots(active = index) {
+function syncSlides(active = index) {
   const current = wrap(active);
   slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
-  dots.forEach((dot, i) => {
-    const on = i === current;
-    dot.classList.toggle("is-active", on);
-    dot.setAttribute("aria-current", on ? "true" : "false");
-  });
+}
+
+function paintDots(progress = 0) {
+  paintLoopDots(dots, { count: AUTHOR_WORKS.length, index, progress });
 }
 
 function paint(offset) {
+  if (!isMobile()) {
+    slides.forEach((slide) => {
+      slide.style.transform = "translate3d(0,0,0)";
+    });
+    if (!fading) paintDots(0);
+    return;
+  }
   const w = widthOf();
   const n = slides.length;
   slides.forEach((slide, i) => {
     const x = wrapDelta(i, index, n, offset) * w + offset;
     slide.style.transform = `translate3d(${x}px,0,0)`;
+    slide.style.opacity = "";
   });
+  paintDots(w ? -offset / w : 0);
 }
 
 function applyZoom() {
@@ -253,18 +265,30 @@ function springTo(dest, vel, onDone) {
 }
 
 function finishIndex(next) {
+  fading = false;
   const target = wrap(next);
   const changed = target !== index;
   index = target;
   pending = index;
   shift = 0;
   velocity = 0;
+  slides.forEach((slide, i) => {
+    slide.classList.remove("is-fade-in");
+    slide.style.transition = "none";
+    if (!isMobile()) {
+      slide.style.opacity = i === index ? "1" : "0";
+      slide.style.zIndex = i === index ? "1" : "0";
+    } else {
+      slide.style.opacity = "";
+      slide.style.zIndex = "";
+    }
+  });
   if (changed) {
     cancelZoomSession();
     resetZoom();
   }
   paint(0);
-  syncDots();
+  syncSlides();
   preload(index + 1);
   preload(index - 1);
 }
@@ -290,7 +314,7 @@ function settleShift(dest, vel, nextIndex) {
     cancelZoomSession();
     resetZoom();
   }
-  syncDots(nextIndex);
+  syncSlides(nextIndex);
   springTo(dest, vel, () => finishIndex(nextIndex));
 }
 
@@ -299,10 +323,68 @@ function commitFromRelease(vel) {
   settleShift(-steps * widthOf(), vel, index + steps);
 }
 
+function fadeTo(target) {
+  if (!open) return;
+  const to = wrap(target);
+  const from = index;
+  cancelSpring();
+  const gen = ++fadeGen;
+  fading = true;
+  pending = to;
+  if (to !== from) {
+    cancelZoomSession();
+    resetZoom();
+  }
+  slides.forEach((slide, i) => {
+    slide.classList.remove("is-fade-in");
+    slide.style.transition = "none";
+    slide.style.transform = "translate3d(0,0,0)";
+    if (i === from) {
+      slide.style.opacity = "1";
+      slide.style.zIndex = "1";
+    } else if (i === to) {
+      slide.style.opacity = "0";
+      slide.style.zIndex = "2";
+    } else {
+      slide.style.opacity = "0";
+      slide.style.zIndex = "0";
+    }
+  });
+  syncSlides(to);
+  if (from === to) {
+    finishIndex(to);
+    return;
+  }
+  const incoming = slides[to];
+  const dir = shortestSteps(from, to) || 1;
+  const start = performance.now();
+  const tickDots = (now) => {
+    if (gen !== fadeGen) return;
+    const t = REDUCE.matches ? 1 : Math.min(1, (now - start) / SLIDE_FADE_MS);
+    paintLoopDots(dots, { count: AUTHOR_WORKS.length, index: from, progress: dir * t });
+    if (t < 1) requestAnimationFrame(tickDots);
+  };
+  requestAnimationFrame(() => {
+    if (gen !== fadeGen) return;
+    incoming.classList.add("is-fade-in");
+    incoming.style.transition = REDUCE.matches ? "none" : `opacity ${SLIDE_FADE_MS}ms ${SLIDE_FADE_EASE}`;
+    incoming.style.opacity = "1";
+    requestAnimationFrame(tickDots);
+  });
+  window.setTimeout(() => {
+    if (gen !== fadeGen) return;
+    finishIndex(to);
+  }, REDUCE.matches ? 0 : SLIDE_FADE_MS + 24);
+}
+
 function goTo(next, vel = 0) {
   if (!open) return;
   const target = wrap(next);
   pending = target;
+  if (!isMobile()) {
+    fadeTo(target);
+    return;
+  }
   const steps = shortestSteps(index, target);
   if (!steps && Math.abs(shift) < 0.5) {
     finishIndex(target);
@@ -350,6 +432,8 @@ function closeLb() {
   const deckY = savedDeckY;
   const wasFocused = savedFocused;
   const shot = lastShot;
+  fadeGen += 1;
+  fading = false;
   cancelSpring();
   cancelZoomSession();
   resetZoom();
@@ -377,6 +461,8 @@ function openAt(i, shot) {
   savedScroll = card ? focusScrollRoot(card).scrollTop : 0;
   savedDeckY = getScrollRoot()?.scrollTop ?? 0;
   lastShot = shot instanceof HTMLElement ? shot : null;
+  fadeGen += 1;
+  fading = false;
   cancelSpring();
   pending = wrap(i);
   index = pending;
@@ -385,8 +471,19 @@ function openAt(i, shot) {
   setOpen(true);
   cancelZoomSession();
   resetZoom();
+  slides.forEach((slide, s) => {
+    slide.classList.remove("is-fade-in");
+    slide.style.transition = "none";
+    if (!isMobile()) {
+      slide.style.opacity = s === index ? "1" : "0";
+      slide.style.zIndex = s === index ? "1" : "0";
+    } else {
+      slide.style.opacity = "";
+      slide.style.zIndex = "";
+    }
+  });
   paint(0);
-  syncDots();
+  syncSlides();
   preload(index + 1);
   preload(index - 1);
   lockScroll();
@@ -416,20 +513,10 @@ function buildSlides() {
 
 function buildDots() {
   if (!pager) return;
-  pager.replaceChildren();
-  dots = AUTHOR_WORKS.map((_, i) => {
-    const dot = document.createElement("button");
-    dot.type = "button";
-    dot.className = "img-slider__dot";
-    dot.setAttribute("data-author-lb-dot", "");
-    dot.setAttribute("aria-label", `${i + 1} / ${AUTHOR_WORKS.length}`);
-    dot.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      goTo(i);
-    });
-    pager.append(dot);
-    return dot;
+  dots = mountLoopDots(pager, {
+    count: AUTHOR_WORKS.length,
+    attr: "data-author-lb-dot",
+    onPick: (i) => goTo(i),
   });
 }
 
@@ -562,6 +649,7 @@ export function initAuthorLightbox() {
         return;
       }
 
+      if (!isMobile()) return;
       if (event.pointerType === "mouse" && !COARSE.matches) return;
 
       cancelSpring();
@@ -627,7 +715,6 @@ export function initAuthorLightbox() {
       if (gestureSamples.length > 5) gestureSamples.shift();
       if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
       paint(shift);
-      syncDots(index + committedSteps(0));
     },
     { passive: false },
   );
