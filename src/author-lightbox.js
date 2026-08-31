@@ -26,6 +26,9 @@ const COMMIT_RATIO = 0.22;
 const MIN_Z = 1;
 const MAX_Z = 4;
 const CHROME = "[data-author-lb-close], [data-author-lb-dots], [data-author-lb-dot]";
+const NAV = "[data-author-lb-prev], [data-author-lb-next]";
+const NO_ZOOM = `${CHROME}, ${NAV}`;
+const ABSORB_MS = 400;
 
 let root = null;
 let img = null;
@@ -44,6 +47,9 @@ let z = 1;
 let panX = 0;
 let panY = 0;
 let gestureZ0 = 1;
+let zoomGen = 0;
+let gestureGen = -1;
+let absorbZoomUntil = 0;
 let pointers = new Map();
 let pinch = null;
 let pan = null;
@@ -84,8 +90,29 @@ function syncDots() {
 
 function applyZoom() {
   if (!img) return;
+  if (z <= 1.001 && Math.abs(panX) < 0.01 && Math.abs(panY) < 0.01) {
+    img.style.transform = "";
+    root?.classList.remove("is-zoomed");
+    return;
+  }
   img.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${z})`;
   root?.classList.toggle("is-zoomed", z > 1.001);
+}
+
+function zoomAbsorbed() {
+  return performance.now() < absorbZoomUntil;
+}
+
+function cancelZoomSession() {
+  pointers.clear();
+  pinch = null;
+  pan = null;
+  swipe = null;
+  gestureZ0 = 1;
+  gestureGen = -1;
+  lastTap = 0;
+  zoomGen += 1;
+  absorbZoomUntil = performance.now() + ABSORB_MS;
 }
 
 function resetZoom() {
@@ -100,6 +127,7 @@ function clampZ(next) {
 }
 
 function zoomAround(cx, cy, nextZ) {
+  if (zoomAbsorbed()) return;
   const next = clampZ(nextZ);
   if (!img || Math.abs(next - z) < 0.001) return;
   const box = img.parentElement?.getBoundingClientRect();
@@ -122,6 +150,7 @@ function zoomAround(cx, cy, nextZ) {
 function paint() {
   const work = AUTHOR_WORKS[index];
   if (!img || !work) return;
+  cancelZoomSession();
   resetZoom();
   img.src = work.src;
   img.width = work.width;
@@ -169,6 +198,7 @@ function closeLb() {
   const deckY = savedDeckY;
   const wasFocused = savedFocused;
   const shot = lastShot;
+  cancelZoomSession();
   resetZoom();
   setOpen(false);
   root?.querySelectorAll(".author-lb__hit.is-aiming").forEach((hit) => hit.classList.remove("is-aiming"));
@@ -252,6 +282,7 @@ function pinchCenter() {
 }
 
 function toggleZoom(cx, cy) {
+  if (zoomAbsorbed()) return;
   if (z > 1.001) resetZoom();
   else zoomAround(cx, cy, 2);
 }
@@ -306,7 +337,8 @@ export function initAuthorLightbox() {
 
   root.addEventListener("dblclick", (event) => {
     if (!open) return;
-    if (event.target.closest?.(CHROME)) return;
+    if (event.target.closest?.(NO_ZOOM)) return;
+    if (zoomAbsorbed()) return;
     event.preventDefault();
     toggleZoom(event.clientX, event.clientY);
   });
@@ -316,7 +348,7 @@ export function initAuthorLightbox() {
     (event) => {
       if (!open) return;
       if (event.button && event.button !== 0) return;
-      if (event.target.closest?.(CHROME)) return;
+      if (event.target.closest?.(NO_ZOOM)) return;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
       if (pointers.size >= 2) {
@@ -324,7 +356,7 @@ export function initAuthorLightbox() {
         pan = null;
         const dist = pinchDist();
         const mid = pinchCenter();
-        pinch = { dist, z0: z, x: mid.x, y: mid.y };
+        pinch = { dist, z0: z, x: mid.x, y: mid.y, gen: zoomGen };
         return;
       }
 
@@ -353,6 +385,7 @@ export function initAuthorLightbox() {
       }
 
       if (pinch && pointers.size >= 2) {
+        if (pinch.gen !== zoomGen || zoomAbsorbed()) return;
         const dist = pinchDist();
         const mid = pinchCenter();
         if (pinch.dist > 8 && dist > 0) {
@@ -363,6 +396,7 @@ export function initAuthorLightbox() {
       }
 
       if (pan && event.pointerId === pan.id) {
+        if (zoomAbsorbed()) return;
         if (event.cancelable) event.preventDefault();
         panX = pan.px + (event.clientX - pan.x);
         panY = pan.py + (event.clientY - pan.y);
@@ -398,7 +432,8 @@ export function initAuthorLightbox() {
       const now = performance.now();
       const dx = swipe ? event.clientX - swipe.x : 0;
       const dy = swipe ? event.clientY - swipe.y : 0;
-      if (!cancelled && Math.hypot(dx, dy) < AXIS_PX) {
+      const onNav = Boolean(event.target?.closest?.(NO_ZOOM));
+      if (!cancelled && !onNav && !zoomAbsorbed() && Math.hypot(dx, dy) < AXIS_PX) {
         if (now - lastTap < 280) {
           toggleZoom(event.clientX, event.clientY);
           lastTap = 0;
@@ -406,6 +441,8 @@ export function initAuthorLightbox() {
         } else {
           lastTap = now;
         }
+      } else if (onNav || zoomAbsorbed()) {
+        lastTap = 0;
       }
     }
 
@@ -430,6 +467,7 @@ export function initAuthorLightbox() {
       event.preventDefault();
       lockScroll();
       if (event.ctrlKey || event.metaKey) {
+        if (zoomAbsorbed() || gestureGen === zoomGen) return;
         const factor = Math.exp(-event.deltaY * 0.012);
         zoomAround(event.clientX, event.clientY, z * factor);
       }
@@ -440,16 +478,20 @@ export function initAuthorLightbox() {
   const onGestureStart = (event) => {
     if (!open) return;
     event.preventDefault();
+    if (zoomAbsorbed()) return;
+    gestureGen = zoomGen;
     gestureZ0 = z;
   };
   const onGestureChange = (event) => {
     if (!open) return;
     event.preventDefault();
+    if (zoomAbsorbed() || gestureGen !== zoomGen) return;
     zoomAround(event.clientX || window.innerWidth / 2, event.clientY || window.innerHeight / 2, gestureZ0 * event.scale);
   };
   const onGestureEnd = (event) => {
     if (!open) return;
     event.preventDefault();
+    gestureGen = -1;
   };
   root.addEventListener("gesturestart", onGestureStart, { passive: false });
   root.addEventListener("gesturechange", onGestureChange, { passive: false });
