@@ -1319,6 +1319,10 @@ html.is-author-lb-open .fly-close {
   background: transparent;
   appearance: none;
   -webkit-appearance: none;
+}
+
+.author-lb__hit--prev,
+.author-lb__hit--next {
   cursor: none;
 }
 
@@ -1337,11 +1341,11 @@ html.is-author-lb-open .fly-close {
 
 .author-lb__arrow {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 2;
-  display: flex;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  display: none;
   align-items: center;
   justify-content: center;
   width: 36px;
@@ -1352,12 +1356,13 @@ html.is-author-lb-open .fly-close {
   background: rgba(85, 85, 85, 0.8);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
-  transform: translate(-50%, -50%);
-  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.05);
   pointer-events: none;
-  transition:
-    transform 160ms var(--ease-out),
-    opacity 160ms var(--ease-out);
+  transition: transform 160ms var(--ease-out);
+}
+
+.author-lb__hit.is-aiming .author-lb__arrow {
+  display: flex;
 }
 
 .author-lb__hit--prev .author-lb__chevron {
@@ -1371,17 +1376,9 @@ html.is-author-lb-open .fly-close {
   pointer-events: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .author-lb__hit--prev:hover .author-lb__arrow,
-  .author-lb__hit--next:hover .author-lb__arrow {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.05);
-  }
-}
-
+.author-lb__hit.is-aiming:active .author-lb__arrow,
 .author-lb__hit--prev:active .author-lb__arrow,
 .author-lb__hit--next:active .author-lb__arrow {
-  opacity: 1;
   transform: translate(-50%, -50%) scale(0.97);
 }
 
@@ -1391,8 +1388,8 @@ html.is-author-lb-open .fly-close {
     transition: none;
   }
 
-  .author-lb__hit--prev:hover .author-lb__arrow,
-  .author-lb__hit--next:hover .author-lb__arrow,
+  .author-lb__arrow,
+  .author-lb__hit.is-aiming:active .author-lb__arrow,
   .author-lb__hit--prev:active .author-lb__arrow,
   .author-lb__hit--next:active .author-lb__arrow {
     transform: translate(-50%, -50%);
@@ -1402,6 +1399,16 @@ html.is-author-lb-open .fly-close {
   .author-lb__close:active {
     transform: none;
   }
+}
+
+html.is-mobile .author-lb__arrow,
+html.is-mobile .author-lb__hit.is-aiming .author-lb__arrow {
+  display: none;
+}
+
+html.is-mobile .author-lb__hit--prev,
+html.is-mobile .author-lb__hit--next {
+  cursor: default;
 }
 
 .author-lb__close {

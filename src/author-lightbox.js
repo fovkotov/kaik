@@ -20,6 +20,7 @@ export const AUTHOR_WORKS = [
 ];
 
 const COARSE = window.matchMedia("(pointer: coarse)");
+const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const AXIS_PX = 8;
 const COMMIT_RATIO = 0.22;
 const MIN_Z = 1;
@@ -170,6 +171,7 @@ function closeLb() {
   const shot = lastShot;
   resetZoom();
   setOpen(false);
+  root?.querySelectorAll(".author-lb__hit.is-aiming").forEach((hit) => hit.classList.remove("is-aiming"));
   const scroller = card ? focusScrollRoot(card) : null;
   const deckRoot = getScrollRoot();
   const pin = () => {
@@ -281,6 +283,21 @@ export function initAuthorLightbox() {
   };
   bindHit("[data-author-lb-prev]", -1);
   bindHit("[data-author-lb-next]", 1);
+
+  const aimHit = (hit, event) => {
+    if (!FINE.matches) return;
+    const arrow = hit.querySelector(".author-lb__arrow");
+    if (!arrow) return;
+    arrow.style.left = `${event.clientX}px`;
+    arrow.style.top = `${event.clientY}px`;
+    hit.classList.add("is-aiming");
+  };
+
+  root.querySelectorAll("[data-author-lb-prev], [data-author-lb-next]").forEach((hit) => {
+    hit.addEventListener("pointerenter", (event) => aimHit(hit, event));
+    hit.addEventListener("pointermove", (event) => aimHit(hit, event));
+    hit.addEventListener("pointerleave", () => hit.classList.remove("is-aiming"));
+  });
 
   root.querySelector("[data-author-lb-mid]")?.addEventListener("click", (event) => {
     event.preventDefault();
