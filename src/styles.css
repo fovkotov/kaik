@@ -1200,6 +1200,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   z-index: 3;
 }
 
+/* Oval above the transparent chrome type so that tile’s box cannot steal hits. */
+.author-card__shot--buckle,
+.author-card__shot--buckle:hover {
+  z-index: 4;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .author-card__shot:hover {
     transform: translateY(-4px);
