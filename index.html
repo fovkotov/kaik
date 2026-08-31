@@ -198,6 +198,19 @@ to 26 october</p>
       <img class="fly-close__icon" src="/assets/frame-2136141284.svg" alt="" width="24" height="24" />
     </button>
 
+    <div class="author-lb" data-author-lightbox hidden inert aria-hidden="true" role="dialog" aria-modal="true" data-i18n-aria="author.lb.label">
+      <figure class="author-lb__stage">
+        <img data-author-lb-img alt="" width="1920" height="757" draggable="false" />
+      </figure>
+      <button type="button" class="author-lb__hit author-lb__hit--prev" data-author-lb-prev data-i18n-aria="author.lb.prev" aria-label="Previous work"></button>
+      <button type="button" class="author-lb__hit author-lb__hit--next" data-author-lb-next data-i18n-aria="author.lb.next" aria-label="Next work"></button>
+      <button type="button" class="author-lb__close" data-author-lb-close data-i18n-aria="author.lb.close" aria-label="Close gallery">
+        <img class="fly-close__icon" src="/assets/frame-2136141284.svg" alt="" width="24" height="24" />
+      </button>
+      <div class="img-slider__dots author-lb__dots" data-author-lb-dots role="tablist"></div>
+      <img class="author-lb__cursor" data-author-lb-cursor src="/assets/cards/history/chevron.svg" alt="" width="40" height="40" draggable="false" />
+    </div>
+
     <div class="deck" data-deck>
       <!-- front → back; images 01–10 from New Folder With Items 3 -->
       <article
@@ -395,79 +408,127 @@ to 26 october</p>
               </a>
             </div>
           </div>
-          <div class="author-card__collage" aria-hidden="true">
-            <div
+          <div class="author-card__collage" inert>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 10.42; --t: 358.73; --w: 245.612; --h: 96.706"
+              data-author-work="0"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-la-noche.webp" alt="" width="246" height="97" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 265.54; --t: 347.04; --w: 319.772; --h: 108.486"
+              data-author-work="1"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-el-invierno.webp" alt="" width="320" height="108" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 333.57; --t: 168.46; --w: 185.424; --h: 71.041"
+              data-author-work="2"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-euphoria.webp" alt="" width="185" height="71" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--blue"
               style="--l: 335.69; --t: 71.72; --w: 249.835; --h: 87.152"
+              data-author-work="3"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-blue-script.webp" alt="" width="250" height="187" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--mushrooms"
               style="--l: 265.54; --t: 253.49; --w: 319.584; --h: 83.009"
+              data-author-work="4"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-mushrooms.webp" alt="" width="320" height="239" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 10.42; --t: 168.46; --w: 245.921; --h: 183.617"
+              data-author-work="5"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-buckle.webp" alt="" width="246" height="184" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 0.85; --t: 58.97; --w: 332.924; --h: 248.578"
+              data-author-work="6"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-chrome.webp" alt="" width="333" height="249" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 157.11; --t: -52.64; --w: 171.139; --h: 171.139"
+              data-author-work="7"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-wild-east.webp" alt="" width="171" height="171" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 420.73; --t: -100.48; --w: 164.762; --h: 164.762"
+              data-author-work="8"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-grillz.webp" alt="" width="165" height="165" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--purple"
               style="--l: 7.23; --t: 60.03; --w: 144.502; --h: 58.489"
+              data-author-work="9"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-purple.webp" alt="" width="145" height="144" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--cover"
               style="--l: 335.69; --t: -37.76; --w: 76.534; --h: 102.046"
+              data-author-work="10"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-mark.webp" alt="" width="77" height="102" draggable="false" />
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="author-card__shot author-card__shot--teur"
               style="--l: 7.23; --t: 12.2; --w: 143.981; --h: 41.625"
+              data-author-work="11"
+              data-i18n-aria="author.work.open"
+              aria-label="Open lettering work"
             >
               <img src="/assets/author/work-teur.webp" alt="" width="144" height="142" draggable="false" />
-            </div>
+            </button>
           </div>
         </div>
       </article>

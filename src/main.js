@@ -4,6 +4,7 @@ import { initTickClicks } from "./tick-clicks.js";
 import { initSoundSettings, noteDesktopDeckDelta } from "./sound-settings.js";
 import { initStageSettings } from "./stage-settings.js";
 import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
+import { initAuthorLightbox } from "./author-lightbox.js";
 import { initImgSliders } from "./img-slider.js";
 import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
 import { initDropcaps } from "./letters/dropcap.js";
@@ -643,7 +644,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next]";
+    "a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-author-work], [data-author-lightbox]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
@@ -1273,5 +1274,6 @@ const programApi = initProgramModal();
 bindProgramNav(programApi);
 bindWorkNav(programApi);
 initImgSliders();
+initAuthorLightbox();
 initFormatVideo();
 initDropcaps();

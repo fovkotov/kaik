@@ -1163,13 +1163,50 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   pointer-events: none;
 }
 
+.card.is-program-open .author-card__collage {
+  pointer-events: auto;
+}
+
 .author-card__shot {
   position: absolute;
   left: calc(var(--l) * var(--u));
   top: calc(var(--t) * var(--u));
   width: calc(var(--w) * var(--u));
   height: calc(var(--h) * var(--u));
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transform: translateY(0);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.32, 1);
+  z-index: 0;
+}
+
+.card.is-program-open .author-card__shot:hover {
+  z-index: 3;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card.is-program-open .author-card__shot:hover {
+    transform: translateY(-4px);
+    filter: drop-shadow(0 calc(1.941 * var(--u)) calc(0.97 * var(--u)) rgba(0, 0, 0, 0.25));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .author-card__shot {
+    transition: none;
+  }
+
+  .card.is-program-open .author-card__shot:hover {
+    transform: none;
+    filter: none;
+  }
 }
 
 .author-card__shot img {
@@ -1215,6 +1252,155 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   top: 0;
   width: 100%;
   height: 340.48%;
+}
+
+/* Author-work lightbox: sibling of [data-scroll-root], iframe-fixed. */
+.author-lb {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  background: #000;
+  overscroll-behavior: contain;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.author-lb:not([hidden]) {
+  display: block;
+}
+
+html.is-author-lb-open .fly-close {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.author-lb__stage {
+  position: absolute;
+  inset: 56px 24px 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  pointer-events: none;
+}
+
+.author-lb__stage img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.author-lb__hit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 50%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.author-lb__hit--prev {
+  left: 0;
+}
+
+.author-lb__hit--next {
+  right: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .author-lb.is-cursor,
+  .author-lb.is-cursor .author-lb__hit {
+    cursor: none;
+  }
+}
+
+.author-lb__cursor {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.author-lb.is-cursor .author-lb__cursor {
+  display: block;
+}
+
+html.is-mobile .author-lb__cursor,
+html.is-mobile .author-lb.is-cursor .author-lb__cursor {
+  display: none;
+}
+
+.author-lb__cursor.is-prev {
+  transform: scaleX(-1);
+}
+
+.author-lb__close {
+  display: flex;
+  position: absolute;
+  top: var(--focus-close-inset);
+  right: 16px;
+  left: auto;
+  bottom: auto;
+  z-index: 4;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 10px;
+  border: 0;
+  border-radius: 173px;
+  background: rgba(85, 85, 85, 0.8);
+  backdrop-filter: blur(57.653px);
+  -webkit-backdrop-filter: blur(57.653px);
+  color: #fff;
+  line-height: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  align-items: center;
+  justify-content: center;
+}
+
+.author-lb__dots.img-slider__dots,
+.author-lb .author-lb__dots {
+  display: flex;
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  z-index: 4;
+  transform: translateX(-50%);
+  height: 28px;
+  padding: 0 8px;
+  pointer-events: auto;
+}
+
+.author-lb__dots .img-slider__dot {
+  width: 16px;
+}
+
+.author-lb__dots .img-slider__dot::after {
+  width: 7px;
+  height: 7px;
 }
 
 .program-card {
@@ -3072,6 +3258,11 @@ html.is-img-slider-busy .img-slider:not(.is-armed) {
 
 .img-slider__nav--prev .img-slider__chevron {
   transform: scaleX(-1);
+}
+
+.author-lb .author-lb__dots,
+.author-lb__dots.img-slider__dots {
+  display: flex;
 }
 
 .img-slider__dots {
