@@ -21,8 +21,12 @@ export const AUTHOR_WORKS = [
 
 const COARSE = window.matchMedia("(pointer: coarse)");
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
+const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 const AXIS_PX = 8;
+const TAP_PX = AXIS_PX;
 const COMMIT_RATIO = 0.22;
+const FLICK_VEL = 500;
+const SPRING_RESPONSE = 0.4;
 const MIN_Z = 1;
 const MAX_Z = 4;
 const CHROME = "[data-author-lb-close], [data-author-lb-dots], [data-author-lb-dot]";
@@ -31,10 +35,15 @@ const NO_ZOOM = `${CHROME}, ${NAV}`;
 const ABSORB_MS = 400;
 
 let root = null;
-let img = null;
+let track = null;
+let slides = [];
 let pager = null;
 let dots = [];
 let index = 0;
+let pending = 0;
+let shift = 0;
+let velocity = 0;
+let stopSpring = null;
 let open = false;
 let savedScroll = 0;
 let savedDeckY = 0;
@@ -43,6 +52,7 @@ let savedCard = null;
 let lastShot = null;
 let ignoreClickUntil = 0;
 let swipe = null;
+let gestureSamples = [];
 let z = 1;
 let panX = 0;
 let panY = 0;
@@ -64,6 +74,37 @@ function wrap(i) {
   return ((i % n) + n) % n;
 }
 
+function widthOf() {
+  return track?.clientWidth || root?.clientWidth || window.innerWidth || 1;
+}
+
+/** Same wrap as history `img-slider.js` — nearest copy, even-count tie break. */
+function wrapDelta(i, current, count, offset) {
+  let d = i - current;
+  d -= count * Math.round(d / count);
+  if (count % 2 === 0 && Math.abs(d) === count / 2) {
+    d = offset > 0 ? -count / 2 : count / 2;
+  }
+  return d;
+}
+
+function sampleVel(samples) {
+  if (samples.length < 2) return 0;
+  const a = samples[0];
+  const b = samples[samples.length - 1];
+  const dt = b.t - a.t;
+  if (dt < 8) return 0;
+  return ((b.x - a.x) / dt) * 1000;
+}
+
+function shortestSteps(from, to) {
+  let delta = to - from;
+  const n = AUTHOR_WORKS.length;
+  if (delta > n / 2) delta -= n;
+  if (delta < -n / 2) delta += n;
+  return delta;
+}
+
 function authorCard() {
   return document.querySelector(".author-card")?.closest("[data-card]") ?? null;
 }
@@ -80,15 +121,31 @@ function preload(i) {
   warm.src = work.src;
 }
 
-function syncDots() {
+function activeImg() {
+  return slides[index]?.querySelector("img") ?? null;
+}
+
+function syncDots(active = index) {
+  const current = wrap(active);
+  slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
   dots.forEach((dot, i) => {
-    const on = i === index;
+    const on = i === current;
     dot.classList.toggle("is-active", on);
     dot.setAttribute("aria-current", on ? "true" : "false");
   });
 }
 
+function paint(offset) {
+  const w = widthOf();
+  const n = slides.length;
+  slides.forEach((slide, i) => {
+    const x = wrapDelta(i, index, n, offset) * w + offset;
+    slide.style.transform = `translate3d(${x}px,0,0)`;
+  });
+}
+
 function applyZoom() {
+  const img = activeImg();
   if (!img) return;
   if (z <= 1.001 && Math.abs(panX) < 0.01 && Math.abs(panY) < 0.01) {
     img.style.transform = "";
@@ -119,7 +176,11 @@ function resetZoom() {
   z = 1;
   panX = 0;
   panY = 0;
-  applyZoom();
+  slides.forEach((slide) => {
+    const img = slide.querySelector("img");
+    if (img) img.style.transform = "";
+  });
+  root?.classList.remove("is-zoomed");
 }
 
 function clampZ(next) {
@@ -129,6 +190,7 @@ function clampZ(next) {
 function zoomAround(cx, cy, nextZ) {
   if (zoomAbsorbed()) return;
   const next = clampZ(nextZ);
+  const img = activeImg();
   if (!img || Math.abs(next - z) < 0.001) return;
   const box = img.parentElement?.getBoundingClientRect();
   if (!box) {
@@ -147,30 +209,120 @@ function zoomAround(cx, cy, nextZ) {
   else applyZoom();
 }
 
-function paint() {
-  const work = AUTHOR_WORKS[index];
-  if (!img || !work) return;
-  cancelZoomSession();
-  resetZoom();
-  img.src = work.src;
-  img.width = work.width;
-  img.height = work.height;
-  img.alt = "";
+function cancelSpring() {
+  if (!stopSpring) return;
+  stopSpring();
+  stopSpring = null;
+}
+
+function springTo(dest, vel, onDone) {
+  cancelSpring();
+  if (REDUCE.matches) {
+    shift = dest;
+    paint(shift);
+    onDone();
+    return;
+  }
+  const omega = (2 * Math.PI) / SPRING_RESPONSE;
+  const zeta = Math.abs(vel) > 800 ? 0.86 : 1;
+  let x = shift;
+  let v = vel;
+  let last = performance.now();
+  let raf = 0;
+  const step = (now) => {
+    const dt = Math.min(0.032, (now - last) / 1000);
+    last = now;
+    const acc = -omega * omega * (x - dest) - 2 * zeta * omega * v;
+    v += acc * dt;
+    x += v * dt;
+    shift = x;
+    velocity = v;
+    paint(shift);
+    if (Math.abs(x - dest) < 0.5 && Math.abs(v) < 12) {
+      shift = dest;
+      velocity = 0;
+      paint(shift);
+      stopSpring = null;
+      onDone();
+      return;
+    }
+    raf = requestAnimationFrame(step);
+  };
+  stopSpring = () => cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(step);
+}
+
+function finishIndex(next) {
+  const target = wrap(next);
+  const changed = target !== index;
+  index = target;
+  pending = index;
+  shift = 0;
+  velocity = 0;
+  if (changed) {
+    cancelZoomSession();
+    resetZoom();
+  }
+  paint(0);
   syncDots();
   preload(index + 1);
   preload(index - 1);
 }
 
-function go(step) {
-  if (!open) return;
-  index = wrap(index + step);
-  paint();
+/** Keep the painted offset when adopting `pending` as the live index. */
+function adoptPending() {
+  if (pending === index) return;
+  shift += shortestSteps(index, pending) * widthOf();
+  index = pending;
+  paint(shift);
 }
 
-function goTo(i) {
+function committedSteps(vel = 0) {
+  const w = widthOf();
+  if (Math.abs(shift) > w * COMMIT_RATIO) return shift < 0 ? 1 : -1;
+  if (Math.abs(vel) > FLICK_VEL) return vel < 0 ? 1 : -1;
+  return 0;
+}
+
+function settleShift(dest, vel, nextIndex) {
+  pending = wrap(nextIndex);
+  if (pending !== index) {
+    cancelZoomSession();
+    resetZoom();
+  }
+  syncDots(nextIndex);
+  springTo(dest, vel, () => finishIndex(nextIndex));
+}
+
+function commitFromRelease(vel) {
+  const steps = committedSteps(vel);
+  settleShift(-steps * widthOf(), vel, index + steps);
+}
+
+function goTo(next, vel = 0) {
   if (!open) return;
-  index = wrap(i);
-  paint();
+  const target = wrap(next);
+  pending = target;
+  const steps = shortestSteps(index, target);
+  if (!steps && Math.abs(shift) < 0.5) {
+    finishIndex(target);
+    return;
+  }
+  settleShift(-steps * widthOf(), vel, target);
+}
+
+function go(step) {
+  goTo(pending + step);
+}
+
+function snapPending() {
+  cancelSpring();
+  if (pending !== index) finishIndex(pending);
+  else {
+    shift = 0;
+    velocity = 0;
+    paint(0);
+  }
 }
 
 function lockScroll() {
@@ -198,9 +350,11 @@ function closeLb() {
   const deckY = savedDeckY;
   const wasFocused = savedFocused;
   const shot = lastShot;
+  cancelSpring();
   cancelZoomSession();
   resetZoom();
   setOpen(false);
+  root?.classList.remove("is-dragging");
   root?.querySelectorAll(".author-lb__hit.is-aiming").forEach((hit) => hit.classList.remove("is-aiming"));
   const scroller = card ? focusScrollRoot(card) : null;
   const deckRoot = getScrollRoot();
@@ -223,10 +377,41 @@ function openAt(i, shot) {
   savedScroll = card ? focusScrollRoot(card).scrollTop : 0;
   savedDeckY = getScrollRoot()?.scrollTop ?? 0;
   lastShot = shot instanceof HTMLElement ? shot : null;
-  index = wrap(i);
+  cancelSpring();
+  pending = wrap(i);
+  index = pending;
+  shift = 0;
+  velocity = 0;
   setOpen(true);
-  paint();
+  cancelZoomSession();
+  resetZoom();
+  paint(0);
+  syncDots();
+  preload(index + 1);
+  preload(index - 1);
   lockScroll();
+}
+
+function buildSlides() {
+  if (!track) return;
+  track.replaceChildren();
+  slides = AUTHOR_WORKS.map((work, i) => {
+    const slide = document.createElement("div");
+    slide.className = "author-lb__slide";
+    slide.setAttribute("data-author-lb-slide", "");
+    if (i === 0) slide.classList.add("is-active");
+    const image = document.createElement("img");
+    image.alt = "";
+    image.width = work.width;
+    image.height = work.height;
+    image.draggable = false;
+    image.setAttribute("draggable", "false");
+    image.decoding = "async";
+    image.src = work.src;
+    slide.append(image);
+    track.append(slide);
+    return slide;
+  });
 }
 
 function buildDots() {
@@ -287,16 +472,22 @@ function toggleZoom(cx, cy) {
   else zoomAround(cx, cy, 2);
 }
 
+function suppressClick() {
+  ignoreClickUntil = performance.now() + 450;
+}
+
 export function initAuthorLightbox() {
   root = document.querySelector("[data-author-lightbox]");
   if (!root) return;
 
-  img = root.querySelector("[data-author-lb-img]");
+  track = root.querySelector("[data-author-lb-track]");
   pager = root.querySelector("[data-author-lb-dots]");
 
+  buildSlides();
   buildDots();
   bindShots();
   setOpen(false);
+  paint(0);
 
   root.querySelector("[data-author-lb-close]")?.addEventListener("click", (event) => {
     event.preventDefault();
@@ -343,17 +534,23 @@ export function initAuthorLightbox() {
     toggleZoom(event.clientX, event.clientY);
   });
 
+  root.addEventListener("dragstart", (event) => {
+    event.preventDefault();
+  });
+
   root.addEventListener(
     "pointerdown",
     (event) => {
       if (!open) return;
       if (event.button && event.button !== 0) return;
-      if (event.target.closest?.(NO_ZOOM)) return;
+      if (event.target.closest?.(CHROME)) return;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
       if (pointers.size >= 2) {
+        snapPending();
         swipe = null;
         pan = null;
+        root.classList.remove("is-dragging");
         const dist = pinchDist();
         const mid = pinchCenter();
         pinch = { dist, z0: z, x: mid.x, y: mid.y, gen: zoomGen };
@@ -366,10 +563,15 @@ export function initAuthorLightbox() {
       }
 
       if (event.pointerType === "mouse" && !COARSE.matches) return;
+
+      cancelSpring();
+      adoptPending();
+      gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
       swipe = {
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
+        origin: shift,
         axis: null,
       };
     },
@@ -408,10 +610,24 @@ export function initAuthorLightbox() {
       const dx = event.clientX - swipe.x;
       const dy = event.clientY - swipe.y;
       if (!swipe.axis) {
-        if (Math.abs(dx) < AXIS_PX && Math.abs(dy) < AXIS_PX) return;
-        swipe.axis = Math.abs(dx) > Math.abs(dy) * 1.05 ? "x" : "y";
+        if (Math.abs(dx) < AXIS_PX && Math.abs(dy) < TAP_PX) return;
+        if (Math.abs(dx) > Math.abs(dy) * 1.05) {
+          swipe.axis = "x";
+          suppressClick();
+          root.classList.add("is-dragging");
+        } else {
+          swipe.axis = "y";
+        }
       }
-      if (swipe.axis === "x" && event.cancelable) event.preventDefault();
+      if (swipe.axis !== "x") return;
+      if (event.cancelable) event.preventDefault();
+      shift = swipe.origin + dx;
+      velocity = 0;
+      gestureSamples.push({ x: shift, t: event.timeStamp || performance.now() });
+      if (gestureSamples.length > 5) gestureSamples.shift();
+      if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
+      paint(shift);
+      syncDots(index + committedSteps(0));
     },
     { passive: false },
   );
@@ -420,11 +636,17 @@ export function initAuthorLightbox() {
     const hadPinch = Boolean(pinch);
     pointers.delete(event.pointerId);
     if (pointers.size < 2) pinch = null;
-    if (pan && event.pointerId === pan.id) pan = null;
+
+    if (pan && event.pointerId === pan.id) {
+      const moved = Math.hypot(event.clientX - pan.x, event.clientY - pan.y) > TAP_PX;
+      pan = null;
+      if (moved) suppressClick();
+    }
 
     if (hadPinch) {
-      ignoreClickUntil = performance.now() + 450;
+      suppressClick();
       swipe = null;
+      root.classList.remove("is-dragging");
       return;
     }
 
@@ -433,11 +655,11 @@ export function initAuthorLightbox() {
       const dx = swipe ? event.clientX - swipe.x : 0;
       const dy = swipe ? event.clientY - swipe.y : 0;
       const onNav = Boolean(event.target?.closest?.(NO_ZOOM));
-      if (!cancelled && !onNav && !zoomAbsorbed() && Math.hypot(dx, dy) < AXIS_PX) {
+      if (!cancelled && !onNav && !zoomAbsorbed() && Math.hypot(dx, dy) < TAP_PX) {
         if (now - lastTap < 280) {
           toggleZoom(event.clientX, event.clientY);
           lastTap = 0;
-          ignoreClickUntil = now + 450;
+          suppressClick();
         } else {
           lastTap = now;
         }
@@ -447,18 +669,34 @@ export function initAuthorLightbox() {
     }
 
     if (!swipe || event.pointerId !== swipe.id) return;
-    const dx = event.clientX - swipe.x;
     const axis = swipe.axis;
     swipe = null;
-    if (cancelled || axis !== "x" || z > 1.001) return;
-    const w = root.clientWidth || window.innerWidth;
-    if (Math.abs(dx) < w * COMMIT_RATIO) return;
-    ignoreClickUntil = performance.now() + 450;
-    go(dx < 0 ? 1 : -1);
+    root.classList.remove("is-dragging");
+    if (axis !== "x") {
+      if (Math.abs(shift) > 0.5) settleShift(0, 0, index);
+      return;
+    }
+    suppressClick();
+    if (cancelled || z > 1.001) {
+      settleShift(0, 0, index);
+      return;
+    }
+    commitFromRelease(sampleVel(gestureSamples) || velocity);
   };
 
   window.addEventListener("pointerup", (event) => endPointer(event, false));
   window.addEventListener("pointercancel", (event) => endPointer(event, true));
+
+  root.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!open) return;
+      if (pinch || pan || swipe?.axis === "x") {
+        if (event.cancelable) event.preventDefault();
+      }
+    },
+    { passive: false },
+  );
 
   root.addEventListener(
     "wheel",
@@ -529,6 +767,12 @@ export function initAuthorLightbox() {
     },
     true,
   );
+
+  const refresh = () => {
+    if (!slides.length) return;
+    paint(shift);
+  };
+  new ResizeObserver(refresh).observe(root);
 
   document.addEventListener("kaik:translated", () => {
     const closeBtn = root.querySelector("[data-author-lb-close]");

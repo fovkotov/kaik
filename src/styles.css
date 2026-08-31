@@ -1297,7 +1297,20 @@ html.is-author-lb-open .fly-close {
   align-items: center;
   justify-content: center;
   margin: 0;
+  overflow: hidden;
+  overflow: clip;
   pointer-events: none;
+}
+
+.author-lb__slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  pointer-events: none;
+  will-change: transform;
 }
 
 .author-lb__stage img {
