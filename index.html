@@ -202,13 +202,21 @@ to 26 october</p>
       <figure class="author-lb__stage">
         <img data-author-lb-img alt="" width="1920" height="757" draggable="false" />
       </figure>
-      <button type="button" class="author-lb__hit author-lb__hit--prev" data-author-lb-prev data-i18n-aria="author.lb.prev" aria-label="Previous work"></button>
-      <button type="button" class="author-lb__hit author-lb__hit--next" data-author-lb-next data-i18n-aria="author.lb.next" aria-label="Next work"></button>
+      <button type="button" class="author-lb__hit author-lb__hit--prev" data-author-lb-prev data-i18n-aria="author.lb.prev" aria-label="Previous work">
+        <span class="author-lb__arrow" aria-hidden="true">
+          <img class="author-lb__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
+        </span>
+      </button>
+      <div class="author-lb__hit author-lb__hit--mid" data-author-lb-mid></div>
+      <button type="button" class="author-lb__hit author-lb__hit--next" data-author-lb-next data-i18n-aria="author.lb.next" aria-label="Next work">
+        <span class="author-lb__arrow" aria-hidden="true">
+          <img class="author-lb__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
+        </span>
+      </button>
       <button type="button" class="author-lb__close" data-author-lb-close data-i18n-aria="author.lb.close" aria-label="Close gallery">
         <img class="fly-close__icon" src="/assets/frame-2136141284.svg" alt="" width="24" height="24" />
       </button>
       <div class="img-slider__dots author-lb__dots" data-author-lb-dots role="tablist"></div>
-      <img class="author-lb__cursor" data-author-lb-cursor src="/assets/cards/history/chevron.svg" alt="" width="40" height="40" draggable="false" />
     </div>
 
     <div class="deck" data-deck>
@@ -408,7 +416,7 @@ to 26 october</p>
               </a>
             </div>
           </div>
-          <div class="author-card__collage" inert>
+          <div class="author-card__collage">
             <button
               type="button"
               class="author-card__shot author-card__shot--cover"

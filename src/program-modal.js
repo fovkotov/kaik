@@ -1218,6 +1218,7 @@ export function initProgramModal() {
    */
   function resolveOpenTarget(event, fallbackEl) {
     const raw = eventEl(event);
+    if (raw?.closest?.("[data-author-work], [data-author-lightbox]")) return null;
     const sheet = raw?.closest?.(WORK_OPEN) || null;
     const mobile = isMobile();
     const cardEl = mobile
@@ -1428,6 +1429,7 @@ export function initProgramModal() {
   document.addEventListener(
     "click",
     (event) => {
+      if (isAuthorLightboxOpen()) return;
       if (phase !== "open" && phase !== "opening") return;
       const target = event.target;
       if (!(target instanceof Node)) return;

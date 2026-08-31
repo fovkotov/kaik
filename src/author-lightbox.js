@@ -1,7 +1,7 @@
+import { getScrollRoot } from "./embed.js";
 import { focusScrollRoot } from "./focus-scrollbar.js";
 import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
-import { isMobile } from "./tweaks.js";
 
 /** Full works, same order as the author collage (aspect-matched to each tile). */
 export const AUTHOR_WORKS = [
@@ -19,23 +19,34 @@ export const AUTHOR_WORKS = [
   { src: publicUrl("assets/author/works/teur.webp"), width: 1920, height: 558 },
 ];
 
-const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const COARSE = window.matchMedia("(pointer: coarse)");
 const AXIS_PX = 8;
 const COMMIT_RATIO = 0.22;
+const MIN_Z = 1;
+const MAX_Z = 4;
+const CHROME = "[data-author-lb-close], [data-author-lb-dots], [data-author-lb-dot]";
 
 let root = null;
 let img = null;
-let cursor = null;
 let pager = null;
 let dots = [];
 let index = 0;
 let open = false;
 let savedScroll = 0;
+let savedDeckY = 0;
+let savedFocused = false;
 let savedCard = null;
 let lastShot = null;
 let ignoreClickUntil = 0;
 let swipe = null;
+let z = 1;
+let panX = 0;
+let panY = 0;
+let gestureZ0 = 1;
+let pointers = new Map();
+let pinch = null;
+let pan = null;
+let lastTap = 0;
 
 export function isAuthorLightboxOpen() {
   return open;
@@ -70,9 +81,47 @@ function syncDots() {
   });
 }
 
+function applyZoom() {
+  if (!img) return;
+  img.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${z})`;
+  root?.classList.toggle("is-zoomed", z > 1.001);
+}
+
+function resetZoom() {
+  z = 1;
+  panX = 0;
+  panY = 0;
+  applyZoom();
+}
+
+function clampZ(next) {
+  return Math.min(MAX_Z, Math.max(MIN_Z, next));
+}
+
+function zoomAround(cx, cy, nextZ) {
+  const next = clampZ(nextZ);
+  if (!img || Math.abs(next - z) < 0.001) return;
+  const box = img.parentElement?.getBoundingClientRect();
+  if (!box) {
+    z = next;
+    if (z <= 1.001) resetZoom();
+    else applyZoom();
+    return;
+  }
+  const sx = cx - (box.left + box.width / 2);
+  const sy = cy - (box.top + box.height / 2);
+  const k = next / z;
+  panX = sx - (sx - panX) * k;
+  panY = sy - (sy - panY) * k;
+  z = next;
+  if (z <= 1.001) resetZoom();
+  else applyZoom();
+}
+
 function paint() {
   const work = AUTHOR_WORKS[index];
   if (!img || !work) return;
+  resetZoom();
   img.src = work.src;
   img.width = work.width;
   img.height = work.height;
@@ -95,7 +144,9 @@ function goTo(i) {
 }
 
 function lockScroll() {
-  if (!savedCard) return;
+  const deckRoot = getScrollRoot();
+  if (deckRoot && deckRoot.scrollTop !== savedDeckY) deckRoot.scrollTop = savedDeckY;
+  if (!savedFocused || !savedCard) return;
   const scroller = focusScrollRoot(savedCard);
   if (scroller.scrollTop !== savedScroll) scroller.scrollTop = savedScroll;
 }
@@ -114,26 +165,31 @@ function closeLb() {
   if (!open) return;
   const card = savedCard;
   const top = savedScroll;
+  const deckY = savedDeckY;
+  const wasFocused = savedFocused;
   const shot = lastShot;
+  resetZoom();
   setOpen(false);
-  root?.classList.remove("is-cursor");
   const scroller = card ? focusScrollRoot(card) : null;
+  const deckRoot = getScrollRoot();
   const pin = () => {
-    if (scroller) scroller.scrollTop = top;
+    if (deckRoot) deckRoot.scrollTop = deckY;
+    if (wasFocused && scroller) scroller.scrollTop = top;
   };
   pin();
   requestAnimationFrame(() => {
     pin();
-    shot?.focus?.({ preventScroll: true });
+    if (wasFocused) shot?.focus?.({ preventScroll: true });
     pin();
   });
 }
 
 function openAt(i, shot) {
   const card = authorCard();
-  if (!cardOpen(card)) return;
   savedCard = card;
-  savedScroll = focusScrollRoot(card).scrollTop;
+  savedFocused = cardOpen(card);
+  savedScroll = card ? focusScrollRoot(card).scrollTop : 0;
+  savedDeckY = getScrollRoot()?.scrollTop ?? 0;
   lastShot = shot instanceof HTMLElement ? shot : null;
   index = wrap(i);
   setOpen(true);
@@ -162,41 +218,40 @@ function buildDots() {
 
 function bindShots() {
   document.querySelectorAll("[data-author-work]").forEach((shot) => {
-    shot.addEventListener("click", (event) => {
+    const hold = (event) => {
       event.preventDefault();
       event.stopPropagation();
-      if (!cardOpen()) return;
-      const i = Number(shot.getAttribute("data-author-work"));
-      if (!Number.isFinite(i)) return;
-      openAt(i, shot);
-    });
-    shot.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-    });
+      event.stopImmediatePropagation();
+    };
+    shot.addEventListener("pointerdown", hold, true);
+    shot.addEventListener(
+      "click",
+      (event) => {
+        hold(event);
+        const i = Number(shot.getAttribute("data-author-work"));
+        if (!Number.isFinite(i)) return;
+        openAt(i, shot);
+      },
+      true,
+    );
   });
 }
 
-function finePointer() {
-  return FINE.matches && !isMobile();
+function pinchDist() {
+  const pts = [...pointers.values()];
+  if (pts.length < 2) return 0;
+  return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
 }
 
-function moveCursor(event) {
-  if (!open || !cursor || !root) return;
-  if (!finePointer()) {
-    root.classList.remove("is-cursor");
-    return;
-  }
-  const chrome = event.target.closest?.(
-    "[data-author-lb-close], [data-author-lb-dots], [data-author-lb-dot]",
-  );
-  if (chrome) {
-    root.classList.remove("is-cursor");
-    return;
-  }
-  root.classList.add("is-cursor");
-  cursor.style.left = `${event.clientX}px`;
-  cursor.style.top = `${event.clientY}px`;
-  cursor.classList.toggle("is-prev", event.clientX < window.innerWidth / 2);
+function pinchCenter() {
+  const pts = [...pointers.values()];
+  if (pts.length < 2) return { x: 0, y: 0 };
+  return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+}
+
+function toggleZoom(cx, cy) {
+  if (z > 1.001) resetZoom();
+  else zoomAround(cx, cy, 2);
 }
 
 export function initAuthorLightbox() {
@@ -204,23 +259,7 @@ export function initAuthorLightbox() {
   if (!root) return;
 
   img = root.querySelector("[data-author-lb-img]");
-  cursor = root.querySelector("[data-author-lb-cursor]");
   pager = root.querySelector("[data-author-lb-dots]");
-
-  const collage = document.querySelector(".author-card__collage");
-  const syncCollageInert = () => {
-    if (!collage) return;
-    if (cardOpen()) collage.removeAttribute("inert");
-    else collage.setAttribute("inert", "");
-  };
-  syncCollageInert();
-  const card = authorCard();
-  if (card) {
-    new MutationObserver(syncCollageInert).observe(card, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-  }
 
   buildDots();
   bindShots();
@@ -243,18 +282,40 @@ export function initAuthorLightbox() {
   bindHit("[data-author-lb-prev]", -1);
   bindHit("[data-author-lb-next]", 1);
 
-  root.addEventListener("pointermove", moveCursor);
-  root.addEventListener("pointerleave", () => root.classList.remove("is-cursor"));
+  root.querySelector("[data-author-lb-mid]")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+
+  root.addEventListener("dblclick", (event) => {
+    if (!open) return;
+    if (event.target.closest?.(CHROME)) return;
+    event.preventDefault();
+    toggleZoom(event.clientX, event.clientY);
+  });
 
   root.addEventListener(
     "pointerdown",
     (event) => {
       if (!open) return;
-      if (event.isPrimary === false) return;
       if (event.button && event.button !== 0) return;
-      if (event.target.closest?.("[data-author-lb-close], [data-author-lb-dots], [data-author-lb-dot]")) {
+      if (event.target.closest?.(CHROME)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pointers.size >= 2) {
+        swipe = null;
+        pan = null;
+        const dist = pinchDist();
+        const mid = pinchCenter();
+        pinch = { dist, z0: z, x: mid.x, y: mid.y };
         return;
       }
+
+      if (z > 1.001) {
+        pan = { id: event.pointerId, x: event.clientX, y: event.clientY, px: panX, py: panY };
+        return;
+      }
+
       if (event.pointerType === "mouse" && !COARSE.matches) return;
       swipe = {
         id: event.pointerId,
@@ -269,6 +330,29 @@ export function initAuthorLightbox() {
   window.addEventListener(
     "pointermove",
     (event) => {
+      if (!open) return;
+      if (pointers.has(event.pointerId)) {
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      }
+
+      if (pinch && pointers.size >= 2) {
+        const dist = pinchDist();
+        const mid = pinchCenter();
+        if (pinch.dist > 8 && dist > 0) {
+          if (event.cancelable) event.preventDefault();
+          zoomAround(mid.x, mid.y, pinch.z0 * (dist / pinch.dist));
+        }
+        return;
+      }
+
+      if (pan && event.pointerId === pan.id) {
+        if (event.cancelable) event.preventDefault();
+        panX = pan.px + (event.clientX - pan.x);
+        panY = pan.py + (event.clientY - pan.y);
+        applyZoom();
+        return;
+      }
+
       if (!swipe || event.pointerId !== swipe.id) return;
       const dx = event.clientX - swipe.x;
       const dy = event.clientY - swipe.y;
@@ -281,20 +365,46 @@ export function initAuthorLightbox() {
     { passive: false },
   );
 
-  const endSwipe = (event, cancelled) => {
-    if (!swipe || (event && event.pointerId !== swipe.id)) return;
-    const dx = event ? event.clientX - swipe.x : 0;
+  const endPointer = (event, cancelled) => {
+    const hadPinch = Boolean(pinch);
+    pointers.delete(event.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (pan && event.pointerId === pan.id) pan = null;
+
+    if (hadPinch) {
+      ignoreClickUntil = performance.now() + 450;
+      swipe = null;
+      return;
+    }
+
+    if (z <= 1.001 && event.pointerType === "touch") {
+      const now = performance.now();
+      const dx = swipe ? event.clientX - swipe.x : 0;
+      const dy = swipe ? event.clientY - swipe.y : 0;
+      if (!cancelled && Math.hypot(dx, dy) < AXIS_PX) {
+        if (now - lastTap < 280) {
+          toggleZoom(event.clientX, event.clientY);
+          lastTap = 0;
+          ignoreClickUntil = now + 450;
+        } else {
+          lastTap = now;
+        }
+      }
+    }
+
+    if (!swipe || event.pointerId !== swipe.id) return;
+    const dx = event.clientX - swipe.x;
     const axis = swipe.axis;
     swipe = null;
-    if (cancelled || axis !== "x") return;
+    if (cancelled || axis !== "x" || z > 1.001) return;
     const w = root.clientWidth || window.innerWidth;
     if (Math.abs(dx) < w * COMMIT_RATIO) return;
     ignoreClickUntil = performance.now() + 450;
     go(dx < 0 ? 1 : -1);
   };
 
-  window.addEventListener("pointerup", (event) => endSwipe(event, false));
-  window.addEventListener("pointercancel", (event) => endSwipe(event, true));
+  window.addEventListener("pointerup", (event) => endPointer(event, false));
+  window.addEventListener("pointercancel", (event) => endPointer(event, true));
 
   root.addEventListener(
     "wheel",
@@ -302,9 +412,31 @@ export function initAuthorLightbox() {
       if (!open) return;
       event.preventDefault();
       lockScroll();
+      if (event.ctrlKey || event.metaKey) {
+        const factor = Math.exp(-event.deltaY * 0.012);
+        zoomAround(event.clientX, event.clientY, z * factor);
+      }
     },
     { passive: false },
   );
+
+  const onGestureStart = (event) => {
+    if (!open) return;
+    event.preventDefault();
+    gestureZ0 = z;
+  };
+  const onGestureChange = (event) => {
+    if (!open) return;
+    event.preventDefault();
+    zoomAround(event.clientX || window.innerWidth / 2, event.clientY || window.innerHeight / 2, gestureZ0 * event.scale);
+  };
+  const onGestureEnd = (event) => {
+    if (!open) return;
+    event.preventDefault();
+  };
+  root.addEventListener("gesturestart", onGestureStart, { passive: false });
+  root.addEventListener("gesturechange", onGestureChange, { passive: false });
+  root.addEventListener("gestureend", onGestureEnd, { passive: false });
 
   document.addEventListener(
     "scroll",

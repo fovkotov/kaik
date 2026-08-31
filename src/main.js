@@ -4,7 +4,7 @@ import { initTickClicks } from "./tick-clicks.js";
 import { initSoundSettings, noteDesktopDeckDelta } from "./sound-settings.js";
 import { initStageSettings } from "./stage-settings.js";
 import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
-import { initAuthorLightbox } from "./author-lightbox.js";
+import { initAuthorLightbox, isAuthorLightboxOpen } from "./author-lightbox.js";
 import { initImgSliders } from "./img-slider.js";
 import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
 import { initDropcaps } from "./letters/dropcap.js";
@@ -648,7 +648,7 @@ function initDeck() {
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
-    if (programLocked()) return;
+    if (programLocked() || isAuthorLightboxOpen()) return;
     if (event.target.closest?.(DRAG_IGNORE)) return;
 
     cancelSnap();
@@ -743,6 +743,10 @@ function initDeck() {
   const onDeckWheel = (event) => {
     if (seenWheel.has(event)) return;
     seenWheel.add(event);
+    if (isAuthorLightboxOpen()) {
+      event.preventDefault();
+      return;
+    }
     if (eventFrom(event.target, ".is-program-open")) return;
     if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button")) return;
     if (programLocked()) {
