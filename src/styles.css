@@ -1498,8 +1498,8 @@ html.is-mobile .author-lb__hit--next {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .author-lb__dots .img-slider__dot:hover::after {
-    background: rgba(255, 255, 255, 0.7);
+  .img-slider__dot:not(.is-active):hover::after {
+    background: rgba(0, 0, 0, 0.48);
   }
 }
 
@@ -3387,7 +3387,7 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   margin: 0;
   padding: 0 calc(8 * var(--u));
   border-radius: 120px;
-  background: rgba(85, 85, 85, 0.8);
+  background: var(--lb-btn);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   pointer-events: auto;
@@ -3413,12 +3413,12 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   width: calc(7 * var(--u));
   height: calc(7 * var(--u));
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.38);
+  background: var(--dot);
   transition: background 0.2s ease;
 }
 
 .img-slider__dot.is-active::after {
-  background: #fff;
+  background: var(--dot-on);
 }
 
 .history-card__grid {
