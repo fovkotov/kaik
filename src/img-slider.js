@@ -1,4 +1,3 @@
-import { mountLoopDots, paintLoopDots } from "./loop-dots.js";
 import { isMobile } from "./tweaks.js";
 
 const SLIDE = "[data-img-slider-slide]";
@@ -95,8 +94,6 @@ function bindSlider(root) {
 
   let index = 0;
   let pending = 0;
-  /** Unwrapped step count so wrapping last→first still rotates the pager. */
-  let dotPhase = 0;
   let shift = 0;
   let velocity = 0;
   let stopSpring = null;
@@ -112,8 +109,19 @@ function bindSlider(root) {
 
   const wrapIndex = (next) => (next + slides.length) % slides.length;
 
-  const paintDots = (progress = 0) => {
-    paintLoopDots(dots, { count: slides.length, index: dotPhase, progress });
+  const syncSlides = (active = index) => {
+    const current = wrapIndex(active);
+    slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
+  };
+
+  const syncDots = (active = index) => {
+    const current = wrapIndex(active);
+    syncSlides(current);
+    dots.forEach((dot, i) => {
+      const on = i === current;
+      dot.classList.toggle("is-active", on);
+      dot.setAttribute("aria-current", on ? "true" : "false");
+    });
   };
 
   const stackDesktop = () => {
@@ -125,7 +133,6 @@ function bindSlider(root) {
   const paint = (offset) => {
     if (!isMobile()) {
       stackDesktop();
-      paintDots(0);
       return;
     }
     const w = widthOf();
@@ -135,12 +142,6 @@ function bindSlider(root) {
       slide.style.transform = `translate3d(${x}px,0,0)`;
       slide.style.opacity = "";
     });
-    paintDots(w ? -offset / w : 0);
-  };
-
-  const syncSlides = (active = index) => {
-    const current = wrapIndex(active);
-    slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
   };
 
   const shortestSteps = (from, to) => {
@@ -153,7 +154,6 @@ function bindSlider(root) {
 
   const finishIndex = (next) => {
     const target = wrapIndex(next);
-    dotPhase += shortestSteps(index, target);
     index = target;
     pending = index;
     shift = 0;
@@ -169,7 +169,7 @@ function bindSlider(root) {
       }
     });
     paint(0);
-    syncSlides();
+    syncDots();
   };
 
   const cancelSpring = () => {
@@ -224,7 +224,7 @@ function bindSlider(root) {
 
   const settleShift = (dest, vel, nextIndex) => {
     pending = wrapIndex(nextIndex);
-    syncSlides(nextIndex);
+    syncDots(nextIndex);
     springTo(dest, vel, () => finishIndex(nextIndex));
   };
 
@@ -248,7 +248,6 @@ function bindSlider(root) {
     if (pending === index) return;
     const steps = shortestSteps(index, pending);
     shift += steps * widthOf();
-    dotPhase += steps;
     index = pending;
     paint(shift);
   };
@@ -272,10 +271,19 @@ function bindSlider(root) {
     root.append(pager);
   }
 
-  dots = mountLoopDots(pager, {
-    count: slides.length,
-    attr: "data-img-slider-dot",
-    onPick: (i) => goTo(i),
+  pager.replaceChildren();
+  slides.forEach((_, i) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "img-slider__dot";
+    dot.setAttribute("data-img-slider-dot", "");
+    dot.setAttribute("aria-label", `${i + 1} / ${slides.length}`);
+    dot.addEventListener("click", (event) => {
+      holdFocus(event);
+      goTo(i);
+    });
+    pager.append(dot);
+    dots.push(dot);
   });
 
   const bindNav = (sel, step) => {
@@ -384,6 +392,7 @@ function bindSlider(root) {
     if (gestureSamples.length > 5) gestureSamples.shift();
     if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
     paint(shift);
+    syncDots(index + committedSteps(0));
   };
 
   const onUp = (event) => {

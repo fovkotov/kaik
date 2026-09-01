@@ -1477,7 +1477,6 @@ html.is-mobile .author-lb__hit--next {
 .author-lb__dots.img-slider__dots,
 .author-lb .author-lb__dots {
   --u: 1px;
-  --dot-pitch: 10px;
   display: flex;
   position: absolute;
   left: 50%;
@@ -1485,17 +1484,22 @@ html.is-mobile .author-lb__hit--next {
   z-index: 4;
   transform: translateX(-50%);
   height: 28px;
-  padding: 0;
+  padding: 0 8px;
   pointer-events: auto;
 }
 
+.author-lb__dots .img-slider__dot {
+  width: 16px;
+}
+
 .author-lb__dots .img-slider__dot::after {
-  background: color-mix(in srgb, var(--dot-on) calc(var(--dot-glow, 0) * 100%), var(--dot));
+  width: 7px;
+  height: 7px;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .author-lb__dots .img-slider__dot:hover::after {
-    background: color-mix(in srgb, var(--dot-on) calc(50% + 50% * var(--dot-glow, 0)), var(--dot));
+    background: rgba(255, 255, 255, 0.7);
   }
 }
 
@@ -3370,7 +3374,6 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 }
 
 .img-slider__dots {
-  --dot-pitch: calc(10 * var(--u));
   display: flex;
   position: absolute;
   left: 50%;
@@ -3380,29 +3383,21 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   align-items: center;
   justify-content: center;
   gap: 0;
-  box-sizing: border-box;
-  width: calc(var(--dots-visible, 7) * var(--dot-pitch));
   height: calc(28 * var(--u));
   margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background: none;
+  padding: 0 calc(8 * var(--u));
+  border-radius: 120px;
+  background: rgba(85, 85, 85, 0.8);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   pointer-events: auto;
-}
-
-.img-slider__dots-row {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  will-change: transform;
 }
 
 .img-slider__dot {
   display: flex;
-  flex: 0 0 var(--dot-pitch);
   align-items: center;
   justify-content: center;
-  width: var(--dot-pitch);
+  width: calc(16 * var(--u));
   height: 100%;
   padding: 0;
   border: 0;
@@ -3418,9 +3413,12 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   width: calc(7 * var(--u));
   height: calc(7 * var(--u));
   border-radius: 50%;
-  background: color-mix(in srgb, #fff calc(var(--dot-glow, 0) * 100%), #9d9d9d);
-  transform: scale(var(--dot-scale, 0.5));
-  transform-origin: center;
+  background: rgba(255, 255, 255, 0.38);
+  transition: background 0.2s ease;
+}
+
+.img-slider__dot.is-active::after {
+  background: #fff;
 }
 
 .history-card__grid {

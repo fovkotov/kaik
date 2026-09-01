@@ -1,6 +1,5 @@
 import { getScrollRoot } from "./embed.js";
 import { focusScrollRoot } from "./focus-scrollbar.js";
-import { mountLoopDots, paintLoopDots } from "./loop-dots.js";
 import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
 import { isMobile } from "./tweaks.js";
@@ -43,8 +42,6 @@ let pager = null;
 let dots = [];
 let index = 0;
 let pending = 0;
-/** Unwrapped step count so wrapping last→first still rotates the pager. */
-let dotPhase = 0;
 let shift = 0;
 let velocity = 0;
 let stopSpring = null;
@@ -134,8 +131,14 @@ function syncSlides(active = index) {
   slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
 }
 
-function paintDots(progress = 0) {
-  paintLoopDots(dots, { count: AUTHOR_WORKS.length, index: dotPhase, progress });
+function syncDots(active = index) {
+  const current = wrap(active);
+  syncSlides(current);
+  dots.forEach((dot, i) => {
+    const on = i === current;
+    dot.classList.toggle("is-active", on);
+    dot.setAttribute("aria-current", on ? "true" : "false");
+  });
 }
 
 function paint(offset) {
@@ -143,7 +146,6 @@ function paint(offset) {
     slides.forEach((slide) => {
       slide.style.transform = "translate3d(0,0,0)";
     });
-    paintDots(0);
     return;
   }
   const w = widthOf();
@@ -153,7 +155,6 @@ function paint(offset) {
     slide.style.transform = `translate3d(${x}px,0,0)`;
     slide.style.opacity = "";
   });
-  paintDots(w ? -offset / w : 0);
 }
 
 function applyZoom() {
@@ -267,7 +268,6 @@ function springTo(dest, vel, onDone) {
 function finishIndex(next) {
   const target = wrap(next);
   const changed = target !== index;
-  dotPhase += shortestSteps(index, target);
   index = target;
   pending = index;
   shift = 0;
@@ -287,7 +287,7 @@ function finishIndex(next) {
     resetZoom();
   }
   paint(0);
-  syncSlides();
+  syncDots();
   preload(index + 1);
   preload(index - 1);
 }
@@ -297,7 +297,6 @@ function adoptPending() {
   if (pending === index) return;
   const steps = shortestSteps(index, pending);
   shift += steps * widthOf();
-  dotPhase += steps;
   index = pending;
   paint(shift);
 }
@@ -315,7 +314,7 @@ function settleShift(dest, vel, nextIndex) {
     cancelZoomSession();
     resetZoom();
   }
-  syncSlides(nextIndex);
+  syncDots(nextIndex);
   springTo(dest, vel, () => finishIndex(nextIndex));
 }
 
@@ -409,7 +408,6 @@ function openAt(i, shot) {
   cancelSpring();
   pending = wrap(i);
   index = pending;
-  dotPhase = index;
   shift = 0;
   velocity = 0;
   setOpen(true);
@@ -426,7 +424,7 @@ function openAt(i, shot) {
     }
   });
   paint(0);
-  syncSlides();
+  syncDots();
   preload(index + 1);
   preload(index - 1);
   lockScroll();
@@ -456,10 +454,20 @@ function buildSlides() {
 
 function buildDots() {
   if (!pager) return;
-  dots = mountLoopDots(pager, {
-    count: AUTHOR_WORKS.length,
-    attr: "data-author-lb-dot",
-    onPick: (i) => goTo(i),
+  pager.replaceChildren();
+  dots = AUTHOR_WORKS.map((_, i) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "img-slider__dot";
+    dot.setAttribute("data-author-lb-dot", "");
+    dot.setAttribute("aria-label", `${i + 1} / ${AUTHOR_WORKS.length}`);
+    dot.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      goTo(i);
+    });
+    pager.append(dot);
+    return dot;
   });
 }
 
@@ -658,6 +666,7 @@ export function initAuthorLightbox() {
       if (gestureSamples.length > 5) gestureSamples.shift();
       if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
       paint(shift);
+      syncDots(index + committedSteps(0));
     },
     { passive: false },
   );
