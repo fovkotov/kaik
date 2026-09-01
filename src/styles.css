@@ -1275,7 +1275,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   inset: 0;
   z-index: 80;
   display: none;
-  background: #000;
+  background: var(--bg);
   overscroll-behavior: contain;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
