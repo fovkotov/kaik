@@ -1,6 +1,6 @@
 import { getScrollRoot } from "./embed.js";
 import { focusScrollRoot } from "./focus-scrollbar.js";
-import { mountLoopDots, paintLoopDots, SLIDE_FADE_EASE, SLIDE_FADE_MS } from "./loop-dots.js";
+import { mountLoopDots, paintLoopDots } from "./loop-dots.js";
 import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
 import { isMobile } from "./tweaks.js";
@@ -46,8 +46,6 @@ let pending = 0;
 let shift = 0;
 let velocity = 0;
 let stopSpring = null;
-let fadeGen = 0;
-let fading = false;
 let open = false;
 let savedScroll = 0;
 let savedDeckY = 0;
@@ -143,7 +141,7 @@ function paint(offset) {
     slides.forEach((slide) => {
       slide.style.transform = "translate3d(0,0,0)";
     });
-    if (!fading) paintDots(0);
+    paintDots(0);
     return;
   }
   const w = widthOf();
@@ -265,7 +263,6 @@ function springTo(dest, vel, onDone) {
 }
 
 function finishIndex(next) {
-  fading = false;
   const target = wrap(next);
   const changed = target !== index;
   index = target;
@@ -273,7 +270,6 @@ function finishIndex(next) {
   shift = 0;
   velocity = 0;
   slides.forEach((slide, i) => {
-    slide.classList.remove("is-fade-in");
     slide.style.transition = "none";
     if (!isMobile()) {
       slide.style.opacity = i === index ? "1" : "0";
@@ -323,66 +319,12 @@ function commitFromRelease(vel) {
   settleShift(-steps * widthOf(), vel, index + steps);
 }
 
-function fadeTo(target) {
-  if (!open) return;
-  const to = wrap(target);
-  const from = index;
-  cancelSpring();
-  const gen = ++fadeGen;
-  fading = true;
-  pending = to;
-  if (to !== from) {
-    cancelZoomSession();
-    resetZoom();
-  }
-  slides.forEach((slide, i) => {
-    slide.classList.remove("is-fade-in");
-    slide.style.transition = "none";
-    slide.style.transform = "translate3d(0,0,0)";
-    if (i === from) {
-      slide.style.opacity = "1";
-      slide.style.zIndex = "1";
-    } else if (i === to) {
-      slide.style.opacity = "0";
-      slide.style.zIndex = "2";
-    } else {
-      slide.style.opacity = "0";
-      slide.style.zIndex = "0";
-    }
-  });
-  syncSlides(to);
-  if (from === to) {
-    finishIndex(to);
-    return;
-  }
-  const incoming = slides[to];
-  const dir = shortestSteps(from, to) || 1;
-  const start = performance.now();
-  const tickDots = (now) => {
-    if (gen !== fadeGen) return;
-    const t = REDUCE.matches ? 1 : Math.min(1, (now - start) / SLIDE_FADE_MS);
-    paintLoopDots(dots, { count: AUTHOR_WORKS.length, index: from, progress: dir * t });
-    if (t < 1) requestAnimationFrame(tickDots);
-  };
-  requestAnimationFrame(() => {
-    if (gen !== fadeGen) return;
-    incoming.classList.add("is-fade-in");
-    incoming.style.transition = REDUCE.matches ? "none" : `opacity ${SLIDE_FADE_MS}ms ${SLIDE_FADE_EASE}`;
-    incoming.style.opacity = "1";
-    requestAnimationFrame(tickDots);
-  });
-  window.setTimeout(() => {
-    if (gen !== fadeGen) return;
-    finishIndex(to);
-  }, REDUCE.matches ? 0 : SLIDE_FADE_MS + 24);
-}
-
 function goTo(next, vel = 0) {
   if (!open) return;
   const target = wrap(next);
   pending = target;
   if (!isMobile()) {
-    fadeTo(target);
+    finishIndex(target);
     return;
   }
   const steps = shortestSteps(index, target);
@@ -432,8 +374,6 @@ function closeLb() {
   const deckY = savedDeckY;
   const wasFocused = savedFocused;
   const shot = lastShot;
-  fadeGen += 1;
-  fading = false;
   cancelSpring();
   cancelZoomSession();
   resetZoom();
@@ -461,8 +401,6 @@ function openAt(i, shot) {
   savedScroll = card ? focusScrollRoot(card).scrollTop : 0;
   savedDeckY = getScrollRoot()?.scrollTop ?? 0;
   lastShot = shot instanceof HTMLElement ? shot : null;
-  fadeGen += 1;
-  fading = false;
   cancelSpring();
   pending = wrap(i);
   index = pending;
@@ -472,7 +410,6 @@ function openAt(i, shot) {
   cancelZoomSession();
   resetZoom();
   slides.forEach((slide, s) => {
-    slide.classList.remove("is-fade-in");
     slide.style.transition = "none";
     if (!isMobile()) {
       slide.style.opacity = s === index ? "1" : "0";

@@ -1,4 +1,4 @@
-import { mountLoopDots, paintLoopDots, SLIDE_FADE_EASE, SLIDE_FADE_MS } from "./loop-dots.js";
+import { mountLoopDots, paintLoopDots } from "./loop-dots.js";
 import { isMobile } from "./tweaks.js";
 
 const SLIDE = "[data-img-slider-slide]";
@@ -105,8 +105,6 @@ function bindSlider(root) {
   /** Pointer down that may become a tap-to-next (no swipe / no scroll). */
   let press = null;
   let dots = [];
-  let fadeGen = 0;
-  let fading = false;
 
   const widthOf = () => root.clientWidth || 1;
 
@@ -125,7 +123,7 @@ function bindSlider(root) {
   const paint = (offset) => {
     if (!isMobile()) {
       stackDesktop();
-      if (!fading) paintDots(0);
+      paintDots(0);
       return;
     }
     const w = widthOf();
@@ -152,13 +150,11 @@ function bindSlider(root) {
   };
 
   const finishIndex = (next) => {
-    fading = false;
     index = wrapIndex(next);
     pending = index;
     shift = 0;
     velocity = 0;
     slides.forEach((slide, i) => {
-      slide.classList.remove("is-fade-in");
       slide.style.transition = "none";
       if (!isMobile()) {
         slide.style.opacity = i === index ? "1" : "0";
@@ -228,60 +224,11 @@ function bindSlider(root) {
     springTo(dest, vel, () => finishIndex(nextIndex));
   };
 
-  const fadeTo = (target) => {
-    const to = wrapIndex(target);
-    const from = index;
-    cancelSpring();
-    const gen = ++fadeGen;
-    fading = true;
-    pending = to;
-    slides.forEach((slide, i) => {
-      slide.classList.remove("is-fade-in");
-      slide.style.transition = "none";
-      slide.style.transform = "translate3d(0,0,0)";
-      if (i === from) {
-        slide.style.opacity = "1";
-        slide.style.zIndex = "1";
-      } else if (i === to) {
-        slide.style.opacity = "0";
-        slide.style.zIndex = "2";
-      } else {
-        slide.style.opacity = "0";
-        slide.style.zIndex = "0";
-      }
-    });
-    syncSlides(to);
-    if (from === to) {
-      finishIndex(to);
-      return;
-    }
-    const incoming = slides[to];
-    const dir = shortestSteps(from, to) || 1;
-    const start = performance.now();
-    const tickDots = (now) => {
-      if (gen !== fadeGen) return;
-      const t = REDUCE.matches ? 1 : Math.min(1, (now - start) / SLIDE_FADE_MS);
-      paintLoopDots(dots, { count: slides.length, index: from, progress: dir * t });
-      if (t < 1) requestAnimationFrame(tickDots);
-    };
-    requestAnimationFrame(() => {
-      if (gen !== fadeGen) return;
-      incoming.classList.add("is-fade-in");
-      incoming.style.transition = REDUCE.matches ? "none" : `opacity ${SLIDE_FADE_MS}ms ${SLIDE_FADE_EASE}`;
-      incoming.style.opacity = "1";
-      requestAnimationFrame(tickDots);
-    });
-    window.setTimeout(() => {
-      if (gen !== fadeGen) return;
-      finishIndex(to);
-    }, REDUCE.matches ? 0 : SLIDE_FADE_MS + 24);
-  };
-
   const goTo = (next, vel = 0) => {
     const target = wrapIndex(next);
     pending = target;
     if (!isMobile()) {
-      fadeTo(target);
+      finishIndex(target);
       return;
     }
     const steps = shortestSteps(index, target);
@@ -343,7 +290,7 @@ function bindSlider(root) {
   bindNav(PREV, -1);
   bindNav(NEXT, 1);
 
-  /** Mobile only: article-style drag. Desktop fades the incoming slide in place. */
+  /** Mobile only: article-style drag. Desktop swaps the stacked slide instantly. */
   const allowSwipe = (event) => {
     if (!isMobile()) return false;
     if (event.pointerType === "mouse") return false;
