@@ -3,8 +3,8 @@
 export const SLIDE_FADE_MS = 320;
 export const SLIDE_FADE_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-/** Distance 0 / 1 / 2 / 3+ as a fraction of the active 7px disc. */
-const SCALES = [1, 0.71, 0.5, 0.36];
+/** Dist 0–1 large, 2 medium, 3+ small, as a fraction of the 7px disc. */
+const SCALES = [1, 1, 0.75, 0.5];
 const VISIBLE_MAX = 7;
 const BUFFER = 1;
 
