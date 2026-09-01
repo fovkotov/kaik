@@ -95,6 +95,8 @@ function bindSlider(root) {
 
   let index = 0;
   let pending = 0;
+  /** Unwrapped step count so wrapping last→first still rotates the pager. */
+  let dotPhase = 0;
   let shift = 0;
   let velocity = 0;
   let stopSpring = null;
@@ -111,7 +113,7 @@ function bindSlider(root) {
   const wrapIndex = (next) => (next + slides.length) % slides.length;
 
   const paintDots = (progress = 0) => {
-    paintLoopDots(dots, { count: slides.length, index, progress });
+    paintLoopDots(dots, { count: slides.length, index: dotPhase, progress });
   };
 
   const stackDesktop = () => {
@@ -150,7 +152,9 @@ function bindSlider(root) {
   };
 
   const finishIndex = (next) => {
-    index = wrapIndex(next);
+    const target = wrapIndex(next);
+    dotPhase += shortestSteps(index, target);
+    index = target;
     pending = index;
     shift = 0;
     velocity = 0;
@@ -242,7 +246,9 @@ function bindSlider(root) {
   /** Keep the painted offset when adopting `pending` as the live index. */
   const adoptPending = () => {
     if (pending === index) return;
-    shift += shortestSteps(index, pending) * widthOf();
+    const steps = shortestSteps(index, pending);
+    shift += steps * widthOf();
+    dotPhase += steps;
     index = pending;
     paint(shift);
   };

@@ -43,6 +43,8 @@ let pager = null;
 let dots = [];
 let index = 0;
 let pending = 0;
+/** Unwrapped step count so wrapping last→first still rotates the pager. */
+let dotPhase = 0;
 let shift = 0;
 let velocity = 0;
 let stopSpring = null;
@@ -133,7 +135,7 @@ function syncSlides(active = index) {
 }
 
 function paintDots(progress = 0) {
-  paintLoopDots(dots, { count: AUTHOR_WORKS.length, index, progress });
+  paintLoopDots(dots, { count: AUTHOR_WORKS.length, index: dotPhase, progress });
 }
 
 function paint(offset) {
@@ -265,6 +267,7 @@ function springTo(dest, vel, onDone) {
 function finishIndex(next) {
   const target = wrap(next);
   const changed = target !== index;
+  dotPhase += shortestSteps(index, target);
   index = target;
   pending = index;
   shift = 0;
@@ -292,7 +295,9 @@ function finishIndex(next) {
 /** Keep the painted offset when adopting `pending` as the live index. */
 function adoptPending() {
   if (pending === index) return;
-  shift += shortestSteps(index, pending) * widthOf();
+  const steps = shortestSteps(index, pending);
+  shift += steps * widthOf();
+  dotPhase += steps;
   index = pending;
   paint(shift);
 }
@@ -404,6 +409,7 @@ function openAt(i, shot) {
   cancelSpring();
   pending = wrap(i);
   index = pending;
+  dotPhase = index;
   shift = 0;
   velocity = 0;
   setOpen(true);
