@@ -2129,14 +2129,15 @@ html.is-mobile .author-lb__hit--next {
   pointer-events: none;
 }
 
-/* Figma 194:404 — 561×278 media at (17, 211) on 595×842. */
+/* Full content width; height from 16:9 (YouTube). Position from Figma 194:404. */
 .preview-card__media {
   position: absolute;
   z-index: 3;
   left: calc(17 * var(--u));
   top: calc(211 * var(--u));
   width: calc(561 * var(--u));
-  height: calc(278 * var(--u));
+  aspect-ratio: 16 / 9;
+  height: auto;
   overflow: hidden;
   background: #1a1a1a;
   /* Always interactive — deck swipe/focus ignore [data-preview-media]. */
@@ -4631,12 +4632,13 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     width: calc(270.811 * var(--card-w) / 318);
   }
 
-  /* Figma 194:404 scaled to 318 face — 300×149 at (9, 113). */
+  /* Figma 194:404 scaled to 318 face — width 300 at (9, 113); height from 16:9. */
   .preview-card__media {
     left: calc(9 * var(--card-w) / 318);
     top: calc(113 * var(--card-w) / 318);
     width: calc(300 * var(--card-w) / 318);
-    height: calc(149 * var(--card-w) / 318);
+    aspect-ratio: 16 / 9;
+    height: auto;
   }
 
   .history-card__title {
