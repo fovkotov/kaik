@@ -3,3 +3,6 @@ dist
 .DS_Store
 *.local
 .vercel
+
+# Local video sources — use YouTube embeds, do not ship binaries
+*.mp4

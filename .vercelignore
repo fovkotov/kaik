@@ -1,0 +1,7 @@
+K06Djv3prto.mp4
+*.mp4
+node_modules
+dist
+.DS_Store
+*.local
+.vercel
