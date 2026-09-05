@@ -2108,7 +2108,7 @@ html.is-mobile .author-lb__hit--next {
 
 .preview-card__title {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   top: calc(2 * var(--u));
   left: 50%;
   transform: translateX(-50%);
@@ -2120,6 +2120,34 @@ html.is-mobile .author-lb__hit--next {
   overflow-wrap: break-word;
   color: var(--preview-ink);
   pointer-events: none;
+}
+
+/* Figma 194:404 — 561×278 media at (17, 211) on 595×842. */
+.preview-card__media {
+  position: absolute;
+  z-index: 3;
+  left: calc(17 * var(--u));
+  top: calc(211 * var(--u));
+  width: calc(561 * var(--u));
+  height: calc(278 * var(--u));
+  overflow: hidden;
+  background: #1a1a1a;
+  /* Closed deck: let swipes/open hit the card; play only when focused. */
+  pointer-events: none;
+  overscroll-behavior: contain;
+}
+
+.card.is-program-open .preview-card__media {
+  pointer-events: auto;
+}
+
+.preview-card__embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
 }
 
 .faq-card {
@@ -4598,6 +4626,14 @@ html:not(.is-mobile) .article-close:not([hidden]) {
 
   .preview-card__title {
     width: calc(270.811 * var(--card-w) / 318);
+  }
+
+  /* Figma 194:404 scaled to 318 face — 300×149 at (9, 113). */
+  .preview-card__media {
+    left: calc(9 * var(--card-w) / 318);
+    top: calc(113 * var(--card-w) / 318);
+    width: calc(300 * var(--card-w) / 318);
+    height: calc(149 * var(--card-w) / 318);
   }
 
   .history-card__title {
