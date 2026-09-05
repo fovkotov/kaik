@@ -2425,13 +2425,13 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   display: none;
 }
 
-/* Figma 201:4147 — pale-blue shoe silhouette above the bottom media strip. */
+/* Preview illustration above the bottom media strip. */
 .card-illust--preview .card-illust__art {
   left: 50%;
   top: calc(140 * var(--u));
   width: calc(520 * var(--u));
   height: auto;
-  aspect-ratio: 217.57 / 89.29;
+  aspect-ratio: 569 / 363;
   transform: translateX(-50%);
   object-fit: contain;
 }
@@ -5434,7 +5434,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     object-fit: contain;
   }
 
-  /* Figma 201:4129 — shoe above bottom media on 318×450. */
+  /* Preview illustration above bottom media on 318×450. */
   .card-illust--preview .card-illust__art {
     left: 50%;
     top: calc(72 * var(--card-w) / 318);
@@ -5442,7 +5442,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     bottom: auto;
     width: calc(280 * var(--card-w) / 318);
     height: auto;
-    aspect-ratio: 217.57 / 89.29;
+    aspect-ratio: 569 / 363;
     transform: translateX(-50%);
     object-fit: contain;
   }
