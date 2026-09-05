@@ -2132,13 +2132,9 @@ html.is-mobile .author-lb__hit--next {
   height: calc(278 * var(--u));
   overflow: hidden;
   background: #1a1a1a;
-  /* Closed deck: let swipes/open hit the card; play only when focused. */
-  pointer-events: none;
-  overscroll-behavior: contain;
-}
-
-.card.is-program-open .preview-card__media {
+  /* Always interactive — deck swipe/focus ignore [data-preview-media]. */
   pointer-events: auto;
+  overscroll-behavior: contain;
 }
 
 .preview-card__embed {

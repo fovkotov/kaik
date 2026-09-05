@@ -14,7 +14,7 @@
  *     src="https://fovkotov.github.io/kaik/"
  *     title="KÄIK"
  *     style="width:100%;height:calc(var(--viewport-height, 100vh) - var(--pin-padding-top, 0px));border:0;display:block;"
- *     allow="autoplay; clipboard-write"
+ *     allow="autoplay; clipboard-write; fullscreen"
  *     loading="eager"
  *   ></iframe>
  *
