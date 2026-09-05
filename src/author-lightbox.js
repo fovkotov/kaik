@@ -40,6 +40,8 @@ let track = null;
 let slides = [];
 let pager = null;
 let dots = [];
+/** Active gallery; defaults to author works, swapped for article sliders. */
+let gallery = AUTHOR_WORKS;
 let index = 0;
 let pending = 0;
 let shift = 0;
@@ -71,8 +73,23 @@ export function isAuthorLightboxOpen() {
 }
 
 function wrap(i) {
-  const n = AUTHOR_WORKS.length;
+  const n = gallery.length || 1;
   return ((i % n) + n) % n;
+}
+
+function galleryKey(list) {
+  return (list || []).map((work) => work.src).join("\0");
+}
+
+function useGallery(next) {
+  const list = next?.length ? next : AUTHOR_WORKS;
+  if (galleryKey(list) === galleryKey(gallery) && slides.length === list.length) {
+    gallery = list;
+    return;
+  }
+  gallery = list;
+  buildSlides();
+  buildDots();
 }
 
 function widthOf() {
@@ -100,7 +117,7 @@ function sampleVel(samples) {
 
 function shortestSteps(from, to) {
   let delta = to - from;
-  const n = AUTHOR_WORKS.length;
+  const n = gallery.length || 1;
   if (delta > n / 2) delta -= n;
   if (delta < -n / 2) delta += n;
   return delta;
@@ -110,12 +127,16 @@ function authorCard() {
   return document.querySelector(".author-card")?.closest("[data-card]") ?? null;
 }
 
+function focusCardFrom(shot) {
+  return shot?.closest?.("[data-card]") ?? authorCard();
+}
+
 function cardOpen(card = authorCard()) {
   return Boolean(card?.classList.contains("is-program-open"));
 }
 
 function preload(i) {
-  const work = AUTHOR_WORKS[wrap(i)];
+  const work = gallery[wrap(i)];
   if (!work) return;
   const warm = new Image();
   warm.decoding = "async";
@@ -399,7 +420,8 @@ function closeLb() {
 }
 
 function openAt(i, shot) {
-  const card = authorCard();
+  if (!gallery.length) return;
+  const card = focusCardFrom(shot instanceof HTMLElement ? shot : null);
   savedCard = card;
   savedFocused = cardOpen(card);
   savedScroll = card ? focusScrollRoot(card).scrollTop : 0;
@@ -430,10 +452,17 @@ function openAt(i, shot) {
   lockScroll();
 }
 
+/** Open the shared fullscreen lightbox with any image set (author works or article slides). */
+export function openLightboxGallery(items, startIndex = 0, shot = null) {
+  if (!root) return;
+  useGallery(items);
+  openAt(startIndex, shot);
+}
+
 function buildSlides() {
   if (!track) return;
   track.replaceChildren();
-  slides = AUTHOR_WORKS.map((work, i) => {
+  slides = gallery.map((work, i) => {
     const slide = document.createElement("div");
     slide.className = "author-lb__slide";
     slide.setAttribute("data-author-lb-slide", "");
@@ -455,12 +484,12 @@ function buildSlides() {
 function buildDots() {
   if (!pager) return;
   pager.replaceChildren();
-  dots = AUTHOR_WORKS.map((_, i) => {
+  dots = gallery.map((_, i) => {
     const dot = document.createElement("button");
     dot.type = "button";
     dot.className = "img-slider__dot";
     dot.setAttribute("data-author-lb-dot", "");
-    dot.setAttribute("aria-label", `${i + 1} / ${AUTHOR_WORKS.length}`);
+    dot.setAttribute("aria-label", `${i + 1} / ${gallery.length}`);
     dot.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -528,6 +557,7 @@ function bindShots() {
         if (moved) return;
         const i = Number(shot.getAttribute("data-author-work"));
         if (!Number.isFinite(i)) return;
+        useGallery(AUTHOR_WORKS);
         openAt(i, shot);
       },
       true,

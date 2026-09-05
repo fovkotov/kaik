@@ -1,4 +1,5 @@
 import { isMobile } from "./tweaks.js";
+import { openLightboxGallery } from "./author-lightbox.js";
 
 const SLIDE = "[data-img-slider-slide]";
 const PREV = "[data-img-slider-prev]";
@@ -40,6 +41,34 @@ function slideImages(slide) {
   return [...slide.querySelectorAll("img")].filter(
     (img) => !img.closest(".img-slider__nav") && !img.closest(".img-slider__dots"),
   );
+}
+
+/** Keep slides + nav in a clipped stage; dots sit below in flow. */
+function ensureStage(root) {
+  let stage = root.querySelector("[data-img-slider-stage]");
+  if (stage) return stage;
+  stage = document.createElement("div");
+  stage.className = "img-slider__stage";
+  stage.setAttribute("data-img-slider-stage", "");
+  const kids = [...root.children].filter(
+    (el) => !el.matches?.("[data-img-slider-dots], .img-slider__dots"),
+  );
+  kids.forEach((el) => stage.append(el));
+  root.prepend(stage);
+  return stage;
+}
+
+function galleryItems(slides) {
+  return slides.map((slide) => {
+    const img = slideImages(slide)[0];
+    const width = img?.naturalWidth || Number(img?.getAttribute("width")) || 1920;
+    const height = img?.naturalHeight || Number(img?.getAttribute("height")) || 1080;
+    return {
+      src: img?.currentSrc || img?.src || "",
+      width,
+      height,
+    };
+  }).filter((item) => item.src);
 }
 
 function displayedHeight(img, width) {
@@ -89,6 +118,7 @@ function wrapDelta(i, index, count, offset) {
 }
 
 function bindSlider(root) {
+  ensureStage(root);
   const slides = [...root.querySelectorAll(SLIDE)];
   if (slides.length < 2) return;
 
@@ -485,6 +515,13 @@ function bindSlider(root) {
       if (!articleOpen()) return;
       event.preventDefault();
       event.stopPropagation();
+      // Desktop: open the shared fullscreen lightbox (author-works chrome).
+      // Mobile: keep tap-to-advance; drag/swipe handles the rest.
+      if (!isMobile()) {
+        const items = galleryItems(slides);
+        if (items.length) openLightboxGallery(items, pending, root);
+        return;
+      }
       goTo(pending + 1);
     },
     true,

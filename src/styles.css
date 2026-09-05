@@ -50,9 +50,9 @@
 :root {
   --bg: #f5f5f5;
   --ink: rgba(0, 0, 0, 0.75);
-  --dot: rgba(0, 0, 0, 0.24);
-  --dot-on: rgba(0, 0, 0, 0.64);
-  --lb-btn: rgba(227, 227, 227, 0.8);
+  --dot: rgba(255, 255, 255, 0.24);
+  --dot-on: rgba(255, 255, 255, 0.64);
+  --lb-btn: rgba(85, 85, 85, 0.8);
   --enroll: #ff4c00;
   --font-en: "Helvetica Rounded", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-ru: "SF Pro Rounded", ui-rounded, system-ui, sans-serif;
@@ -1506,7 +1506,7 @@ html.is-mobile .author-lb__hit--next {
 
 @media (hover: hover) and (pointer: fine) {
   .img-slider__dot:not(.is-active):hover::after {
-    background: rgba(0, 0, 0, 0.48);
+    background: rgba(255, 255, 255, 0.48);
   }
 }
 
@@ -3292,12 +3292,14 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 
 .img-slider {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: calc(563.733 * var(--u));
-  height: var(--slider-h, calc(320 * var(--u)));
+  height: auto;
   margin: calc(16 * var(--u)) 0 0;
   flex-shrink: 0;
-  overflow: hidden;
-  overflow: clip;
+  overflow: visible;
   border: 0;
   outline: none;
   box-shadow: none;
@@ -3307,6 +3309,17 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   -webkit-user-select: none;
   -webkit-user-drag: none;
   cursor: pointer;
+}
+
+.img-slider__stage {
+  position: relative;
+  width: 100%;
+  height: var(--slider-h, calc(320 * var(--u)));
+  flex-shrink: 0;
+  overflow: hidden;
+  overflow: clip;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 @media (pointer: coarse) {
@@ -3438,22 +3451,33 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 
 .img-slider__dots {
   display: flex;
-  position: absolute;
-  left: 50%;
-  bottom: calc(16 * var(--u));
+  position: relative;
+  left: auto;
+  bottom: auto;
   z-index: 2;
-  transform: translateX(-50%);
+  transform: none;
   align-items: center;
   justify-content: center;
   gap: 0;
   height: calc(28 * var(--u));
-  margin: 0;
+  margin: calc(12 * var(--u)) 0 0;
   padding: 0 calc(8 * var(--u));
   border-radius: 120px;
   background: var(--lb-btn);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   pointer-events: auto;
+  flex-shrink: 0;
+}
+
+/* Lightbox dots stay in bottom chrome, not in document flow. */
+.author-lb__dots.img-slider__dots,
+.author-lb .author-lb__dots {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  margin: 0;
+  transform: translateX(-50%);
 }
 
 .img-slider__dot {
