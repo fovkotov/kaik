@@ -1,5 +1,6 @@
 import { getScrollRoot, getViewportSize, initEmbed, onFrameMetrics } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
+import { initPreviewMedia } from "./preview-media.js";
 import { initTickClicks } from "./tick-clicks.js";
 import { initSoundSettings, noteDesktopDeckDelta } from "./sound-settings.js";
 import { initStageSettings } from "./stage-settings.js";
@@ -1280,4 +1281,5 @@ bindWorkNav(programApi);
 initImgSliders();
 initAuthorLightbox();
 initFormatVideo();
+initPreviewMedia();
 initDropcaps();

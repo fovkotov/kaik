@@ -2142,6 +2142,7 @@ html.is-mobile .author-lb__hit--next {
   background: #1a1a1a;
   /* Always interactive — deck swipe/focus ignore [data-preview-media]. */
   pointer-events: auto;
+  touch-action: manipulation;
   overscroll-behavior: contain;
 }
 
@@ -2152,6 +2153,36 @@ html.is-mobile .author-lb__hit--next {
   height: 100%;
   border: 0;
   display: block;
+  /* Let the player receive taps once ancestors allow touch-action. */
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+
+/*
+  Mobile: body/deck/card use touch-action:none so deck drag works, but that
+  blocks cross-origin YouTube iframe gestures. A parent-document hit shield
+  (see preview-media.js) plays on first tap; after that, relax ancestors.
+*/
+.preview-card__hit {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+
+.preview-card__hit[hidden] {
+  display: none !important;
 }
 
 .faq-card {
@@ -4639,6 +4670,27 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     width: calc(300 * var(--card-w) / 318);
     aspect-ratio: 16 / 9;
     height: auto;
+  }
+
+  .preview-card__hit {
+    display: block;
+  }
+
+  /*
+    Effective touch-action is the intersection of the whole ancestor chain.
+    While the preview is armed, lift body/deck/card none so the iframe can
+    take pause / scrub / fullscreen after the hit shield plays.
+  */
+  html.is-preview-media-active body:not(.admin):not(.catalog),
+  html.is-preview-media-active body:not(.admin):not(.catalog) .viewport,
+  html.is-preview-media-active .deck,
+  html.is-preview-media-active .card {
+    touch-action: manipulation;
+  }
+
+  html.is-preview-media-active .preview-card__media,
+  html.is-preview-media-active .preview-card__embed {
+    touch-action: manipulation;
   }
 
   .history-card__title {
