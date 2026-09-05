@@ -1194,9 +1194,16 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   -webkit-appearance: none;
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
+  /* Stacked deck: inherit card touch-action:none so JS vertical drag works. */
+  touch-action: none;
   transform: translateY(0);
   transition: transform 0.22s cubic-bezier(0.22, 1, 0.32, 1);
   z-index: 0;
+}
+
+/* Open author article: let vertical pans scroll the card, taps still open LB. */
+.card.is-program-open .author-card__shot {
+  touch-action: pan-y;
 }
 
 .author-card__shot:hover {

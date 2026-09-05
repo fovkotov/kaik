@@ -473,16 +473,59 @@ function buildDots() {
 
 function bindShots() {
   document.querySelectorAll("[data-author-work]").forEach((shot) => {
-    const hold = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation();
+    let press = null;
+
+    const clearPress = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      press = null;
     };
-    shot.addEventListener("pointerdown", hold, true);
+
+    const onMove = (event) => {
+      if (!press || event.pointerId !== press.id || press.moved) return;
+      const dx = event.clientX - press.x;
+      const dy = event.clientY - press.y;
+      if (Math.hypot(dx, dy) > TAP_PX) press.moved = true;
+    };
+
+    const onUp = (event) => {
+      if (!press || event.pointerId !== press.id) return;
+      onMove(event);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      // Keep `press` until click so a scroll-swipe does not open the lightbox.
+    };
+
+    const onCancel = (event) => {
+      if (!press || event.pointerId !== press.id) return;
+      clearPress();
+    };
+
+    // Do not preventDefault / stopPropagation on pointerdown — that traps the
+    // gesture and blocks deck drag + open-card pan-y scroll on mobile.
+    shot.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (event.button && event.button !== 0) return;
+        clearPress();
+        press = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+        window.addEventListener("pointercancel", onCancel);
+      },
+      true,
+    );
+
     shot.addEventListener(
       "click",
       (event) => {
-        hold(event);
+        const moved = Boolean(press?.moved);
+        clearPress();
+        event.preventDefault();
+        event.stopPropagation();
+        if (moved) return;
         const i = Number(shot.getAttribute("data-author-work"));
         if (!Number.isFinite(i)) return;
         openAt(i, shot);
