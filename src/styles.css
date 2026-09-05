@@ -2129,13 +2129,15 @@ html.is-mobile .author-lb__hit--next {
   pointer-events: none;
 }
 
-/* Full content width; height from 16:9 (YouTube). Position from Figma 194:404. */
+/* Figma 201:4147 — full-bleed 16:9 YouTube strip pinned to the bottom edge. */
 .preview-card__media {
   position: absolute;
   z-index: 3;
-  left: calc(17 * var(--u));
-  top: calc(211 * var(--u));
-  width: calc(561 * var(--u));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  width: 100%;
   aspect-ratio: 16 / 9;
   height: auto;
   overflow: hidden;
@@ -2423,13 +2425,15 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   display: none;
 }
 
-/* Figma 98:102 — 562×316 staff silhouettes at (16, 511) on 595×842. */
+/* Figma 201:4147 — pale-blue shoe silhouette above the bottom media strip. */
 .card-illust--preview .card-illust__art {
-  left: calc(16 * var(--u));
-  top: calc(511 * var(--u));
-  width: calc(562 * var(--u));
-  height: calc(316 * var(--u));
-  object-fit: fill;
+  left: 50%;
+  top: calc(140 * var(--u));
+  width: calc(520 * var(--u));
+  height: auto;
+  aspect-ratio: 217.57 / 89.29;
+  transform: translateX(-50%);
+  object-fit: contain;
 }
 
 .progress-card {
@@ -4687,11 +4691,13 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     width: calc(270.811 * var(--card-w) / 318);
   }
 
-  /* Figma 194:404 scaled to 318 face — width 300 at (9, 113); height from 16:9. */
+  /* Figma 201:4129 — full-bleed 16:9 media on the 318 face (bottom-pinned). */
   .preview-card__media {
-    left: calc(9 * var(--card-w) / 318);
-    top: calc(113 * var(--card-w) / 318);
-    width: calc(300 * var(--card-w) / 318);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
     aspect-ratio: 16 / 9;
     height: auto;
   }
@@ -5428,16 +5434,17 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     object-fit: contain;
   }
 
-  /* Figma 98:106 — 304×171 at (7, 269) on 318×450. Width-based so
-     open (height: auto) does not collapse the SVG. */
+  /* Figma 201:4129 — shoe above bottom media on 318×450. */
   .card-illust--preview .card-illust__art {
-    left: calc(7 * var(--card-w) / 318);
-    top: calc(269 * var(--card-w) / 318);
+    left: 50%;
+    top: calc(72 * var(--card-w) / 318);
     right: auto;
     bottom: auto;
-    width: calc(304 * var(--card-w) / 318);
-    height: calc(171 * var(--card-w) / 318);
-    object-fit: fill;
+    width: calc(280 * var(--card-w) / 318);
+    height: auto;
+    aspect-ratio: 217.57 / 89.29;
+    transform: translateX(-50%);
+    object-fit: contain;
   }
 
   .program-card {
