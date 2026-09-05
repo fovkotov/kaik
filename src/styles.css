@@ -2425,15 +2425,13 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   display: none;
 }
 
-/* Preview illustration above the bottom media strip. */
+/* Preview illustration — Figma 196:463 Group on 595×842 (left 13.05, top 133, 568.856×362.901). */
 .card-illust--preview .card-illust__art {
-  left: 50%;
-  top: calc(140 * var(--u));
-  width: calc(520 * var(--u));
-  height: auto;
-  aspect-ratio: 569 / 363;
-  transform: translateX(-50%);
-  object-fit: contain;
+  left: calc(13.05 * var(--u));
+  top: calc(133 * var(--u));
+  width: calc(568.856 * var(--u));
+  height: calc(362.901 * var(--u));
+  object-fit: fill;
 }
 
 .progress-card {
@@ -5434,17 +5432,16 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     object-fit: contain;
   }
 
-  /* Preview illustration above bottom media on 318×450. */
+  /* Preview illustration — Figma 196:457 Group on 318×451 (left 6.983, top 72, 304.027×193.954). */
   .card-illust--preview .card-illust__art {
-    left: 50%;
+    left: calc(6.983 * var(--card-w) / 318);
     top: calc(72 * var(--card-w) / 318);
     right: auto;
     bottom: auto;
-    width: calc(280 * var(--card-w) / 318);
-    height: auto;
-    aspect-ratio: 569 / 363;
-    transform: translateX(-50%);
-    object-fit: contain;
+    width: calc(304.027 * var(--card-w) / 318);
+    height: calc(193.954 * var(--card-w) / 318);
+    transform: none;
+    object-fit: fill;
   }
 
   .program-card {
