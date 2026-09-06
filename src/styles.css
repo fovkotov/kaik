@@ -578,8 +578,10 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   height: var(--frame-h);
   perspective: 1400px;
   perspective-origin: 70% 50%;
-  transform: scale(var(--deck-scale));
+  /* Stable layer: translate3d promotes once; avoid permanent will-change thrash. */
+  transform: translate3d(0, 0, 0) scale(var(--deck-scale));
   transform-origin: 70% 50%;
+  isolation: isolate;
   pointer-events: none;
   overflow: hidden;
 }
@@ -606,7 +608,10 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   z-index: var(--z);
   transform-origin: 50% 55%;
   transform-style: preserve-3d;
-  will-change: transform;
+  /* Permanent will-change on every card caused intermittent compositor flashes
+     during scroll (Safari/Chrome layer drop+recreate). JS already writes transform. */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   box-shadow: none;
   overflow: hidden;
   pointer-events: auto;
@@ -3160,6 +3165,10 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   height: var(--history-wash-h);
   margin-bottom: calc(-1 * var(--history-wash-h));
   pointer-events: none;
+  /* Keep sticky wash on a stable layer — WebKit can flash sticky backgrounds on scroll. */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   background-color: #fe2201;
   background-image: linear-gradient(
     180deg,

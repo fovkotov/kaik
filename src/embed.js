@@ -108,6 +108,15 @@ function getVisibleFrameRect() {
 }
 
 export function getViewportSize() {
+  // Prefer last applied metrics so rAF render matches the CSS frame and does not
+  // chase 1px visualViewport noise that syncFrameMetrics intentionally ignored.
+  if (lastAppliedMetrics) {
+    return {
+      width: lastAppliedMetrics.width,
+      height: lastAppliedMetrics.height,
+    };
+  }
+
   if (parentFrameSize) {
     const { clipTop, clipBottom, visibleHeight } = getVisualClipInsets();
     if (clipTop || clipBottom) {
@@ -125,18 +134,27 @@ export function getViewportSize() {
 
 const frameListeners = new Set();
 
+/** Last CSS metrics we actually wrote — used to ignore 1px visualViewport jitter. */
+let lastAppliedMetrics = null;
+
 /** Run after `--frame-w` / `--frame-h` update (resize, visualViewport, parent message). */
 export function onFrameMetrics(fn) {
   frameListeners.add(fn);
   return () => frameListeners.delete(fn);
 }
 
-export function syncFrameMetrics() {
+/**
+ * Sync iframe frame size + clip insets into CSS vars.
+ * @param {{ force?: boolean }} [opts] — `force` skips hysteresis (parent message / first paint).
+ */
+export function syncFrameMetrics(opts = {}) {
+  const force = Boolean(opts.force);
   const root = document.documentElement;
   let width;
   let height;
   let clipTop = 0;
   let clipBottom = 0;
+  const hasParent = Boolean(parentFrameSize);
 
   if (parentFrameSize) {
     width = parentFrameSize.width;
@@ -145,10 +163,36 @@ export function syncFrameMetrics() {
     if (clipTop || clipBottom) {
       height = Math.max(1, height - clipTop - clipBottom);
     }
+  } else {
+    ({ width, height, clipTop, clipBottom } = getVisibleFrameRect());
+  }
+
+  // visualViewport scroll/resize often jitters clips/size by 1px while the user
+  // scrolls — rewriting --frame-h / --frame-clip-* then reflows the deck and
+  // looks like an intermittent blink. Ignore sub-2px noise unless forced.
+  if (!force && lastAppliedMetrics) {
+    const dW = Math.abs(width - lastAppliedMetrics.width);
+    const dH = Math.abs(height - lastAppliedMetrics.height);
+    const dClip =
+      Math.abs(clipTop - lastAppliedMetrics.clipTop) +
+      Math.abs(clipBottom - lastAppliedMetrics.clipBottom);
+    if (
+      hasParent === lastAppliedMetrics.hasParent &&
+      dW < 2 &&
+      dH < 2 &&
+      dClip < 2
+    ) {
+      return {
+        width: lastAppliedMetrics.width,
+        height: lastAppliedMetrics.height,
+      };
+    }
+  }
+
+  if (hasParent) {
     root.style.setProperty("--frame-w", `${width}px`);
     root.style.setProperty("--frame-h", `${height}px`);
   } else {
-    ({ width, height, clipTop, clipBottom } = getVisibleFrameRect());
     root.style.removeProperty("--frame-w");
     root.style.removeProperty("--frame-h");
   }
@@ -156,6 +200,7 @@ export function syncFrameMetrics() {
   root.style.setProperty("--frame-clip-top", `${clipTop}px`);
   root.style.setProperty("--frame-clip-bottom", `${clipBottom}px`);
   root.classList.toggle("is-embedded", isEmbedded());
+  lastAppliedMetrics = { width, height, clipTop, clipBottom, hasParent };
   frameListeners.forEach((fn) => {
     try {
       fn({ width, height });
@@ -175,7 +220,7 @@ export function applyParentFrameSize(width, height) {
   } else {
     parentFrameSize = null;
   }
-  return syncFrameMetrics();
+  return syncFrameMetrics({ force: true });
 }
 
 function onParentMessage(event) {
@@ -272,19 +317,33 @@ function scrollHashIntoView(event) {
 export function initEmbed() {
   listenForParentFrameSize();
 
-  const size = syncFrameMetrics();
+  const size = syncFrameMetrics({ force: true });
   document.documentElement.classList.add("is-iframe-ready");
 
-  const onResize = () => {
+  const onWindowResize = () => {
     // After the iframe box changes, innerHeight is authoritative again.
     parentFrameSize = null;
-    const next = syncFrameMetrics();
+    const next = syncFrameMetrics({ force: true });
     notifyParent("resize", next);
   };
 
-  window.addEventListener("resize", onResize, { passive: true });
-  window.visualViewport?.addEventListener("resize", onResize, { passive: true });
-  window.visualViewport?.addEventListener("scroll", onResize, { passive: true });
+  /** Pinch-pan / URL-bar offset — refresh clips only; never drop parent size. */
+  const onVisualViewportScroll = () => {
+    syncFrameMetrics();
+  };
+
+  /** Soft keyboard / URL-bar show-hide — may change vv size without window resize. */
+  const onVisualViewportResize = () => {
+    syncFrameMetrics();
+  };
+
+  window.addEventListener("resize", onWindowResize, { passive: true });
+  window.visualViewport?.addEventListener("resize", onVisualViewportResize, {
+    passive: true,
+  });
+  window.visualViewport?.addEventListener("scroll", onVisualViewportScroll, {
+    passive: true,
+  });
 
   document.addEventListener("click", rewriteExternalLinks, true);
   document.addEventListener("click", scrollHashIntoView);
