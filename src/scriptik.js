@@ -654,6 +654,8 @@ export function applyTranslations(locale = getLocale()) {
     node.textContent = t(key, locale);
     if (key === "nav.enroll" && node instanceof HTMLAnchorElement) {
       node.setAttribute("href", enrollHref(locale));
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
     }
   });
 
