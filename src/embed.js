@@ -107,6 +107,11 @@ function getVisibleFrameRect() {
   };
 }
 
+const frameListeners = new Set();
+
+/** Last CSS metrics we actually wrote — used to ignore 1px visualViewport jitter. */
+let lastAppliedMetrics = null;
+
 export function getViewportSize() {
   // Prefer last applied metrics so rAF render matches the CSS frame and does not
   // chase 1px visualViewport noise that syncFrameMetrics intentionally ignored.
@@ -131,11 +136,6 @@ export function getViewportSize() {
   const { width, height } = getVisibleFrameRect();
   return { width, height };
 }
-
-const frameListeners = new Set();
-
-/** Last CSS metrics we actually wrote — used to ignore 1px visualViewport jitter. */
-let lastAppliedMetrics = null;
 
 /** Run after `--frame-w` / `--frame-h` update (resize, visualViewport, parent message). */
 export function onFrameMetrics(fn) {
