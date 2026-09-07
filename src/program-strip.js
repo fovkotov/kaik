@@ -87,14 +87,16 @@ function bindStrip(root) {
     const atEnd = x <= minX() + 1;
     root.classList.toggle("is-overflow", overflow);
     if (prev) {
-      prev.hidden = !overflow;
-      prev.disabled = atStart;
-      prev.setAttribute("aria-disabled", atStart ? "true" : "false");
+      const gone = !overflow || atStart;
+      prev.hidden = gone;
+      prev.disabled = gone;
+      prev.setAttribute("aria-disabled", gone ? "true" : "false");
     }
     if (next) {
-      next.hidden = !overflow;
-      next.disabled = atEnd;
-      next.setAttribute("aria-disabled", atEnd ? "true" : "false");
+      const gone = !overflow || atEnd;
+      next.hidden = gone;
+      next.disabled = gone;
+      next.setAttribute("aria-disabled", gone ? "true" : "false");
     }
   };
 

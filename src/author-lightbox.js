@@ -459,6 +459,14 @@ export function openLightboxGallery(items, startIndex = 0, shot = null) {
   openAt(startIndex, shot);
 }
 
+function isSvgSrc(src) {
+  try {
+    return new URL(src, window.location.href).pathname.toLowerCase().endsWith(".svg");
+  } catch {
+    return /\.svg(?:$|[?#])/i.test(String(src));
+  }
+}
+
 function buildSlides() {
   if (!track) return;
   track.replaceChildren();
@@ -467,6 +475,7 @@ function buildSlides() {
     slide.className = "author-lb__slide";
     slide.setAttribute("data-author-lb-slide", "");
     if (i === 0) slide.classList.add("is-active");
+    if (isSvgSrc(work.src)) slide.classList.add("is-ink");
     const image = document.createElement("img");
     image.alt = "";
     image.width = work.width;

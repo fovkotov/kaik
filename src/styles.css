@@ -1341,6 +1341,11 @@ html.is-author-lb-open .fly-close {
   -webkit-user-drag: none;
 }
 
+/* White program-card lettering marks read as ink on `--bg`; photos stay untouched. */
+.author-lb__slide.is-ink img {
+  filter: brightness(0);
+}
+
 .author-lb__hit {
   position: absolute;
   top: 0;
@@ -1891,7 +1896,7 @@ html.is-mobile .author-lb__hit--next {
   flex: 0 0 auto;
 }
 
-/* Figma 162:19 circular chevrons — parked on the strip edges, hover-only. */
+/* Same 36×36 `--lb-btn` chrome as `.author-lb__arrow` / `.img-slider__nav`. Hover-only. */
 .program-card__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   position: absolute;
@@ -1909,7 +1914,7 @@ html.is-mobile .author-lb__hit--next {
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   transform: translateY(-50%);
-  transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
+  transition: transform 160ms var(--ease-out);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -1926,11 +1931,6 @@ html.is-mobile .author-lb__hit--next {
 
 .program-card__nav[hidden] {
   display: none !important;
-}
-
-.program-card__nav:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 .program-card__chevron {
