@@ -4,10 +4,15 @@ const PREV = "[data-program-strip-prev]";
 const NEXT = "[data-program-strip-next]";
 const AXIS_PX = 8;
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
+const COARSE = window.matchMedia("(pointer: coarse)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
+}
+
+function isTouchPointer(event) {
+  return event.pointerType === "touch" || (COARSE.matches && event.pointerType !== "mouse");
 }
 
 function bindStrip(root) {
@@ -17,8 +22,7 @@ function bindStrip(root) {
   if (!track) return;
 
   let x = 0;
-  let gesture = null;
-  let raf = 0;
+  let swipe = null;
 
   const viewW = () => root.clientWidth || 1;
   const minX = () => Math.min(0, viewW() - track.scrollWidth);
@@ -63,27 +67,44 @@ function bindStrip(root) {
   const onPrev = (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (!overflowing() || prev?.disabled) return;
     step(1);
   };
 
   const onNext = (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (!overflowing() || next?.disabled) return;
     step(-1);
   };
 
   prev?.addEventListener("click", onPrev);
   next?.addEventListener("click", onNext);
-  prev?.addEventListener("pointerdown", (event) => event.stopPropagation());
-  next?.addEventListener("pointerdown", (event) => event.stopPropagation());
+
+  const aimHit = (hit, event) => {
+    if (!FINE.matches) return;
+    const arrow = hit.querySelector(".author-lb__arrow");
+    if (!arrow) return;
+    arrow.style.left = `${event.clientX}px`;
+    arrow.style.top = `${event.clientY}px`;
+    hit.classList.add("is-aiming");
+  };
+
+  [prev, next].forEach((hit) => {
+    if (!hit) return;
+    hit.addEventListener("pointerenter", (event) => aimHit(hit, event));
+    hit.addEventListener("pointermove", (event) => aimHit(hit, event));
+    hit.addEventListener("pointerleave", () => hit.classList.remove("is-aiming"));
+    hit.addEventListener("pointerdown", (event) => event.stopPropagation());
+  });
 
   const onPointerDown = (event) => {
+    if (!isTouchPointer(event)) return;
     if (event.button && event.button !== 0) return;
     if (event.target.closest?.("button")) return;
     if (!overflowing()) return;
-    cancelAnimationFrame(raf);
     track.style.transition = "none";
-    gesture = {
+    swipe = {
       id: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -93,64 +114,48 @@ function bindStrip(root) {
       lastT: event.timeStamp,
       vel: 0,
     };
-    try {
-      root.setPointerCapture(event.pointerId);
-    } catch {
-      // ignore
-    }
   };
 
   const onPointerMove = (event) => {
-    if (!gesture || event.pointerId !== gesture.id) return;
-    const dx = event.clientX - gesture.startX;
-    const dy = event.clientY - gesture.startY;
-    if (!gesture.axis) {
+    if (!swipe || event.pointerId !== swipe.id) return;
+    const dx = event.clientX - swipe.startX;
+    const dy = event.clientY - swipe.startY;
+    if (!swipe.axis) {
       if (Math.abs(dx) < AXIS_PX && Math.abs(dy) < AXIS_PX) return;
-      gesture.axis = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
-      if (gesture.axis === "x") {
-        root.classList.add("is-dragging");
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      swipe.axis = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
+      if (swipe.axis !== "x") return;
+      root.classList.add("is-swiping");
     }
-    if (gesture.axis !== "x") return;
-    event.preventDefault();
+    if (swipe.axis !== "x") return;
+    if (event.cancelable) event.preventDefault();
     event.stopPropagation();
-    const dt = event.timeStamp - gesture.lastT;
+    const dt = event.timeStamp - swipe.lastT;
     if (dt > 0) {
-      gesture.vel = ((event.clientX - gesture.lastX) / dt) * 1000;
-      gesture.lastX = event.clientX;
-      gesture.lastT = event.timeStamp;
+      swipe.vel = ((event.clientX - swipe.lastX) / dt) * 1000;
+      swipe.lastX = event.clientX;
+      swipe.lastT = event.timeStamp;
     }
-    apply(gesture.origin + dx, false);
+    apply(swipe.origin + dx, false);
   };
 
   const onPointerUp = (event) => {
-    if (!gesture || event.pointerId !== gesture.id) return;
-    const drifted = gesture.axis === "x";
-    const vel = gesture.vel;
-    gesture = null;
-    root.classList.remove("is-dragging");
-    try {
-      root.releasePointerCapture(event.pointerId);
-    } catch {
-      // ignore
-    }
+    if (!swipe || event.pointerId !== swipe.id) return;
+    const drifted = swipe.axis === "x";
+    const vel = swipe.vel;
+    swipe = null;
+    root.classList.remove("is-swiping");
     if (!drifted) {
       apply(x, false);
       return;
     }
-    event.preventDefault();
-    event.stopPropagation();
     const coast = REDUCE.matches ? 0 : clamp(vel * 0.18, -420, 420);
     apply(x + coast, true);
   };
 
   root.addEventListener("pointerdown", onPointerDown);
-  root.addEventListener("pointermove", onPointerMove);
+  root.addEventListener("pointermove", onPointerMove, { passive: false });
   root.addEventListener("pointerup", onPointerUp);
   root.addEventListener("pointercancel", onPointerUp);
-  root.addEventListener("lostpointercapture", onPointerUp);
 
   const refresh = () => {
     apply(x, false);
