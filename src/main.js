@@ -7,6 +7,7 @@ import { initStageSettings } from "./stage-settings.js";
 import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
 import { initAuthorLightbox, isAuthorLightboxOpen } from "./author-lightbox.js";
 import { initImgSliders } from "./img-slider.js";
+import { initProgramStrips } from "./program-strip.js";
 import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
 import { initDropcaps } from "./letters/dropcap.js";
 import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
@@ -645,7 +646,7 @@ function initDeck() {
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
-    "a, button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-author-lightbox], [data-preview-media]";
+    "a, button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-preview-media]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
@@ -1280,6 +1281,7 @@ bindProgramNav(programApi);
 bindWorkNav(programApi);
 initAuthorLightbox();
 initImgSliders();
+initProgramStrips();
 initFormatVideo();
 initPreviewMedia();
 initDropcaps();

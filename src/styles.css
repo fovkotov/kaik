@@ -1517,6 +1517,7 @@ html.is-mobile .author-lb__hit--next {
 
 .program-card {
   --u: calc(var(--card-w) / 595);
+  --program-side: calc(48 * var(--u));
   position: relative;
   z-index: 1;
   width: 100%;
@@ -1590,7 +1591,7 @@ html.is-mobile .author-lb__hit--next {
   display: flex;
   flex-direction: column;
   gap: calc(80 * var(--u));
-  padding: var(--program-sheet-top) calc(48 * var(--u)) calc(40 * var(--u));
+  padding: var(--program-sheet-top) var(--program-side) calc(40 * var(--u));
   background: #2bb673;
   overflow: hidden;
 }
@@ -1690,95 +1691,95 @@ html.is-mobile .author-lb__hit--next {
   width: 100%;
 }
 
-.program-card__show {
-  display: flex;
-  flex-direction: column;
-  gap: calc(12 * var(--u));
-  width: 100%;
-  pointer-events: none;
+/* Figma 219:239727 — one horizontal strip per week, clipped at the card edge. */
+.program-card__strip {
+  position: relative;
+  width: calc(100% + var(--program-side));
+  margin-right: calc(-1 * var(--program-side));
+  overflow: hidden;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
   user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
 }
 
-.card[data-program-card]:not(.is-program-open) .program-card__show {
+.program-card__strip.is-dragging {
+  cursor: grabbing;
+  touch-action: pan-x;
+}
+
+.card[data-program-card]:not(.is-program-open) .program-card__strip {
   display: none;
 }
 
-.program-card__shots {
-  display: grid;
+.program-card__track {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: calc(8 * var(--u));
-  width: 100%;
-}
-
-.program-card__shots--2 {
-  grid-template-columns: 1fr 1fr;
-}
-
-.program-card__shots--3 {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
-.program-card__shots--hopa {
-  grid-template-columns: minmax(0, 0.42fr) minmax(0, 1fr);
-  align-items: stretch;
-}
-
-.program-card__shot--fit {
-  aspect-ratio: auto;
-  background: transparent;
-}
-
-.program-card__shot--fit img {
-  height: 100%;
-  object-fit: contain;
-  object-position: left center;
+  width: max-content;
+  will-change: transform;
 }
 
 .program-card__shot {
+  flex: 0 0 auto;
   margin: 0;
-  width: 100%;
+  width: calc(var(--sw) * var(--u));
+  height: calc(var(--sh) * var(--u));
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.12);
+  background: transparent;
 }
 
-.program-card__shot--sq {
-  aspect-ratio: 1;
-}
-
-.program-card__shot--tall {
-  aspect-ratio: 3 / 4;
-}
-
-.program-card__shot--wide {
-  aspect-ratio: 16 / 10;
+.program-card__shot img,
+.program-card__mark {
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .program-card__shot img {
-  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
 .program-card__mark {
-  display: block;
-  width: 72%;
-  max-width: 100%;
-  height: auto;
-  max-height: calc(88 * var(--u));
-  margin: calc(4 * var(--u)) auto 0;
+  flex: 0 0 auto;
+  width: calc(var(--sw) * var(--u));
+  height: calc(var(--sh) * var(--u));
   object-fit: contain;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
-.program-card__mark--wide {
-  width: 92%;
-  max-height: calc(120 * var(--u));
+.program-card__strip .img-slider__nav {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.program-card__strip .img-slider__nav[hidden] {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .program-card__strip.is-overflow:hover .img-slider__nav:not([hidden]),
+  .program-card__strip.is-overflow:focus-within .img-slider__nav:not([hidden]) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .program-card__strip.is-overflow:hover .img-slider__nav:disabled,
+  .program-card__strip.is-overflow:focus-within .img-slider__nav:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .program-card__strip .img-slider__nav {
+    display: none;
+  }
 }
 
 /*
@@ -5459,8 +5460,12 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 
   /* Figma 2136141330 — open sheet uses 16px side inset (same as the close X). */
+  .card.is-program-open[data-program-card] .program-card {
+    --program-side: 16px;
+  }
+
   .card.is-program-open[data-program-card] .program-card__sheet {
-    padding: var(--program-sheet-top) 16px 16px;
+    padding: var(--program-sheet-top) var(--program-side) 16px;
   }
 
   .card.is-program-open[data-expand-host][data-program-card] .program-card__sheet,
@@ -5564,9 +5569,13 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     line-height: 19.2px;
   }
 
+  .program-card {
+    --program-side: 12px;
+  }
+
   .program-card__sheet {
     gap: 32px;
-    padding: var(--program-sheet-top) 12px 12px;
+    padding: var(--program-sheet-top) var(--program-side) 12px;
   }
 
   /* Keep schedule rows above the peeking dog on the stacked face. */
@@ -5614,48 +5623,8 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     gap: 16px;
   }
 
-  .program-card__show {
-    gap: 10px;
-  }
-
-  .program-card__shots {
+  .program-card__track {
     gap: 8px;
-  }
-
-  .program-card__shots--3 {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-
-  .program-card__shots--hopa {
-    grid-template-columns: 1fr;
-  }
-
-  .program-card__shot--fit img {
-    width: auto;
-    max-width: 46%;
-    max-height: 168px;
-    height: auto;
-    margin: 0 auto;
-    object-position: center;
-  }
-
-  .program-card__shot--wide {
-    aspect-ratio: 16 / 11;
-  }
-
-  .program-card__shot--tall {
-    aspect-ratio: 3 / 4;
-  }
-
-  .program-card__mark {
-    width: 80%;
-    max-height: 56px;
-    margin-top: 2px;
-  }
-
-  .program-card__mark--wide {
-    width: 100%;
-    max-height: 72px;
   }
 
   /* Figma 76:985 — 318×450: 4px top, 16px title, staggered sheets, 12px who/@ig. */
