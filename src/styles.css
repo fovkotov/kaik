@@ -1709,11 +1709,6 @@ html.is-mobile .author-lb__hit--next {
   touch-action: pan-x;
 }
 
-.card[data-program-card]:not(.is-program-open) .program-card__strip,
-.card[data-program-card]:not(.is-program-open) .program-card__week--practice {
-  display: none;
-}
-
 .program-card__track {
   display: flex;
   flex-direction: row;
@@ -1756,6 +1751,7 @@ html.is-mobile .author-lb__hit--next {
   height: calc(var(--sh) * var(--u));
   overflow: hidden;
   background: transparent;
+  cursor: pointer;
 }
 
 .program-card__shot img,
@@ -1778,6 +1774,8 @@ html.is-mobile .author-lb__hit--next {
   width: calc(var(--sw) * var(--u));
   height: calc(var(--sh) * var(--u));
   object-fit: contain;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .program-card__cap {
@@ -1893,34 +1891,81 @@ html.is-mobile .author-lb__hit--next {
   flex: 0 0 auto;
 }
 
-.card.is-program-open .program-card__strip .author-lb__hit--prev,
-.card.is-program-open .program-card__strip .author-lb__hit--next {
-  cursor: none;
+/* Figma 162:19 circular chevrons — parked on the strip edges, hover-only. */
+.program-card__nav {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  position: absolute;
+  top: var(--strip-media-mid, 50%);
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 0;
+  border-radius: 120px;
+  background: var(--lb-btn);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  transform: translateY(-50%);
+  transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.card.is-program-open .program-card__strip .author-lb__hit--mid {
+.program-card__nav--prev {
+  left: 0;
+}
+
+.program-card__nav--next {
+  right: 0;
+}
+
+.program-card__nav[hidden] {
+  display: none !important;
+}
+
+.program-card__nav:disabled {
+  opacity: 0.35;
   cursor: default;
 }
 
-.program-card__strip .author-lb__hit {
-  display: none;
-}
-
-.program-card__strip.is-overflow.is-fine .author-lb__hit {
+.program-card__chevron {
   display: block;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
 }
 
-.program-card__strip .author-lb__hit[hidden] {
-  display: none;
+.program-card__nav--prev .program-card__chevron {
+  transform: scaleX(-1);
 }
 
-.program-card__strip .author-lb__hit.is-aiming .author-lb__arrow {
-  display: flex;
+@media (hover: hover) and (pointer: fine) {
+  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]) {
+    display: flex;
+  }
+
+  .program-card__nav:hover {
+    transform: translateY(-50%) scale(1.05);
+  }
 }
 
-@media (pointer: coarse) {
-  .program-card__strip .author-lb__hit {
-    display: none;
+.program-card__nav:active {
+  transform: translateY(-50%) scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .program-card__nav {
+    transition: none;
+  }
+
+  .program-card__nav:hover,
+  .program-card__nav:active {
+    transform: translateY(-50%);
   }
 }
 
