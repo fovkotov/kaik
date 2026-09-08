@@ -274,7 +274,7 @@ export function initProgramModal() {
 
   function destVisual(from) {
     const { w: vw, h: vh } = frameSize();
-    if (isMobile() || card?.hasAttribute("data-works-card")) {
+    if (isMobile()) {
       return { left: 0, top: 0, width: vw, height: vh, rotate: 0 };
     }
     const size = stackCardSize(from);
@@ -283,7 +283,7 @@ export function initProgramModal() {
       frameH: vh,
       cardW: size.w,
       cardH: size.h,
-      works: false,
+      works: Boolean(card?.hasAttribute("data-works-card")),
     });
   }
 
@@ -291,9 +291,9 @@ export function initProgramModal() {
     return visualBoxToCardSpace(destVisual(from));
   }
 
-  /** Mobile, or student works: the tapped node is the surface (no clone). */
+  /** Mobile fullscreen: the tapped node is the surface (no clone). */
   function useExpand() {
-    return isMobile() || Boolean(card?.hasAttribute("data-works-card"));
+    return isMobile();
   }
 
   function visualToLocalBox(rect) {
@@ -327,10 +327,9 @@ export function initProgramModal() {
     return `translate3d(${pose.x}px, ${pose.y}px, 0) rotateZ(${pose.rotate ?? 0}deg) rotateY(0deg) rotateX(0deg) scale(${scale})`;
   }
 
-  /** Fullscreen dest in the same translate3d + rotateZ model as the stack. */
+  /** Open dest in the same translate3d + rotateZ model as the stack. */
   function expandOpenPose(from) {
-    const { w: vw, h: vh } = frameSize();
-    const dest = visualToLocalBox({ left: 0, top: 0, width: vw, height: vh });
+    const dest = visualToLocalBox(destVisual(from));
     return {
       x: dest.left - from.left,
       y: dest.top - from.top,
@@ -829,8 +828,7 @@ export function initProgramModal() {
   }
 
   function expandDest() {
-    const { w, h } = frameSize();
-    return visualToLocalBox({ left: 0, top: 0, width: w, height: h });
+    return visualToLocalBox(destVisual());
   }
 
   function startExpandOpen() {
