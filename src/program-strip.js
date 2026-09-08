@@ -9,6 +9,7 @@ const AXIS_PX = 8;
 const TAP_PX = AXIS_PX;
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
+const EASE_OUT = "transform 320ms cubic-bezier(0.23, 1, 0.32, 1)";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -155,10 +156,23 @@ function bindStrip(root) {
     setNavGone(next, !overflow || atEnd);
   };
 
-  const apply = (nextX, animate) => {
-    x = clamp(nextX, minX(), 0);
+  const rubber = (raw) => {
+    const lo = minX();
+    const hi = 0;
+    if (raw >= lo && raw <= hi) return raw;
+    const factor = Math.max(48, viewW() * 0.42);
+    if (raw > hi) {
+      const over = raw - hi;
+      return hi + over / (1 + over / factor);
+    }
+    const over = lo - raw;
+    return lo - over / (1 + over / factor);
+  };
+
+  const apply = (nextX, animate, mode = "clamp") => {
+    x = mode === "rubber" && !REDUCE.matches ? rubber(nextX) : clamp(nextX, minX(), 0);
     if (animate && !REDUCE.matches) {
-      track.style.transition = "transform 320ms cubic-bezier(0.23, 1, 0.32, 1)";
+      track.style.transition = EASE_OUT;
     } else {
       track.style.transition = "none";
     }
@@ -184,10 +198,24 @@ function bindStrip(root) {
     step(-1);
   };
 
+  const bindNavPress = (btn) => {
+    if (!btn) return;
+    const down = (event) => {
+      event.stopPropagation();
+      btn.classList.add("is-pressed");
+    };
+    const up = () => btn.classList.remove("is-pressed");
+    btn.addEventListener("pointerdown", down);
+    btn.addEventListener("pointerup", up);
+    btn.addEventListener("pointercancel", up);
+    btn.addEventListener("pointerleave", up);
+    btn.addEventListener("lostpointercapture", up);
+  };
+
   prev?.addEventListener("click", onPrev);
   next?.addEventListener("click", onNext);
-  prev?.addEventListener("pointerdown", (event) => event.stopPropagation());
-  next?.addEventListener("pointerdown", (event) => event.stopPropagation());
+  bindNavPress(prev);
+  bindNavPress(next);
 
   const onPointerDown = (event) => {
     if (event.target.closest?.(NAV)) return;
@@ -241,7 +269,7 @@ function bindStrip(root) {
       swipe.lastX = event.clientX;
       swipe.lastT = event.timeStamp;
     }
-    apply(swipe.origin + dx, false);
+    apply(swipe.origin + dx, false, "rubber");
   };
 
   const onPointerUp = (event) => {
@@ -262,6 +290,11 @@ function bindStrip(root) {
     }
     swipe = null;
     root.classList.remove("is-swiping");
+    const lo = minX();
+    if (x > 0 || x < lo) {
+      apply(clamp(x, lo, 0), true);
+      return;
+    }
     if (!drifted) {
       apply(x, false);
       return;

@@ -1,8 +1,11 @@
 import { getScrollRoot } from "./embed.js";
 import { focusScrollRoot } from "./focus-scrollbar.js";
+import { svgToInline } from "./letters/svg.js";
 import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
 import { isMobile } from "./tweaks.js";
+
+const svgTextCache = new Map();
 
 /** Full works, same order as the author collage (aspect-matched to each tile). */
 export const AUTHOR_WORKS = [
@@ -138,13 +141,17 @@ function cardOpen(card = authorCard()) {
 function preload(i) {
   const work = gallery[wrap(i)];
   if (!work) return;
+  if (work.ink || isSvgSrc(work.src)) {
+    fetchSvgText(work.src).catch(() => {});
+    return;
+  }
   const warm = new Image();
   warm.decoding = "async";
   warm.src = work.src;
 }
 
-function activeImg() {
-  return slides[index]?.querySelector("img") ?? null;
+function activeMedia() {
+  return slides[index]?.querySelector("svg, img") ?? null;
 }
 
 function syncSlides(active = index) {
@@ -179,14 +186,14 @@ function paint(offset) {
 }
 
 function applyZoom() {
-  const img = activeImg();
-  if (!img) return;
+  const media = activeMedia();
+  if (!media) return;
   if (z <= 1.001 && Math.abs(panX) < 0.01 && Math.abs(panY) < 0.01) {
-    img.style.transform = "";
+    media.style.transform = "";
     root?.classList.remove("is-zoomed");
     return;
   }
-  img.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${z})`;
+  media.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${z})`;
   root?.classList.toggle("is-zoomed", z > 1.001);
 }
 
@@ -211,8 +218,8 @@ function resetZoom() {
   panX = 0;
   panY = 0;
   slides.forEach((slide) => {
-    const img = slide.querySelector("img");
-    if (img) img.style.transform = "";
+    const media = slide.querySelector("svg, img");
+    if (media) media.style.transform = "";
   });
   root?.classList.remove("is-zoomed");
 }
@@ -224,9 +231,9 @@ function clampZ(next) {
 function zoomAround(cx, cy, nextZ) {
   if (zoomAbsorbed()) return;
   const next = clampZ(nextZ);
-  const img = activeImg();
-  if (!img || Math.abs(next - z) < 0.001) return;
-  const box = img.parentElement?.getBoundingClientRect();
+  const media = activeMedia();
+  if (!media || Math.abs(next - z) < 0.001) return;
+  const box = media.parentElement?.getBoundingClientRect();
   if (!box) {
     z = next;
     if (z <= 1.001) resetZoom();
@@ -467,6 +474,99 @@ function isSvgSrc(src) {
   }
 }
 
+function isLightPaint(value) {
+  const v = String(value || "").trim().toLowerCase();
+  if (!v || v === "none" || v === "transparent" || v === "currentcolor") return false;
+  if (v === "white" || v === "#fff" || v === "#ffffff" || v === "#ffff") return true;
+  if (v === "rgb(255, 255, 255)" || v === "rgb(255,255,255)") return true;
+  const hex = v.match(/^#([0-9a-f]{3,8})$/);
+  if (!hex) return false;
+  let h = hex[1];
+  if (h.length === 3 || h.length === 4) h = [...h].map((c) => c + c).join("");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return (r + g + b) / 3 > 200;
+}
+
+function recolorInk(svg) {
+  svg.setAttribute("color", "#000");
+  svg.style.color = "#000";
+  const paint = (node) => {
+    for (const attr of ["fill", "stroke"]) {
+      if (node.hasAttribute?.(attr) && isLightPaint(node.getAttribute(attr))) {
+        node.setAttribute(attr, "#000");
+      }
+    }
+    if (node.style?.fill && isLightPaint(node.style.fill)) node.style.fill = "#000";
+    if (node.style?.stroke && isLightPaint(node.style.stroke)) node.style.stroke = "#000";
+  };
+  paint(svg);
+  svg.querySelectorAll("*").forEach(paint);
+}
+
+async function fetchSvgText(src) {
+  const key = String(src);
+  const hit = svgTextCache.get(key);
+  if (typeof hit === "string") return hit;
+  if (hit) return hit;
+  const req = (async () => {
+    const res = await fetch(src);
+    if (!res.ok) throw new Error("SVG missing");
+    const text = await res.text();
+    svgTextCache.set(key, text);
+    return text;
+  })();
+  svgTextCache.set(key, req);
+  try {
+    return await req;
+  } catch (err) {
+    if (svgTextCache.get(key) === req) svgTextCache.delete(key);
+    throw err;
+  }
+}
+
+function appendPhoto(slide, work) {
+  const image = document.createElement("img");
+  image.alt = "";
+  image.width = work.width;
+  image.height = work.height;
+  image.draggable = false;
+  image.setAttribute("draggable", "false");
+  image.decoding = "async";
+  image.src = work.src;
+  slide.append(image);
+}
+
+function appendInkFallback(slide, work) {
+  const image = document.createElement("img");
+  image.alt = "";
+  image.draggable = false;
+  image.setAttribute("draggable", "false");
+  image.decoding = "async";
+  image.src = work.src;
+  slide.append(image);
+}
+
+function mountInkSvg(slide, work, i) {
+  fetchSvgText(work.src)
+    .then((raw) => {
+      slide.innerHTML = svgToInline(raw, `lb${i}`);
+      const svg = slide.querySelector("svg");
+      if (!svg) {
+        appendInkFallback(slide, work);
+        return;
+      }
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+      recolorInk(svg);
+    })
+    .catch(() => {
+      slide.replaceChildren();
+      appendInkFallback(slide, work);
+    });
+}
+
 function buildSlides() {
   if (!track) return;
   track.replaceChildren();
@@ -476,20 +576,12 @@ function buildSlides() {
     slide.setAttribute("data-author-lb-slide", "");
     if (i === 0) slide.classList.add("is-active");
     const ink = Boolean(work.ink) || isSvgSrc(work.src);
-    if (ink) slide.classList.add("is-ink");
-    const image = document.createElement("img");
-    image.alt = "";
-    // Don't stamp the card's small width/height onto SVG — browsers rasterize
-    // `<img src="*.svg">` at those attributes, then CSS-scale a bitmap.
-    if (!ink) {
-      image.width = work.width;
-      image.height = work.height;
+    if (ink) {
+      slide.classList.add("is-ink");
+      mountInkSvg(slide, work, i);
+    } else {
+      appendPhoto(slide, work);
     }
-    image.draggable = false;
-    image.setAttribute("draggable", "false");
-    image.decoding = "async";
-    image.src = work.src;
-    slide.append(image);
     track.append(slide);
     return slide;
   });
