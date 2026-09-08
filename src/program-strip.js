@@ -8,8 +8,13 @@ const NAV = "[data-program-strip-prev], [data-program-strip-next]";
 const AXIS_PX = 8;
 const TAP_PX = AXIS_PX;
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
+const MOBILE = window.matchMedia("(max-width: 900px)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 const EASE_OUT = "transform 320ms cubic-bezier(0.23, 1, 0.32, 1)";
+
+function nativePan() {
+  return MOBILE.matches || document.documentElement.classList.contains("is-mobile");
+}
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -90,6 +95,10 @@ function bindStrip(root) {
   const overflowing = () => track.scrollWidth > viewW() + 1;
 
   const paint = () => {
+    if (nativePan()) {
+      track.style.transform = "";
+      return;
+    }
     track.style.transform = `translate3d(${x}px,0,0)`;
   };
 
@@ -149,9 +158,14 @@ function bindStrip(root) {
 
   const syncNav = () => {
     const overflow = overflowing();
+    root.classList.toggle("is-overflow", overflow);
+    if (nativePan()) {
+      setNavGone(prev, true);
+      setNavGone(next, true);
+      return;
+    }
     const atStart = x >= -1;
     const atEnd = x <= minX() + 1;
-    root.classList.toggle("is-overflow", overflow);
     setNavGone(prev, !overflow || atStart);
     setNavGone(next, !overflow || atEnd);
   };
@@ -170,6 +184,12 @@ function bindStrip(root) {
   };
 
   const apply = (nextX, animate, mode = "clamp") => {
+    if (nativePan()) {
+      track.style.transition = "none";
+      track.style.transform = "";
+      syncNav();
+      return;
+    }
     x = mode === "rubber" && !REDUCE.matches ? rubber(nextX) : clamp(nextX, minX(), 0);
     if (animate && !REDUCE.matches) {
       track.style.transition = EASE_OUT;
@@ -220,8 +240,15 @@ function bindStrip(root) {
   const onPointerDown = (event) => {
     if (event.target.closest?.(NAV)) return;
     if (event.button && event.button !== 0) return;
-    press = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    press = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+      scroll: root.scrollLeft,
+    };
     didSlide = false;
+    if (nativePan()) return;
     if (!cardOpen(root)) return;
     if (!overflowing()) return;
     track.style.transition = "none";
@@ -243,8 +270,11 @@ function bindStrip(root) {
       if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > TAP_PX) {
         press.moved = true;
       }
+      if (nativePan() && Math.abs(root.scrollLeft - press.scroll) > TAP_PX) {
+        press.moved = true;
+      }
     }
-    if (!swipe || event.pointerId !== swipe.id) return;
+    if (nativePan() || !swipe || event.pointerId !== swipe.id) return;
     const dx = event.clientX - swipe.startX;
     const dy = event.clientY - swipe.startY;
     if (!swipe.axis) {
@@ -312,7 +342,7 @@ function bindStrip(root) {
   };
 
   const onWheel = (event) => {
-    if (!cardOpen(root) || !overflowing()) return;
+    if (nativePan() || !cardOpen(root) || !overflowing()) return;
     const dx = wheelPanDx(event);
     if (!dx) return;
     if (event.cancelable) event.preventDefault();
@@ -332,7 +362,9 @@ function bindStrip(root) {
 
   root.addEventListener("click", (event) => {
     if (event.target.closest?.(NAV)) return;
-    const moved = Boolean(press?.moved) || didSlide;
+    const scrolled =
+      nativePan() && press && Math.abs(root.scrollLeft - press.scroll) > TAP_PX;
+    const moved = Boolean(press?.moved) || didSlide || scrolled;
     press = null;
     didSlide = false;
     if (moved) {
@@ -356,15 +388,39 @@ function bindStrip(root) {
 
   let lastView = 0;
   let lastTrack = 0;
+  const syncMode = () => {
+    const native = nativePan();
+    root.classList.toggle("is-native-pan", native);
+    if (!native) return;
+    x = 0;
+    track.style.transition = "none";
+    track.style.transform = "";
+    setNavGone(prev, true);
+    setNavGone(next, true);
+  };
   const refresh = () => {
+    syncMode();
     const vw = viewW();
     const tw = track.scrollWidth;
     if (booted && vw === lastView && tw === lastTrack) return;
     lastView = vw;
     lastTrack = tw;
+    if (nativePan()) {
+      syncNav();
+      booted = true;
+      return;
+    }
     apply(x, false);
     booted = true;
   };
+
+  root.addEventListener("scroll", () => {
+    if (!nativePan() || !press) return;
+    if (Math.abs(root.scrollLeft - press.scroll) > TAP_PX) {
+      press.moved = true;
+      didSlide = true;
+    }
+  }, { passive: true });
 
   const ro = new ResizeObserver(refresh);
   ro.observe(root);
@@ -379,6 +435,7 @@ function bindStrip(root) {
   FINE.addEventListener?.("change", () => {
     root.classList.toggle("is-fine", FINE.matches);
   });
+  MOBILE.addEventListener("change", refresh);
 }
 
 export function initProgramStrips(scope = document) {

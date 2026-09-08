@@ -2030,6 +2030,75 @@ html.is-mobile .author-lb__hit--next {
   }
 }
 
+@media (max-width: 900px) {
+  .program-card__nav {
+    display: none !important;
+  }
+
+  .program-card__strip,
+  .program-card__strip.is-native-pan {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    cursor: default;
+    scrollbar-width: none;
+  }
+
+  .program-card__strip::-webkit-scrollbar,
+  .program-card__strip.is-native-pan::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card.is-program-open .program-card__strip.is-overflow,
+  .program-card__strip.is-swiping {
+    cursor: default;
+    touch-action: pan-x pan-y;
+  }
+
+  .program-card__track {
+    will-change: auto;
+    transform: none;
+  }
+}
+
+html.is-mobile .program-card__nav {
+  display: none !important;
+}
+
+html.is-mobile .program-card__strip,
+html.is-mobile .program-card__strip.is-native-pan {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  cursor: default;
+  scrollbar-width: none;
+}
+
+html.is-mobile .program-card__strip::-webkit-scrollbar {
+  display: none;
+}
+
+html.is-mobile .card.is-program-open .program-card__strip.is-overflow,
+html.is-mobile .program-card__strip.is-swiping {
+  cursor: default;
+  touch-action: pan-x pan-y;
+}
+
+html.is-mobile .program-card__track {
+  will-change: auto;
+  transform: none;
+}
+
+html.is-mobile .card.is-program-open[data-program-card][data-expand-host] .program-card,
+html.is-mobile .card.is-program-open[data-expand-settled][data-program-card] .program-card,
+html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .program-card {
+  touch-action: auto;
+}
+
 /*
   Figma 76:897 closed stack face — dachshund overlays the sheet;
   title overlays at 4px like the works key band.
@@ -5655,9 +5724,22 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 
   .card.is-program-open[data-program-card][data-expand-host] .program-card,
-  .card.is-program-open[data-works-card][data-expand-host] .works-card,
   .card.is-program-open[data-expand-settled][data-program-card] .program-card,
-  .card.is-program-open.is-program-scroll[data-program-card] .program-card,
+  .card.is-program-open.is-program-scroll[data-program-card] .program-card {
+    height: 100%;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-anchor: none;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* auto so nested strips can pan-x; vertical still scrolls this column. */
+    touch-action: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .card.is-program-open[data-works-card][data-expand-host] .works-card,
   .card.is-program-open[data-expand-settled][data-works-card] .works-card,
   .card.is-program-open.is-program-scroll[data-works-card] .works-card {
     height: 100%;
