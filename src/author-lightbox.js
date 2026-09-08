@@ -475,11 +475,16 @@ function buildSlides() {
     slide.className = "author-lb__slide";
     slide.setAttribute("data-author-lb-slide", "");
     if (i === 0) slide.classList.add("is-active");
-    if (isSvgSrc(work.src)) slide.classList.add("is-ink");
+    const ink = Boolean(work.ink) || isSvgSrc(work.src);
+    if (ink) slide.classList.add("is-ink");
     const image = document.createElement("img");
     image.alt = "";
-    image.width = work.width;
-    image.height = work.height;
+    // Don't stamp the card's small width/height onto SVG — browsers rasterize
+    // `<img src="*.svg">` at those attributes, then CSS-scale a bitmap.
+    if (!ink) {
+      image.width = work.width;
+      image.height = work.height;
+    }
     image.draggable = false;
     image.setAttribute("draggable", "false");
     image.decoding = "async";
