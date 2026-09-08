@@ -8,15 +8,10 @@ const NAV = "[data-program-strip-prev], [data-program-strip-next]";
 const AXIS_PX = 8;
 const TAP_PX = AXIS_PX;
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
-const COARSE = window.matchMedia("(pointer: coarse)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
-}
-
-function isTouchPointer(event) {
-  return event.pointerType === "touch" || (COARSE.matches && event.pointerType !== "mouse");
 }
 
 function cardOf(root) {
@@ -72,6 +67,8 @@ function bindStrip(root) {
   let swipe = null;
   let press = null;
   let didSlide = false;
+  let booted = false;
+  const hideWait = new WeakMap();
 
   const viewW = () => root.clientWidth || 1;
   const minX = () => Math.min(0, viewW() - track.scrollWidth);
@@ -81,23 +78,57 @@ function bindStrip(root) {
     track.style.transform = `translate3d(${x}px,0,0)`;
   };
 
+  const clearHideWait = (btn) => {
+    const wait = hideWait.get(btn);
+    if (!wait) return;
+    btn.removeEventListener("transitionend", wait.onEnd);
+    clearTimeout(wait.timer);
+    hideWait.delete(btn);
+  };
+
+  const setNavGone = (btn, gone) => {
+    if (!btn) return;
+    if (gone) {
+      btn.disabled = true;
+      btn.setAttribute("aria-disabled", "true");
+      btn.classList.add("is-gone");
+      if (btn.hidden || hideWait.has(btn)) return;
+      if (!booted) {
+        btn.hidden = true;
+        return;
+      }
+      const finish = () => {
+        hideWait.delete(btn);
+        btn.hidden = true;
+      };
+      const onEnd = (event) => {
+        if (event.target !== btn || event.propertyName !== "opacity") return;
+        btn.removeEventListener("transitionend", onEnd);
+        clearTimeout(timer);
+        finish();
+      };
+      const timer = setTimeout(() => {
+        btn.removeEventListener("transitionend", onEnd);
+        finish();
+      }, 220);
+      hideWait.set(btn, { onEnd, timer });
+      btn.addEventListener("transitionend", onEnd);
+      return;
+    }
+    clearHideWait(btn);
+    btn.disabled = false;
+    btn.setAttribute("aria-disabled", "false");
+    btn.hidden = false;
+    btn.classList.remove("is-gone");
+  };
+
   const syncNav = () => {
     const overflow = overflowing();
     const atStart = x >= -1;
     const atEnd = x <= minX() + 1;
     root.classList.toggle("is-overflow", overflow);
-    if (prev) {
-      const gone = !overflow || atStart;
-      prev.hidden = gone;
-      prev.disabled = gone;
-      prev.setAttribute("aria-disabled", gone ? "true" : "false");
-    }
-    if (next) {
-      const gone = !overflow || atEnd;
-      next.hidden = gone;
-      next.disabled = gone;
-      next.setAttribute("aria-disabled", gone ? "true" : "false");
-    }
+    setNavGone(prev, !overflow || atStart);
+    setNavGone(next, !overflow || atEnd);
   };
 
   const apply = (nextX, animate) => {
@@ -139,7 +170,6 @@ function bindStrip(root) {
     if (event.button && event.button !== 0) return;
     press = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
     didSlide = false;
-    if (!isTouchPointer(event)) return;
     if (!cardOpen(root)) return;
     if (!overflowing()) return;
     track.style.transition = "none";
@@ -152,6 +182,7 @@ function bindStrip(root) {
       lastX: event.clientX,
       lastT: event.timeStamp,
       vel: 0,
+      captured: false,
     };
   };
 
@@ -169,6 +200,12 @@ function bindStrip(root) {
       swipe.axis = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
       if (swipe.axis !== "x") return;
       root.classList.add("is-swiping");
+      try {
+        root.setPointerCapture(event.pointerId);
+        swipe.captured = true;
+      } catch {
+        swipe.captured = false;
+      }
     }
     if (swipe.axis !== "x") return;
     if (event.cancelable) event.preventDefault();
@@ -192,6 +229,13 @@ function bindStrip(root) {
     if (!swipe || event.pointerId !== swipe.id) return;
     const drifted = swipe.axis === "x";
     const vel = swipe.vel;
+    if (swipe.captured) {
+      try {
+        root.releasePointerCapture(event.pointerId);
+      } catch {
+        /* already released */
+      }
+    }
     swipe = null;
     root.classList.remove("is-swiping");
     if (!drifted) {
@@ -202,6 +246,23 @@ function bindStrip(root) {
     apply(x + coast, true);
   };
 
+  const wheelPanDx = (event) => {
+    const dx = event.deltaX;
+    const dy = event.deltaY;
+    if (event.shiftKey && Math.abs(dx) < Math.abs(dy)) return dy;
+    if (Math.abs(dx) > Math.abs(dy)) return dx;
+    return 0;
+  };
+
+  const onWheel = (event) => {
+    if (!cardOpen(root) || !overflowing()) return;
+    const dx = wheelPanDx(event);
+    if (!dx) return;
+    if (event.cancelable) event.preventDefault();
+    event.stopPropagation();
+    apply(x - dx, false);
+  };
+
   root.addEventListener("pointerdown", onPointerDown);
   root.addEventListener("pointermove", onPointerMove, { passive: false });
   root.addEventListener("pointerup", onPointerUp);
@@ -209,6 +270,8 @@ function bindStrip(root) {
     if (press && event.pointerId === press.id) press = null;
     onPointerUp(event);
   });
+  root.addEventListener("dragstart", (event) => event.preventDefault());
+  root.addEventListener("wheel", onWheel, { passive: false });
 
   root.addEventListener("click", (event) => {
     if (event.target.closest?.(NAV)) return;
@@ -236,10 +299,7 @@ function bindStrip(root) {
 
   const refresh = () => {
     apply(x, false);
-    const first = track.querySelector(".program-card__shot, img.program-card__mark");
-    if (first) {
-      root.style.setProperty("--strip-media-mid", `${first.offsetHeight / 2}px`);
-    }
+    booted = true;
   };
 
   const ro = new ResizeObserver(refresh);

@@ -1710,7 +1710,12 @@ html.is-mobile .author-lb__hit--next {
   cursor: default;
 }
 
+.card.is-program-open .program-card__strip.is-overflow {
+  cursor: grab;
+}
+
 .program-card__strip.is-swiping {
+  cursor: grabbing;
   touch-action: pan-x;
 }
 
@@ -1896,13 +1901,13 @@ html.is-mobile .author-lb__hit--next {
   flex: 0 0 auto;
 }
 
-/* Same 36×36 `--lb-btn` chrome as `.author-lb__arrow` / `.img-slider__nav`. Hover-only. */
+/* Same 36×36 `--lb-btn` chrome as `.author-lb__arrow` / `.img-slider__nav`. */
 .program-card__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   position: absolute;
-  top: var(--strip-media-mid, 50%);
+  top: 50%;
   z-index: 2;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
@@ -1913,8 +1918,10 @@ html.is-mobile .author-lb__hit--next {
   background: var(--lb-btn);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
-  transform: translateY(-50%);
-  transition: transform 160ms var(--ease-out);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.95);
+  pointer-events: none;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -1933,6 +1940,12 @@ html.is-mobile .author-lb__hit--next {
   display: none !important;
 }
 
+.program-card__nav.is-gone {
+  opacity: 0;
+  transform: translateY(-50%) scale(0.95);
+  pointer-events: none;
+}
+
 .program-card__chevron {
   display: block;
   width: 20px;
@@ -1945,11 +1958,13 @@ html.is-mobile .author-lb__hit--next {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]) {
-    display: flex;
+  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone) {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+    pointer-events: auto;
   }
 
-  .program-card__nav:hover {
+  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone):hover {
     transform: translateY(-50%) scale(1.05);
   }
 }
@@ -1960,10 +1975,13 @@ html.is-mobile .author-lb__hit--next {
 
 @media (prefers-reduced-motion: reduce) {
   .program-card__nav {
-    transition: none;
+    transition: opacity 160ms var(--ease-out);
+    transform: translateY(-50%);
   }
 
-  .program-card__nav:hover,
+  .program-card__nav.is-gone,
+  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone),
+  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone):hover,
   .program-card__nav:active {
     transform: translateY(-50%);
   }
