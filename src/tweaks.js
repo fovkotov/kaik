@@ -253,11 +253,7 @@ export function syncCardMetrics() {
       : MOBILE_DEFAULTS.cardSize;
     w = Math.max(1, Math.round(w * cardSize * 100) / 100);
     h = Math.max(1, Math.round(h * cardSize * 100) / 100);
-    const root = document.documentElement;
-    root.style.setProperty("--card-h", `${h}px`);
-    root.style.setProperty("--card-w", `${w}px`);
-    root.style.setProperty("--stack-card-h", `${h}px`);
-    root.style.setProperty("--stack-card-w", `${w}px`);
+    writeCardBox(w, h);
     return;
   }
 
@@ -296,12 +292,23 @@ export function syncCardMetrics() {
   h = Math.min(h, a4MaxH, worksMaxH) * cardSize;
   h = Math.max(1, Math.round(h * 100) / 100);
 
-  const w = h / A4_ASPECT;
+  writeCardBox(h / A4_ASPECT, h);
+}
+
+function writeCardBox(w, h) {
   const root = document.documentElement;
-  root.style.setProperty("--card-h", `${h}px`);
-  root.style.setProperty("--card-w", `${w}px`);
-  root.style.setProperty("--stack-card-h", `${h}px`);
-  root.style.setProperty("--stack-card-w", `${w}px`);
+  const nextH = `${h}px`;
+  const nextW = `${w}px`;
+  if (
+    root.style.getPropertyValue("--card-h") === nextH &&
+    root.style.getPropertyValue("--card-w") === nextW
+  ) {
+    return;
+  }
+  root.style.setProperty("--card-h", nextH);
+  root.style.setProperty("--card-w", nextW);
+  root.style.setProperty("--stack-card-h", nextH);
+  root.style.setProperty("--stack-card-w", nextW);
 }
 
 export function applyDeckParams() {

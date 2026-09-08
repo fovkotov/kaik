@@ -71,7 +71,19 @@ export function getScrollRoot() {
  * Visible iframe rect. When the host iframe extends below the browser window
  * (common with height:100vh + external nav), visualViewport is shorter than
  * innerHeight — fixed footer chrome would sit off-screen without clip insets.
+ * Tiny visualViewport clips are treated as 0 — see CLIP_IGNORE.
  */
+/** Ignore URL-bar / visualViewport noise that is not a real chrome overlay. */
+const CLIP_IGNORE = 8;
+/** Do not rewrite CSS vars / notify listeners for jitter below this. */
+const SIZE_EPS = 12;
+const CLIP_EPS = 6;
+/** Apply immediately — orientation or a real window chrome change. */
+const BIG_JUMP_W = 80;
+const BIG_JUMP_H = 140;
+/** Cargo `--viewport-height` animates for ~100–200ms; wait it out. */
+const SETTLE_MS = 180;
+
 function getVisualClipInsets() {
   const innerW = window.innerWidth || document.documentElement.clientWidth || 0;
   const innerH = window.innerHeight || document.documentElement.clientHeight || 0;
@@ -86,12 +98,21 @@ function getVisualClipInsets() {
     };
   }
 
-  const clipTop = Math.max(0, Math.round(vv.offsetTop));
+  let clipTop = Math.max(0, Math.round(vv.offsetTop));
   const visibleBottom = Math.round(vv.offsetTop + vv.height);
-  const clipBottom = Math.max(0, Math.round(innerH - visibleBottom));
-  const visibleWidth = Math.round(Math.min(innerW, vv.width || innerW));
+  let clipBottom = Math.max(0, Math.round(innerH - visibleBottom));
+
+  // Tiny clips are almost always visualViewport jitter while Cargo resizes the
+  // iframe to `--viewport-height`. Writing them into --frame-clip-* resizes
+  // every card and looks like a blink.
+  if (clipTop < CLIP_IGNORE) clipTop = 0;
+  if (clipBottom < CLIP_IGNORE) clipBottom = 0;
+
+  const visibleWidth = Math.round(clipTop || clipBottom ? Math.min(innerW, vv.width || innerW) : innerW);
   const visibleHeight = Math.round(
-    Math.max(1, Math.min(vv.height || innerH, innerH - clipTop - clipBottom)),
+    clipTop || clipBottom
+      ? Math.max(1, Math.min(vv.height || innerH, innerH - clipTop - clipBottom))
+      : innerH,
   );
 
   return { clipTop, clipBottom, visibleWidth, visibleHeight };
@@ -109,8 +130,48 @@ function getVisibleFrameRect() {
 
 const frameListeners = new Set();
 
-/** Last CSS metrics we actually wrote — used to ignore 1px visualViewport jitter. */
+/** Last CSS metrics we actually wrote — used to ignore visualViewport / Cargo jitter. */
 let lastAppliedMetrics = null;
+let settleTimer = 0;
+
+function readFrameMetrics() {
+  let width;
+  let height;
+  let clipTop = 0;
+  let clipBottom = 0;
+  const hasParent = Boolean(parentFrameSize);
+
+  if (parentFrameSize) {
+    width = parentFrameSize.width;
+    height = parentFrameSize.height;
+    ({ clipTop, clipBottom } = getVisualClipInsets());
+    if (clipTop || clipBottom) {
+      height = Math.max(1, height - clipTop - clipBottom);
+    }
+  } else {
+    ({ width, height, clipTop, clipBottom } = getVisibleFrameRect());
+  }
+
+  return { width, height, clipTop, clipBottom, hasParent };
+}
+
+function metricsClose(a, b) {
+  if (!a || !b) return false;
+  return (
+    a.hasParent === b.hasParent &&
+    Math.abs(a.width - b.width) < SIZE_EPS &&
+    Math.abs(a.height - b.height) < SIZE_EPS &&
+    Math.abs(a.clipTop - b.clipTop) + Math.abs(a.clipBottom - b.clipBottom) < CLIP_EPS
+  );
+}
+
+function isBigJump(next) {
+  if (!lastAppliedMetrics) return true;
+  return (
+    Math.abs(next.width - lastAppliedMetrics.width) >= BIG_JUMP_W ||
+    Math.abs(next.height - lastAppliedMetrics.height) >= BIG_JUMP_H
+  );
+}
 
 export function getViewportSize() {
   // Prefer last applied metrics so rAF render matches the CSS frame and does not
@@ -150,43 +211,17 @@ export function onFrameMetrics(fn) {
 export function syncFrameMetrics(opts = {}) {
   const force = Boolean(opts.force);
   const root = document.documentElement;
-  let width;
-  let height;
-  let clipTop = 0;
-  let clipBottom = 0;
-  const hasParent = Boolean(parentFrameSize);
+  const { width, height, clipTop, clipBottom, hasParent } = readFrameMetrics();
 
-  if (parentFrameSize) {
-    width = parentFrameSize.width;
-    height = parentFrameSize.height;
-    ({ clipTop, clipBottom } = getVisualClipInsets());
-    if (clipTop || clipBottom) {
-      height = Math.max(1, height - clipTop - clipBottom);
-    }
-  } else {
-    ({ width, height, clipTop, clipBottom } = getVisibleFrameRect());
-  }
-
-  // visualViewport scroll/resize often jitters clips/size by 1px while the user
-  // scrolls — rewriting --frame-h / --frame-clip-* then reflows the deck and
-  // looks like an intermittent blink. Ignore sub-2px noise unless forced.
-  if (!force && lastAppliedMetrics) {
-    const dW = Math.abs(width - lastAppliedMetrics.width);
-    const dH = Math.abs(height - lastAppliedMetrics.height);
-    const dClip =
-      Math.abs(clipTop - lastAppliedMetrics.clipTop) +
-      Math.abs(clipBottom - lastAppliedMetrics.clipBottom);
-    if (
-      hasParent === lastAppliedMetrics.hasParent &&
-      dW < 2 &&
-      dH < 2 &&
-      dClip < 2
-    ) {
-      return {
-        width: lastAppliedMetrics.width,
-        height: lastAppliedMetrics.height,
-      };
-    }
+  // Cargo sizes the iframe with `--viewport-height`, which animates with the
+  // URL bar and pin padding. Rewriting --frame-* / --card-h on every tick
+  // reflows the deck and looks like a blink. Ignore small jitter unless forced.
+  if (!force && metricsClose({ width, height, clipTop, clipBottom, hasParent }, lastAppliedMetrics)) {
+    return {
+      width: lastAppliedMetrics.width,
+      height: lastAppliedMetrics.height,
+      applied: false,
+    };
   }
 
   if (hasParent) {
@@ -208,7 +243,42 @@ export function syncFrameMetrics(opts = {}) {
       // Listener must not break frame sync.
     }
   });
-  return { width, height };
+  return { width, height, applied: true };
+}
+
+/**
+ * Coalesce Cargo / visualViewport resize storms. Tiny jitter is dropped;
+ * mid-size changes wait until the iframe box settles; orientation applies now.
+ */
+function scheduleFrameSync(opts = {}) {
+  if (opts.force) {
+    window.clearTimeout(settleTimer);
+    settleTimer = 0;
+    return syncFrameMetrics({ force: true });
+  }
+
+  const next = readFrameMetrics();
+  if (metricsClose(next, lastAppliedMetrics)) {
+    return lastAppliedMetrics
+      ? { width: lastAppliedMetrics.width, height: lastAppliedMetrics.height, applied: false }
+      : syncFrameMetrics();
+  }
+
+  if (isBigJump(next)) {
+    window.clearTimeout(settleTimer);
+    settleTimer = 0;
+    return syncFrameMetrics();
+  }
+
+  window.clearTimeout(settleTimer);
+  settleTimer = window.setTimeout(() => {
+    settleTimer = 0;
+    syncFrameMetrics();
+  }, SETTLE_MS);
+
+  return lastAppliedMetrics
+    ? { width: lastAppliedMetrics.width, height: lastAppliedMetrics.height, applied: false }
+    : syncFrameMetrics();
 }
 
 /** Apply explicit frame size from parent (optional; innerHeight is fine when iframe height is correct). */
@@ -321,20 +391,30 @@ export function initEmbed() {
   document.documentElement.classList.add("is-iframe-ready");
 
   const onWindowResize = () => {
-    // After the iframe box changes, innerHeight is authoritative again.
-    parentFrameSize = null;
-    const next = syncFrameMetrics({ force: true });
-    notifyParent("resize", next);
+    // Cargo animates `--viewport-height` → iframe box → window.resize.
+    // Do not force-clear the latch or rewrite --card-h on every tick.
+    if (parentFrameSize) {
+      const boxW = window.innerWidth || 0;
+      const boxH = window.innerHeight || 0;
+      if (
+        Math.abs(boxW - parentFrameSize.width) >= BIG_JUMP_W ||
+        Math.abs(boxH - parentFrameSize.height) >= BIG_JUMP_H
+      ) {
+        parentFrameSize = null;
+      }
+    }
+    const next = scheduleFrameSync();
+    if (next?.applied) notifyParent("resize", next);
   };
 
   /** Pinch-pan / URL-bar offset — refresh clips only; never drop parent size. */
   const onVisualViewportScroll = () => {
-    syncFrameMetrics();
+    scheduleFrameSync();
   };
 
   /** Soft keyboard / URL-bar show-hide — may change vv size without window resize. */
   const onVisualViewportResize = () => {
-    syncFrameMetrics();
+    scheduleFrameSync();
   };
 
   window.addEventListener("resize", onWindowResize, { passive: true });

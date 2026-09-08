@@ -1,3 +1,5 @@
+import { onFrameMetrics } from "./embed.js";
+
 const INSET = 4;
 const MIN_THUMB = 28;
 const OVERFLOW_PX = 1;
@@ -371,8 +373,7 @@ export function mountFocusScrollbar(card) {
   });
   const mq = window.matchMedia(DESKTOP_MQ);
   mq.addEventListener("change", schedule);
-  window.addEventListener("resize", schedule, { passive: true });
-  window.visualViewport?.addEventListener("resize", schedule, { passive: true });
+  const offFrame = onFrameMetrics(schedule);
   card.addEventListener("load", schedule, true);
 
   const dispose = () => {
@@ -392,8 +393,7 @@ export function mountFocusScrollbar(card) {
     root.removeEventListener("scrollend", onScrollEnd);
     card.removeEventListener("load", schedule, true);
     mq.removeEventListener("change", schedule);
-    window.removeEventListener("resize", schedule);
-    window.visualViewport?.removeEventListener("resize", schedule);
+    offFrame();
     thumbs().forEach((el) => {
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);

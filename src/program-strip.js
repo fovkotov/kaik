@@ -22,11 +22,25 @@ function cardOpen(root) {
   return Boolean(cardOf(root)?.classList.contains("is-program-open"));
 }
 
+function isSvgHref(href) {
+  try {
+    return new URL(href, document.baseURI).pathname.toLowerCase().endsWith(".svg");
+  } catch {
+    return /\.svg(?:$|[?#])/i.test(String(href));
+  }
+}
+
 function fromImg(img) {
+  const attr = img.getAttribute("src") || "";
+  const resolved = img.src || "";
+  const current = img.currentSrc || "";
+  // Authored `.svg` wins over `currentSrc` (srcset / decode can pick a raster).
+  const src = isSvgHref(attr) || isSvgHref(resolved) ? resolved || attr : current || resolved || attr;
   return {
-    src: img.currentSrc || img.src || "",
+    src,
     width: img.naturalWidth || Number(img.getAttribute("width")) || 1920,
     height: img.naturalHeight || Number(img.getAttribute("height")) || 1080,
+    ink: img.classList.contains("program-card__mark") || isSvgHref(src) || isSvgHref(attr),
   };
 }
 
@@ -291,13 +305,20 @@ function bindStrip(root) {
     event.preventDefault();
     event.stopPropagation();
     openLightboxGallery(
-      items.map(({ src, width, height }) => ({ src, width, height })),
+      items.map(({ src, width, height, ink }) => ({ src, width, height, ink })),
       index,
       media,
     );
   });
 
+  let lastView = 0;
+  let lastTrack = 0;
   const refresh = () => {
+    const vw = viewW();
+    const tw = track.scrollWidth;
+    if (booted && vw === lastView && tw === lastTrack) return;
+    lastView = vw;
+    lastTrack = tw;
     apply(x, false);
     booted = true;
   };

@@ -1,5 +1,5 @@
 import { isAuthorLightboxOpen } from "./author-lightbox.js";
-import { getViewportSize } from "./embed.js";
+import { getViewportSize, onFrameMetrics } from "./embed.js";
 import { t } from "./scriptik.js";
 import { getFocusNudge, getFocusScale } from "./stage-settings.js";
 import { applyDeckParams, inDeckFlow, isMobile } from "./tweaks.js";
@@ -274,7 +274,7 @@ export function initProgramModal() {
 
   function destVisual(from) {
     const { w: vw, h: vh } = frameSize();
-    if (isMobile()) {
+    if (isMobile() || card?.hasAttribute("data-works-card")) {
       return { left: 0, top: 0, width: vw, height: vh, rotate: 0 };
     }
     const size = stackCardSize(from);
@@ -283,7 +283,7 @@ export function initProgramModal() {
       frameH: vh,
       cardW: size.w,
       cardH: size.h,
-      works: Boolean(card?.hasAttribute("data-works-card")),
+      works: false,
     });
   }
 
@@ -291,9 +291,9 @@ export function initProgramModal() {
     return visualBoxToCardSpace(destVisual(from));
   }
 
-  /** Mobile fullscreen: the tapped node is the surface (no clone). */
+  /** Mobile, or student works: the tapped node is the surface (no clone). */
   function useExpand() {
-    return isMobile();
+    return isMobile() || Boolean(card?.hasAttribute("data-works-card"));
   }
 
   function visualToLocalBox(rect) {
@@ -577,7 +577,7 @@ export function initProgramModal() {
     if (sheet) sheet.scrollTop = 0;
     const works = el.querySelector(".works-card");
     if (works) works.scrollTop = 0;
-    const worksList = el.querySelector(".works-card__list");
+    const worksList = el.querySelector(".works-card__list, [data-works-feed]");
     if (worksList) worksList.scrollTop = 0;
   }
 
@@ -1519,8 +1519,9 @@ export function initProgramModal() {
     }
     syncFocusScrollbar(card);
   };
-  window.addEventListener("resize", onFrameResize, { passive: true });
-  window.visualViewport?.addEventListener("resize", onFrameResize, { passive: true });
+  // Only re-pin when embed actually committed a new frame — raw resize/vv
+  // storms from Cargo `--viewport-height` used to flash the open card.
+  onFrameMetrics(onFrameResize);
   document.addEventListener("kaik:stage-nudge", onFrameResize);
 
   return {
