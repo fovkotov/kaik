@@ -121,10 +121,11 @@ function bindStrip(root) {
         clearTimeout(timer);
         finish();
       };
+      // Match `--nav-out` (120ms); keep a short buffer so hide never sticks mid-fade.
       const timer = setTimeout(() => {
         btn.removeEventListener("transitionend", onEnd);
         finish();
-      }, 220);
+      }, REDUCE.matches ? 0 : 180);
       hideWait.set(btn, { onEnd, timer });
       btn.addEventListener("transitionend", onEnd);
       return;
@@ -132,7 +133,16 @@ function bindStrip(root) {
     clearHideWait(btn);
     btn.disabled = false;
     btn.setAttribute("aria-disabled", "false");
+    const needsIn = btn.hidden || btn.classList.contains("is-gone");
     btn.hidden = false;
+    if (needsIn && booted && !REDUCE.matches) {
+      btn.classList.add("is-gone");
+      void btn.offsetWidth;
+      requestAnimationFrame(() => {
+        btn.classList.remove("is-gone");
+      });
+      return;
+    }
     btn.classList.remove("is-gone");
   };
 

@@ -1815,6 +1815,11 @@ html.is-mobile .author-lb__hit--next {
   flex: 0 0 auto;
 }
 
+/* Figma 206:170 — crop the thorny Mouth to the bottom of the frame. */
+.program-card__shot--mouth-bot img {
+  object-position: bottom;
+}
+
 .program-card__shot--alena {
   position: relative;
   background: #1d1d1a;
@@ -1902,9 +1907,13 @@ html.is-mobile .author-lb__hit--next {
   flex: 0 0 auto;
 }
 
-/* Same 36×36 `--lb-btn` chrome as `.author-lb__arrow` / `.img-slider__nav`. */
+/* Same 36×36 `--lb-btn` chrome as `.author-lb__arrow` / `.img-slider__nav`.
+   Appear: opacity + scale(0.95→1), never scale(0). Enter 160ms / exit 120ms,
+   strong ease-out. Hover-in is gated; hide-at-ends uses `.is-gone`. */
 .program-card__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --nav-in: 160ms;
+  --nav-out: 120ms;
   position: absolute;
   top: 50%;
   z-index: 2;
@@ -1922,7 +1931,9 @@ html.is-mobile .author-lb__hit--next {
   opacity: 0;
   transform: translateY(-50%) scale(0.95);
   pointer-events: none;
-  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+  transition:
+    opacity var(--nav-out) var(--ease-out),
+    transform var(--nav-out) var(--ease-out);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -1959,19 +1970,24 @@ html.is-mobile .author-lb__hit--next {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone) {
+  .card.is-program-open .program-card__strip.is-overflow.is-fine:hover .program-card__nav:not([hidden]):not(.is-gone) {
     opacity: 1;
     transform: translateY(-50%) scale(1);
     pointer-events: auto;
+    transition-duration: var(--nav-in);
   }
+}
 
-  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone):hover {
-    transform: translateY(-50%) scale(1.05);
-  }
+.card.is-program-open .program-card__strip.is-overflow:not(.is-fine) .program-card__nav:not([hidden]):not(.is-gone) {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  pointer-events: auto;
+  transition-duration: var(--nav-in);
 }
 
 .program-card__nav:active {
   transform: translateY(-50%) scale(0.97);
+  transition-duration: 140ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1981,8 +1997,8 @@ html.is-mobile .author-lb__hit--next {
   }
 
   .program-card__nav.is-gone,
-  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone),
-  .card.is-program-open .program-card__strip.is-overflow:hover .program-card__nav:not([hidden]):not(.is-gone):hover,
+  .card.is-program-open .program-card__strip.is-overflow.is-fine:hover .program-card__nav:not([hidden]):not(.is-gone),
+  .card.is-program-open .program-card__strip.is-overflow:not(.is-fine) .program-card__nav:not([hidden]):not(.is-gone),
   .program-card__nav:active {
     transform: translateY(-50%);
   }
