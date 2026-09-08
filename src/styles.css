@@ -1929,11 +1929,11 @@ html.is-mobile .author-lb__hit--next {
 }
 
 .program-card__nav--prev {
-  left: 0;
+  left: 12px;
 }
 
 .program-card__nav--next {
-  right: 0;
+  right: 12px;
 }
 
 .program-card__nav[hidden] {
