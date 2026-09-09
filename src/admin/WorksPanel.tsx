@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { toast } from "sonner";
 import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Trash2Icon, XIcon } from "lucide-react";
@@ -436,6 +437,17 @@ function lassoBox(lasso: Lasso) {
 function intersects(el: Element, box: { left: number; top: number; width: number; height: number }) {
   const r = el.getBoundingClientRect();
   return r.left < box.left + box.width && r.right > box.left && r.top < box.top + box.height && r.bottom > box.top;
+}
+
+// Radix focuses "cancel" first, so a bare Enter would dismiss; make Enter
+// confirm instead (Esc still cancels).
+function confirmOnEnter(action: () => void) {
+  return (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" || event.repeat) return;
+    event.preventDefault();
+    event.stopPropagation();
+    action();
+  };
 }
 
 function itemDims(files: UploadFile[]) {
@@ -1093,7 +1105,16 @@ export function WorksPanel({
       />
 
       {inbox.length > 0 ? (
-        <Card data-no-lasso>
+        <Card
+          data-no-lasso
+          onKeyDown={(event) => {
+            // Enter in any inbox field saves the whole inbox.
+            if (event.key !== "Enter" || event.repeat) return;
+            if (!(event.target instanceof HTMLInputElement)) return;
+            event.preventDefault();
+            if (!progress) saveInbox();
+          }}
+        >
           <CardHeader className="border-b">
             <CardTitle>{copy("admin.inbox")}</CardTitle>
             <CardDescription>{inbox.length}</CardDescription>
@@ -1663,7 +1684,7 @@ export function WorksPanel({
       </Dialog>
 
       <AlertDialog open={confirmBulk} onOpenChange={setConfirmBulk}>
-        <AlertDialogContent>
+        <AlertDialogContent onKeyDown={confirmOnEnter(deleteSelected)}>
           <AlertDialogHeader>
             <AlertDialogTitle>{copy("admin.delete")}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1680,7 +1701,7 @@ export function WorksPanel({
       </AlertDialog>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
+        <AlertDialogContent onKeyDown={confirmOnEnter(deleteEditing)}>
           <AlertDialogHeader>
             <AlertDialogTitle>{copy("admin.delete")}</AlertDialogTitle>
             <AlertDialogDescription>{copy("admin.confirmDelete")}</AlertDialogDescription>
