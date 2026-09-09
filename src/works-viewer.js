@@ -18,7 +18,17 @@ const TAP_PX = AXIS_PX;
 const COMMIT_RATIO = 0.22;
 const FLICK_VEL = 500;
 const SPRING_RESPONSE = 0.4;
-const MANY_SLIDES = 12;
+/*
+ * Pager = Swiper "dynamic bullets" as on portorocha.com (dynamicMainBullets: 3):
+ * a window of MAIN full-size dots (the active one is the bright one), one
+ * .75 and one .5 dot on either side, everything else clipped. The main
+ * window is centred in a DOTS_VISIBLE-slot viewport and the strip slides
+ * under it, so the active dot never drifts to the edge.
+ */
+const DOTS_MAIN = 3;
+const DOTS_VISIBLE = DOTS_MAIN + 4;
+const DOT_SLOT = 16;
+const DOT_SCALE = [1, 0.75, 0.5, 0.33];
 
 /** Name, @nick and stream as spans; muted parts get `.is-muted`. */
 export function workMetaNodes(item) {
@@ -65,6 +75,10 @@ export function createWorksViewer(root) {
   let entries = [];
   let slides = [];
   let dots = [];
+  let dotsTrack = null;
+  /** Position of the active dot inside the main window (0..DOTS_MAIN-1) and the slide it was computed for. */
+  let dotAnchor = 0;
+  let dotLast = -1;
   let index = 0;
   let pending = 0;
   let shift = 0;
@@ -128,8 +142,34 @@ export function createWorksViewer(root) {
     shownWork = entry.work;
     caption.replaceChildren(...workMetaNodes(entry.work));
     root.classList.toggle("is-single", entry.n === 1);
-    root.classList.toggle("is-many", entry.n > MANY_SLIDES);
     buildDots(entry);
+  }
+
+  /**
+   * Swiper dynamic-bullets layout. The active dot sits at `dotAnchor` inside
+   * a DOTS_MAIN-wide window; stepping forward pushes it to the right edge of
+   * the window, stepping back to the left, and only then does the window
+   * (and the strip under it) move. Dots outside the window shrink by distance.
+   */
+  function layoutDots(active) {
+    const n = dots.length;
+    if (!n || !dotsTrack) return;
+    const main = Math.min(n, DOTS_MAIN);
+    if (dotLast < 0) dotAnchor = Math.min(active, main - 1);
+    else dotAnchor = Math.max(0, Math.min(main - 1, dotAnchor + (active - dotLast)));
+    dotLast = active;
+    const start = Math.max(0, Math.min(n - main, active - dotAnchor));
+    const end = start + main - 1;
+    dots.forEach((dot, i) => {
+      const dist = i < start ? start - i : i > end ? i - end : 0;
+      dot.style.setProperty("--dot-scale", String(DOT_SCALE[Math.min(dist, DOT_SCALE.length - 1)]));
+      const on = i === active;
+      dot.classList.toggle("is-active", on);
+      dot.setAttribute("aria-current", on ? "true" : "false");
+    });
+    const visible = Math.min(n, DOTS_VISIBLE);
+    const x = n > DOTS_VISIBLE ? ((visible - 1) / 2 - (start + end) / 2) * DOT_SLOT : 0;
+    dotsTrack.style.setProperty("--dots-x", `${x}px`);
   }
 
   function syncDots(active = index) {
@@ -137,11 +177,7 @@ export function createWorksViewer(root) {
     const entry = entries[current];
     slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
     showWork(entry);
-    dots.forEach((dot, i) => {
-      const on = i === entry?.i;
-      dot.classList.toggle("is-active", on);
-      dot.setAttribute("aria-current", on ? "true" : "false");
-    });
+    if (entry) layoutDots(entry.i);
     if (counter && entry) counter.textContent = `${entry.i + 1} / ${entry.n}`;
   }
 
@@ -282,7 +318,12 @@ export function createWorksViewer(root) {
 
   /** Dots belong to the current work only; a dot jumps within that work. */
   function buildDots(entry) {
-    pager.replaceChildren();
+    dotsTrack = document.createElement("div");
+    dotsTrack.className = "viewer__dots-track";
+    pager.replaceChildren(dotsTrack);
+    pager.style.setProperty("--dots-visible", String(Math.min(entry.n, DOTS_VISIBLE)));
+    dotAnchor = 0;
+    dotLast = -1;
     dots = Array.from({ length: entry.n }, (_, i) => {
       const dot = document.createElement("button");
       dot.type = "button";
@@ -294,7 +335,7 @@ export function createWorksViewer(root) {
         event.stopPropagation();
         goTo(entry.first + i);
       });
-      pager.append(dot);
+      dotsTrack.append(dot);
       return dot;
     });
   }

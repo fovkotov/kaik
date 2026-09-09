@@ -733,24 +733,35 @@ html:not(.is-mobile) .img-slider__slide:not(.is-active) {
   color: var(--muted);
 }
 
+/* Dynamic dots (Swiper-style, as on portorocha.com): a 7-slot viewport clips a
+   strip of 16px slots; JS centres the 3-dot main window (`--dots-x`) and
+   scales each dot by its distance from that window (`--dot-scale`). */
 .viewer__dots {
+  --dots-visible: 1;
   position: absolute;
   left: 50%;
   bottom: calc(24px + var(--frame-clip-bottom));
   z-index: 4;
-  display: flex;
-  align-items: center;
+  width: calc(var(--dots-visible) * 16px);
   height: 28px;
-  padding: 0 8px;
+  overflow: hidden;
   transform: translateX(-50%);
 }
 
-.viewer.is-many .viewer__dots {
-  display: none;
+.viewer__dots-track {
+  --dots-x: 0px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  transform: translate3d(var(--dots-x), 0, 0);
+  transition: transform 200ms ease;
+  will-change: transform;
 }
 
 .viewer__dot {
+  --dot-scale: 1;
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 16px;
@@ -763,15 +774,17 @@ html:not(.is-mobile) .img-slider__slide:not(.is-active) {
 
 .viewer__dot::after {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.2);
-  transition: background 200ms ease;
+  transform: scale(var(--dot-scale));
+  transition: transform 200ms ease, background 200ms ease;
 }
 
 .viewer__dot.is-active::after {
   background: rgba(0, 0, 0, 0.64);
+  transition: transform 200ms ease, background 500ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -864,6 +877,7 @@ html:not(.is-mobile) .img-slider__slide:not(.is-active) {
   .img-slider__dots,
   .viewer__arrow,
   .viewer__close,
+  .viewer__dots-track,
   .viewer__dot::after {
     transition: none;
   }
