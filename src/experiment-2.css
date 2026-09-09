@@ -149,12 +149,17 @@ html.is-viewer-open .experiment-two__scroll {
   }
 }
 
-/* Lettering hero — workshops tab only, sits above the grid. */
-.lettering-hero {
+/* Both first blocks share one height so the tabs and grid never jump on switch. */
+.works-page {
   /* Percent heights die on the auto-height page; inside the iframe 100vh is the frame itself. */
   --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
+  --hero-h: max(420px, calc(var(--hero-frame) * 0.7));
+}
+
+/* Lettering hero — workshops tab only, sits above the grid. */
+.lettering-hero {
   position: relative;
-  height: max(420px, calc(var(--hero-frame) * 0.7));
+  height: var(--hero-h);
   margin: 0 calc(-1 * var(--gutter));
   overflow: hidden;
   isolation: isolate;
@@ -178,9 +183,11 @@ html.is-viewer-open .experiment-two__scroll {
   left: 50%;
   top: 50%;
   display: block;
-  width: 68%;
+  /* Auto size under both caps: the box hugs the drawn art, so clamping to it is exact. */
+  width: auto;
+  height: auto;
+  max-width: 68%;
   max-height: 62%;
-  object-fit: contain;
   transform: translate(-50%, -50%);
   opacity: 0.75;
   pointer-events: none;
@@ -233,7 +240,11 @@ html.is-viewer-open .experiment-two__scroll {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   align-items: start;
+  align-content: start;
   gap: 32px clamp(24px, 4vw, 64px);
+  /* Same box as the lettering hero; may only grow if the content really needs it. */
+  min-height: var(--hero-h);
+  box-sizing: border-box;
   padding-top: 16px;
 }
 
@@ -354,6 +365,15 @@ html.is-viewer-open .experiment-two__scroll {
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+/* Final projects are strict 16:9 covers; workshop lettering keeps its contain box. */
+.works-grid[data-tab="final"] .work-card__art {
+  aspect-ratio: 16 / 9;
+}
+
+.works-grid[data-tab="final"] .work-card__art img {
+  object-fit: cover;
 }
 
 /* Hover: the art lifts a little and the caption fades in underneath. */
@@ -690,12 +710,12 @@ html.is-viewer-open .experiment-two__scroll {
     padding-top: 8px;
   }
 
-  .lettering-hero {
-    height: max(320px, calc(var(--hero-frame) * 0.55));
+  .works-page {
+    --hero-h: max(320px, calc(var(--hero-frame) * 0.55));
   }
 
   .lettering-hero__image {
-    width: calc(100% - 40px);
+    max-width: calc(100% - 40px);
     max-height: 70%;
   }
 

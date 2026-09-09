@@ -39,6 +39,11 @@ function imageFiles(item) {
   return (item?.files || []).filter((file) => !/\.(?:ttf|otf|woff2?)$/i.test(file));
 }
 
+/** The hero draws vector only: the first .svg of a work, or nothing. */
+function svgFile(item) {
+  return (item?.files || []).find((file) => /\.svg$/i.test(file)) || null;
+}
+
 function shufflePick(items, excludeId = "") {
   if (!items.length) return null;
   const pool = items.filter((item) => item.id !== excludeId);
@@ -63,7 +68,7 @@ function metaNodes(item) {
   if (item.stream) {
     const stream = document.createElement("span");
     stream.className = "is-muted";
-    stream.textContent = `поток ${item.stream}`;
+    stream.textContent = `${item.stream} поток`;
     nodes.push(stream);
   }
   if (!nodes.length) {
@@ -151,13 +156,14 @@ function renderGrid() {
   const fragment = document.createDocumentFragment();
   works.forEach((item) => fragment.append(cardFor(item)));
   grid.replaceChildren(fragment);
+  grid.dataset.tab = activeTab;
   empty.hidden = works.length > 0;
 }
 
 /* ---------- hero ---------- */
 
 function setHero(item) {
-  const file = imageFiles(item)[0];
+  const file = svgFile(item);
   if (!file) return;
   activeLettering = item;
   letteringImage.src = workFileUrl(file);
@@ -172,14 +178,27 @@ function nextHero() {
 
 /**
  * The lettering is the cursor: its centre eases toward the pointer, nothing else.
- * Offsets are measured from the hero centre so the CSS centring stays intact.
+ * Offsets are measured from the hero centre so the CSS centring stays intact,
+ * and are clamped so the artwork never leaves the hero box.
  */
 function createFollower() {
   const EASE = 0.16;
   const current = { x: 0, y: 0 };
   const target = { x: 0, y: 0 };
+  const limit = { x: 0, y: 0 };
   let frame = 0;
   let active = true;
+
+  /** Half the free room on each axis: how far the centre may drift from the middle. */
+  function measure() {
+    const box = hero.getBoundingClientRect();
+    const art = letteringImage.getBoundingClientRect();
+    limit.x = Math.max(0, (box.width - art.width) / 2);
+    limit.y = Math.max(0, (box.height - art.height) / 2);
+    target.x = Math.max(-limit.x, Math.min(limit.x, target.x));
+    target.y = Math.max(-limit.y, Math.min(limit.y, target.y));
+    wake();
+  }
 
   function apply() {
     letteringImage.style.transform = `translate(calc(-50% + ${current.x.toFixed(2)}px), calc(-50% + ${current.y.toFixed(2)}px))`;
@@ -207,8 +226,10 @@ function createFollower() {
 
   function onPointerMove(event) {
     const rect = hero.getBoundingClientRect();
-    target.x = event.clientX - rect.left - rect.width / 2;
-    target.y = event.clientY - rect.top - rect.height / 2;
+    const x = event.clientX - rect.left - rect.width / 2;
+    const y = event.clientY - rect.top - rect.height / 2;
+    target.x = Math.max(-limit.x, Math.min(limit.x, x));
+    target.y = Math.max(-limit.y, Math.min(limit.y, y));
     wake();
   }
 
@@ -220,6 +241,11 @@ function createFollower() {
 
   hero.addEventListener("pointermove", onPointerMove, { passive: true });
   hero.addEventListener("pointerleave", onPointerLeave, { passive: true });
+  /* A new SVG has a new aspect, so the free room changes with every pick. */
+  letteringImage.addEventListener("load", measure);
+  window.addEventListener("resize", measure, { passive: true });
+  new ResizeObserver(measure).observe(hero);
+  measure();
 
   return {
     /** Hidden tab: stop animating; back on the tab: resume from wherever we are. */
@@ -673,7 +699,7 @@ async function boot() {
 
   const data = await loadWorksCatalog({ bust: true });
   catalog = data.items || [];
-  workshopWorks = catalog.filter((item) => item.type === TAB_WORKSHOPS && imageFiles(item).length);
+  workshopWorks = catalog.filter((item) => item.type === TAB_WORKSHOPS && svgFile(item));
   setTab(TAB_WORKSHOPS);
   const first = shufflePick(workshopWorks);
   if (first) setHero(first);
