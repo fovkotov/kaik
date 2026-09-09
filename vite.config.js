@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { lettersAdminPlugin } from "./vite-plugin-letters.js";
+import { worksAdminPlugin } from "./vite-plugin-works.js";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const isCargo = process.env.KAIK_CARGO === "1";
@@ -23,7 +24,7 @@ function publicBaseUrls() {
   function withBaseHtml(html) {
     if (!prefix) return html;
     return html.replace(
-      /(\b(?:src|href|poster)\s*=\s*["'])\/(?!\/)((?:(?:assets|fonts|letters)\/|(?:program|admin|catalog|index)\.html)[^"']*)/gi,
+      /(\b(?:src|href|poster)\s*=\s*["'])\/(?!\/)((?:(?:assets|fonts|letters|works)\/|(?:program|admin|catalog|index)\.html)[^"']*)/gi,
       `$1${prefix}/$2`,
     );
   }
@@ -31,7 +32,7 @@ function publicBaseUrls() {
   function withBaseCss(css) {
     if (!prefix) return css;
     return css.replace(
-      /url\(\s*(['"]?)\/((?:assets|fonts|letters)[^'")]+)\1\s*\)/gi,
+      /url\(\s*(['"]?)\/((?:assets|fonts|letters|works)[^'")]+)\1\s*\)/gi,
       `url($1${prefix}/$2$1)`,
     );
   }
@@ -65,7 +66,7 @@ function publicBaseUrls() {
 
 export default defineConfig({
   base: isCargo ? "./" : "/",
-  plugins: [react(), tailwindcss(), lettersAdminPlugin(), publicBaseUrls()],
+  plugins: [react(), tailwindcss(), lettersAdminPlugin(), worksAdminPlugin(), publicBaseUrls()],
   resolve: {
     alias: {
       "@": path.resolve(root, "./src"),
@@ -78,7 +79,7 @@ export default defineConfig({
     headers: embedHeaders,
     // Saving letters writes public/letters/* — don't full-reload catalog/admin (scroll jumps).
     watch: {
-      ignored: ["**/public/letters/**"],
+      ignored: ["**/public/letters/**", "**/public/works/**"],
     },
   },
   preview: {

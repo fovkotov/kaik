@@ -1,0 +1,1148 @@
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent,
+} from "react";
+import { toast } from "sonner";
+import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Trash2Icon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { emptyWorksCatalog, loadWorksCatalog, uniqueWorkValues, workFileUrl } from "@/works/catalog.js";
+import { sameWorksCatalog, subscribeWorksCatalog } from "@/works/live.js";
+import {
+  TYPE_FINAL,
+  TYPE_FONT,
+  TYPE_LETTERING,
+  WORK_TYPES,
+  normalizeNick,
+  normalizeWorkType,
+  sortWorksByDate,
+} from "@/works/taxonomy.js";
+import { FontPreview } from "./FontPreview";
+import { pdfToWebpSlides } from "./pdf-slides";
+
+type WorkType = (typeof WORK_TYPES)[number];
+
+type WorkItem = {
+  id: string;
+  type: string;
+  author: string;
+  nick: string;
+  stream: string;
+  files: string[];
+  width?: number;
+  height?: number;
+  originalName?: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+type WorksCatalog = {
+  version: number;
+  updatedAt: string | null;
+  items: WorkItem[];
+};
+
+type UploadFile = {
+  filename: string;
+  mime: string;
+  data: string;
+  preview: string;
+  width?: number;
+  height?: number;
+};
+
+type InboxItem = {
+  key: string;
+  type: WorkType;
+  author: string;
+  nick: string;
+  stream: string;
+  files: UploadFile[];
+};
+
+type Lasso = { x0: number; y0: number; x1: number; y1: number };
+
+const DRAG_PX = 6;
+
+function kindOf(file: File): "font" | "raster" | "svg" | "pdf" | "other" {
+  const name = file.name.toLowerCase();
+  if (/\.(ttf|otf|woff2?)$/.test(name) || file.type.includes("font")) return "font";
+  if (name.endsWith(".pdf") || file.type === "application/pdf") return "pdf";
+  if (name.endsWith(".svg") || file.type.includes("svg")) return "svg";
+  if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/.test(name)) return "raster";
+  return "other";
+}
+
+function isFontPath(name: string) {
+  return /\.(ttf|otf|woff2?)$/i.test(name);
+}
+
+async function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("read failed"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function rasterToWebp(file: File): Promise<UploadFile> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    throw new Error("canvas");
+  }
+  ctx.drawImage(bitmap, 0, 0);
+  const width = bitmap.width;
+  const height = bitmap.height;
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/webp", 0.92);
+  });
+  if (!blob) throw new Error("webp");
+  const data = await blobToDataUrl(blob);
+  return {
+    filename: file.name.replace(/\.[^.]+$/, "") + ".webp",
+    mime: "image/webp",
+    data,
+    preview: data,
+    width,
+    height,
+  };
+}
+
+async function fileToUpload(file: File, asFinal = false): Promise<UploadFile> {
+  const svg = file.type.includes("svg") || file.name.toLowerCase().endsWith(".svg");
+  if (svg) {
+    const data = await file.text();
+    return { filename: file.name, mime: "image/svg+xml", data, preview: URL.createObjectURL(file) };
+  }
+  const raster = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+  if (asFinal && raster) {
+    try {
+      return await rasterToWebp(file);
+    } catch {
+      /* keep original */
+    }
+  }
+  const data = await blobToDataUrl(file);
+  const preview = raster ? data : URL.createObjectURL(file);
+  return { filename: file.name, mime: file.type || "application/octet-stream", data, preview };
+}
+
+async function worksApi(path: string, options?: RequestInit): Promise<WorksCatalog> {
+  const res = await fetch(`/api/works${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Request failed");
+  }
+  return data as WorksCatalog;
+}
+
+function typeKey(type: string) {
+  if (type === TYPE_FINAL) return "admin.type.final";
+  if (type === TYPE_FONT) return "admin.type.font";
+  return "admin.type.lettering";
+}
+
+function acceptFor(type: WorkType) {
+  if (type === TYPE_FINAL) return "image/*,.svg,.png,.jpg,.jpeg,.webp,.pdf,application/pdf";
+  if (type === TYPE_FONT) return ".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2";
+  return ".svg,image/svg+xml";
+}
+
+async function filesForType(files: File[], type: WorkType): Promise<UploadFile[]> {
+  const out: UploadFile[] = [];
+  for (const file of files) {
+    if (type === TYPE_FINAL && kindOf(file) === "pdf") {
+      out.push(...(await pdfToWebpSlides(file)));
+      continue;
+    }
+    out.push(await fileToUpload(file, type === TYPE_FINAL));
+  }
+  return out;
+}
+
+function TypeTabs({
+  value,
+  onChange,
+  copy,
+}: {
+  value: WorkType;
+  onChange: (value: WorkType) => void;
+  copy: (key: string) => string;
+}) {
+  return (
+    <div role="tablist" aria-label={copy("admin.kind")} className="inline-flex">
+      {WORK_TYPES.map((type) => {
+        const active = value === type;
+        return (
+          <button
+            key={type}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className={cn(
+              "-ml-px border border-foreground px-2.5 py-1 text-sm first:ml-0 first:rounded-l-md last:rounded-r-md",
+              active ? "bg-foreground text-background" : "bg-background text-foreground",
+            )}
+            onClick={() => onChange(type)}
+          >
+            {copy(typeKey(type))}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TypeSelect({
+  value,
+  onChange,
+  copy,
+}: {
+  value: WorkType;
+  onChange: (value: WorkType) => void;
+  copy: (key: string) => string;
+}) {
+  return (
+    <select
+      value={value}
+      aria-label={copy("admin.kind")}
+      onChange={(event) => {
+        const next = event.target.value;
+        if (next === TYPE_LETTERING || next === TYPE_FINAL || next === TYPE_FONT) onChange(next);
+      }}
+    >
+      {WORK_TYPES.map((type) => (
+        <option key={type} value={type}>
+          {copy(typeKey(type))}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function thumbSrc(item: WorkItem) {
+  const file = item.files?.[0];
+  if (!file || isFontPath(file)) return "";
+  return `${workFileUrl(file)}?t=${encodeURIComponent(item.updatedAt || item.createdAt || "")}`;
+}
+
+function fontUrl(item: WorkItem) {
+  const file = item.files?.find((name) => isFontPath(name)) || item.files?.[0];
+  return file ? workFileUrl(file) : "";
+}
+
+function lassoBox(lasso: Lasso) {
+  const left = Math.min(lasso.x0, lasso.x1);
+  const top = Math.min(lasso.y0, lasso.y1);
+  return { left, top, width: Math.abs(lasso.x1 - lasso.x0), height: Math.abs(lasso.y1 - lasso.y0) };
+}
+
+function intersects(el: Element, box: { left: number; top: number; width: number; height: number }) {
+  const r = el.getBoundingClientRect();
+  return r.left < box.left + box.width && r.right > box.left && r.top < box.top + box.height && r.bottom > box.top;
+}
+
+function itemDims(files: UploadFile[]) {
+  const sized = files.find((file) => file.width && file.height);
+  return sized ? { width: sized.width, height: sized.height } : {};
+}
+
+export function WorksPanel({
+  copy,
+  writable,
+}: {
+  copy: (key: string) => string;
+  writable: boolean;
+}) {
+  const [canWrite, setCanWrite] = useState(writable);
+  const [catalog, setCatalog] = useState<WorksCatalog>(emptyWorksCatalog());
+  const [inbox, setInbox] = useState<InboxItem[]>([]);
+  const [bulkAuthor, setBulkAuthor] = useState("");
+  const [bulkNick, setBulkNick] = useState("");
+  const [bulkStream, setBulkStream] = useState("");
+  const [catalogType, setCatalogType] = useState<WorkType>(TYPE_LETTERING);
+  const [hot, setHot] = useState(false);
+  const [editing, setEditing] = useState<WorkItem | null>(null);
+  const [editDraft, setEditDraft] = useState({
+    type: TYPE_LETTERING as WorkType,
+    author: "",
+    nick: "",
+    stream: "",
+  });
+  const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [lasso, setLasso] = useState<Lasso | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const dragDepth = useRef(0);
+  const lassoOrigin = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const dragged = useRef(false);
+  const captured = useRef(false);
+  const addFilesRef = useRef<(list: FileList | File[]) => Promise<void>>(async () => undefined);
+  const lassoRef = useRef<Lasso | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    async function pull() {
+      try {
+        const data = await worksApi("");
+        if (!alive) return;
+        setCanWrite(true);
+        setCatalog((current) => (sameWorksCatalog(current, data) ? current : data));
+      } catch {
+        const data = (await loadWorksCatalog({ bust: true })) as WorksCatalog;
+        if (!alive) return;
+        setCanWrite(false);
+        setCatalog((current) => (sameWorksCatalog(current, data) ? current : data));
+      }
+    }
+    pull();
+    return subscribeWorksCatalog(pull);
+  }, []);
+
+  const items = useMemo(() => sortWorksByDate(catalog.items) as WorkItem[], [catalog]);
+  const visible = useMemo(
+    () => items.filter((item) => normalizeWorkType(item.type) === catalogType),
+    [items, catalogType],
+  );
+  const authors = useMemo(() => uniqueWorkValues(items, "author"), [items]);
+  const nicks = useMemo(() => uniqueWorkValues(items, "nick"), [items]);
+  const streams = useMemo(() => uniqueWorkValues(items, "stream"), [items]);
+  const visualIds = useMemo(() => visible.map((item) => item.id), [visible]);
+  const editIndex = editing ? visualIds.indexOf(editing.id) : -1;
+  const canCycle = visualIds.length > 1;
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+
+  useEffect(() => {
+    setSelected([]);
+  }, [catalogType]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const typing = "input, textarea, select, [contenteditable='true']";
+    function onKey(event: KeyboardEvent) {
+      if (event.target instanceof Element && event.target.closest(typing)) return;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goEdit(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goEdit(1);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  async function addFiles(list: FileList | File[]) {
+    const files = [...list];
+    if (!files.length) return;
+    try {
+      const fonts = files.filter((file) => kindOf(file) === "font");
+      const rasters = files.filter((file) => kindOf(file) === "raster");
+      const pdfs = files.filter((file) => kindOf(file) === "pdf");
+      const singles = files.filter((file) => {
+        const kind = kindOf(file);
+        return kind === "svg" || kind === "other";
+      });
+      const next: InboxItem[] = [];
+      if (fonts.length) {
+        next.push({
+          key: `font-${Date.now()}-${Math.random()}`,
+          type: TYPE_FONT,
+          author: bulkAuthor,
+          nick: normalizeNick(bulkNick),
+          stream: bulkStream,
+          files: await Promise.all(fonts.map((file) => fileToUpload(file))),
+        });
+      }
+      if (rasters.length) {
+        next.push({
+          key: `final-${Date.now()}-${Math.random()}`,
+          type: TYPE_FINAL,
+          author: bulkAuthor,
+          nick: normalizeNick(bulkNick),
+          stream: bulkStream,
+          files: await Promise.all(rasters.map((file) => fileToUpload(file, true))),
+        });
+      }
+      for (const file of pdfs) {
+        try {
+          next.push({
+            key: `pdf-${file.name}-${Math.random()}`,
+            type: TYPE_FINAL,
+            author: bulkAuthor,
+            nick: normalizeNick(bulkNick),
+            stream: bulkStream,
+            files: await pdfToWebpSlides(file),
+          });
+        } catch {
+          toast.error(copy("admin.badPdf"));
+        }
+      }
+      for (const file of singles) {
+        next.push({
+          key: `${file.name}-${Math.random()}`,
+          type: TYPE_LETTERING,
+          author: bulkAuthor,
+          nick: normalizeNick(bulkNick),
+          stream: bulkStream,
+          files: [await fileToUpload(file)],
+        });
+      }
+      setInbox((current) => [...current, ...next]);
+    } catch {
+      toast.error(copy("admin.badSvg"));
+    }
+  }
+
+  addFilesRef.current = addFiles;
+
+  useEffect(() => {
+    function isFileDrag(event: DragEvent) {
+      return Boolean(event.dataTransfer?.types?.includes("Files"));
+    }
+    function onEnter(event: DragEvent) {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      dragDepth.current += 1;
+      setHot(true);
+    }
+    function onOver(event: DragEvent) {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+    }
+    function onLeave(event: DragEvent) {
+      if (!isFileDrag(event)) return;
+      dragDepth.current -= 1;
+      if (dragDepth.current <= 0) {
+        dragDepth.current = 0;
+        setHot(false);
+      }
+    }
+    function onDrop(event: DragEvent) {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      dragDepth.current = 0;
+      setHot(false);
+      if (event.dataTransfer?.files?.length) addFilesRef.current(event.dataTransfer.files);
+    }
+    document.addEventListener("dragenter", onEnter);
+    document.addEventListener("dragover", onOver);
+    document.addEventListener("dragleave", onLeave);
+    document.addEventListener("drop", onDrop);
+    return () => {
+      document.removeEventListener("dragenter", onEnter);
+      document.removeEventListener("dragover", onOver);
+      document.removeEventListener("dragleave", onLeave);
+      document.removeEventListener("drop", onDrop);
+    };
+  }, []);
+
+  function inboxReady(item: InboxItem) {
+    return Boolean(item.author.trim() && item.stream.trim() && item.files.length);
+  }
+
+  async function saveInbox() {
+    if (!canWrite) {
+      toast.error(copy("admin.devOnly"));
+      return;
+    }
+    if (inbox.some((item) => !inboxReady(item))) {
+      toast.error(copy("admin.fillWorks"));
+      return;
+    }
+    try {
+      const data = await worksApi("", {
+        method: "POST",
+        body: JSON.stringify({
+          items: inbox.map((item) => ({
+            type: item.type,
+            author: item.author,
+            nick: item.nick,
+            stream: item.stream,
+            ...itemDims(item.files),
+            files: item.files.map(({ filename, mime, data }) => ({ filename, mime, data })),
+          })),
+        }),
+      });
+      setCatalog(data);
+      setInbox([]);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+    }
+  }
+
+  function openEditor(item: WorkItem) {
+    setEditing(item);
+    setEditDraft({
+      type: normalizeWorkType(item.type),
+      author: item.author,
+      nick: item.nick,
+      stream: item.stream,
+    });
+    setEditFiles(null);
+  }
+
+  function goEdit(dir: number) {
+    if (!editing || visualIds.length < 2) return;
+    const index = visualIds.indexOf(editing.id);
+    const nextId = visualIds[(index + dir + visualIds.length) % visualIds.length];
+    const next = visible.find((item) => item.id === nextId);
+    if (next) openEditor(next);
+  }
+
+  async function saveEdit(event: FormEvent) {
+    event.preventDefault();
+    if (!editing) return;
+    if (!canWrite) {
+      toast.error(copy("admin.devOnly"));
+      return;
+    }
+    try {
+      const data = await worksApi(`/${editing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          type: editDraft.type,
+          author: editDraft.author,
+          nick: editDraft.nick,
+          stream: editDraft.stream,
+          ...(editFiles
+            ? {
+                ...itemDims(editFiles),
+                files: editFiles.map(({ filename, mime, data }) => ({ filename, mime, data })),
+              }
+            : {}),
+        }),
+      });
+      setCatalog(data);
+      const updated = data.items.find((item) => item.id === editing.id) || null;
+      setEditing(updated);
+      setEditFiles(null);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+    }
+  }
+
+  async function deleteEditing() {
+    if (!editing) return;
+    const ids = visualIds;
+    const index = ids.indexOf(editing.id);
+    const fallbackId = (index >= 0 && ids[index + 1]) || (index > 0 ? ids[index - 1] : null);
+    try {
+      const data = await worksApi(`/${editing.id}`, { method: "DELETE" });
+      setCatalog(data);
+      setConfirmDelete(false);
+      const next = fallbackId ? data.items.find((item) => item.id === fallbackId) : undefined;
+      if (next) openEditor(next);
+      else setEditing(null);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+    }
+  }
+
+  async function applyBulkType(type: WorkType) {
+    if (!selected.length || !canWrite) return;
+    try {
+      const data = await worksApi("/bulk", {
+        method: "PATCH",
+        body: JSON.stringify({ ids: selected, patch: { type } }),
+      });
+      setCatalog(data);
+      setSelected([]);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+    }
+  }
+
+  function endLasso() {
+    lassoOrigin.current = null;
+    dragged.current = false;
+    captured.current = false;
+    lassoRef.current = null;
+    setLasso(null);
+  }
+
+  function onGridPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return;
+    if ((event.target as Element).closest("input, textarea, select, a")) return;
+    const grid = event.currentTarget;
+    dragged.current = false;
+    captured.current = false;
+    lassoOrigin.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+    const seed = { x0: event.clientX, y0: event.clientY, x1: event.clientX, y1: event.clientY };
+    lassoRef.current = seed;
+    setLasso(seed);
+
+    const onMove = (move: globalThis.PointerEvent) => {
+      const origin = lassoOrigin.current;
+      if (!origin || origin.pointerId !== move.pointerId) return;
+      if (Math.hypot(move.clientX - origin.x, move.clientY - origin.y) <= DRAG_PX) return;
+      if (!dragged.current) {
+        dragged.current = true;
+        grid.setPointerCapture(move.pointerId);
+        captured.current = true;
+      }
+      const next = { x0: origin.x, y0: origin.y, x1: move.clientX, y1: move.clientY };
+      lassoRef.current = next;
+      setLasso(next);
+    };
+
+    const onUp = (up: globalThis.PointerEvent) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      const origin = lassoOrigin.current;
+      const current = lassoRef.current;
+      const wasDrag = dragged.current;
+      if (captured.current) {
+        try {
+          grid.releasePointerCapture(up.pointerId);
+        } catch {
+          /* already released */
+        }
+      }
+      endLasso();
+      if (!origin) return;
+      if (wasDrag && current) {
+        const box = lassoBox(current);
+        if (box.width < 2 && box.height < 2) return;
+        const hits = [...(gridRef.current?.querySelectorAll("[data-work-id]") || [])]
+          .filter((el) => intersects(el, box))
+          .map((el) => (el as HTMLElement).dataset.workId || "")
+          .filter(Boolean);
+        setSelected((prev) => {
+          if (up.shiftKey) {
+            const next = new Set(prev);
+            for (const id of hits) {
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+            }
+            return [...next];
+          }
+          return hits;
+        });
+        return;
+      }
+      const card = (up.target as Element | null)?.closest?.("[data-work-id]");
+      if (!(card instanceof HTMLElement)) return;
+      const item = visibleRef.current.find((entry) => entry.id === card.dataset.workId);
+      if (!item) return;
+      if (up.shiftKey) {
+        setSelected((prev) =>
+          prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id],
+        );
+        return;
+      }
+      openEditor(item);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }
+
+  const preview = editFiles?.[0]?.preview || (editing ? thumbSrc(editing) : "");
+  const editFontUrl = editFiles?.[0]?.preview || (editing ? fontUrl(editing) : "");
+  const rubber = lasso && dragged.current ? lassoBox(lasso) : null;
+  const showingFont = editDraft.type === TYPE_FONT;
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".svg,.png,.jpg,.jpeg,.webp,.gif,.pdf,.ttf,.otf,.woff,.woff2,image/*,application/pdf,font/*"
+        multiple
+        className="sr-only"
+        onChange={(event) => {
+          if (event.target.files) addFiles(event.target.files);
+          event.target.value = "";
+        }}
+      />
+
+      {inbox.length > 0 ? (
+        <Card>
+          <CardHeader className="border-b">
+            <CardTitle>{copy("admin.inbox")}</CardTitle>
+            <CardDescription>{inbox.length}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="works-bulk-author">{copy("admin.author")}</Label>
+                <Input
+                  id="works-bulk-author"
+                  list="works-author-list"
+                  value={bulkAuthor}
+                  onChange={(event) => setBulkAuthor(event.target.value)}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="works-bulk-nick">{copy("admin.nick")}</Label>
+                <Input
+                  id="works-bulk-nick"
+                  list="works-nick-list"
+                  value={bulkNick}
+                  onChange={(event) => setBulkNick(event.target.value)}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="works-bulk-stream">{copy("admin.stream")}</Label>
+                <Input
+                  id="works-bulk-stream"
+                  list="works-stream-list"
+                  value={bulkStream}
+                  onChange={(event) => setBulkStream(event.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setInbox((current) =>
+                    current.map((item) => ({
+                      ...item,
+                      author: bulkAuthor.trim() || item.author,
+                      nick: normalizeNick(bulkNick) || item.nick,
+                      stream: bulkStream.trim() || item.stream,
+                    })),
+                  );
+                }}
+              >
+                {copy("admin.applyAll")}
+              </Button>
+            </div>
+            <ul className="grid gap-2">
+              {inbox.map((item) => (
+                <li
+                  key={item.key}
+                  className="grid items-center gap-3 rounded-xl border p-2 sm:grid-cols-[72px_auto_1fr_1fr_1fr_auto]"
+                >
+                  <div className="relative size-[72px] overflow-hidden rounded-lg bg-muted">
+                    {item.type === TYPE_FONT && item.files[0]?.preview ? (
+                      <FontPreview url={item.files[0].preview} id={item.key} className="text-lg" />
+                    ) : item.files[0]?.preview ? (
+                      <img src={item.files[0].preview} alt="" className="size-full object-contain" />
+                    ) : null}
+                    {item.type === TYPE_FINAL && item.files.length > 1 ? (
+                      <span className="absolute inset-x-0 bottom-0 bg-background/80 px-1 text-center text-[10px] leading-4">
+                        {copy("admin.slides").replace("{n}", String(item.files.length))}
+                      </span>
+                    ) : null}
+                  </div>
+                  <TypeSelect
+                    value={item.type}
+                    onChange={(type) => {
+                      setInbox((current) =>
+                        current.map((entry) => (entry.key === item.key ? { ...entry, type } : entry)),
+                      );
+                    }}
+                    copy={copy}
+                  />
+                  <Input
+                    placeholder={copy("admin.author")}
+                    list="works-author-list"
+                    value={item.author}
+                    onChange={(event) => {
+                      const author = event.target.value;
+                      setInbox((current) =>
+                        current.map((entry) => (entry.key === item.key ? { ...entry, author } : entry)),
+                      );
+                    }}
+                  />
+                  <Input
+                    placeholder={copy("admin.nick")}
+                    list="works-nick-list"
+                    value={item.nick}
+                    onChange={(event) => {
+                      const nick = normalizeNick(event.target.value);
+                      setInbox((current) =>
+                        current.map((entry) => (entry.key === item.key ? { ...entry, nick } : entry)),
+                      );
+                    }}
+                  />
+                  <Input
+                    placeholder={copy("admin.stream")}
+                    list="works-stream-list"
+                    value={item.stream}
+                    onChange={(event) => {
+                      const stream = event.target.value;
+                      setInbox((current) =>
+                        current.map((entry) => (entry.key === item.key ? { ...entry, stream } : entry)),
+                      );
+                    }}
+                  />
+                  <div className="grid gap-1">
+                    {item.type === TYPE_FONT ? (
+                      <ul className="max-w-[10rem] truncate text-[11px] leading-tight text-muted-foreground">
+                        {item.files.map((file) => (
+                          <li key={file.filename} className="truncate">
+                            {file.filename}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setInbox((current) => current.filter((entry) => entry.key !== item.key))}
+                    >
+                      {copy("admin.remove")}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+          <CardFooter className="justify-between">
+            <Button type="button" variant="ghost" onClick={() => setInbox([])}>
+              {copy("admin.clear")}
+            </Button>
+            <Button type="button" onClick={saveInbox}>
+              <FileUpIcon data-icon="inline-start" />
+              {copy("admin.save")}
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : null}
+
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-heading text-base font-medium">{copy("admin.worksCatalog")}</h2>
+            <TypeTabs value={catalogType} onChange={setCatalogType} copy={copy} />
+            <button
+              type="button"
+              className="text-sm underline underline-offset-2"
+              onClick={() => inputRef.current?.click()}
+            >
+              {copy("admin.upload")}
+            </button>
+          </div>
+          <Badge variant="outline">{copy("admin.countWorks").replace("{n}", String(visible.length))}</Badge>
+        </div>
+        {visible.length ? (
+          <div
+            ref={gridRef}
+            className="relative grid grid-cols-2 gap-2 select-none sm:grid-cols-3 md:grid-cols-4"
+            onPointerDown={onGridPointerDown}
+          >
+            {visible.map((item) => (
+              <div
+                key={item.id}
+                role="button"
+                tabIndex={0}
+                data-work-id={item.id}
+                title={`${item.author} @${item.nick} · ${item.stream}`}
+                className={cn(
+                  "grid cursor-pointer gap-2 overflow-hidden rounded-xl bg-card p-2 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/40",
+                  selected.includes(item.id) && "ring-2 ring-primary",
+                )}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openEditor(item);
+                  }
+                }}
+              >
+                <div className="aspect-[4/3] overflow-hidden rounded-lg bg-muted">
+                  {normalizeWorkType(item.type) === TYPE_FONT && fontUrl(item) ? (
+                    <FontPreview url={fontUrl(item)} id={item.id} />
+                  ) : thumbSrc(item) ? (
+                    <img src={thumbSrc(item)} alt="" className="pointer-events-none size-full object-contain" />
+                  ) : (
+                    <span className="flex size-full items-center justify-center text-xs text-muted-foreground">
+                      {copy(typeKey(item.type))}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {item.author || "—"}
+                    {item.nick ? ` @${item.nick}` : ""}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {copy(typeKey(item.type))}
+                    {item.stream ? ` · ${item.stream}` : ""}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty className="border border-dashed">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileUpIcon />
+              </EmptyMedia>
+              <EmptyTitle>{copy("admin.emptyWorks")}</EmptyTitle>
+              <EmptyDescription>{copy("admin.worksHint")}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </section>
+
+      {hot ? (
+        <div className="pointer-events-none fixed inset-0 z-40 bg-primary/10 ring-4 ring-inset ring-primary/50" />
+      ) : null}
+
+      {rubber ? (
+        <div
+          className="works-lasso pointer-events-none fixed z-40 border border-primary bg-primary/15"
+          style={{
+            left: rubber.left,
+            top: rubber.top,
+            width: rubber.width,
+            height: rubber.height,
+          }}
+        />
+      ) : null}
+
+      {selected.length > 0 ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {copy("admin.selected").replace("{n}", String(selected.length))}
+            </p>
+            <TypeTabs value={catalogType} onChange={applyBulkType} copy={copy} />
+          </div>
+        </div>
+      ) : null}
+
+      <datalist id="works-author-list">
+        {authors.map((value) => (
+          <option key={value} value={value} />
+        ))}
+      </datalist>
+      <datalist id="works-nick-list">
+        {nicks.map((value) => (
+          <option key={value} value={value} />
+        ))}
+      </datalist>
+      <datalist id="works-stream-list">
+        {streams.map((value) => (
+          <option key={value} value={value} />
+        ))}
+      </datalist>
+
+      <Dialog
+        open={Boolean(editing)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditing(null);
+            setEditFiles(null);
+          }
+        }}
+      >
+        <DialogContent className="top-0 left-0 flex h-[var(--frame-h)] w-[var(--frame-w)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto overscroll-contain rounded-none p-0 sm:max-w-none">
+          <DialogTitle className="sr-only">{editDraft.author || copy("admin.works")}</DialogTitle>
+          <form onSubmit={saveEdit} className="flex min-h-full flex-col">
+            <div className="flex items-center gap-2 border-b px-4 py-3 pr-14">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={!canCycle}
+                aria-label={copy("admin.prev")}
+                onClick={() => goEdit(-1)}
+              >
+                <ChevronLeftIcon />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={!canCycle}
+                aria-label={copy("admin.next")}
+                onClick={() => goEdit(1)}
+              >
+                <ChevronRightIcon />
+              </Button>
+              {editIndex >= 0 ? (
+                <span className="text-sm text-muted-foreground">
+                  {editIndex + 1} / {visualIds.length}
+                </span>
+              ) : null}
+            </div>
+            <div className="mx-auto grid w-full max-w-5xl flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1.2fr)_minmax(16rem,20rem)]">
+              <div className="grid gap-2">
+                <input
+                  ref={replaceRef}
+                  type="file"
+                  accept={acceptFor(editDraft.type)}
+                  multiple={editDraft.type === TYPE_FINAL || editDraft.type === TYPE_FONT}
+                  className="sr-only"
+                  onChange={(event) => {
+                    if (event.target.files) {
+                      filesForType([...event.target.files], editDraft.type)
+                        .then(setEditFiles)
+                        .catch(() =>
+                          toast.error(
+                            editDraft.type === TYPE_FINAL ? copy("admin.badPdf") : copy("admin.badSvg"),
+                          ),
+                        );
+                    }
+                    event.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  title={copy("admin.replaceFile")}
+                  className="flex min-h-[min(28rem,calc(var(--frame-h)*0.55))] w-full cursor-pointer flex-col items-center justify-center rounded-xl bg-muted p-6"
+                  onClick={() => replaceRef.current?.click()}
+                >
+                  {showingFont && editFontUrl ? (
+                    <FontPreview
+                      url={editFontUrl}
+                      id={editing?.id || "edit-font"}
+                      className="min-h-40 text-5xl"
+                    />
+                  ) : preview ? (
+                    <img src={preview} alt="" className="max-h-[min(24rem,calc(var(--frame-h)*0.45))] w-full object-contain" />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">{copy(typeKey(editDraft.type))}</span>
+                  )}
+                  {showingFont ? (
+                    <ul className="mt-4 w-full text-left text-xs text-muted-foreground">
+                      {(editFiles || editing?.files || []).map((file) => {
+                        const name = typeof file === "string" ? file : file.filename;
+                        return (
+                          <li key={name} className="truncate">
+                            {name.split("/").pop()}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                  <span className="mt-4 text-xs text-muted-foreground">{copy("admin.replaceHint")}</span>
+                </button>
+              </div>
+              <div className="grid gap-3 content-start">
+                <TypeTabs
+                  value={editDraft.type}
+                  onChange={(type) => setEditDraft((current) => ({ ...current, type }))}
+                  copy={copy}
+                />
+                <div className="grid gap-1.5">
+                  <Label htmlFor="work-edit-author">{copy("admin.author")}</Label>
+                  <Input
+                    id="work-edit-author"
+                    required
+                    list="works-author-list"
+                    value={editDraft.author}
+                    onChange={(event) =>
+                      setEditDraft((current) => ({ ...current, author: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="work-edit-nick">{copy("admin.nick")}</Label>
+                  <Input
+                    id="work-edit-nick"
+                    list="works-nick-list"
+                    value={editDraft.nick}
+                    onChange={(event) =>
+                      setEditDraft((current) => ({ ...current, nick: normalizeNick(event.target.value) }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="work-edit-stream">{copy("admin.stream")}</Label>
+                  <Input
+                    id="work-edit-stream"
+                    required
+                    list="works-stream-list"
+                    value={editDraft.stream}
+                    onChange={(event) =>
+                      setEditDraft((current) => ({ ...current, stream: event.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="mx-0 mb-0 mt-auto rounded-none sm:justify-between">
+              <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
+                <Trash2Icon data-icon="inline-start" />
+                {copy("admin.delete")}
+              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditing(null)}>
+                  {copy("admin.close")}
+                </Button>
+                <Button type="submit">{copy("admin.save")}</Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{copy("admin.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>{copy("admin.confirmDelete")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{copy("admin.close")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={deleteEditing}>
+              {copy("admin.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
