@@ -1,5 +1,4 @@
 import { initEmbed } from "./embed.js";
-import { initGridTweaks } from "./experiment-tweaks.js";
 import { MOBILE_MQ } from "./tweaks.js";
 import { initWorksFeed } from "./works-feed.js";
 import { createWorksViewer } from "./works-viewer.js";
@@ -46,5 +45,3 @@ feedRoot?.addEventListener("keydown", (event) => {
   event.preventDefault();
   openCell(cell);
 });
-
-initGridTweaks({ feed, feedRoot, mount: document.querySelector("[data-tweaks]") });
