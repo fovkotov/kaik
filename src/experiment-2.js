@@ -42,14 +42,6 @@ function shufflePick(items, excludeId = "") {
   return source[Math.floor(Math.random() * source.length)];
 }
 
-function pluralSlides(n) {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} слайд`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} слайда`;
-  return `${n} слайдов`;
-}
-
 /** Name, @nick and stream as spans; muted parts get `.is-muted`. */
 function metaNodes(item) {
   const nodes = [];
@@ -122,13 +114,6 @@ function cardFor(item) {
   const meta = document.createElement("span");
   meta.className = "work-card__meta";
   meta.append(...metaNodes(item));
-  const count = imageFiles(item).length;
-  if (count > 1) {
-    const slides = document.createElement("span");
-    slides.className = "is-muted";
-    slides.textContent = pluralSlides(count);
-    meta.append(slides);
-  }
 
   card.append(art, meta);
   card.addEventListener("click", () => viewer?.open(item, card));
@@ -218,7 +203,8 @@ function createLetteringShader() {
   const fragmentSource = `
     precision mediump float;
     uniform sampler2D u_texture;
-    uniform vec2 u_velocity;
+    /* Must match the vertex shader's default highp or the program fails to link. */
+    uniform highp vec2 u_velocity;
     varying vec2 v_uv;
 
     void main() {

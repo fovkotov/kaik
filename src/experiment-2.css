@@ -214,7 +214,6 @@ html.is-viewer-open .experiment-two__scroll {
   outline-offset: -8px;
 }
 
-.lettering-hero__hint,
 .lettering-hero__credit {
   position: absolute;
   z-index: 3;
@@ -222,15 +221,6 @@ html.is-viewer-open .experiment-two__scroll {
   pointer-events: none;
   font-size: clamp(12px, 1vw, 15px);
   line-height: 1.2;
-}
-
-.lettering-hero__hint {
-  top: 8px;
-  left: var(--gutter);
-  color: var(--muted);
-}
-
-.lettering-hero__credit {
   right: var(--gutter);
   bottom: 8px;
   display: flex;
@@ -278,9 +268,13 @@ html.is-viewer-open .experiment-two__scroll {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 240ms var(--ease-out);
   user-select: none;
   -webkit-user-drag: none;
+}
+
+/* Hover: the art lifts a little and the caption fades in underneath. */
+.work-card__art {
+  transition: transform 200ms var(--ease-out);
 }
 
 .work-card__meta {
@@ -290,6 +284,7 @@ html.is-viewer-open .experiment-two__scroll {
   margin: 0;
   font-size: 14px;
   line-height: 1.25;
+  transition: opacity 160ms var(--ease-out);
 }
 
 .work-card__meta .is-muted {
@@ -302,8 +297,18 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .work-card:hover .work-card__art img {
-    transform: scale(1.03);
+  .work-card__meta {
+    opacity: 0;
+  }
+
+  .work-card:hover .work-card__art,
+  .work-card:focus-visible .work-card__art {
+    transform: translateY(-6px);
+  }
+
+  .work-card:hover .work-card__meta,
+  .work-card:focus-visible .work-card__meta {
+    opacity: 1;
   }
 }
 
@@ -631,7 +636,8 @@ html.is-viewer-open .experiment-two__scroll {
     display: block;
   }
 
-  .work-card__art img,
+  .work-card__art,
+  .work-card__meta,
   .works-tab,
   .viewer__arrow,
   .viewer__close,
@@ -641,6 +647,11 @@ html.is-viewer-open .experiment-two__scroll {
 
   .viewer__hit:active .viewer__arrow {
     transform: translate(-50%, -50%);
+  }
+
+  .work-card:hover .work-card__art,
+  .work-card:focus-visible .work-card__art {
+    transform: none;
   }
 
   .viewer__close:hover,
