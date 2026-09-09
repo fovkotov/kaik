@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T22:09:03.756Z",
+  "updatedAt": "2026-09-09T22:09:12.664Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -540,32 +540,6 @@
       "height": 0,
       "createdAt": "2026-09-09T21:35:50.187Z",
       "originalName": "Solanum-Regular (1).otf"
-    },
-    {
-      "id": "wrk_42ce5d93",
-      "type": "final",
-      "author": "АРТЕМ",
-      "nick": "svrdee",
-      "stream": "1",
-      "files": [
-        "wrk_42ce5d93_0.webp",
-        "wrk_42ce5d93_1.webp",
-        "wrk_42ce5d93_2.webp",
-        "wrk_42ce5d93_3.webp",
-        "wrk_42ce5d93_4.webp",
-        "wrk_42ce5d93_5.webp",
-        "wrk_42ce5d93_6.webp",
-        "wrk_42ce5d93_7.webp",
-        "wrk_42ce5d93_8.webp",
-        "wrk_42ce5d93_9.webp",
-        "wrk_42ce5d93_10.webp",
-        "wrk_42ce5d93_11.webp",
-        "wrk_42ce5d93_12.webp"
-      ],
-      "width": 1920,
-      "height": 1080,
-      "createdAt": "2026-09-09T21:53:59.196Z",
-      "originalName": "01.webp"
     },
     {
       "id": "wrk_836f8ecb",
