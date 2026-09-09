@@ -48,7 +48,7 @@
 }
 
 :root {
-  --bg: #f5f5f5;
+  --bg: #fe2201;
   --ink: rgba(0, 0, 0, 0.75);
   --dot: rgba(255, 255, 255, 0.24);
   --dot-on: rgba(255, 255, 255, 0.64);
@@ -100,8 +100,8 @@
   --deck-scale: 1.15;
   /*
     Height-first from the iframe. Visual AABB after --deck-scale and ~8° rotate
-    (1.12) plus hover/toss reserve must fit --frame-h. tweaks.syncCardMetrics
-    overwrites these with live hoverLift / rotate / travelMult, then multiplies
+    (1.12) plus toss reserve must fit --frame-h. tweaks.syncCardMetrics
+    overwrites these with live rotate / travelMult, then multiplies
     by cardSize (desktop default 1.4; 1 = this max-fit size).
   */
   --card-h: min(
@@ -4069,6 +4069,8 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   margin: 0;
   overflow: hidden;
   transform-style: flat;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
   overscroll-behavior: contain;
   transform: rotate(var(--fly-rot, 0deg));
   transform-origin: 50% 55%;
@@ -4127,9 +4129,13 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 }
 
 .card.is-program-open.is-program-scroll {
+  transform: none;
   transform-style: flat;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   overflow-anchor: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -4168,7 +4174,8 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   height: 100%;
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   overflow-anchor: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -5594,7 +5601,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     height: 100%;
     min-height: 0;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
     overflow-anchor: none;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -5608,7 +5616,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     height: 100%;
     min-height: 0;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
     overflow-anchor: none;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;

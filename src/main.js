@@ -162,7 +162,7 @@ function flyExitPose(t, exitDist, params = getParams()) {
 }
 
 /**
- * Desktop: scroll-driven stack + cursor parallax (right → left).
+ * Desktop: scroll-driven stack (right → left). No cursor follow.
  * Mobile: physical deck — rear cards smaller and slightly higher, grow to the front.
  */
 function initDeck() {
@@ -180,18 +180,12 @@ function initDeck() {
     baseY: Number(card.dataset.baseY || 0),
     tip: Number(card.dataset.tip || 12),
     baseZ: Number.parseInt(getComputedStyle(card).zIndex, 10) || cards.length - index,
-    hover: 0,
     inert: false,
     /** Un-spread visual box; never a live dest/fly rect. */
     home: null,
   }));
 
-  const pointer = { x: 0, y: 0 };
-  const gyro = { x: 0, y: 0 };
-  const pointerSmooth = { x: 0, y: 0 };
-  let hoveredIndex = -1;
   let raf = 0;
-  let motionEnabled = false;
   let cardBoxH = 0;
   let cardBoxW = 0;
   let deckScaleCached = 1;
@@ -305,14 +299,7 @@ function initDeck() {
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
-    /* Open card freezes pointer/hover — do not keep compositing the stack. */
     if (programLocked()) return false;
-    if (hoveredIndex >= 0) return true;
-    for (const item of state) {
-      if (item.hover > 0.002) return true;
-    }
-    if (Math.abs(pointerSmooth.x - pointer.x) > 0.002) return true;
-    if (Math.abs(pointerSmooth.y - pointer.y) > 0.002) return true;
     if (lastDesktopDeltaAt > 0 && performance.now() - lastDesktopDeltaAt < 90) return true;
     return false;
   }
@@ -571,83 +558,6 @@ function initDeck() {
         r: dirX * (baseR + (dist - 1) * stepR) * (works ? 1.2 : 1),
       };
     });
-  }
-
-  function hoverLiftBlocked(el) {
-    return (
-      el.hasAttribute("data-fly-lock") ||
-      el.classList.contains("is-program-open") ||
-      el.classList.contains("is-fly-pinned")
-    );
-  }
-
-  function pointerStillOn(el, event) {
-    if (el.contains(event.relatedTarget)) return true;
-    if (typeof event.clientX !== "number" || typeof event.clientY !== "number") return false;
-    const hit = document.elementFromPoint(event.clientX, event.clientY);
-    return Boolean(hit && el.contains(hit));
-  }
-
-  state.forEach((item) => {
-    item.el.addEventListener("pointerenter", (event) => {
-      if (isMobile()) return;
-      if (!inDeckFlow(item.el)) return;
-      if (programLocked() || hoverLiftBlocked(item.el)) return;
-      if (event.buttons) return;
-      hoveredIndex = item.index;
-      item.el.classList.add("is-hovered");
-      scheduleRender();
-    });
-
-    item.el.addEventListener("pointerleave", (event) => {
-      if (hoverLiftBlocked(item.el)) return;
-      // Click/select often fires leave while the cursor is still on the card.
-      if (event.buttons || pointerStillOn(item.el, event)) return;
-      if (hoveredIndex === item.index) hoveredIndex = -1;
-      item.el.classList.remove("is-hovered");
-      scheduleRender();
-    });
-  });
-
-  window.addEventListener(
-    "pointermove",
-    (event) => {
-      if (isMobile() || programLocked()) return;
-      const { width, height } = getViewportSize();
-      if (!width || !height) return;
-      const x = clamp((event.clientX / width) * 2 - 1, -1, 1);
-      const y = clamp((event.clientY / height) * 2 - 1, -1, 1);
-      /* Trackpad / iframe jitter must not keep every card on a rAF diet. */
-      if (Math.abs(x - pointer.x) < 0.008 && Math.abs(y - pointer.y) < 0.008) return;
-      pointer.x = x;
-      pointer.y = y;
-      scheduleRender();
-    },
-    { passive: true },
-  );
-
-  function onOrientation(event) {
-    const params = getParams();
-    const range = params.gyroRange || 28;
-    gyro.x = clamp((event.gamma || 0) / range, -1, 1);
-    gyro.y = clamp(((event.beta || 45) - 45) / range, -1, 1);
-  }
-
-  async function enableMotion() {
-    if (motionEnabled || !isMobile()) return;
-    try {
-      if (
-        typeof DeviceOrientationEvent !== "undefined" &&
-        typeof DeviceOrientationEvent.requestPermission === "function"
-      ) {
-        const permission = await DeviceOrientationEvent.requestPermission();
-        if (permission !== "granted") return;
-      }
-      window.addEventListener("deviceorientation", onOrientation, { passive: true });
-      motionEnabled = true;
-    } catch {
-      // Permission denied or unsupported
-    }
   }
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
@@ -970,13 +880,6 @@ function initDeck() {
       spreadMix = 1;
     }
 
-    const inputX = mobile ? 0 : pointer.x;
-    const inputY = mobile ? 0 : pointer.y;
-    if (!locked) {
-      pointerSmooth.x = lerp(pointerSmooth.x, inputX, params.pointerLerp);
-      pointerSmooth.y = lerp(pointerSmooth.y, inputY, params.pointerLerp);
-    }
-
     items.forEach((item, i) => {
       const t = mobile ? 0 : cardFlightT(i, count, params, p);
       const slot = mobileStackSlot(i, mobile ? Math.max(0, y) : y, focusSpanOf(params));
@@ -998,8 +901,6 @@ function initDeck() {
         item.el.classList.contains("is-program-open") ||
         item.el.classList.contains("is-fly-pinned");
       if (flyLocked) {
-        if (hoveredIndex === i) hoveredIndex = -1;
-        item.hover = 0;
         if (mobile) {
           item.el.style.zIndex = String(count - i);
           item.el.style.opacity = "1";
@@ -1020,17 +921,6 @@ function initDeck() {
           height: homeRect.height,
         };
       }
-
-      const hoverTarget = !mobile && !locked && hoveredIndex === i ? 1 : 0;
-      item.hover = lerp(item.hover, hoverTarget, params.hoverLerp);
-
-      const depth = Math.pow(params.cursorFalloff, i);
-      const pointerAmt = locked ? 0 : depth;
-      const parallaxX = mobile ? 0 : pointerSmooth.x * params.parallaxX * pointerAmt;
-      const parallaxY = mobile ? 0 : pointerSmooth.y * params.parallaxY * pointerAmt;
-      const cursorRotY = mobile ? 0 : pointerSmooth.x * params.cursorTiltY * pointerAmt;
-      const cursorRotX = mobile ? 0 : -pointerSmooth.y * params.cursorTiltX * pointerAmt;
-      const cursorRotZ = mobile ? 0 : pointerSmooth.x * params.cursorTiltZ * pointerAmt * 0.65;
 
       const baseX = item.baseX * fan;
       const baseY = mobile ? 0 : item.baseY * fan;
@@ -1096,10 +986,8 @@ function initDeck() {
 
       const introX = deckIntro && !flyLocked && !mobile ? deckIntro.shift(i, now, vw) : 0;
       const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, -vh) : 0;
-      const x = scrollX + parallaxX + spreadX + worksX + introX;
-      const yPos = scrollY + parallaxY - item.hover * params.hoverLift + spreadY + worksY + introY;
-
-      const dragTilt = 0;
+      const x = scrollX + spreadX + worksX + introX;
+      const yPos = scrollY + spreadY + worksY + introY;
 
       const twist = mobile
         ? Number.isFinite(Number(params.cardRotate))
@@ -1109,14 +997,12 @@ function initDeck() {
       const rotateZ =
         (mobile && programCard ? PROGRAM_MOBILE_ROTATE : item.baseRotate * twist) +
         t * item.tip * params.tipScale +
-        cursorRotZ +
-        dragTilt * depth +
         spreadR +
         worksR;
       const rotateY =
-        t * (params.rotateYBase + i * params.rotateYStep) * (i % 2 === 0 ? 1 : -1) + cursorRotY;
+        t * (params.rotateYBase + i * params.rotateYStep) * (i % 2 === 0 ? 1 : -1);
       const rotateX =
-        t * params.rotateXAmt * (i % 2 === 0 ? -1 : 1) + cursorRotX;
+        t * params.rotateXAmt * (i % 2 === 0 ? -1 : 1);
 
       const pose = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${stackScale})`;
       if (item.el.style.transform !== pose) item.el.style.transform = pose;

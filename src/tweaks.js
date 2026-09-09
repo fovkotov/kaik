@@ -265,19 +265,16 @@ export function syncCardMetrics() {
   const rotZ =
     maxRotate * fan +
     maxTip * (Number(p.tipScale) || 0) +
-    Math.abs(Number(p.cursorTiltZ) || 0) * 0.65 +
     Math.abs(Number(p.worksRotate) || 0);
   const theta = (Math.max(rotZ, 6) * Math.PI) / 180;
   const rotFactor = Math.abs(Math.sin(theta)) + Math.abs(Math.cos(theta));
 
-  const hover = mobile ? 0 : Math.abs(Number(p.hoverLift) || 0);
-  const parallax = Math.abs(Number(p.parallaxY) || 0);
   const drift = mobile
     ? 0
     : Math.abs(Number(p.driftY) || 0) * Math.max(1, Number(p.travelMult) || 1);
   const baseY = mobile ? 0 : maxBaseY * fan;
-  const maxUp = hover + parallax + drift + baseY;
-  const maxDown = parallax + drift + baseY;
+  const maxUp = drift + baseY;
+  const maxDown = drift + baseY;
 
   const centerY = cardStageCenterY(frameH);
   const halfFromUp = (centerY - CARD_GUTTER) / scale - maxUp;

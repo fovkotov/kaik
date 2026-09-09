@@ -3,7 +3,6 @@ import { getViewportSize, onFrameMetrics } from "./embed.js";
 import { t } from "./scriptik.js";
 import { getFocusNudge, getFocusScale } from "./stage-settings.js";
 import { applyDeckParams, inDeckFlow, isMobile } from "./tweaks.js";
-import { focusScrollRoot } from "./focus-scrollbar.js";
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
@@ -518,8 +517,25 @@ export function initProgramModal() {
     };
   }
 
+  function flyVarsClose(el, box) {
+    const n = (name) => Number.parseFloat(el.style.getPropertyValue(name));
+    const l = n("--fly-l");
+    const t = n("--fly-t");
+    const w = n("--fly-w");
+    const h = n("--fly-h");
+    if (![l, t, w, h].every(Number.isFinite)) return false;
+    return (
+      Math.abs(l - box.left) < 2.5 &&
+      Math.abs(t - box.top) < 2.5 &&
+      Math.abs(w - box.width) < 2.5 &&
+      Math.abs(h - box.height) < 2.5
+    );
+  }
+
   function pinEl(el, box, withTransition) {
     if (!el) return;
+    /* Re-writing --fly-* on every Cargo tick reflows the open scroller (blink). */
+    if (!withTransition && flyVarsClose(el, box)) return;
     el.style.left = "";
     el.style.right = "";
     el.style.top = "";
@@ -599,7 +615,7 @@ export function initProgramModal() {
     if (!card) return;
     card.setAttribute("data-fly-lock", "");
     card.setAttribute("data-focus-open", "");
-    card.classList.remove("is-hovered", "is-fly-pinned");
+    card.classList.remove("is-fly-pinned");
     card.classList.add("is-program-open");
     if (card.hasAttribute("data-work-student")) {
       card.getBoundingClientRect();
@@ -1326,15 +1342,6 @@ export function initProgramModal() {
   cards.forEach((el) => {
     el.addEventListener("pointerdown", (event) => {
       start = { x: event.clientX, y: event.clientY };
-      if (el.classList.contains("is-program-open")) {
-        const root = focusScrollRoot(el);
-        const top = root.scrollTop;
-        const left = root.scrollLeft;
-        requestAnimationFrame(() => {
-          if (root.scrollTop !== top) root.scrollTop = top;
-          if (root.scrollLeft !== left) root.scrollLeft = left;
-        });
-      }
       // Let the deck capture a vertical swipe. Only real controls keep the event.
       if (
         (event.target.closest?.(FOCUS_IGNORE) && !isMobilePeekIllust(event.target)) ||
@@ -1495,7 +1502,14 @@ export function initProgramModal() {
     if (phase !== "open") return;
     syncCloseBtn();
     if (card?.hasAttribute("data-expand-host")) {
-      applyExpandPose(card, expandOpenPose(fromLocal || captureExpandFrom(card)), false);
+      const next = expandOpenPose(fromLocal || captureExpandFrom(card));
+      if (
+        Math.abs(card.offsetWidth - next.width) < 3 &&
+        Math.abs(card.offsetHeight - next.height) < 3
+      ) {
+        return;
+      }
+      applyExpandPose(card, next, false);
       card.style.borderRadius = "0px";
       const size = stackCardSize(rest);
       if (rest && size.w > 0 && size.h > 0) {
