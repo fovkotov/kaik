@@ -4,6 +4,8 @@ import { isMobile } from "../tweaks.js";
 export const VOLUME_MIN = 0;
 export const VOLUME_MAX = 2;
 export const VOLUME_DEFAULT = 0.5;
+/** Applied after stored / slider volume so 100% is half as loud as before (saved prefs included). */
+export const VOLUME_OUTPUT_SCALE = 0.5;
 /** Mobile playback scale (1.8× quieter than stored / default). Desktop is 2× this. */
 export const VOLUME_PLAYBACK_SCALE = 5 / 9;
 /** Desktop-only: 2× mobile so clicks sit twice as loud without changing phones. */
@@ -57,7 +59,7 @@ export function getPlaybackScale() {
 }
 
 export function getActionVolume() {
-  return current * getPlaybackScale();
+  return current * getPlaybackScale() * VOLUME_OUTPUT_SCALE;
 }
 
 export function setActionVolume(volume) {
