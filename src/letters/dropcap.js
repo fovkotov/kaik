@@ -13,19 +13,13 @@ import { firstGrapheme, normalizeChar } from "./shared.js";
 import { svgToInline } from "./svg.js";
 import { sameCatalog, subscribeCatalog } from "./live.js";
 
-/** First paint always opens on this gothic L. Click / scroll still cycle. */
+/** First paint always opens on this gothic L. Click still cycles lettering. */
 const FIRST_DROPCAP_ID = "ltr_53a64d7a";
 
 const SPIN_OUT_DEG = 450;
 const SPIN_IN_FROM_DEG = -90;
 const EASE_IN = "cubic-bezier(0.55, 0.055, 0.675, 0.19)";
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
-/** One card of deck progress = a third of a turn (3× slower than a full spin). */
-const DEG_PER_CARD = 120;
-/** Swap lettering when the reel crosses edge-on (half-turn of 180°). */
-const SWAP_PERIOD_DEG = 180;
-const SCRUB_LERP = 0.25;
-const SCRUB_SETTLE_MS = 320;
 const svgCache = new Map();
 const reduceMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -231,17 +225,6 @@ async function makeGlyph(button, entry) {
   return glyph;
 }
 
-/** Drop in-flight click spin so scroll-scrub can take over without clearing swap rotateY. */
-function abortCycleSpin(button) {
-  button._paintGen = (button._paintGen || 0) + 1;
-  stopSpin(button);
-  const swap = button.querySelector(".dropcap__swap");
-  const glyphs = [...(swap?.querySelectorAll(".dropcap__glyph") || [])];
-  glyphs.forEach((glyph, i) => {
-    if (i < glyphs.length - 1) glyph.remove();
-  });
-}
-
 async function paintGlyph(button, entry, { animate = false, onStart } = {}) {
   const gen = (button._paintGen = (button._paintGen || 0) + 1);
   const swap = ensureSwap(button);
@@ -293,22 +276,6 @@ async function paintGlyph(button, entry, { animate = false, onStart } = {}) {
   return true;
 }
 
-function stepInPool(pool, currentId, steps) {
-  if (!pool.length || !steps) return null;
-  const i = pool.findIndex((item) => item.id === currentId);
-  const start = i < 0 ? 0 : i;
-  const n = pool.length;
-  return pool[(((start + steps) % n) + n) % n];
-}
-
-function wrapSpinDeg(deg) {
-  return ((((deg + 90) % SWAP_PERIOD_DEG) + SWAP_PERIOD_DEG) % SWAP_PERIOD_DEG) - 90;
-}
-
-function halfTurns(deg) {
-  return Math.floor((deg + 90) / SWAP_PERIOD_DEG);
-}
-
 /** Paint a preferred letter first; fall back to the pool if it is missing. */
 async function paintPreferred(button, pool, preferredId, opts = {}) {
   const preferred = preferredId
@@ -347,217 +314,6 @@ async function paintFromPool(button, pool, excludeId, opts = {}) {
   return null;
 }
 
-function visualSpinDeg(state) {
-  if (state.pool.length < 2) return state.display;
-  return wrapSpinDeg(state.display);
-}
-
-function applyScrubTransform(state) {
-  const swap = state.button.querySelector(".dropcap__swap");
-  if (!swap) return;
-  swap.style.transform = `rotateY(${visualSpinDeg(state)}deg)`;
-}
-
-function createScrubber() {
-  const scrubs = [];
-  let scrubbing = false;
-  let settleTimer = 0;
-  let unwindRaf = 0;
-  let scrubRaf = 0;
-
-  const cancelUnwind = () => {
-    if (!unwindRaf) return;
-    cancelAnimationFrame(unwindRaf);
-    unwindRaf = 0;
-  };
-
-  const stopScrubRaf = () => {
-    if (!scrubRaf) return;
-    cancelAnimationFrame(scrubRaf);
-    scrubRaf = 0;
-  };
-
-  const rebaseVisual = (state) => {
-    const visual = visualSpinDeg(state);
-    state.display = visual;
-    state.accum = visual;
-    state.turns = halfTurns(visual);
-  };
-
-  const finishScrub = () => {
-    cancelUnwind();
-    stopScrubRaf();
-    window.clearTimeout(settleTimer);
-    settleTimer = 0;
-    scrubbing = false;
-    for (const state of scrubs) {
-      if (state.clicking) continue;
-      state.accum = 0;
-      state.display = 0;
-      state.turns = 0;
-      state.pending = 0;
-      const swap = state.button.querySelector(".dropcap__swap");
-      if (swap) swap.style.transform = "";
-      state.button.classList.remove("is-scrubbing");
-    }
-  };
-
-  const unwindToRest = () => {
-    cancelUnwind();
-    stopScrubRaf();
-    for (const state of scrubs) {
-      if (!state.clicking) rebaseVisual(state);
-    }
-    const step = () => {
-      unwindRaf = 0;
-      if (!scrubbing) return;
-      let leftover = false;
-      for (const state of scrubs) {
-        if (state.clicking) continue;
-        state.accum = 0;
-        state.display += (0 - state.display) * SCRUB_LERP;
-        if (Math.abs(state.display) > 0.4) leftover = true;
-        else state.display = 0;
-        applyScrubTransform(state);
-      }
-      if (leftover) {
-        unwindRaf = requestAnimationFrame(step);
-        return;
-      }
-      finishScrub();
-    };
-    unwindRaf = requestAnimationFrame(step);
-  };
-
-  const paintScrubGlyph = async (state, entry) => {
-    const button = state.button;
-    const gen = (button._paintGen = (button._paintGen || 0) + 1);
-    const glyph = await makeGlyph(button, entry);
-    if (button._paintGen !== gen) return;
-    const swap = ensureSwap(button);
-    swap.replaceChildren(glyph);
-    applyMeta(button, entry);
-    applyScrubTransform(state);
-  };
-
-  const flushSwaps = async (state) => {
-    if (state.swapping || state.pool.length < 2 || !state.pending) return;
-    state.swapping = true;
-    try {
-      while (state.pending) {
-        const steps = state.pending;
-        state.pending = 0;
-        const next = stepInPool(state.pool, state.button.dataset.letterId, steps);
-        if (!next || next.id === state.button.dataset.letterId) break;
-        await paintScrubGlyph(state, next);
-      }
-    } finally {
-      state.swapping = false;
-    }
-    if (state.pending) flushSwaps(state);
-  };
-
-  const tickScrub = () => {
-    scrubRaf = 0;
-    if (!scrubbing) return;
-    for (const state of scrubs) {
-      if (state.clicking) continue;
-      state.display += (state.accum - state.display) * SCRUB_LERP;
-      if (state.pool.length >= 2) {
-        const turns = halfTurns(state.display);
-        const step = turns - state.turns;
-        if (step) {
-          state.turns = turns;
-          state.pending += step;
-          flushSwaps(state);
-        }
-      }
-      applyScrubTransform(state);
-    }
-    if (scrubbing) scrubRaf = requestAnimationFrame(tickScrub);
-  };
-
-  const ingest = (delta) => {
-    const amount = Number(delta) || 0;
-    if (!amount) return;
-    for (const state of scrubs) {
-      if (state.clicking) continue;
-      state.accum += amount * DEG_PER_CARD;
-    }
-  };
-
-  const beginScrub = () => {
-    cancelUnwind();
-    window.clearTimeout(settleTimer);
-    settleTimer = 0;
-    if (!scrubbing) {
-      scrubbing = true;
-      for (const state of scrubs) {
-        if (state.clicking) continue;
-        abortCycleSpin(state.button);
-        state.button.classList.add("is-scrubbing");
-        rebaseVisual(state);
-      }
-    }
-    if (!scrubRaf) scrubRaf = requestAnimationFrame(tickScrub);
-  };
-
-  const onDeckProgress = (event) => {
-    if (document.documentElement.classList.contains("is-focus-frozen")) return;
-    if (reduceMotion() || !scrubs.length) return;
-    const { delta } = event.detail || {};
-    const meaningful = Math.abs(Number(delta) || 0) > 1e-4;
-    if (meaningful) {
-      beginScrub();
-      ingest(delta);
-      window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(unwindToRest, SCRUB_SETTLE_MS);
-      return;
-    }
-    /* Stuck `active` / iframe jitter must not refresh settle. */
-    if (scrubbing && !settleTimer) {
-      settleTimer = window.setTimeout(unwindToRest, SCRUB_SETTLE_MS);
-    }
-  };
-
-  document.addEventListener("kaik:deck-progress", onDeckProgress);
-
-  return {
-    add(button, pool) {
-      scrubs.push({
-        button,
-        pool,
-        accum: 0,
-        display: 0,
-        turns: 0,
-        pending: 0,
-        swapping: false,
-        clicking: false,
-      });
-    },
-    reset(button) {
-      const state = scrubs.find((item) => item.button === button);
-      if (!state) return null;
-      state.accum = 0;
-      state.display = 0;
-      state.turns = 0;
-      state.pending = 0;
-      const swap = state.button.querySelector(".dropcap__swap");
-      if (swap) swap.style.transform = "";
-      state.button.classList.remove("is-scrubbing");
-      return state;
-    },
-    clear() {
-      cancelUnwind();
-      stopScrubRaf();
-      window.clearTimeout(settleTimer);
-      settleTimer = 0;
-      scrubbing = false;
-      scrubs.splice(0);
-    },
-  };
-}
-
 function syncHostRest(host, button, rest) {
   const leftover = [...host.childNodes].filter((node) => node !== button);
   leftover.forEach((node) => node.remove());
@@ -577,7 +333,6 @@ export async function initDropcaps() {
   const popover = ensurePopover();
 
   let mountGen = 0;
-  const scrubber = createScrubber();
   const runtime = new WeakMap();
 
   const bound = new WeakSet();
@@ -586,17 +341,12 @@ export async function initDropcaps() {
   const cycleButton = (button) => {
     const state = runtime.get(button);
     if (!state) return;
-    const scrub = scrubber.reset(button);
-    const cycleGen = (button._cycleGen = (button._cycleGen || 0) + 1);
-    if (scrub) scrub.clicking = true;
     const prevId = button.dataset.letterId;
     paintFromPool(button, state.cyclePool, prevId, {
       animate: true,
       onStart: (entry) => {
         if (!isMobile()) showPopover(button, entry);
       },
-    }).finally(() => {
-      if (scrub && button._cycleGen === cycleGen) scrub.clicking = false;
     });
   };
 
@@ -632,7 +382,6 @@ export async function initDropcaps() {
   };
 
   const attachRuntime = (button, cyclePool) => {
-    scrubber.add(button, cyclePool);
     runtime.set(button, { cyclePool });
     warmPool(cyclePool);
   };
@@ -654,7 +403,6 @@ export async function initDropcaps() {
 
   const mount = async ({ animate = false } = {}) => {
     const gen = ++mountGen;
-    scrubber.clear();
     await Promise.all(
       hosts.map(async (host, index) => {
         const isI18n = host.hasAttribute("data-i18n");
@@ -708,9 +456,6 @@ export async function initDropcaps() {
           host.replaceChildren(button, document.createTextNode(rest));
           bindButton(button);
         } else {
-          const swap = button.querySelector(".dropcap__swap");
-          if (swap) swap.style.transform = "";
-          button.classList.remove("is-scrubbing");
           syncHostRest(host, button, rest);
           bindButton(button);
         }

@@ -665,10 +665,6 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   transform-style: preserve-3d;
 }
 
-.dropcap.is-scrubbing .dropcap__swap {
-  will-change: transform;
-}
-
 .dropcap__glyph {
   grid-area: 1 / 1;
   display: block;
@@ -694,8 +690,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dropcap.is-spinning .dropcap__glyph,
-  .dropcap.is-scrubbing .dropcap__swap {
+  .dropcap.is-spinning .dropcap__glyph {
     will-change: auto;
   }
 }
