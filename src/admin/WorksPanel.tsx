@@ -1308,12 +1308,7 @@ export function WorksPanel({
         >
           <DialogTitle className="sr-only">{editDraft.author || copy("admin.works")}</DialogTitle>
           <form onSubmit={saveEdit} className="flex min-h-full flex-col">
-            <div
-              className={cn(
-                "mx-auto grid w-full flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1.2fr)_minmax(16rem,20rem)]",
-                showingSlides ? "max-w-none" : "max-w-5xl",
-              )}
-            >
+            <div className="grid w-full flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1fr)_20rem]">
               <div className="grid gap-2">
                 <input
                   ref={replaceRef}
@@ -1421,21 +1416,17 @@ export function WorksPanel({
                   <button
                     type="button"
                     title={copy("admin.replaceFile")}
-                    className="flex min-h-[min(28rem,calc(var(--frame-h)*0.55))] w-full cursor-pointer flex-col items-center justify-center rounded-xl bg-muted p-6"
+                    className="flex min-h-[calc(var(--frame-h)-3rem)] w-full cursor-pointer flex-col items-center justify-center self-start rounded-xl bg-muted p-6"
                     onClick={() => replaceRef.current?.click()}
                   >
                     {showingFont && editFontUrl ? (
                       <FontPreview
                         url={editFontUrl}
                         id={editing?.id || "edit-font"}
-                        className="min-h-40 text-5xl"
+                        className="min-h-40 w-full text-[clamp(3rem,12vw,14rem)]"
                       />
                     ) : preview ? (
-                      <img
-                        src={preview}
-                        alt=""
-                        className="max-h-[min(24rem,calc(var(--frame-h)*0.45))] w-full object-contain"
-                      />
+                      <img src={preview} alt="" className="block h-auto w-full object-contain" />
                     ) : (
                       <span className="text-sm text-muted-foreground">{copy(typeKey(editDraft.type))}</span>
                     )}
@@ -1548,9 +1539,6 @@ export function WorksPanel({
                 </div>
                 <div className="grid gap-2 border-t pt-3">
                   <Button type="submit">{copy("admin.save")}</Button>
-                  <Button type="button" variant="outline" onClick={closeEditor}>
-                    {copy("admin.close")}
-                  </Button>
                   <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
                     <Trash2Icon data-icon="inline-start" />
                     {copy("admin.delete")}
