@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T21:35:36.537Z",
+  "updatedAt": "2026-09-09T21:35:50.187Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -525,6 +525,21 @@
       "height": 900,
       "createdAt": "2026-09-09T21:35:09.870Z",
       "originalName": "1.webp"
+    },
+    {
+      "id": "wrk_72ab01e6",
+      "type": "font",
+      "author": "1",
+      "nick": "1",
+      "stream": "1",
+      "width": 0,
+      "height": 0,
+      "files": [
+        "wrk_72ab01e6_0.otf",
+        "wrk_72ab01e6_1.otf"
+      ],
+      "originalName": "Solanum-Regular (1).otf",
+      "createdAt": "2026-09-09T21:35:50.187Z"
     }
   ]
 }
