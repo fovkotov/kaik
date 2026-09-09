@@ -13,6 +13,7 @@
   --lb-btn: rgba(85, 85, 85, 0.8);
   --dot: rgba(0, 0, 0, 0.2);
   --dot-on: rgba(0, 0, 0, 0.64);
+  --skeleton: rgba(0, 0, 0, 0.06);
   --gutter: clamp(18px, 4.4vw, 72px);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --frame-h: 100%;
@@ -189,11 +190,30 @@ html.is-viewer-open .experiment-two__scroll {
   max-width: 68%;
   max-height: 62%;
   transform: translate(-50%, -50%);
-  opacity: 0.75;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
   will-change: transform;
+}
+
+.lettering-hero.is-loaded .lettering-hero__image {
+  opacity: 0.75;
+}
+
+/* Placeholder plate where the lettering will sit; gone once the first SVG has loaded. */
+.lettering-hero__skeleton {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52%;
+  height: 34%;
+  transform: translate(-50%, -50%);
+}
+
+.lettering-hero.is-loaded .lettering-hero__skeleton {
+  display: none;
 }
 
 .lettering-hero__action {
@@ -360,11 +380,88 @@ html.is-viewer-open .experiment-two__scroll {
 
 .work-card__art img {
   display: block;
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+
+/* Until the cover has pixels, the frame shows the same shimmer plate as the skeleton grid. */
+.work-card__art {
+  position: relative;
+}
+
+.work-card__art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--skeleton);
+  overflow: hidden;
+}
+
+.work-card__art.is-loaded::before {
+  display: none;
+}
+
+.work-card__art.is-loaded img {
+  opacity: 1;
+}
+
+/* ---------- skeletons ---------- */
+
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--skeleton);
+}
+
+.skeleton::after,
+.work-card__art:not(.is-loaded)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.work-card.is-skeleton {
+  pointer-events: none;
+}
+
+.work-card.is-skeleton .work-card__meta {
+  display: grid;
+  gap: 6px;
+  opacity: 1;
+}
+
+.skeleton-line {
+  width: 62%;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.skeleton-line--short {
+  width: 38%;
 }
 
 /* Final projects are strict 16:9 covers; workshop lettering keeps its contain box. */
@@ -467,6 +564,7 @@ html.is-viewer-open .experiment-two__scroll {
   height: 100%;
   object-fit: contain;
   object-position: center;
+  transform-origin: center center;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
@@ -487,6 +585,13 @@ html.is-viewer-open .experiment-two__scroll {
   border: 0;
   background: transparent;
   appearance: none;
+  -webkit-appearance: none;
+}
+
+/* The chevron rides the pointer, so the pointer itself hides — same as the site lightbox. */
+.viewer__hit--prev,
+.viewer__hit--next {
+  cursor: none;
 }
 
 .viewer__hit--prev {
@@ -504,9 +609,23 @@ html.is-viewer-open .experiment-two__scroll {
 
 .viewer.is-single .viewer__hit--prev,
 .viewer.is-single .viewer__hit--next,
-.viewer.is-single .viewer__dots,
-.viewer.is-single .viewer__counter {
+.viewer.is-single .viewer__dots {
   display: none;
+}
+
+/*
+ * Button chrome from Figma (Untitledik · node 221:132):
+ * 34×34, fill rgba(0,0,0,0.1), radius 140px, background blur 46px, glyph black @ 40%.
+ */
+.viewer__arrow,
+.viewer__close,
+.viewer__dots {
+  --viewer-chrome: rgba(0, 0, 0, 0.1);
+  --viewer-blur: 46px;
+  background: var(--viewer-chrome);
+  backdrop-filter: blur(var(--viewer-blur));
+  -webkit-backdrop-filter: blur(var(--viewer-blur));
+  border-radius: 140px;
 }
 
 .viewer__arrow {
@@ -517,44 +636,45 @@ html.is-viewer-open .experiment-two__scroll {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-  border-radius: 120px;
-  background: var(--lb-btn);
-  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  transform: translate(-50%, -50%) scale(1.05);
   pointer-events: none;
-  transition: transform 120ms var(--ease-out);
+  transition: transform 160ms var(--ease-out);
 }
 
 .viewer__hit.is-aiming .viewer__arrow {
   display: flex;
 }
 
-.viewer__hit--prev .viewer__chevron {
+/* Figma exports the left chevron; the right one is its mirror. */
+.viewer__hit--next .viewer__chevron {
   transform: scaleX(-1);
 }
 
 .viewer__chevron {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 34px;
+  height: 34px;
   pointer-events: none;
 }
 
-.viewer__hit:active .viewer__arrow {
+.viewer__hit.is-aiming:active .viewer__arrow,
+.viewer__hit--prev:active .viewer__arrow,
+.viewer__hit--next:active .viewer__arrow {
   transform: translate(-50%, -50%) scale(0.97);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .viewer:not(.is-mobile) .viewer__hit--prev,
-  .viewer:not(.is-mobile) .viewer__hit--next {
-    cursor: none;
-  }
+.viewer.is-mobile .viewer__arrow,
+.viewer.is-mobile .viewer__hit.is-aiming .viewer__arrow {
+  display: none;
 }
 
-.viewer.is-mobile .viewer__arrow {
-  display: none;
+.viewer.is-mobile .viewer__hit--prev,
+.viewer.is-mobile .viewer__hit--next {
+  cursor: default;
 }
 
 .viewer__close {
@@ -565,20 +685,25 @@ html.is-viewer-open .experiment-two__scroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  padding: 10px;
+  box-sizing: border-box;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
   border: 0;
-  border-radius: 173px;
-  background: var(--lb-btn);
+  line-height: 0;
   cursor: pointer;
-  transition: transform 120ms var(--ease-out);
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: scale(1);
+  transition: transform 160ms var(--ease-out);
 }
 
 .viewer__close img {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   pointer-events: none;
 }
 
@@ -592,34 +717,26 @@ html.is-viewer-open .experiment-two__scroll {
   transform: scale(0.97);
 }
 
-.viewer__caption,
-.viewer__counter {
+.viewer__caption {
   position: absolute;
+  left: 24px;
+  right: 50%;
   bottom: calc(24px + var(--frame-clip-bottom));
   z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
   margin: 0;
   font-size: 14px;
   line-height: 28px;
   pointer-events: none;
 }
 
-.viewer__caption {
-  left: 24px;
-  right: 50%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 8px;
-}
-
 .viewer__caption .is-muted {
   color: var(--muted);
 }
 
-.viewer__counter {
-  right: 24px;
-  color: var(--muted);
-}
-
+/* Dots sit in the same pill chrome as the buttons, bottom-centred like the site lightbox. */
 .viewer__dots {
   position: absolute;
   left: 50%;
@@ -627,25 +744,30 @@ html.is-viewer-open .experiment-two__scroll {
   z-index: 4;
   display: flex;
   align-items: center;
+  justify-content: center;
   height: 28px;
+  /* Long final projects: the pill stays on screen and the dots tighten instead. */
+  max-width: calc(100% - 32px);
   padding: 0 8px;
   transform: translateX(-50%);
-}
-
-.viewer.is-many .viewer__dots {
-  display: none;
+  pointer-events: auto;
 }
 
 .viewer__dot {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 1 16px;
   width: 16px;
+  min-width: 9px;
   height: 100%;
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .viewer__dot::after {
@@ -732,12 +854,11 @@ html.is-viewer-open .experiment-two__scroll {
     inset: calc(56px + var(--frame-clip-top)) 0 calc(84px + var(--frame-clip-bottom));
   }
 
+  /* Mobile: caption sits on its own line above the full-width dots pill. */
   .viewer__caption {
     left: 16px;
-  }
-
-  .viewer__counter {
     right: 16px;
+    bottom: calc(60px + var(--frame-clip-bottom));
   }
 }
 
@@ -754,11 +875,20 @@ html.is-viewer-open .experiment-two__scroll {
   .review-hero__play-icon,
   .viewer__arrow,
   .viewer__close,
-  .viewer__dot::after {
+  .viewer__dot::after,
+  .work-card__art img,
+  .lettering-hero__image {
     transition: none;
   }
 
-  .viewer__hit:active .viewer__arrow {
+  .skeleton::after {
+    animation: none;
+  }
+
+  .viewer__arrow,
+  .viewer__hit.is-aiming:active .viewer__arrow,
+  .viewer__hit--prev:active .viewer__arrow,
+  .viewer__hit--next:active .viewer__arrow {
     transform: translate(-50%, -50%);
   }
 

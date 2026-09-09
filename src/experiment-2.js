@@ -23,6 +23,7 @@ const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 let catalog = [];
+let catalogReady = false;
 let workshopWorks = [];
 let activeTab = TAB_WORKSHOPS;
 let activeLettering = null;
@@ -135,11 +136,12 @@ function cardFor(item) {
   const art = document.createElement("span");
   art.className = "work-card__art";
   const image = document.createElement("img");
-  image.src = workFileUrl(cover);
   image.alt = altFor(item);
   image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
+  revealOnLoad(image, art);
+  image.src = workFileUrl(cover);
   art.append(image);
 
   const meta = document.createElement("span");
@@ -152,12 +154,53 @@ function cardFor(item) {
 }
 
 function renderGrid() {
+  if (!catalogReady) {
+    renderSkeletons();
+    return;
+  }
   const works = catalog.filter((item) => item.type === activeTab && imageFiles(item).length);
   const fragment = document.createDocumentFragment();
   works.forEach((item) => fragment.append(cardFor(item)));
   grid.replaceChildren(fragment);
   grid.dataset.tab = activeTab;
   empty.hidden = works.length > 0;
+}
+
+/* ---------- skeletons ---------- */
+
+const SKELETON_CARDS = 8;
+
+/** Shimmer plates in the exact card geometry so the real grid drops in without a shift. */
+function renderSkeletons() {
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i < SKELETON_CARDS; i += 1) {
+    const card = document.createElement("div");
+    card.className = "work-card is-skeleton";
+    card.setAttribute("aria-hidden", "true");
+    const art = document.createElement("span");
+    art.className = "work-card__art skeleton";
+    const meta = document.createElement("span");
+    meta.className = "work-card__meta";
+    const lineA = document.createElement("span");
+    lineA.className = "skeleton skeleton-line";
+    const lineB = document.createElement("span");
+    lineB.className = "skeleton skeleton-line skeleton-line--short";
+    meta.append(lineA, lineB);
+    card.append(art, meta);
+    fragment.append(card);
+  }
+  grid.replaceChildren(fragment);
+  grid.dataset.tab = activeTab;
+  grid.setAttribute("aria-busy", "true");
+  empty.hidden = true;
+}
+
+/** Fade the image in once it has pixels; until then the frame keeps its skeleton plate. */
+function revealOnLoad(image, frame) {
+  const done = () => frame.classList.add("is-loaded");
+  image.addEventListener("load", done, { once: true });
+  image.addEventListener("error", done, { once: true });
+  if (image.complete && image.naturalWidth) done();
 }
 
 /* ---------- hero ---------- */
@@ -264,22 +307,25 @@ function setupHero() {
   follower = createFollower();
 }
 
-/* ---------- fullscreen viewer (site lightbox mechanics) ---------- */
+/* ---------- fullscreen viewer (port of src/author-lightbox.js mechanics) ---------- */
 
 const AXIS_PX = 8;
 const TAP_PX = AXIS_PX;
 const COMMIT_RATIO = 0.22;
 const FLICK_VEL = 500;
 const SPRING_RESPONSE = 0.4;
-const MANY_SLIDES = 12;
+const MIN_Z = 1;
+const MAX_Z = 4;
+const ABSORB_MS = 400;
 
 function createViewer(root) {
   const track = root.querySelector("[data-viewer-track]");
   const pager = root.querySelector("[data-viewer-dots]");
   const caption = root.querySelector("[data-viewer-caption]");
-  const counter = root.querySelector("[data-viewer-counter]");
-  const chrome = "[data-viewer-close], [data-viewer-dots], [data-viewer-dot]";
-  const navSel = "[data-viewer-prev], [data-viewer-next]";
+  const CHROME = "[data-viewer-close], [data-viewer-dots], [data-viewer-dot]";
+  const NAV = "[data-viewer-prev], [data-viewer-next]";
+  const NO_ZOOM = `${CHROME}, ${NAV}`;
+  const scrollRoot = document.querySelector("[data-scroll-root]");
 
   let items = [];
   let slides = [];
@@ -290,15 +336,28 @@ function createViewer(root) {
   let velocity = 0;
   let stopSpring = null;
   let open = false;
-  let swipe = null;
-  let samples = [];
+  let savedScroll = 0;
+  let lastShot = null;
   let ignoreClickUntil = 0;
-  let returnFocus = null;
+  let swipe = null;
+  let gestureSamples = [];
+  let z = 1;
+  let panX = 0;
+  let panY = 0;
+  let gestureZ0 = 1;
+  let zoomGen = 0;
+  let gestureGen = -1;
+  let absorbZoomUntil = 0;
+  const pointers = new Map();
+  let pinch = null;
+  let pan = null;
+  let lastTap = 0;
 
   const count = () => items.length || 1;
   const wrap = (i) => ((i % count()) + count()) % count();
   const widthOf = () => track?.clientWidth || root.clientWidth || window.innerWidth || 1;
 
+  /* Same wrap as the site slider — nearest copy, even-count tie break. */
   function wrapDelta(i, current, n, offset) {
     let d = i - current;
     d -= n * Math.round(d / n);
@@ -306,10 +365,10 @@ function createViewer(root) {
     return d;
   }
 
-  function sampleVel(list) {
-    if (list.length < 2) return 0;
-    const a = list[0];
-    const b = list[list.length - 1];
+  function sampleVel(samples) {
+    if (samples.length < 2) return 0;
+    const a = samples[0];
+    const b = samples[samples.length - 1];
     const dt = b.t - a.t;
     if (dt < 8) return 0;
     return ((b.x - a.x) / dt) * 1000;
@@ -321,6 +380,31 @@ function createViewer(root) {
     if (delta > n / 2) delta -= n;
     if (delta < -n / 2) delta += n;
     return delta;
+  }
+
+  function preload(i) {
+    const src = items[wrap(i)];
+    if (!src) return;
+    const warm = new Image();
+    warm.decoding = "async";
+    warm.src = src;
+  }
+
+  const activeMedia = () => slides[index]?.querySelector("img") ?? null;
+
+  function syncSlides(active = index) {
+    const current = wrap(active);
+    slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
+  }
+
+  function syncDots(active = index) {
+    const current = wrap(active);
+    syncSlides(current);
+    dots.forEach((dot, i) => {
+      const on = i === current;
+      dot.classList.toggle("is-active", on);
+      dot.setAttribute("aria-current", on ? "true" : "false");
+    });
   }
 
   function paint(offset) {
@@ -339,16 +423,88 @@ function createViewer(root) {
     });
   }
 
-  function syncDots(active = index) {
-    const current = wrap(active);
-    slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
-    dots.forEach((dot, i) => {
-      const on = i === current;
-      dot.classList.toggle("is-active", on);
-      dot.setAttribute("aria-current", on ? "true" : "false");
-    });
-    if (counter) counter.textContent = `${current + 1} / ${count()}`;
+  /* ---- zoom (pinch / double tap / ctrl+wheel / trackpad gesture) ---- */
+
+  function applyZoom() {
+    const media = activeMedia();
+    if (!media) return;
+    if (z <= 1.001 && Math.abs(panX) < 0.01 && Math.abs(panY) < 0.01) {
+      media.style.transform = "";
+      root.classList.remove("is-zoomed");
+      return;
+    }
+    media.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${z})`;
+    root.classList.toggle("is-zoomed", z > 1.001);
   }
+
+  const zoomAbsorbed = () => performance.now() < absorbZoomUntil;
+
+  function cancelZoomSession() {
+    pointers.clear();
+    pinch = null;
+    pan = null;
+    swipe = null;
+    gestureZ0 = 1;
+    gestureGen = -1;
+    lastTap = 0;
+    zoomGen += 1;
+    absorbZoomUntil = performance.now() + ABSORB_MS;
+  }
+
+  function resetZoom() {
+    z = 1;
+    panX = 0;
+    panY = 0;
+    slides.forEach((slide) => {
+      const media = slide.querySelector("img");
+      if (media) media.style.transform = "";
+    });
+    root.classList.remove("is-zoomed");
+  }
+
+  const clampZ = (next) => Math.min(MAX_Z, Math.max(MIN_Z, next));
+
+  function zoomAround(cx, cy, nextZ) {
+    if (zoomAbsorbed()) return;
+    const next = clampZ(nextZ);
+    const media = activeMedia();
+    if (!media || Math.abs(next - z) < 0.001) return;
+    const box = media.parentElement?.getBoundingClientRect();
+    if (!box) {
+      z = next;
+      if (z <= 1.001) resetZoom();
+      else applyZoom();
+      return;
+    }
+    const sx = cx - (box.left + box.width / 2);
+    const sy = cy - (box.top + box.height / 2);
+    const k = next / z;
+    panX = sx - (sx - panX) * k;
+    panY = sy - (sy - panY) * k;
+    z = next;
+    if (z <= 1.001) resetZoom();
+    else applyZoom();
+  }
+
+  function toggleZoom(cx, cy) {
+    if (zoomAbsorbed()) return;
+    if (z > 1.001) resetZoom();
+    else zoomAround(cx, cy, 2);
+  }
+
+  function pinchDist() {
+    const pts = [...pointers.values()];
+    if (pts.length < 2) return 0;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
+  function pinchCenter() {
+    const pts = [...pointers.values()];
+    if (pts.length < 2) return { x: 0, y: 0 };
+    return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+  }
+
+  /* ---- spring + index bookkeeping ---- */
 
   function cancelSpring() {
     if (!stopSpring) return;
@@ -394,7 +550,9 @@ function createViewer(root) {
   }
 
   function finishIndex(next) {
-    index = wrap(next);
+    const target = wrap(next);
+    const changed = target !== index;
+    index = target;
     pending = index;
     shift = 0;
     velocity = 0;
@@ -408,10 +566,17 @@ function createViewer(root) {
         slide.style.zIndex = "";
       }
     });
+    if (changed) {
+      cancelZoomSession();
+      resetZoom();
+    }
     paint(0);
     syncDots();
+    preload(index + 1);
+    preload(index - 1);
   }
 
+  /** Keep the painted offset when adopting `pending` as the live index. */
   function adoptPending() {
     if (pending === index) return;
     const steps = shortestSteps(index, pending);
@@ -429,8 +594,17 @@ function createViewer(root) {
 
   function settleShift(dest, vel, nextIndex) {
     pending = wrap(nextIndex);
+    if (pending !== index) {
+      cancelZoomSession();
+      resetZoom();
+    }
     syncDots(nextIndex);
     springTo(dest, vel, () => finishIndex(nextIndex));
+  }
+
+  function commitFromRelease(vel) {
+    const steps = committedSteps(vel);
+    settleShift(-steps * widthOf(), vel, index + steps);
   }
 
   function goTo(next, vel = 0) {
@@ -451,9 +625,27 @@ function createViewer(root) {
 
   const go = (step) => goTo(pending + step);
 
-  function suppressClick() {
-    ignoreClickUntil = performance.now() + 450;
+  function snapPending() {
+    cancelSpring();
+    if (pending !== index) finishIndex(pending);
+    else {
+      shift = 0;
+      velocity = 0;
+      paint(0);
+    }
   }
+
+  const suppressClick = () => {
+    ignoreClickUntil = performance.now() + 450;
+  };
+
+  /* ---- scroll pinning: the page under the viewer must not move ---- */
+
+  function lockScroll() {
+    if (scrollRoot && scrollRoot.scrollTop !== savedScroll) scrollRoot.scrollTop = savedScroll;
+  }
+
+  /* ---- build ---- */
 
   function buildSlides(item) {
     track.replaceChildren();
@@ -464,6 +656,7 @@ function createViewer(root) {
       const image = document.createElement("img");
       image.alt = i === 0 ? altFor(item) : "";
       image.draggable = false;
+      image.setAttribute("draggable", "false");
       image.decoding = "async";
       image.src = src;
       slide.append(image);
@@ -501,37 +694,49 @@ function createViewer(root) {
 
   function close() {
     if (!open) return;
+    const top = savedScroll;
+    const shot = lastShot;
     cancelSpring();
-    swipe = null;
+    cancelZoomSession();
+    resetZoom();
     setOpen(false);
     root.classList.remove("is-dragging");
     root.querySelectorAll(".viewer__hit.is-aiming").forEach((hit) => hit.classList.remove("is-aiming"));
-    const target = returnFocus;
-    returnFocus = null;
-    requestAnimationFrame(() => target?.focus?.({ preventScroll: true }));
+    const pin = () => {
+      if (scrollRoot) scrollRoot.scrollTop = top;
+    };
+    pin();
+    requestAnimationFrame(() => {
+      pin();
+      shot?.focus?.({ preventScroll: true });
+      pin();
+    });
   }
 
   function openWork(item, shot = null) {
     items = imageFiles(item).map((file) => workFileUrl(file));
     if (!items.length) return;
-    returnFocus = shot;
+    lastShot = shot instanceof HTMLElement ? shot : null;
+    savedScroll = scrollRoot?.scrollTop ?? 0;
     buildSlides(item);
     buildDots();
     caption.replaceChildren(...metaNodes(item));
     root.classList.toggle("is-single", items.length === 1);
-    root.classList.toggle("is-many", items.length > MANY_SLIDES);
     root.classList.toggle("is-mobile", isMobile());
     cancelSpring();
-    index = 0;
     pending = 0;
+    index = 0;
     shift = 0;
     velocity = 0;
     setOpen(true);
+    cancelZoomSession();
+    resetZoom();
     finishIndex(0);
-    root.querySelector("[data-viewer-close]")?.focus({ preventScroll: true });
+    lockScroll();
   }
 
-  /* chrome */
+  /* ---- chrome ---- */
+
   root.querySelector("[data-viewer-close]")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -550,38 +755,65 @@ function createViewer(root) {
   bindHit("[data-viewer-next]", 1);
 
   const aimHit = (hit, event) => {
-    if (!FINE.matches || isMobile()) return;
+    if (!FINE.matches) return;
     const arrow = hit.querySelector(".viewer__arrow");
     if (!arrow) return;
     arrow.style.left = `${event.clientX}px`;
     arrow.style.top = `${event.clientY}px`;
     hit.classList.add("is-aiming");
   };
-  root.querySelectorAll(navSel).forEach((hit) => {
+  root.querySelectorAll(NAV).forEach((hit) => {
     hit.addEventListener("pointerenter", (event) => aimHit(hit, event));
     hit.addEventListener("pointermove", (event) => aimHit(hit, event));
     hit.addEventListener("pointerleave", () => hit.classList.remove("is-aiming"));
   });
 
+  /* Middle third swallows the click — the site lightbox does not close on backdrop. */
   root.querySelector("[data-viewer-mid]")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
   });
 
+  root.addEventListener("dblclick", (event) => {
+    if (!open) return;
+    if (event.target.closest?.(NO_ZOOM)) return;
+    if (zoomAbsorbed()) return;
+    event.preventDefault();
+    toggleZoom(event.clientX, event.clientY);
+  });
+
   root.addEventListener("dragstart", (event) => event.preventDefault());
 
-  /* mobile swipe */
+  /* ---- pointers: pinch, pan, swipe ---- */
+
   root.addEventListener(
     "pointerdown",
     (event) => {
       if (!open) return;
       if (event.button && event.button !== 0) return;
-      if (event.target.closest?.(chrome)) return;
+      if (event.target.closest?.(CHROME)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pointers.size >= 2) {
+        snapPending();
+        swipe = null;
+        pan = null;
+        root.classList.remove("is-dragging");
+        pinch = { dist: pinchDist(), z0: z, gen: zoomGen };
+        return;
+      }
+
+      if (z > 1.001) {
+        pan = { id: event.pointerId, x: event.clientX, y: event.clientY, px: panX, py: panY };
+        return;
+      }
+
       if (!isMobile()) return;
       if (event.pointerType === "mouse" && !COARSE.matches) return;
+
       cancelSpring();
       adoptPending();
-      samples = [{ x: shift, t: event.timeStamp || performance.now() }];
+      gestureSamples = [{ x: shift, t: event.timeStamp || performance.now() }];
       swipe = { id: event.pointerId, x: event.clientX, y: event.clientY, origin: shift, axis: null };
     },
     true,
@@ -590,7 +822,32 @@ function createViewer(root) {
   window.addEventListener(
     "pointermove",
     (event) => {
-      if (!open || !swipe || event.pointerId !== swipe.id) return;
+      if (!open) return;
+      if (pointers.has(event.pointerId)) {
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      }
+
+      if (pinch && pointers.size >= 2) {
+        if (pinch.gen !== zoomGen || zoomAbsorbed()) return;
+        const dist = pinchDist();
+        const mid = pinchCenter();
+        if (pinch.dist > 8 && dist > 0) {
+          if (event.cancelable) event.preventDefault();
+          zoomAround(mid.x, mid.y, pinch.z0 * (dist / pinch.dist));
+        }
+        return;
+      }
+
+      if (pan && event.pointerId === pan.id) {
+        if (zoomAbsorbed()) return;
+        if (event.cancelable) event.preventDefault();
+        panX = pan.px + (event.clientX - pan.x);
+        panY = pan.py + (event.clientY - pan.y);
+        applyZoom();
+        return;
+      }
+
+      if (!swipe || event.pointerId !== swipe.id) return;
       const dx = event.clientX - swipe.x;
       const dy = event.clientY - swipe.y;
       if (!swipe.axis) {
@@ -607,9 +864,9 @@ function createViewer(root) {
       if (event.cancelable) event.preventDefault();
       shift = swipe.origin + dx;
       velocity = 0;
-      samples.push({ x: shift, t: event.timeStamp || performance.now() });
-      if (samples.length > 5) samples.shift();
-      if (samples.length >= 2) velocity = sampleVel(samples);
+      gestureSamples.push({ x: shift, t: event.timeStamp || performance.now() });
+      if (gestureSamples.length > 5) gestureSamples.shift();
+      if (gestureSamples.length >= 2) velocity = sampleVel(gestureSamples);
       paint(shift);
       syncDots(index + committedSteps(0));
     },
@@ -617,6 +874,41 @@ function createViewer(root) {
   );
 
   const endPointer = (event, cancelled) => {
+    const hadPinch = Boolean(pinch);
+    pointers.delete(event.pointerId);
+    if (pointers.size < 2) pinch = null;
+
+    if (pan && event.pointerId === pan.id) {
+      const moved = Math.hypot(event.clientX - pan.x, event.clientY - pan.y) > TAP_PX;
+      pan = null;
+      if (moved) suppressClick();
+    }
+
+    if (hadPinch) {
+      suppressClick();
+      swipe = null;
+      root.classList.remove("is-dragging");
+      return;
+    }
+
+    if (z <= 1.001 && event.pointerType === "touch") {
+      const now = performance.now();
+      const dx = swipe ? event.clientX - swipe.x : 0;
+      const dy = swipe ? event.clientY - swipe.y : 0;
+      const onNav = Boolean(event.target?.closest?.(NO_ZOOM));
+      if (!cancelled && !onNav && !zoomAbsorbed() && Math.hypot(dx, dy) < TAP_PX) {
+        if (now - lastTap < 280) {
+          toggleZoom(event.clientX, event.clientY);
+          lastTap = 0;
+          suppressClick();
+        } else {
+          lastTap = now;
+        }
+      } else if (onNav || zoomAbsorbed()) {
+        lastTap = 0;
+      }
+    }
+
     if (!swipe || event.pointerId !== swipe.id) return;
     const axis = swipe.axis;
     swipe = null;
@@ -626,12 +918,11 @@ function createViewer(root) {
       return;
     }
     suppressClick();
-    if (cancelled) {
+    if (cancelled || z > 1.001) {
       settleShift(0, 0, index);
       return;
     }
-    const steps = committedSteps(sampleVel(samples) || velocity);
-    settleShift(-steps * widthOf(), sampleVel(samples) || velocity, index + steps);
+    commitFromRelease(sampleVel(gestureSamples) || velocity);
   };
   window.addEventListener("pointerup", (event) => endPointer(event, false));
   window.addEventListener("pointercancel", (event) => endPointer(event, true));
@@ -639,12 +930,68 @@ function createViewer(root) {
   root.addEventListener(
     "touchmove",
     (event) => {
-      if (open && swipe?.axis === "x" && event.cancelable) event.preventDefault();
+      if (!open) return;
+      if (pinch || pan || swipe?.axis === "x") {
+        if (event.cancelable) event.preventDefault();
+      }
     },
     { passive: false },
   );
 
-  root.addEventListener("wheel", (event) => open && event.preventDefault(), { passive: false });
+  root.addEventListener(
+    "wheel",
+    (event) => {
+      if (!open) return;
+      event.preventDefault();
+      lockScroll();
+      if (event.ctrlKey || event.metaKey) {
+        if (zoomAbsorbed() || gestureGen === zoomGen) return;
+        const factor = Math.exp(-event.deltaY * 0.012);
+        zoomAround(event.clientX, event.clientY, z * factor);
+      }
+    },
+    { passive: false },
+  );
+
+  /* Safari trackpad pinch. */
+  root.addEventListener(
+    "gesturestart",
+    (event) => {
+      if (!open) return;
+      event.preventDefault();
+      if (zoomAbsorbed()) return;
+      gestureGen = zoomGen;
+      gestureZ0 = z;
+    },
+    { passive: false },
+  );
+  root.addEventListener(
+    "gesturechange",
+    (event) => {
+      if (!open) return;
+      event.preventDefault();
+      if (zoomAbsorbed() || gestureGen !== zoomGen) return;
+      zoomAround(event.clientX || window.innerWidth / 2, event.clientY || window.innerHeight / 2, gestureZ0 * event.scale);
+    },
+    { passive: false },
+  );
+  root.addEventListener(
+    "gestureend",
+    (event) => {
+      if (!open) return;
+      event.preventDefault();
+      gestureGen = -1;
+    },
+    { passive: false },
+  );
+
+  document.addEventListener(
+    "scroll",
+    () => {
+      if (open) lockScroll();
+    },
+    true,
+  );
 
   window.addEventListener(
     "keydown",
@@ -656,13 +1003,15 @@ function createViewer(root) {
         close();
         return;
       }
-      if (event.key === "ArrowLeft") {
+      if (event.key === "ArrowLeft" || event.key === "j" || event.key === "J") {
         event.preventDefault();
+        event.stopImmediatePropagation();
         go(-1);
         return;
       }
-      if (event.key === "ArrowRight") {
+      if (event.key === "ArrowRight" || event.key === "k" || event.key === "K") {
         event.preventDefault();
+        event.stopImmediatePropagation();
         go(1);
       }
     },
@@ -670,9 +1019,9 @@ function createViewer(root) {
   );
 
   new ResizeObserver(() => {
-    if (!open || !slides.length) return;
+    if (!slides.length) return;
     root.classList.toggle("is-mobile", isMobile());
-    finishIndex(pending);
+    paint(shift);
   }).observe(root);
 
   return { open: openWork, close };
@@ -697,12 +1046,26 @@ async function boot() {
   action.addEventListener("click", nextHero);
   reviewPlay.addEventListener("click", playReview);
 
-  const data = await loadWorksCatalog({ bust: true });
-  catalog = data.items || [];
-  workshopWorks = catalog.filter((item) => item.type === TAB_WORKSHOPS && svgFile(item));
+  /* Skeleton hero + grid while the catalog is in flight. */
+  letteringImage.addEventListener("load", () => hero.classList.add("is-loaded"), { once: true });
+  letteringImage.addEventListener("error", () => hero.classList.add("is-loaded"), { once: true });
   setTab(TAB_WORKSHOPS);
+
+  let data;
+  try {
+    data = await loadWorksCatalog({ bust: true });
+  } catch (error) {
+    console.warn("Experiment 2 catalog unavailable", error);
+    data = { items: [] };
+  }
+  catalog = data.items || [];
+  catalogReady = true;
+  grid.removeAttribute("aria-busy");
+  workshopWorks = catalog.filter((item) => item.type === TAB_WORKSHOPS && svgFile(item));
+  renderGrid();
   const first = shufflePick(workshopWorks);
   if (first) setHero(first);
+  else hero.classList.add("is-loaded");
 }
 
 boot();
