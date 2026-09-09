@@ -44,6 +44,33 @@ export function bulkPatchWorks(readCatalog, commit, body) {
   return withRetry(() => bulkPatchWorksOnce(readCatalog, commit, body));
 }
 
+export function bulkDeleteWorks(readCatalog, commit, body) {
+  return withRetry(() => bulkDeleteWorksOnce(readCatalog, commit, body));
+}
+
+async function bulkDeleteWorksOnce(readCatalog, commit, body) {
+  const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
+  if (!ids.length) {
+    const error = new Error("Nothing to delete");
+    error.status = 400;
+    throw error;
+  }
+  const current = await readCatalog();
+  const wanted = new Set(ids);
+  const removed = current.items.filter((entry) => wanted.has(entry.id));
+  if (!removed.length) {
+    const error = new Error("Not found");
+    error.status = 404;
+    throw error;
+  }
+  current.items = current.items.filter((entry) => !wanted.has(entry.id));
+  return commit({
+    catalog: current,
+    upserts: [],
+    removes: removed.flatMap((entry) => entry.files || []),
+  });
+}
+
 async function createWorksOnce(readCatalog, commit, body) {
   const items = Array.isArray(body.items) ? body.items : [];
   if (!items.length) {

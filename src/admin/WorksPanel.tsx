@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type PointerEvent,
 } from "react";
 import { toast } from "sonner";
 import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Trash2Icon, XIcon } from "lucide-react";
@@ -470,6 +469,7 @@ export function WorksPanel({
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
   const [editSlides, setEditSlides] = useState<Slide[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [lasso, setLasso] = useState<Lasso | null>(null);
   const [progress, setProgress] = useState<{ kind: "import" | "save"; n: number; total: number } | null>(null);
@@ -519,6 +519,10 @@ export function WorksPanel({
   const canCycle = visualIds.length > 1;
   const visibleRef = useRef(visible);
   visibleRef.current = visible;
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  const confirmRef = useRef(false);
+  confirmRef.current = confirmDelete || confirmBulk;
 
   useEffect(() => {
     setSelected([]);
@@ -934,10 +938,20 @@ export function WorksPanel({
     setLasso(null);
   }
 
-  function onGridPointerDown(event: PointerEvent<HTMLDivElement>) {
+  // Lasso starts anywhere on the admin surface (not only inside the grid);
+  // interactive controls, the inbox, the selection bar and dialogs opt out.
+  function onSurfacePointerDown(event: globalThis.PointerEvent) {
     if (event.button !== 0) return;
-    if ((event.target as Element).closest("input, textarea, select, a")) return;
-    const grid = event.currentTarget;
+    if (editingRef.current || confirmRef.current) return;
+    const target = event.target as Element | null;
+    if (!target) return;
+    if (
+      target.closest(
+        "input, textarea, select, a, button, label, [data-no-lasso], [role='dialog'], [role='alertdialog'], [data-slot='dialog-overlay']",
+      )
+    ) {
+      return;
+    }
     dragged.current = false;
     captured.current = false;
     lassoOrigin.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
@@ -951,7 +965,7 @@ export function WorksPanel({
       if (Math.hypot(move.clientX - origin.x, move.clientY - origin.y) <= DRAG_PX) return;
       if (!dragged.current) {
         dragged.current = true;
-        grid.setPointerCapture(move.pointerId);
+        document.body.style.userSelect = "none";
         captured.current = true;
       }
       const next = { x0: origin.x, y0: origin.y, x1: move.clientX, y1: move.clientY };
@@ -966,13 +980,7 @@ export function WorksPanel({
       const origin = lassoOrigin.current;
       const current = lassoRef.current;
       const wasDrag = dragged.current;
-      if (captured.current) {
-        try {
-          grid.releasePointerCapture(up.pointerId);
-        } catch {
-          /* already released */
-        }
-      }
+      if (captured.current) document.body.style.userSelect = "";
       endLasso();
       if (!origin) return;
       if (wasDrag && current) {
@@ -996,7 +1004,11 @@ export function WorksPanel({
         return;
       }
       const card = (up.target as Element | null)?.closest?.("[data-work-id]");
-      if (!(card instanceof HTMLElement)) return;
+      if (!(card instanceof HTMLElement)) {
+        // Plain click on empty surface drops the selection.
+        if (!up.shiftKey) setSelected([]);
+        return;
+      }
       const item = visibleRef.current.find((entry) => entry.id === card.dataset.workId);
       if (!item) return;
       if (up.shiftKey) {
@@ -1011,6 +1023,42 @@ export function WorksPanel({
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
+  }
+
+  const surfaceDownRef = useRef(onSurfacePointerDown);
+  surfaceDownRef.current = onSurfacePointerDown;
+  useEffect(() => {
+    const handler = (event: globalThis.PointerEvent) => surfaceDownRef.current(event);
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
+  }, []);
+
+  // Esc drops the selection when no dialog is open.
+  useEffect(() => {
+    if (!selected.length || editing || confirmDelete || confirmBulk) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (event.target instanceof Element && event.target.closest("input, textarea, select")) return;
+      setSelected([]);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected.length, editing, confirmDelete, confirmBulk]);
+
+  async function deleteSelected() {
+    if (!selected.length || !canWrite) return;
+    try {
+      const data = await worksApi("/bulk", {
+        method: "DELETE",
+        body: JSON.stringify({ ids: selected }),
+      });
+      setCatalog(data);
+      setSelected([]);
+      setConfirmBulk(false);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toastApiError(error, copy);
+    }
   }
 
   const preview = editFiles?.[0]?.preview || (editing ? thumbSrc(editing) : "");
@@ -1045,7 +1093,7 @@ export function WorksPanel({
       />
 
       {inbox.length > 0 ? (
-        <Card>
+        <Card data-no-lasso>
           <CardHeader className="border-b">
             <CardTitle>{copy("admin.inbox")}</CardTitle>
             <CardDescription>{inbox.length}</CardDescription>
@@ -1226,7 +1274,6 @@ export function WorksPanel({
           <div
             ref={gridRef}
             className="relative grid grid-cols-2 gap-2 select-none sm:grid-cols-3 md:grid-cols-4"
-            onPointerDown={onGridPointerDown}
           >
             {visible.map((item) => (
               <div
@@ -1310,12 +1357,27 @@ export function WorksPanel({
       ) : null}
 
       {selected.length > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur">
+        <div
+          data-no-lasso
+          className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur"
+        >
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {copy("admin.selected").replace("{n}", String(selected.length))}
-            </p>
-            <TypeTabs value={catalogType} onChange={applyBulkType} copy={copy} />
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {copy("admin.selected").replace("{n}", String(selected.length))}
+              </p>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setSelected([])}>
+                {copy("admin.deselect")}
+                <kbd className="ml-1 rounded border px-1 text-[10px] text-muted-foreground">esc</kbd>
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <TypeTabs value={catalogType} onChange={applyBulkType} copy={copy} />
+              <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmBulk(true)}>
+                <Trash2Icon data-icon="inline-start" />
+                {copy("admin.delete")}
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -1599,6 +1661,23 @@ export function WorksPanel({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmBulk} onOpenChange={setConfirmBulk}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{copy("admin.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {copy("admin.confirmDeleteMany").replace("{n}", String(selected.length))}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{copy("admin.close")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={deleteSelected}>
+              {copy("admin.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>

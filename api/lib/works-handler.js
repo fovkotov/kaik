@@ -1,4 +1,10 @@
-import { bulkPatchWorks, createWorks, deleteWork, patchWork } from "../../src/works/admin-routes.js";
+import {
+  bulkDeleteWorks,
+  bulkPatchWorks,
+  createWorks,
+  deleteWork,
+  patchWork,
+} from "../../src/works/admin-routes.js";
 import {
   commitWorks,
   createGitBlob,
@@ -113,6 +119,13 @@ export default async function handler(req, res) {
     if (method === "PATCH" && parts[0] === "bulk" && parts.length === 1) {
       const body = await readJson(req);
       const catalog = await serial(() => bulkPatchWorks(readWorksCatalog, commitWorks, body));
+      send(res, 200, envelope(catalog));
+      return;
+    }
+
+    if (method === "DELETE" && parts[0] === "bulk" && parts.length === 1) {
+      const body = await readJson(req);
+      const catalog = await serial(() => bulkDeleteWorks(readWorksCatalog, commitWorks, body));
       send(res, 200, envelope(catalog));
       return;
     }

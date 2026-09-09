@@ -1,7 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { mimeFromName, rememberPendingUpload, stampCatalog, takePendingUpload } from "./src/works/admin-core.js";
-import { bulkPatchWorks, createWorks, deleteWork, patchWork } from "./src/works/admin-routes.js";
+import {
+  bulkDeleteWorks,
+  bulkPatchWorks,
+  createWorks,
+  deleteWork,
+  patchWork,
+} from "./src/works/admin-routes.js";
 import { emptyWorksCatalog, hydrateWorksCatalog, WORKS_CATALOG_EVENT } from "./src/works/taxonomy.js";
 
 function json(res, status, body) {
@@ -166,6 +172,12 @@ export function worksAdminPlugin() {
           if (req.method === "PATCH" && url === "/api/works/bulk") {
             const body = await readBody(req);
             json(res, 200, envelope(await serial(() => bulkPatchWorks(readCatalog, commit, body))));
+            return;
+          }
+
+          if (req.method === "DELETE" && url === "/api/works/bulk") {
+            const body = await readBody(req);
+            json(res, 200, envelope(await serial(() => bulkDeleteWorks(readCatalog, commit, body))));
             return;
           }
 
