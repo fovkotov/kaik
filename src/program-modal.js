@@ -113,6 +113,9 @@ export function initProgramModal() {
   /** Cards flying back to a sibling slot while another card stays focused. */
   /** @type {Map<HTMLElement, { gen: number, timer: number, onEnd: ((event: TransitionEvent) => void) | null }>} */
   const retiring = new Map();
+  /** Parked siblings' deck-local boxes while the deck is unscaled (`is-focus-landed`). */
+  /** @type {Map<HTMLElement, { left: number, top: number, width: number, height: number, rotate: number }>} */
+  const landedPark = new Map();
 
   const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -540,6 +543,72 @@ export function initProgramModal() {
     return Boolean(el?.hasAttribute("data-works-card"));
   }
 
+  function readFlyBox(el) {
+    const n = (name) => Number.parseFloat(el.style.getPropertyValue(name));
+    const box = {
+      left: n("--fly-l"),
+      top: n("--fly-t"),
+      width: n("--fly-w"),
+      height: n("--fly-h"),
+      rotate: n("--fly-rot"),
+    };
+    if (![box.left, box.top, box.width, box.height].every(Number.isFinite)) return null;
+    if (!Number.isFinite(box.rotate)) box.rotate = 0;
+    return box;
+  }
+
+  /**
+   * `is-focus-landed` drops the deck transform (scale about 70% 50%) so the
+   * focused card can be a plain fixed scroller. Parked siblings live in
+   * deck-local (scaled) space, so re-pin them into the unscaled deck with the
+   * same visual result: box stays w×h (content layout untouched), the
+   * transform gains scale(--deck-scale) about the same 50% 55% origin, and
+   * left/top move so that origin point keeps its visual position.
+   * Uniform scale commutes with the rotation about a point, so this is exact.
+   */
+  function landSiblings(focusEl) {
+    landedPark.clear();
+    const space = deckSpace();
+    const s = space.scaleX;
+    const deckLeft = space.vx0 - space.ox;
+    const deckTop = space.vy0 - space.oy;
+    cards.forEach((el) => {
+      if (el === focusEl) return;
+      const rec = retiring.get(el);
+      if (rec) {
+        // Still gliding into the fan: finish at the target box, not mid-flight.
+        cancelRetire(el);
+        settleRetire(el);
+      }
+      if (!el.classList.contains("is-fly-pinned")) return;
+      const box = readFlyBox(el);
+      if (!box) return;
+      landedPark.set(el, box);
+      const o = deckLocalToVisual(box.left + box.width * 0.5, box.top + box.height * 0.55);
+      pinEl(
+        el,
+        {
+          left: o.x - deckLeft - box.width * 0.5,
+          top: o.y - deckTop - box.height * 0.55,
+          width: box.width,
+          height: box.height,
+          rotate: box.rotate,
+        },
+        false,
+      );
+      el.style.setProperty("--fly-scale", String(s));
+    });
+  }
+
+  function unlandSiblings() {
+    landedPark.forEach((box, el) => {
+      el.style.removeProperty("--fly-scale");
+      if (!el.classList.contains("is-fly-pinned")) return;
+      pinEl(el, box, false);
+    });
+    landedPark.clear();
+  }
+
   function flattenLanded(el) {
     if (!el || isWorksHost(el)) return;
     const painted = el.getBoundingClientRect();
@@ -553,6 +622,7 @@ export function initProgramModal() {
             height: painted.height,
           }
         : dest;
+    landSiblings(el);
     document.documentElement.classList.add("is-focus-landed");
     el.classList.add("is-program-scroll");
     el.style.position = "fixed";
@@ -573,9 +643,9 @@ export function initProgramModal() {
     el.style.setProperty("--fly-ms", "0ms");
   }
 
-  function unflattenLanded(el) {
+  /** Clear one card's flatten inline styles; never touches the deck-wide landed state. */
+  function unflattenEl(el) {
     if (!el) return;
-    document.documentElement.classList.remove("is-focus-landed");
     el.classList.remove("is-program-scroll");
     el.style.position = "";
     el.style.left = "";
@@ -587,6 +657,18 @@ export function initProgramModal() {
     el.style.zIndex = "";
     el.style.transform = "";
     el.style.willChange = "";
+  }
+
+  /** Leave the landed state: siblings back to scaled deck space in the same frame. */
+  function unflattenLanded(el) {
+    if (document.documentElement.classList.contains("is-focus-landed")) {
+      unlandSiblings();
+      document.documentElement.classList.remove("is-focus-landed");
+      // Flush so the next transition starts from the scaled-space pose,
+      // not from the unscaled pins as "previous computed value".
+      deck.getBoundingClientRect();
+    }
+    unflattenEl(el);
   }
 
   function pinEl(el, box, withTransition) {
@@ -671,12 +753,9 @@ export function initProgramModal() {
 
   function lockCard() {
     if (!card) return;
-    if (isWorksHost()) {
-      setFocusFrozen(false);
-    } else {
-      setFocusFrozen(true);
-      cancelIntroAnimations();
-    }
+    setFocusFrozen(true);
+    cancelIntroAnimations();
+    deck.removeAttribute("data-focus-settled");
     card.setAttribute("data-fly-lock", "");
     card.setAttribute("data-focus-open", "");
     card.classList.remove("is-fly-pinned");
@@ -822,7 +901,8 @@ export function initProgramModal() {
     const next = closeAfter;
     closeAfter = null;
     card = null;
-    document.documentElement.classList.remove("is-focus-landed");
+    unflattenLanded(null);
+    deck.removeAttribute("data-focus-settled");
     setFocusFrozen(false);
     applyDeckParams();
     syncAria();
@@ -874,11 +954,13 @@ export function initProgramModal() {
           card.setAttribute("data-expand-settled", "");
         }
         if (isWorksHost()) {
+          // Works board keeps its own inner scroller; a fixed flatten breaks it.
           card.classList.add("is-program-scroll");
           card.style.setProperty("--fly-ms", "0ms");
         } else {
           flattenLanded(card);
         }
+        deck.setAttribute("data-focus-settled", "");
       }
       syncAria();
       return;
@@ -892,8 +974,9 @@ export function initProgramModal() {
     completeClose();
   }
 
-  function playFly(nextBox, immediate) {
+  function playFly(nextBox, immediate, withFly) {
     const run = () => {
+      withFly?.();
       pin(nextBox, !reduceMotion());
       afterFly(onFlySettled);
     };
@@ -1006,7 +1089,7 @@ export function initProgramModal() {
   function settleRetire(el) {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
-    unflattenLanded(el);
+    unflattenEl(el);
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
     el.classList.add("is-fly-pinned");
     el.style.setProperty("--fly-ms", "0ms");
@@ -1016,12 +1099,14 @@ export function initProgramModal() {
     el.removeAttribute("data-work-student");
   }
 
-  /** Home pose: one transform, then rest-lock until deck spread is 0. */
+  /** Home pose: exact snapshot transform, then rest-lock until the deck loop is free. */
   function finishRetireHome(el, restTf) {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(el);
-    unflattenLanded(el);
+    unflattenEl(el);
+    landedPark.delete(el);
+    el.style.removeProperty("--fly-scale");
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     el.style.transform = restTf;
     clearFlyBox(el);
@@ -1076,6 +1161,33 @@ export function initProgramModal() {
     playRetire(el, saved.rest, saved.restTransform, "home");
   }
 
+  /**
+   * Open fan: every in-flow sibling glides from its stack pose to the
+   * siblingLanding slot with the same FLY_MS / FLY_EASE as the focus flight.
+   * Start frame is the pinned copy of its stack box (0ms), then one transition.
+   * Mobile dest is fullscreen — nothing to fan around, siblings stay put.
+   */
+  function fanSiblings(focusEl) {
+    if (isMobile()) return;
+    const fresh = [];
+    cards.forEach((el) => {
+      if (el === focusEl || !inDeckFlow(el)) return;
+      if (el.classList.contains("is-fly-pinned") || retiring.has(el)) return;
+      const saved = poses.get(el);
+      if (!saved) return;
+      pinEl(el, saved.rest, false);
+      el.classList.add("is-fly-pinned");
+      fresh.push(el);
+    });
+    if (fresh.length) deck.getBoundingClientRect();
+    cards.forEach((el) => {
+      if (el === focusEl || !inDeckFlow(el)) return;
+      const saved = poses.get(el);
+      if (!saved || !el.classList.contains("is-fly-pinned")) return;
+      playRetire(el, siblingLanding(saved.rest, el, focusEl), saved.restTransform, "park");
+    });
+  }
+
   function openFocus(target) {
     const next = target || programCard;
     if (phase !== "idle" || !next) return;
@@ -1110,7 +1222,8 @@ export function initProgramModal() {
     lockCard();
     card.getBoundingClientRect();
     syncAria();
-    playFly(destBox(rest));
+    const focusEl = card;
+    playFly(destBox(rest), false, () => fanSiblings(focusEl));
   }
 
   function closeFocus(after) {
@@ -1121,15 +1234,15 @@ export function initProgramModal() {
     phase = "closing";
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
+    deck.removeAttribute("data-focus-settled");
     if (card) {
       card.classList.remove("is-work-open");
-      if (isWorksHost()) {
-        card.classList.remove("is-program-scroll");
-      } else {
-        unflattenLanded(card);
-        if (!card.hasAttribute("data-expand-host")) {
-          pin(destBox(rest), false);
-        }
+      unflattenLanded(card);
+      if (!card.hasAttribute("data-expand-host")) {
+        pin(destBox(rest), false);
+        // Start the home flight from the dest pins, not from the flattened
+        // fixed box that was the last computed value.
+        card.getBoundingClientRect();
       }
     }
     cards.forEach((el) => {
@@ -1170,11 +1283,8 @@ export function initProgramModal() {
     closeAfter = null;
 
     resetCardScroll(outgoingEl);
-    if (isWorksHost(outgoingEl)) {
-      outgoingEl.classList.remove("is-program-scroll");
-    } else {
-      unflattenLanded(outgoingEl);
-    }
+    deck.removeAttribute("data-focus-settled");
+    unflattenLanded(outgoingEl);
     outgoingEl.classList.remove("is-work-open");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);

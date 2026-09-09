@@ -4227,9 +4227,10 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   backface-visibility: visible;
   -webkit-backface-visibility: visible;
   overscroll-behavior: contain;
-  transform: rotate(var(--fly-rot, 0deg));
   transform-origin: 50% 55%;
   cursor: default;
+  /* --fly-scale: parked sibling compensation while the deck is unscaled (is-focus-landed). */
+  transform: rotate(var(--fly-rot, 0deg)) scale(var(--fly-scale, 1));
   transition:
     left var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
     top var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
@@ -4347,8 +4348,10 @@ html.is-focus-landed body:not(.list) .deck {
   perspective: none;
 }
 
-html.is-focus-frozen body:not(.list) [data-deck] .card:not(.is-program-open):not(.is-fly-pinned) {
-  visibility: hidden;
+/* Fan siblings stay painted. They only ignore the pointer while a flight is
+   in progress (open / switch / close); once settled a peeking card is a target. */
+html.is-focus-frozen body:not(.list) [data-deck]:not([data-focus-settled]) .card:not(.is-program-open),
+html.is-focus-frozen body:not(.list) [data-deck]:not([data-focus-settled]) .card:not(.is-program-open) * {
   pointer-events: none !important;
 }
 
