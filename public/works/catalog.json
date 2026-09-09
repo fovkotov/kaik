@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T23:22:30.317Z",
+  "updatedAt": "2026-09-09T23:22:37.461Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -745,13 +745,27 @@
       "author": "Ваня",
       "nick": "vanokregular",
       "stream": "1",
-      "width": 229,
-      "height": 200,
       "files": [
         "wrk_9a5a324b_0.svg"
       ],
-      "originalName": "Layer_1-2-3.svg",
-      "createdAt": "2026-09-09T23:22:30.317Z"
+      "width": 229,
+      "height": 200,
+      "createdAt": "2026-09-09T23:22:30.317Z",
+      "originalName": "Layer_1-2-3.svg"
+    },
+    {
+      "id": "wrk_55e17db2",
+      "type": "lettering",
+      "author": "Ваня",
+      "nick": "vanokregular",
+      "stream": "1",
+      "width": 179,
+      "height": 200,
+      "files": [
+        "wrk_55e17db2_0.svg"
+      ],
+      "originalName": "Layer_1-2-4.svg",
+      "createdAt": "2026-09-09T23:22:37.461Z"
     }
   ]
 }
