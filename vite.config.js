@@ -114,8 +114,11 @@ export default defineConfig({
             admin: path.resolve(root, "admin.html"),
             program: path.resolve(root, "program.html"),
             catalog: path.resolve(root, "catalog.html"),
-            experiment: path.resolve(root, "experiment.html"),
-            list: path.resolve(root, "list.html"),
+            ...Object.fromEntries(
+              ["list", "experiment"]
+                .filter((name) => fs.existsSync(path.resolve(root, `${name}.html`)))
+                .map((name) => [name, path.resolve(root, `${name}.html`)]),
+            ),
           },
     },
   },
