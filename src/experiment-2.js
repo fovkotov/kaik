@@ -150,8 +150,33 @@ function cardFor(item) {
   meta.append(...metaNodes(item));
 
   card.append(art, meta);
-  card.addEventListener("click", () => viewer?.open(item, card));
+  card.addEventListener("click", () => openViewerFor(item, card));
   return card;
+}
+
+/** Works of the active tab, in grid order. */
+function visibleWorks() {
+  return catalog.filter((item) => item.type === activeTab && imageFiles(item).length);
+}
+
+function slideFor(item, file) {
+  return { src: workFileUrl(file), alt: altFor(item), caption: () => metaNodes(item) };
+}
+
+/**
+ * Final project: slides are its own files. Workshops: slides are the workshop
+ * works themselves, in grid order, starting from the one that was clicked.
+ */
+function openViewerFor(item, card) {
+  if (!viewer) return;
+  if (item.type === TAB_FINAL) {
+    viewer.open(imageFiles(item).map((file) => slideFor(item, file)), 0, card);
+    return;
+  }
+  const works = visibleWorks();
+  const slides = works.map((work) => slideFor(work, imageFiles(work)[0]));
+  const start = Math.max(0, works.findIndex((work) => work.id === item.id));
+  viewer.open(slides, start, card);
 }
 
 function renderGrid() {
@@ -159,7 +184,7 @@ function renderGrid() {
     renderSkeletons();
     return;
   }
-  const works = catalog.filter((item) => item.type === activeTab && imageFiles(item).length);
+  const works = visibleWorks();
   const fragment = document.createDocumentFragment();
   works.forEach((item) => fragment.append(cardFor(item)));
   grid.replaceChildren(fragment);
@@ -384,7 +409,7 @@ function createViewer(root) {
   }
 
   function preload(i) {
-    const src = items[wrap(i)];
+    const src = items[wrap(i)]?.src;
     if (!src) return;
     const warm = new Image();
     warm.decoding = "async";
@@ -398,9 +423,20 @@ function createViewer(root) {
     slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
   }
 
+  let captionFor = -1;
+
+  /** Caption follows the highlighted slide (also mid-drag, together with the dots). */
+  function syncCaption(current) {
+    if (current === captionFor) return;
+    captionFor = current;
+    const nodes = items[current]?.caption?.() ?? [];
+    caption.replaceChildren(...nodes);
+  }
+
   function syncDots(active = index) {
     const current = wrap(active);
     syncSlides(current);
+    syncCaption(current);
     dots.forEach((dot, i) => {
       const on = i === current;
       dot.classList.toggle("is-active", on);
@@ -648,18 +684,18 @@ function createViewer(root) {
 
   /* ---- build ---- */
 
-  function buildSlides(item) {
+  function buildSlides(start) {
     track.replaceChildren();
-    slides = items.map((src, i) => {
+    slides = items.map((entry, i) => {
       const slide = document.createElement("div");
       slide.className = "viewer__slide";
-      if (i === 0) slide.classList.add("is-active");
+      if (i === start) slide.classList.add("is-active");
       const image = document.createElement("img");
-      image.alt = i === 0 ? altFor(item) : "";
+      image.alt = entry.alt || "";
       image.draggable = false;
       image.setAttribute("draggable", "false");
       image.decoding = "async";
-      image.src = src;
+      image.src = entry.src;
       slide.append(image);
       track.append(slide);
       return slide;
@@ -714,25 +750,31 @@ function createViewer(root) {
     });
   }
 
-  function openWork(item, shot = null) {
-    items = imageFiles(item).map((file) => workFileUrl(file));
+  /**
+   * @param {{ src: string, alt?: string, caption?: () => Node[] }[]} list
+   * @param {number} startIndex
+   * @param {HTMLElement|null} shot — element that opened the viewer; focus returns to it.
+   */
+  function openSlides(list, startIndex = 0, shot = null) {
+    items = Array.isArray(list) ? list.filter((entry) => entry?.src) : [];
     if (!items.length) return;
+    const start = wrap(startIndex);
     lastShot = shot instanceof HTMLElement ? shot : null;
     savedScroll = scrollRoot?.scrollTop ?? 0;
-    buildSlides(item);
+    captionFor = -1;
+    buildSlides(start);
     buildDots();
-    caption.replaceChildren(...metaNodes(item));
     root.classList.toggle("is-single", items.length === 1);
     root.classList.toggle("is-mobile", isMobile());
     cancelSpring();
-    pending = 0;
-    index = 0;
+    pending = start;
+    index = start;
     shift = 0;
     velocity = 0;
     setOpen(true);
     cancelZoomSession();
     resetZoom();
-    finishIndex(0);
+    finishIndex(start);
     lockScroll();
   }
 
@@ -1025,7 +1067,7 @@ function createViewer(root) {
     paint(shift);
   }).observe(root);
 
-  return { open: openWork, close };
+  return { open: openSlides, close };
 }
 
 /* ---------- boot ---------- */

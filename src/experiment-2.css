@@ -165,6 +165,7 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .works-tab.is-on {
+  color: #000;
   opacity: 1;
   cursor: default;
 }
@@ -228,8 +229,10 @@ html.is-viewer-open .experiment-two__scroll {
   will-change: transform;
 }
 
+/* Pure black ink. Multiply hides the white backing rects some SVGs carry, black stays black. */
 .lettering-hero.is-loaded .lettering-hero__image {
-  opacity: 0.75;
+  opacity: 1;
+  mix-blend-mode: multiply;
 }
 
 /* Placeholder plate where the lettering will sit; gone once the first SVG has loaded. */
@@ -626,8 +629,7 @@ html.is-viewer-open .experiment-two__scroll {
  * 34×34, fill rgba(0,0,0,0.1), radius 140px, background blur 46px, glyph black @ 40%.
  */
 .viewer__arrow,
-.viewer__close,
-.viewer__dots {
+.viewer__close {
   --viewer-chrome: rgba(0, 0, 0, 0.1);
   --viewer-blur: 46px;
   background: var(--viewer-chrome);
@@ -744,7 +746,7 @@ html.is-viewer-open .experiment-two__scroll {
   color: var(--muted);
 }
 
-/* Dots sit in the same pill chrome as the buttons, bottom-centred like the site lightbox. */
+/* Bare dots, no plate — bottom-centred like the site lightbox. */
 .viewer__dots {
   position: absolute;
   left: 50%;
@@ -783,7 +785,8 @@ html.is-viewer-open .experiment-two__scroll {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--dot);
+  /* No plate under them any more, so idle dots get a touch more ink to stay readable. */
+  background: rgba(0, 0, 0, 0.28);
   transition: background 200ms ease;
 }
 
