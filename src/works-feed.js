@@ -5,6 +5,7 @@ import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import { subscribeWorksCatalog } from "./works/live.js";
 import {
   PLACE_RULES,
+  TYPE_DAILY,
   TYPE_FINAL,
   TYPE_FONT,
   TYPE_LETTERING,
@@ -290,7 +291,10 @@ function orderItems(items, opts) {
 
 function renderFeed(root, catalog, opts) {
   let items = catalog.items;
-  if (Array.isArray(opts.types)) items = items.filter((item) => opts.types.includes(item.type));
+  // Daily-practice letters are an admin bucket: only shown when asked for explicitly.
+  items = Array.isArray(opts.types)
+    ? items.filter((item) => opts.types.includes(item.type))
+    : items.filter((item) => item.type !== TYPE_DAILY);
   items = orderItems(items, opts);
   const cells = items.map((item) => workMarkup(item, opts)).filter(Boolean).join("");
   root.innerHTML = cells ? `<div class="works-feed__grid">${cells}</div>` : "";

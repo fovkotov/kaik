@@ -1,7 +1,9 @@
 export const TYPE_LETTERING = "lettering";
 export const TYPE_FINAL = "final";
 export const TYPE_FONT = "font";
-export const WORK_TYPES = [TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
+/** Daily practice: a bucket of single letters, kept out of the public feed by default. */
+export const TYPE_DAILY = "daily";
+export const WORK_TYPES = [TYPE_LETTERING, TYPE_DAILY, TYPE_FINAL, TYPE_FONT];
 export const WORKS_CATALOG_EVENT = "works-catalog";
 
 export function normalizeWorkType(value) {
@@ -92,6 +94,7 @@ export const PLACE_RULES = Object.freeze({
   spans: Object.freeze({
     [KIND_LETTER]: [1, 1],
     [TYPE_LETTERING]: [2, 1],
+    [TYPE_DAILY]: [1, 1],
     [TYPE_FINAL]: [2, 1],
     [KIND_TALL_FINAL]: [2, 2],
     [TYPE_FONT]: [2, 1],
@@ -119,7 +122,7 @@ export function placeWork(item, rules = PLACE_RULES) {
   const spans = { ...PLACE_RULES.spans, ...(rules?.spans || {}) };
   const letterMax = Number(rules?.letterMaxRatio ?? PLACE_RULES.letterMaxRatio);
   const tallMax = Number(rules?.tallFinalMaxRatio ?? PLACE_RULES.tallFinalMaxRatio);
-  if (type === TYPE_LETTERING && ratio > 0 && ratio <= letterMax) {
+  if ((type === TYPE_LETTERING || type === TYPE_DAILY) && ratio > 0 && ratio <= letterMax) {
     return { ...spanOf(spans, KIND_LETTER), kind: KIND_LETTER };
   }
   if (type === TYPE_FINAL && ratio > 0 && ratio < tallMax) {

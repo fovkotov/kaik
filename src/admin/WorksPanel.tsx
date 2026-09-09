@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { emptyWorksCatalog, loadWorksCatalog, uniqueWorkValues, workFileUrl } from "@/works/catalog.js";
 import { sameWorksCatalog, subscribeWorksCatalog } from "@/works/live.js";
 import {
+  TYPE_DAILY,
   TYPE_FINAL,
   TYPE_FONT,
   TYPE_LETTERING,
@@ -357,13 +358,20 @@ async function worksApi(path: string, options?: RequestInit): Promise<WorksCatal
 function typeKey(type: string) {
   if (type === TYPE_FINAL) return "admin.type.final";
   if (type === TYPE_FONT) return "admin.type.font";
+  if (type === TYPE_DAILY) return "admin.type.daily";
   return "admin.type.lettering";
 }
 
 function acceptFor(type: WorkType) {
   if (type === TYPE_FINAL) return "image/*,.svg,.png,.jpg,.jpeg,.webp,.pdf,application/pdf";
   if (type === TYPE_FONT) return ".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2";
+  if (type === TYPE_DAILY) return ".svg,image/svg+xml,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp";
   return ".svg,image/svg+xml";
+}
+
+/** Rasters get squeezed to webp for slide decks and daily letters; workshop SVGs stay as-is. */
+function compressRasters(type: WorkType) {
+  return type === TYPE_FINAL || type === TYPE_DAILY;
 }
 
 async function filesForType(files: File[], type: WorkType): Promise<UploadFile[]> {
@@ -377,7 +385,7 @@ async function filesForType(files: File[], type: WorkType): Promise<UploadFile[]
       out.push(...(await pdfToWebpSlides(file)));
       continue;
     }
-    out.push(await fileToUpload(file, type === TYPE_FINAL));
+    out.push(await fileToUpload(file, compressRasters(type)));
   }
   return out;
 }
@@ -429,8 +437,8 @@ function TypeSelect({
       value={value}
       aria-label={copy("admin.kind")}
       onChange={(event) => {
-        const next = event.target.value;
-        if (next === TYPE_LETTERING || next === TYPE_FINAL || next === TYPE_FONT) onChange(next);
+        const next = event.target.value as WorkType;
+        if (WORK_TYPES.includes(next)) onChange(next);
       }}
     >
       {WORK_TYPES.map((type) => (
@@ -591,13 +599,17 @@ export function WorksPanel({
     const files = [...list];
     if (!files.length || busyRef.current) return;
     busyRef.current = true;
+    // On the daily-practice tab every picture is its own letter, so rasters
+    // become singles instead of being stacked into one slide deck.
+    const dailyMode = catalogType === TYPE_DAILY;
     const fonts = files.filter((file) => kindOf(file) === "font");
-    const rasters = files.filter((file) => kindOf(file) === "raster");
+    const rasters = dailyMode ? [] : files.filter((file) => kindOf(file) === "raster");
     const pdfs = files.filter((file) => kindOf(file) === "pdf");
     const singles = files.filter((file) => {
       const kind = kindOf(file);
-      return kind === "svg" || kind === "other";
+      return kind === "svg" || kind === "other" || (dailyMode && kind === "raster");
     });
+    const singleType: WorkType = dailyMode ? TYPE_DAILY : TYPE_LETTERING;
     const total = fonts.length + rasters.length + pdfs.length + singles.length;
     let done = 0;
     setProgress({ kind: "import", n: 0, total });
@@ -657,11 +669,11 @@ export function WorksPanel({
       for (const file of singles) {
         next.push({
           key: `${file.name}-${Math.random()}`,
-          type: TYPE_LETTERING,
+          type: singleType,
           author: bulkAuthor,
           nick: normalizeNick(bulkNick),
           stream: bulkStream,
-          files: [await fileToUpload(file)],
+          files: [await fileToUpload(file, dailyMode)],
         });
         await tick();
       }
