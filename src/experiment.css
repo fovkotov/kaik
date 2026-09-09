@@ -615,17 +615,11 @@ html:not(.is-mobile) .img-slider__slide:not(.is-active) {
   right: 0;
 }
 
-.viewer.is-single .viewer__hit--prev,
-.viewer.is-single .viewer__hit--next,
+/* Single-image work: arrows still step to the neighbouring works, only the
+   in-work pager is pointless. */
 .viewer.is-single .viewer__dots,
 .viewer.is-single .viewer__counter {
   display: none;
-}
-
-.viewer.is-single .viewer__hit--mid {
-  left: 0;
-  width: 100%;
-  cursor: zoom-out;
 }
 
 .viewer__arrow {

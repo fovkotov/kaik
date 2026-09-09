@@ -57,7 +57,12 @@ export function createWorksViewer(root) {
   const chrome = "[data-viewer-close], [data-viewer-dots], [data-viewer-dot]";
   const navSel = "[data-viewer-prev], [data-viewer-next]";
 
-  let items = [];
+  /**
+   * One flat strip of slides across every work in grid order:
+   * `{ work, src, i (slide in work), n (slides in work), first (strip index of slide 0) }`.
+   * Arrows walk the strip, so the last slide of a deck steps into the next work.
+   */
+  let entries = [];
   let slides = [];
   let dots = [];
   let index = 0;
@@ -70,8 +75,10 @@ export function createWorksViewer(root) {
   let samples = [];
   let ignoreClickUntil = 0;
   let returnFocus = null;
+  let shownWork = null;
+  let onClose = null;
 
-  const count = () => items.length || 1;
+  const count = () => entries.length || 1;
   const wrap = (i) => ((i % count()) + count()) % count();
   const widthOf = () => track?.clientWidth || root.clientWidth || window.innerWidth || 1;
 
@@ -115,15 +122,27 @@ export function createWorksViewer(root) {
     });
   }
 
+  /** Caption, dots and counter follow the work under the active slide. */
+  function showWork(entry) {
+    if (!entry || entry.work === shownWork) return;
+    shownWork = entry.work;
+    caption.replaceChildren(...workMetaNodes(entry.work));
+    root.classList.toggle("is-single", entry.n === 1);
+    root.classList.toggle("is-many", entry.n > MANY_SLIDES);
+    buildDots(entry);
+  }
+
   function syncDots(active = index) {
     const current = wrap(active);
+    const entry = entries[current];
     slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
+    showWork(entry);
     dots.forEach((dot, i) => {
-      const on = i === current;
+      const on = i === entry?.i;
       dot.classList.toggle("is-active", on);
       dot.setAttribute("aria-current", on ? "true" : "false");
     });
-    if (counter) counter.textContent = `${current + 1} / ${count()}`;
+    if (counter && entry) counter.textContent = `${entry.i + 1} / ${entry.n}`;
   }
 
   function cancelSpring() {
@@ -186,6 +205,8 @@ export function createWorksViewer(root) {
     });
     paint(0);
     syncDots();
+    preload(index + 1);
+    preload(index - 1);
   }
 
   function adoptPending() {
@@ -231,38 +252,57 @@ export function createWorksViewer(root) {
     ignoreClickUntil = performance.now() + 450;
   }
 
-  function buildSlides(item) {
+  function buildStrip(sequence) {
+    entries = [];
+    sequence.forEach((work) => {
+      const files = imageFiles(work);
+      const first = entries.length;
+      files.forEach((file, i) => {
+        entries.push({ work, src: workFileUrl(file), i, n: files.length, first });
+      });
+    });
+  }
+
+  function buildSlides() {
     track.replaceChildren();
-    slides = items.map((src, i) => {
+    slides = entries.map((entry) => {
       const slide = document.createElement("div");
       slide.className = "viewer__slide";
       const image = document.createElement("img");
-      image.alt = i === 0 ? altFor(item) : "";
+      image.alt = entry.i === 0 ? altFor(entry.work) : "";
       image.draggable = false;
       image.decoding = "async";
-      image.src = src;
+      image.loading = "lazy";
+      image.src = entry.src;
       slide.append(image);
       track.append(slide);
       return slide;
     });
   }
 
-  function buildDots() {
+  /** Dots belong to the current work only; a dot jumps within that work. */
+  function buildDots(entry) {
     pager.replaceChildren();
-    dots = items.map((_, i) => {
+    dots = Array.from({ length: entry.n }, (_, i) => {
       const dot = document.createElement("button");
       dot.type = "button";
       dot.className = "viewer__dot";
       dot.setAttribute("data-viewer-dot", "");
-      dot.setAttribute("aria-label", `${i + 1} / ${items.length}`);
+      dot.setAttribute("aria-label", `${i + 1} / ${entry.n}`);
       dot.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        goTo(i);
+        goTo(entry.first + i);
       });
       pager.append(dot);
       return dot;
     });
+  }
+
+  /** Eager-load the neighbours so stepping across works does not flash. */
+  function preload(i) {
+    const img = slides[wrap(i)]?.querySelector("img");
+    if (img) img.loading = "eager";
   }
 
   function setOpen(next) {
@@ -282,25 +322,37 @@ export function createWorksViewer(root) {
     root.classList.remove("is-dragging");
     root.querySelectorAll(".viewer__hit.is-aiming").forEach((hit) => hit.classList.remove("is-aiming"));
     const target = returnFocus;
+    const work = shownWork;
+    const done = onClose;
     returnFocus = null;
-    requestAnimationFrame(() => target?.focus?.({ preventScroll: true }));
+    onClose = null;
+    requestAnimationFrame(() => {
+      target?.focus?.({ preventScroll: true });
+      done?.(work);
+    });
   }
 
-  function openWork(item, { index: start = 0, returnFocus: shot = null } = {}) {
-    items = imageFiles(item).map((file) => workFileUrl(file));
-    if (!items.length) return;
+  /**
+   * Open `item` at slide `index`. `sequence` is the list of works in grid
+   * order — the viewer walks through all of them; without it, only `item`.
+   * `onClose(work)` gets the work that was on screen when the viewer closed.
+   */
+  function openWork(item, { index: start = 0, sequence = null, returnFocus: shot = null, onClose: done = null } = {}) {
+    const list = Array.isArray(sequence) && sequence.length ? sequence : [item];
+    buildStrip(list.some((work) => work.id === item.id) ? list : [item, ...list]);
+    if (!entries.length) return;
+    let at = entries.findIndex((entry) => entry.work.id === item.id && entry.i === (Number(start) || 0));
+    if (at < 0) at = Math.max(0, entries.findIndex((entry) => entry.work.id === item.id));
     returnFocus = shot;
-    buildSlides(item);
-    buildDots();
-    caption.replaceChildren(...workMetaNodes(item));
-    root.classList.toggle("is-single", items.length === 1);
-    root.classList.toggle("is-many", items.length > MANY_SLIDES);
+    onClose = typeof done === "function" ? done : null;
+    shownWork = null;
+    buildSlides();
     root.classList.toggle("is-mobile", isMobile());
     cancelSpring();
     shift = 0;
     velocity = 0;
     setOpen(true);
-    finishIndex(Math.min(items.length - 1, Math.max(0, Number(start) || 0)));
+    finishIndex(at);
     root.querySelector("[data-viewer-close]")?.focus({ preventScroll: true });
   }
 
@@ -336,12 +388,10 @@ export function createWorksViewer(root) {
     hit.addEventListener("pointerleave", () => hit.classList.remove("is-aiming"));
   });
 
-  /* Middle third: a click on the picture closes (single) or does nothing (deck). */
+  /* Middle third: the picture itself is inert — close with × or Esc. */
   root.querySelector("[data-viewer-mid]")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (performance.now() < ignoreClickUntil) return;
-    if (items.length === 1) close();
   });
 
   root.addEventListener("dragstart", (event) => event.preventDefault());

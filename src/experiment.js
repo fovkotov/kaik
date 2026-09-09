@@ -19,15 +19,33 @@ const viewer = createWorksViewer(document.querySelector("[data-viewer]"));
 /* Click on a work opens it fullscreen; the in-cell arrows only flip slides. */
 const feed = initWorksFeed({ root: feedRoot, tapNext: false, openable: true });
 
+function itemOf(cell) {
+  return feed?.catalog?.items.find((entry) => entry.id === cell.dataset.workId) || null;
+}
+
+/** Works in the order the grid shows them — the viewer walks this list. */
+function gridSequence() {
+  return [...feedRoot.querySelectorAll("[data-work-open]")].map(itemOf).filter(Boolean);
+}
+
+/* Back from the viewer: land on the work you ended up on, not the one you opened. */
+function landOn(work) {
+  if (!work) return;
+  const cell = feedRoot.querySelector(`[data-work-open][data-work-id="${CSS.escape(work.id)}"]`);
+  if (!cell) return;
+  cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+  cell.focus({ preventScroll: true });
+}
+
 function openCell(cell) {
-  const item = feed?.catalog?.items.find((entry) => entry.id === cell.dataset.workId);
+  const item = itemOf(cell);
   if (!item || !viewer) return;
   const slides = [...cell.querySelectorAll("[data-img-slider-slide]")];
   const index = Math.max(
     0,
     slides.findIndex((slide) => slide.classList.contains("is-active")),
   );
-  viewer.open(item, { index, returnFocus: cell });
+  viewer.open(item, { index, sequence: gridSequence(), returnFocus: cell, onClose: landOn });
 }
 
 feedRoot?.addEventListener("click", (event) => {
