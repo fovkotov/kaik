@@ -50,7 +50,8 @@ function sliderMarkup(item, files) {
         </figure>`,
     )
     .join("");
-  return `<div class="img-slider works-feed__slider" data-img-slider data-slider-inline data-slider-tap-next>
+  const many = files.length > 12 ? " works-feed__slider--many" : "";
+  return `<div class="img-slider works-feed__slider${many}" data-img-slider data-slider-inline data-slider-tap-next>
     ${slides}
     <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="${esc(t("history.prev"))}">
       <img class="img-slider__chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />

@@ -2499,6 +2499,11 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
   height: calc(100cqw * 5 / 1408);
 }
 
+/* Long decks (30+ slides): dots would overflow the cell — arrows and tap carry it. */
+.works-feed .works-feed__slider--many .img-slider__dots {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .works-feed__grid {
     --feed-cols: 2;
