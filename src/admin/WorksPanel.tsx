@@ -7,7 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { toast } from "sonner";
-import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Trash2Icon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Loader2Icon, Trash2Icon, XIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -227,6 +227,31 @@ function dataUrlToBytes(data: string): Uint8Array {
   return out;
 }
 
+// Network activity counter shared by every works request; drives the
+// bottom-right loader so any pending call (not only bulk saves) is visible.
+let inflightCount = 0;
+const inflightListeners = new Set<(n: number) => void>();
+
+function trackInflight<T>(promise: Promise<T>): Promise<T> {
+  inflightCount += 1;
+  for (const fn of inflightListeners) fn(inflightCount);
+  return promise.finally(() => {
+    inflightCount -= 1;
+    for (const fn of inflightListeners) fn(inflightCount);
+  });
+}
+
+function useInflight() {
+  const [n, setN] = useState(inflightCount);
+  useEffect(() => {
+    inflightListeners.add(setN);
+    return () => {
+      inflightListeners.delete(setN);
+    };
+  }, []);
+  return n;
+}
+
 function apiFail(status: number, message?: string) {
   if (status === 413) return "TOO_LARGE";
   return message || `Request failed (${status})`;
@@ -273,14 +298,16 @@ async function packFile(file: UploadFile): Promise<PackedFile> {
     file.blob ||
     (file.data ? new Blob([dataUrlToBytes(file.data)], { type: file.mime || "application/octet-stream" }) : null);
   if (!body) throw new Error("Empty file");
-  const res = await fetch("/api/works/upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": file.mime || body.type || "application/octet-stream",
-      "X-Filename": encodeURIComponent(file.filename),
-    },
-    body,
-  });
+  const res = await trackInflight(
+    fetch("/api/works/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": file.mime || body.type || "application/octet-stream",
+        "X-Filename": encodeURIComponent(file.filename),
+      },
+      body,
+    }),
+  );
   const text = await res.text();
   let data: { error?: string; sha?: string } = {};
   try {
@@ -310,10 +337,12 @@ async function fileToUpload(file: File, asFinal = false): Promise<UploadFile> {
 }
 
 async function worksApi(path: string, options?: RequestInit): Promise<WorksCatalog> {
-  const res = await fetch(`/api/works${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  const res = await trackInflight(
+    fetch(`/api/works${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    }),
+  );
   const text = await res.text();
   let data: { error?: string } = {};
   try {
@@ -482,6 +511,7 @@ export function WorksPanel({
   const [editSlides, setEditSlides] = useState<Slide[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmBulk, setConfirmBulk] = useState(false);
+  const inflight = useInflight();
   const [selected, setSelected] = useState<string[]>([]);
   const [lasso, setLasso] = useState<Lasso | null>(null);
   const [progress, setProgress] = useState<{ kind: "import" | "save"; n: number; total: number } | null>(null);
@@ -571,16 +601,9 @@ export function WorksPanel({
     const total = fonts.length + rasters.length + pdfs.length + singles.length;
     let done = 0;
     setProgress({ kind: "import", n: 0, total });
-    const toastId = toast.loading(
-      copy("admin.preparing").replace("{n}", "0").replace("{total}", String(total)),
-    );
     const tick = async () => {
       done += 1;
       setProgress({ kind: "import", n: done, total });
-      toast.loading(
-        copy("admin.preparing").replace("{n}", String(done)).replace("{total}", String(total)),
-        { id: toastId },
-      );
       await yieldUi();
     };
     try {
@@ -643,9 +666,8 @@ export function WorksPanel({
         await tick();
       }
       setInbox((current) => [...current, ...next]);
-      toast.dismiss(toastId);
     } catch {
-      toast.error(copy("admin.error"), { id: toastId });
+      toast.error(copy("admin.error"));
     } finally {
       busyRef.current = false;
       setProgress(null);
@@ -714,17 +736,9 @@ export function WorksPanel({
     let leftover = [...inbox];
     const totalFiles = leftover.reduce((sum, item) => sum + item.files.length, 0);
     let saved = 0;
-    let inflight = 0;
-    const toastId = toast.loading(
-      copy("admin.sending").replace("{n}", "0").replace("{total}", String(totalFiles)),
-    );
+    let uploading = 0;
     const report = () => {
-      const n = Math.min(totalFiles, saved + inflight);
-      setProgress({ kind: "save", n, total: totalFiles });
-      toast.loading(
-        copy("admin.sending").replace("{n}", String(n)).replace("{total}", String(totalFiles)),
-        { id: toastId },
-      );
+      setProgress({ kind: "save", n: Math.min(totalFiles, saved + uploading), total: totalFiles });
     };
     report();
     try {
@@ -752,7 +766,7 @@ export function WorksPanel({
           revokeUploads(item.files);
           saved += item.files.length;
         }
-        inflight = 0;
+        uploading = 0;
         batch = [];
         batchBytes = 0;
         leftover = leftover.filter((item) => !done.has(item.key));
@@ -764,7 +778,7 @@ export function WorksPanel({
         const files = await mapPool(item.files, UPLOAD_CONCURRENCY, async (file) => {
           const packed = await packFile(file);
           if (packed.sha) {
-            inflight += 1;
+            uploading += 1;
             report();
           }
           return packed;
@@ -778,12 +792,9 @@ export function WorksPanel({
       }
       await flush();
       setInbox([]);
-      toast.success(copy("admin.saved"), { id: toastId });
+      toast.success(copy("admin.saved"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      toast.error(message === "TOO_LARGE" ? copy("admin.tooLarge") : message || copy("admin.error"), {
-        id: toastId,
-      });
+      toastApiError(error, copy);
     } finally {
       busyRef.current = false;
       setProgress(null);
@@ -1351,13 +1362,23 @@ export function WorksPanel({
         )}
       </section>
 
-      {progress ? (
-        <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4">
-          <div className="rounded-full border bg-background px-4 py-2 text-sm shadow-sm">
-            {copy(progress.kind === "import" ? "admin.preparing" : "admin.sending")
-              .replace("{n}", String(progress.n))
-              .replace("{total}", String(progress.total))}
-          </div>
+      {progress || inflight > 0 ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(
+            "pointer-events-none fixed right-4 z-50 flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 text-sm shadow-sm backdrop-blur transition-[bottom]",
+            selected.length > 0 ? "bottom-16" : "bottom-4",
+          )}
+        >
+          <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+          <span className="tabular-nums">
+            {progress
+              ? copy(progress.kind === "import" ? "admin.preparing" : "admin.sending")
+                  .replace("{n}", String(progress.n))
+                  .replace("{total}", String(progress.total))
+              : copy("admin.loading")}
+          </span>
         </div>
       ) : null}
 

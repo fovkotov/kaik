@@ -16,7 +16,8 @@ createRoot(document.getElementById("admin-root")!).render(
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <TooltipProvider>
         <AdminApp />
-        <Toaster />
+        {/* Toasts stack above the bottom-right loader pill. */}
+        <Toaster position="bottom-right" offset={{ bottom: 56, right: 16 }} mobileOffset={{ bottom: 56 }} />
       </TooltipProvider>
     </ThemeProvider>
   </StrictMode>,
