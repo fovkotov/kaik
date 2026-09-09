@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T21:34:31.056Z",
+  "updatedAt": "2026-09-09T21:35:09.870Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -477,6 +477,54 @@
       "height": 157,
       "createdAt": "2026-09-08T14:27:00.000Z",
       "originalName": "alena-last.svg"
+    },
+    {
+      "id": "wrk_9977bb38",
+      "type": "final",
+      "author": "Алена",
+      "nick": "alenapichh",
+      "stream": "1",
+      "width": 1600,
+      "height": 900,
+      "files": [
+        "wrk_9977bb38_0.webp",
+        "wrk_9977bb38_1.webp",
+        "wrk_9977bb38_2.webp",
+        "wrk_9977bb38_3.webp",
+        "wrk_9977bb38_4.webp",
+        "wrk_9977bb38_5.webp",
+        "wrk_9977bb38_6.webp",
+        "wrk_9977bb38_7.webp",
+        "wrk_9977bb38_8.webp",
+        "wrk_9977bb38_9.webp",
+        "wrk_9977bb38_10.webp",
+        "wrk_9977bb38_11.webp",
+        "wrk_9977bb38_12.webp",
+        "wrk_9977bb38_13.webp",
+        "wrk_9977bb38_14.webp",
+        "wrk_9977bb38_15.webp",
+        "wrk_9977bb38_16.webp",
+        "wrk_9977bb38_17.webp",
+        "wrk_9977bb38_18.webp",
+        "wrk_9977bb38_19.webp",
+        "wrk_9977bb38_20.webp",
+        "wrk_9977bb38_21.webp",
+        "wrk_9977bb38_22.webp",
+        "wrk_9977bb38_23.webp",
+        "wrk_9977bb38_24.webp",
+        "wrk_9977bb38_25.webp",
+        "wrk_9977bb38_26.webp",
+        "wrk_9977bb38_27.webp",
+        "wrk_9977bb38_28.webp",
+        "wrk_9977bb38_29.webp",
+        "wrk_9977bb38_30.webp",
+        "wrk_9977bb38_31.webp",
+        "wrk_9977bb38_32.webp",
+        "wrk_9977bb38_33.webp",
+        "wrk_9977bb38_34.webp"
+      ],
+      "originalName": "1.webp",
+      "createdAt": "2026-09-09T21:35:09.870Z"
     }
   ]
 }
