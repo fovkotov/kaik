@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T22:08:55.094Z",
+  "updatedAt": "2026-09-09T22:09:03.756Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -565,32 +565,6 @@
       "width": 1920,
       "height": 1080,
       "createdAt": "2026-09-09T21:53:59.196Z",
-      "originalName": "01.webp"
-    },
-    {
-      "id": "wrk_626a0d94",
-      "type": "final",
-      "author": "АРТЕМ",
-      "nick": "svrdee",
-      "stream": "1",
-      "files": [
-        "wrk_626a0d94_0.webp",
-        "wrk_626a0d94_1.webp",
-        "wrk_626a0d94_2.webp",
-        "wrk_626a0d94_3.webp",
-        "wrk_626a0d94_4.webp",
-        "wrk_626a0d94_5.webp",
-        "wrk_626a0d94_6.webp",
-        "wrk_626a0d94_7.webp",
-        "wrk_626a0d94_8.webp",
-        "wrk_626a0d94_9.webp",
-        "wrk_626a0d94_10.webp",
-        "wrk_626a0d94_11.webp",
-        "wrk_626a0d94_12.webp"
-      ],
-      "width": 1920,
-      "height": 1080,
-      "createdAt": "2026-09-09T21:54:06.669Z",
       "originalName": "01.webp"
     },
     {
