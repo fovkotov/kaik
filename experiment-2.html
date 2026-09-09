@@ -25,7 +25,32 @@
         <a href="https://kaik.pictures/information" target="_top" rel="noreferrer">Information</a>
       </header>
 
-      <main>
+      <main class="works-page">
+        <div class="works-tabs" role="tablist" aria-label="Разделы">
+          <button
+            class="works-tab is-on"
+            type="button"
+            role="tab"
+            id="tab-lettering"
+            aria-selected="true"
+            aria-controls="panel-lettering"
+            data-tab="lettering"
+          >
+            воркшопы
+          </button>
+          <button
+            class="works-tab"
+            type="button"
+            role="tab"
+            id="tab-final"
+            aria-selected="false"
+            aria-controls="panel-final"
+            data-tab="final"
+          >
+            финальные проекты
+          </button>
+        </div>
+
         <section class="lettering-hero" data-lettering-hero aria-label="Интерактивный леттеринг">
           <p class="lettering-hero__hint">двигайте · нажмите, чтобы сменить</p>
           <canvas class="lettering-hero__canvas" data-lettering-canvas aria-hidden="true"></canvas>
@@ -39,29 +64,41 @@
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <section class="works-section" aria-labelledby="works-title">
-          <div class="works-section__head">
-            <h1 id="works-title">работы 1 потока</h1>
-            <div class="works-filters">
-              <label class="works-filter">
-                <span>раздел</span>
-                <select data-type-filter>
-                  <option value="lettering">воркшопы</option>
-                  <option value="final">финальные проекты</option>
-                </select>
-              </label>
-              <label class="works-filter">
-                <span>автор</span>
-                <select data-author-filter>
-                  <option value="">все</option>
-                </select>
-              </label>
-            </div>
-          </div>
-          <div class="works-grid" data-works-grid aria-live="polite"></div>
+        <section class="works-panel" role="tabpanel" data-works-panel aria-labelledby="tab-lettering">
+          <div class="works-grid" data-works-grid></div>
           <p class="works-empty" data-works-empty hidden>Здесь пока нет работ.</p>
         </section>
       </main>
+    </div>
+
+    <div
+      class="viewer"
+      data-viewer
+      hidden
+      inert
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Просмотр работы"
+    >
+      <figure class="viewer__stage" data-viewer-track></figure>
+      <button type="button" class="viewer__hit viewer__hit--prev" data-viewer-prev aria-label="Предыдущий слайд">
+        <span class="viewer__arrow" aria-hidden="true">
+          <img class="viewer__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
+        </span>
+      </button>
+      <div class="viewer__hit viewer__hit--mid" data-viewer-mid></div>
+      <button type="button" class="viewer__hit viewer__hit--next" data-viewer-next aria-label="Следующий слайд">
+        <span class="viewer__arrow" aria-hidden="true">
+          <img class="viewer__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
+        </span>
+      </button>
+      <button type="button" class="viewer__close" data-viewer-close aria-label="Закрыть">
+        <img src="/assets/author/lb-close.svg" alt="" width="24" height="24" draggable="false" />
+      </button>
+      <p class="viewer__caption" data-viewer-caption></p>
+      <p class="viewer__counter" data-viewer-counter></p>
+      <div class="viewer__dots" data-viewer-dots role="tablist"></div>
     </div>
 
     <script type="module" src="/src/experiment-2.js"></script>
