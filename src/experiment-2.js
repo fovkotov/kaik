@@ -5,8 +5,7 @@ const TAB_WORKSHOPS = "lettering";
 const TAB_FINAL = "final";
 
 const hero = document.querySelector("[data-lettering-hero]");
-const canvas = document.querySelector("[data-lettering-canvas]");
-const fallback = document.querySelector("[data-lettering-fallback]");
+const letteringImage = document.querySelector("[data-lettering-image]");
 const action = document.querySelector("[data-lettering-action]");
 const credit = document.querySelector("[data-lettering-credit]");
 const reviewHero = document.querySelector("[data-review-hero]");
@@ -27,7 +26,7 @@ let catalog = [];
 let workshopWorks = [];
 let activeTab = TAB_WORKSHOPS;
 let activeLettering = null;
-let shader = null;
+let follower = null;
 let viewer = null;
 
 /* ---------- helpers ---------- */
@@ -95,7 +94,7 @@ function setTab(next) {
   panel.setAttribute("aria-labelledby", `tab-${next}`);
   const showHero = next === TAB_WORKSHOPS;
   hero.hidden = !showHero;
-  shader?.setActive(showHero);
+  follower?.setActive(showHero);
   reviewHero.hidden = showHero;
   if (showHero) stopReview();
   renderGrid();
@@ -161,11 +160,9 @@ function setHero(item) {
   const file = imageFiles(item)[0];
   if (!file) return;
   activeLettering = item;
-  const url = workFileUrl(file);
-  fallback.src = url;
-  fallback.alt = altFor(item);
+  letteringImage.src = workFileUrl(file);
+  letteringImage.alt = altFor(item);
   credit.replaceChildren(...metaNodes(item));
-  shader?.setImage(url);
 }
 
 function nextHero() {
@@ -173,209 +170,62 @@ function nextHero() {
   if (next) setHero(next);
 }
 
-function compile(gl, kind, source) {
-  const shaderObject = gl.createShader(kind);
-  gl.shaderSource(shaderObject, source);
-  gl.compileShader(shaderObject);
-  if (!gl.getShaderParameter(shaderObject, gl.COMPILE_STATUS)) {
-    throw new Error(gl.getShaderInfoLog(shaderObject) || "Shader compile failed");
-  }
-  return shaderObject;
-}
-
-function createMesh(columns = 34, rows = 20) {
-  const vertices = [];
-  const indices = [];
-  for (let y = 0; y <= rows; y += 1) {
-    for (let x = 0; x <= columns; x += 1) {
-      vertices.push(x / columns, y / rows, x / columns, 1 - y / rows);
-    }
-  }
-  for (let y = 0; y < rows; y += 1) {
-    for (let x = 0; x < columns; x += 1) {
-      const a = y * (columns + 1) + x;
-      const b = a + 1;
-      const c = a + columns + 1;
-      const d = c + 1;
-      indices.push(a, c, b, b, c, d);
-    }
-  }
-  return { vertices: new Float32Array(vertices), indices: new Uint16Array(indices) };
-}
-
-function createLetteringShader() {
-  const gl = canvas.getContext("webgl", { alpha: true, antialias: true, premultipliedAlpha: true });
-  if (!gl) return null;
-
-  const vertexSource = `
-    attribute vec2 a_position;
-    attribute vec2 a_uv;
-    uniform vec2 u_center;
-    uniform vec2 u_size;
-    uniform vec2 u_velocity;
-    varying vec2 v_uv;
-
-    void main() {
-      vec2 local = a_position - 0.5;
-      float xArc = local.y * abs(local.y);
-      float yArc = local.x * abs(local.x);
-      local.x += xArc * u_velocity.y * 0.34;
-      local.y -= yArc * u_velocity.x * 0.24;
-      local += vec2(local.y * u_velocity.x, local.x * u_velocity.y) * 0.045;
-      gl_Position = vec4(u_center + local * u_size, 0.0, 1.0);
-      v_uv = a_uv;
-    }
-  `;
-  /* Ink on the light page: black at 75% alpha, premultiplied. */
-  const fragmentSource = `
-    precision mediump float;
-    uniform sampler2D u_texture;
-    /* Must match the vertex shader's default highp or the program fails to link. */
-    uniform highp vec2 u_velocity;
-    varying vec2 v_uv;
-
-    void main() {
-      vec2 uv = v_uv;
-      float wave = sin((uv.y * 2.0 + uv.x) * 3.14159265) * 0.008;
-      uv.x += wave * u_velocity.y;
-      uv.y -= wave * u_velocity.x;
-      vec4 source = texture2D(u_texture, uv);
-      gl_FragColor = vec4(0.0, 0.0, 0.0, source.a * 0.75);
-    }
-  `;
-
-  const program = gl.createProgram();
-  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, vertexSource));
-  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragmentSource));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(program) || "Shader link failed");
-  }
-  gl.useProgram(program);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-
-  const mesh = createMesh();
-  const vertexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
-  const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
-  const position = gl.getAttribLocation(program, "a_position");
-  const uv = gl.getAttribLocation(program, "a_uv");
-  gl.enableVertexAttribArray(position);
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, stride, 0);
-  gl.enableVertexAttribArray(uv);
-  gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, stride, 2 * Float32Array.BYTES_PER_ELEMENT);
-
-  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-
-  const uniforms = {
-    center: gl.getUniformLocation(program, "u_center"),
-    size: gl.getUniformLocation(program, "u_size"),
-    velocity: gl.getUniformLocation(program, "u_velocity"),
-  };
-  let imageSize = { width: 1, height: 1 };
-  let hasImage = false;
-  let currentCenter = { x: 0.5, y: 0.5 };
-  let targetCenter = { x: 0.5, y: 0.5 };
-  let currentVelocity = { x: 0, y: 0 };
-  let targetVelocity = { x: 0, y: 0 };
-  let lastPointer = { x: 0.5, y: 0.5, time: performance.now() };
+/**
+ * The lettering is the cursor: its centre eases toward the pointer, nothing else.
+ * Offsets are measured from the hero centre so the CSS centring stays intact.
+ */
+function createFollower() {
+  const EASE = 0.16;
+  const current = { x: 0, y: 0 };
+  const target = { x: 0, y: 0 };
   let frame = 0;
   let active = true;
 
-  function resize() {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.max(1, Math.round(rect.width * dpr));
-    const height = Math.max(1, Math.round(rect.height * dpr));
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-      gl.viewport(0, 0, width, height);
-    }
+  function apply() {
+    letteringImage.style.transform = `translate(calc(-50% + ${current.x.toFixed(2)}px), calc(-50% + ${current.y.toFixed(2)}px))`;
   }
 
-  function draw() {
+  function tick() {
     frame = 0;
     if (!active) return;
-    resize();
-    currentCenter.x += (targetCenter.x - currentCenter.x) * 0.11;
-    currentCenter.y += (targetCenter.y - currentCenter.y) * 0.11;
-    currentVelocity.x += (targetVelocity.x - currentVelocity.x) * 0.12;
-    currentVelocity.y += (targetVelocity.y - currentVelocity.y) * 0.12;
-    targetVelocity.x *= 0.9;
-    targetVelocity.y *= 0.9;
-
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    if (hasImage) {
-      const cssWidth = canvas.clientWidth || 1;
-      const cssHeight = canvas.clientHeight || 1;
-      const sourceAspect = imageSize.width / imageSize.height;
-      let displayWidth = cssWidth * 0.68;
-      let displayHeight = displayWidth / sourceAspect;
-      const maxHeight = cssHeight * 0.62;
-      if (displayHeight > maxHeight) {
-        displayHeight = maxHeight;
-        displayWidth = displayHeight * sourceAspect;
-      }
-      gl.uniform2f(uniforms.center, currentCenter.x * 2 - 1, 1 - currentCenter.y * 2);
-      gl.uniform2f(uniforms.size, (displayWidth / cssWidth) * 2, (displayHeight / cssHeight) * 2);
-      gl.uniform2f(uniforms.velocity, currentVelocity.x, currentVelocity.y);
-      gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+    current.x += (target.x - current.x) * EASE;
+    current.y += (target.y - current.y) * EASE;
+    apply();
+    const settled = Math.abs(target.x - current.x) < 0.1 && Math.abs(target.y - current.y) < 0.1;
+    if (settled) {
+      current.x = target.x;
+      current.y = target.y;
+      apply();
+      return;
     }
-    frame = requestAnimationFrame(draw);
+    frame = requestAnimationFrame(tick);
+  }
+
+  function wake() {
+    if (active && !frame) frame = requestAnimationFrame(tick);
   }
 
   function onPointerMove(event) {
     const rect = hero.getBoundingClientRect();
-    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-    const now = performance.now();
-    const elapsed = Math.max(16, now - lastPointer.time);
-    targetVelocity.x = Math.max(-1, Math.min(1, ((x - lastPointer.x) * 260) / elapsed));
-    targetVelocity.y = Math.max(-1, Math.min(1, ((y - lastPointer.y) * 260) / elapsed));
-    targetCenter = { x, y };
-    lastPointer = { x, y, time: now };
+    target.x = event.clientX - rect.left - rect.width / 2;
+    target.y = event.clientY - rect.top - rect.height / 2;
+    wake();
   }
 
   function onPointerLeave() {
-    targetCenter = { x: 0.5, y: 0.5 };
-    targetVelocity = { x: 0, y: 0 };
+    target.x = 0;
+    target.y = 0;
+    wake();
   }
 
   hero.addEventListener("pointermove", onPointerMove, { passive: true });
   hero.addEventListener("pointerleave", onPointerLeave, { passive: true });
-  frame = requestAnimationFrame(draw);
 
   return {
-    setImage(url) {
-      const image = new Image();
-      image.decoding = "async";
-      image.onload = () => {
-        imageSize = { width: image.naturalWidth || 1, height: image.naturalHeight || 1 };
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        hasImage = true;
-      };
-      image.src = url;
-    },
-    /** Hidden tab: stop the RAF loop; back on the tab: resume. */
+    /** Hidden tab: stop animating; back on the tab: resume from wherever we are. */
     setActive(on) {
       active = Boolean(on);
-      if (active && !frame) frame = requestAnimationFrame(draw);
+      wake();
     },
   };
 }
@@ -385,13 +235,7 @@ function setupHero() {
     hero.classList.add("is-static");
     return;
   }
-  try {
-    shader = createLetteringShader();
-    if (!shader) hero.classList.add("is-static");
-  } catch (error) {
-    console.warn("Experiment 2 shader unavailable", error);
-    hero.classList.add("is-static");
-  }
+  follower = createFollower();
 }
 
 /* ---------- fullscreen viewer (site lightbox mechanics) ---------- */
