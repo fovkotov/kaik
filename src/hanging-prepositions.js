@@ -175,9 +175,7 @@ export function initHangingPrepositions() {
   const observer = new MutationObserver((mutations) => {
     observer.disconnect();
     for (const mutation of mutations) {
-      if (mutation.type === "characterData") {
-        applyToTextNode(mutation.target);
-      } else if (mutation.type === "childList") {
+      if (mutation.type === "childList") {
         mutation.addedNodes.forEach((node) => glueHangingPrepositions(node));
       }
     }
@@ -189,7 +187,6 @@ export function initHangingPrepositions() {
     observer.observe(document.body, {
       subtree: true,
       childList: true,
-      characterData: true,
     });
   }
 

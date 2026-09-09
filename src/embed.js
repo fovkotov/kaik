@@ -76,8 +76,8 @@ export function getScrollRoot() {
 /** Ignore URL-bar / visualViewport noise that is not a real chrome overlay. */
 const CLIP_IGNORE = 8;
 /** Do not rewrite CSS vars / notify listeners for jitter below this. */
-const SIZE_EPS = 12;
-const CLIP_EPS = 6;
+const SIZE_EPS = 20;
+const CLIP_EPS = 10;
 /** Apply immediately — orientation or a real window chrome change. */
 const BIG_JUMP_W = 80;
 const BIG_JUMP_H = 140;

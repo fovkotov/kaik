@@ -311,16 +311,20 @@ function writeCardBox(w, h) {
   root.style.setProperty("--stack-card-w", nextW);
 }
 
+function setVarIfChanged(el, name, value) {
+  if (!el || el.style.getPropertyValue(name) === value) return;
+  el.style.setProperty(name, value);
+}
+
 export function applyDeckParams() {
   const p = getParams();
   const mobile = isMobile();
   const scale = Number(p.deckScale);
-  document.documentElement.classList.toggle("is-mobile", mobile);
-  document.documentElement.dataset.viewMode = mobile ? normalizeViewMode(p.viewMode) : "fade";
-  document.documentElement.style.setProperty(
-    "--deck-scale",
-    String(Number.isFinite(scale) ? scale : 1),
-  );
+  const root = document.documentElement;
+  root.classList.toggle("is-mobile", mobile);
+  const viewMode = mobile ? normalizeViewMode(p.viewMode) : "fade";
+  if (root.dataset.viewMode !== viewMode) root.dataset.viewMode = viewMode;
+  setVarIfChanged(root, "--deck-scale", String(Number.isFinite(scale) ? scale : 1));
   if (mobile) syncPanelFooterHeight();
   syncCardMetrics();
   if (mobile) {
@@ -333,23 +337,25 @@ export function applyDeckParams() {
     // Desktop is right-pinned. Mobile stays centered at deckLeftPct 50
     // (left % + margin-left: -card-w/2); only a mobile slider moves it.
     if (mobile) {
-      card.style.left = `${p.deckLeftPct ?? 50}%`;
-      card.style.right = "";
+      const left = `${p.deckLeftPct ?? 50}%`;
+      if (card.style.left !== left) card.style.left = left;
+      if (card.style.right) card.style.right = "";
     } else {
-      card.style.left = "auto";
-      card.style.right = `${p.deckRightPx ?? 304}px`;
+      const right = `${p.deckRightPx ?? 304}px`;
+      if (card.style.left !== "auto") card.style.left = "auto";
+      if (card.style.right !== right) card.style.right = right;
     }
   });
-  document.documentElement.style.setProperty("--scroll-per-card", String(p.scrollPerCard));
+  setVarIfChanged(root, "--scroll-per-card", String(p.scrollPerCard));
 
   const shiftX = Number(p.worksShiftX);
   const shiftY = Number(p.worksShiftY);
   const rotate = Number(p.worksRotate);
   const works = document.querySelector("[data-works-card]");
   if (works) {
-    works.style.setProperty("--works-shift-x", `${Number.isFinite(shiftX) ? shiftX : 0}px`);
-    works.style.setProperty("--works-shift-y", `${Number.isFinite(shiftY) ? shiftY : 0}px`);
-    works.style.setProperty("--works-rotate", `${Number.isFinite(rotate) ? rotate : 0}deg`);
+    setVarIfChanged(works, "--works-shift-x", `${Number.isFinite(shiftX) ? shiftX : 0}px`);
+    setVarIfChanged(works, "--works-shift-y", `${Number.isFinite(shiftY) ? shiftY : 0}px`);
+    setVarIfChanged(works, "--works-rotate", `${Number.isFinite(rotate) ? rotate : 0}deg`);
   }
 }
 

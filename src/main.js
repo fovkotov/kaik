@@ -305,6 +305,8 @@ function initDeck() {
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
+    /* Open card freezes pointer/hover — do not keep compositing the stack. */
+    if (programLocked()) return false;
     if (hoveredIndex >= 0) return true;
     for (const item of state) {
       if (item.hover > 0.002) return true;
@@ -610,11 +612,15 @@ function initDeck() {
   window.addEventListener(
     "pointermove",
     (event) => {
-      if (isMobile()) return;
+      if (isMobile() || programLocked()) return;
       const { width, height } = getViewportSize();
       if (!width || !height) return;
-      pointer.x = clamp((event.clientX / width) * 2 - 1, -1, 1);
-      pointer.y = clamp((event.clientY / height) * 2 - 1, -1, 1);
+      const x = clamp((event.clientX / width) * 2 - 1, -1, 1);
+      const y = clamp((event.clientY / height) * 2 - 1, -1, 1);
+      /* Trackpad / iframe jitter must not keep every card on a rAF diet. */
+      if (Math.abs(x - pointer.x) < 0.008 && Math.abs(y - pointer.y) < 0.008) return;
+      pointer.x = x;
+      pointer.y = y;
       scheduleRender();
     },
     { passive: true },

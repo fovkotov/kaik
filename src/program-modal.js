@@ -3,13 +3,7 @@ import { getViewportSize, onFrameMetrics } from "./embed.js";
 import { t } from "./scriptik.js";
 import { getFocusNudge, getFocusScale } from "./stage-settings.js";
 import { applyDeckParams, inDeckFlow, isMobile } from "./tweaks.js";
-import {
-  fadeFocusScrollbar,
-  focusScrollRoot,
-  mountFocusScrollbar,
-  syncFocusScrollbar,
-  unmountFocusScrollbar,
-} from "./focus-scrollbar.js";
+import { focusScrollRoot } from "./focus-scrollbar.js";
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
@@ -614,7 +608,6 @@ export function initProgramModal() {
     deck.setAttribute("data-program-open", "");
     card.addEventListener("wheel", trapCardScroll, { passive: true });
     card.addEventListener("touchmove", trapCardScroll, { passive: true });
-    mountFocusScrollbar(card);
   }
 
   function clearFlyBox(el) {
@@ -638,7 +631,6 @@ export function initProgramModal() {
 
   function releaseCard(keepDeck) {
     if (!card) return;
-    unmountFocusScrollbar(card);
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(card);
@@ -687,7 +679,6 @@ export function initProgramModal() {
   }
 
   function commitExpandRelease(host, home) {
-    unmountFocusScrollbar(host);
     host.removeEventListener("wheel", trapCardScroll);
     host.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(host);
@@ -801,7 +792,6 @@ export function initProgramModal() {
         // Overlay pin (absolute → fixed, same inset 0) must not restart
         // width/type with a leftover duration. Zero after the scheme swap.
         card.style.setProperty("--fly-ms", "0ms");
-        syncFocusScrollbar(card);
       }
       syncAria();
       return;
@@ -927,7 +917,6 @@ export function initProgramModal() {
 
   /** Park at the --fly-* landing. Do not hand off to a second transform. */
   function settleRetire(el) {
-    unmountFocusScrollbar(el);
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
@@ -941,7 +930,6 @@ export function initProgramModal() {
 
   /** Home pose: one transform, then rest-lock until deck spread is 0. */
   function finishRetireHome(el, restTf) {
-    unmountFocusScrollbar(el);
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(el);
@@ -1044,7 +1032,6 @@ export function initProgramModal() {
     phase = "closing";
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
-    fadeFocusScrollbar(card, false);
     card?.classList.remove("is-work-open", "is-program-scroll");
     cards.forEach((el) => {
       if (el === card) return;
@@ -1084,7 +1071,6 @@ export function initProgramModal() {
     closeAfter = null;
 
     resetCardScroll(outgoingEl);
-    fadeFocusScrollbar(outgoingEl, false);
     outgoingEl.classList.remove("is-work-open", "is-program-scroll");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);
@@ -1259,7 +1245,6 @@ export function initProgramModal() {
     card.classList.add("is-work-open");
     requestAnimationFrame(() => {
       card?.classList.remove("is-work-switch");
-      syncFocusScrollbar(card);
     });
   }
 
@@ -1270,7 +1255,6 @@ export function initProgramModal() {
     if (next === card && (phase === "open" || phase === "opening")) {
       if (sheet) {
         next.classList.add("is-work-open");
-        mountFocusScrollbar(next);
         syncAria();
       }
       return;
@@ -1520,7 +1504,6 @@ export function initProgramModal() {
     } else {
       pin(destBox(rest), false);
     }
-    syncFocusScrollbar(card);
   };
   // Only re-pin when embed actually committed a new frame — raw resize/vv
   // storms from Cargo `--viewport-height` used to flash the open card.
