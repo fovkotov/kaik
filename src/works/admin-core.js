@@ -1,6 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { sanitizeSvg } from "../letters/svg.js";
-import { hydrateWorksCatalog, normalizeName, normalizeNick, normalizeWorkType } from "./taxonomy.js";
+import {
+  hydrateWorksCatalog,
+  normalizeName,
+  normalizeNick,
+  normalizeSample,
+  normalizeWorkType,
+} from "./taxonomy.js";
 
 export function shortId() {
   return randomBytes(4).toString("hex");
@@ -83,9 +89,10 @@ export function fieldsFromBody(item, previous = {}) {
   const nick = normalizeNick(item.nick !== undefined ? item.nick : previous.nick);
   const stream = String(item.stream !== undefined ? item.stream : previous.stream || "").trim();
   if (!stream) throw new Error("Each work needs a stream");
+  const sample = normalizeSample(item.sample !== undefined ? item.sample : previous.sample) || undefined;
   const width = Number(item.width ?? previous.width) || 0;
   const height = Number(item.height ?? previous.height) || 0;
-  return { type, author, nick, stream, width, height };
+  return { type, author, nick, stream, sample, width, height };
 }
 
 // `uploads` may mix new files (data/sha) with `{ keep: "<existing name>" }`

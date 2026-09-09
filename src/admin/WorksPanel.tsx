@@ -61,6 +61,7 @@ type WorkItem = {
   author: string;
   nick: string;
   stream: string;
+  sample?: string;
   files: string[];
   width?: number;
   height?: number;
@@ -460,6 +461,7 @@ export function WorksPanel({
     author: "",
     nick: "",
     stream: "",
+    sample: "",
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
   const [editSlides, setEditSlides] = useState<Slide[]>([]);
@@ -756,6 +758,7 @@ export function WorksPanel({
       author: item.author,
       nick: item.nick,
       stream: item.stream,
+      sample: item.sample || "",
     });
     setEditFiles(null);
     setEditSlides(slidesFrom(item));
@@ -845,6 +848,7 @@ export function WorksPanel({
           author: editDraft.author,
           nick: editDraft.nick,
           stream: editDraft.stream,
+          sample: editDraft.sample,
           ...filesPatch,
         }),
       });
@@ -981,7 +985,14 @@ export function WorksPanel({
   }
 
   const preview = editFiles?.[0]?.preview || (editing ? thumbSrc(editing) : "");
-  const editFontUrl = editFiles?.[0]?.preview || (editing ? fontUrl(editing) : "");
+  // Every font file of the work (each weight / style) gets its own specimen line.
+  const fontFaces: { key: string; name: string; url: string }[] = editFiles
+    ? editFiles
+        .filter((file) => isFontPath(file.filename))
+        .map((file) => ({ key: file.preview, name: file.filename, url: file.preview }))
+    : (editing?.files || [])
+        .filter((file) => isFontPath(file))
+        .map((file) => ({ key: file, name: file.split("/").pop() || file, url: workFileUrl(file) }));
   const rubber = lasso && dragged.current ? lassoBox(lasso) : null;
   const showingFont = editDraft.type === TYPE_FONT;
   const showingSlides = editDraft.type === TYPE_FINAL;
@@ -1419,12 +1430,20 @@ export function WorksPanel({
                     className="flex min-h-[calc(var(--frame-h)-3rem)] w-full cursor-pointer flex-col items-center justify-center self-start rounded-xl bg-muted p-6"
                     onClick={() => replaceRef.current?.click()}
                   >
-                    {showingFont && editFontUrl ? (
-                      <FontPreview
-                        url={editFontUrl}
-                        id={editing?.id || "edit-font"}
-                        className="min-h-40 w-full text-[clamp(3rem,12vw,14rem)]"
-                      />
+                    {showingFont && fontFaces.length ? (
+                      <ul className="grid w-full gap-8">
+                        {fontFaces.map((face, index) => (
+                          <li key={face.key} className="grid gap-2">
+                            <FontPreview
+                              url={face.url}
+                              id={`${editing?.id || "edit-font"}-${index}`}
+                              text={editDraft.sample}
+                              className="min-h-24 w-full overflow-visible text-clip whitespace-normal text-[clamp(2.5rem,9vw,10rem)] leading-none"
+                            />
+                            <span className="text-center text-xs text-muted-foreground">{face.name}</span>
+                          </li>
+                        ))}
+                      </ul>
                     ) : preview ? (
                       <img src={preview} alt="" className="block h-auto w-full object-contain" />
                     ) : (
@@ -1512,6 +1531,20 @@ export function WorksPanel({
                     }
                   />
                 </div>
+                {showingFont ? (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="work-edit-sample">{copy("admin.sample")}</Label>
+                    <Input
+                      id="work-edit-sample"
+                      maxLength={120}
+                      placeholder={copy("admin.sampleHint")}
+                      value={editDraft.sample}
+                      onChange={(event) =>
+                        setEditDraft((current) => ({ ...current, sample: event.target.value }))
+                      }
+                    />
+                  </div>
+                ) : null}
                 <div className="grid gap-2 border-t pt-3">
                   {showingSlides ? (
                     <Button type="button" variant="outline" onClick={() => pickSlides(null)}>
@@ -1524,18 +1557,6 @@ export function WorksPanel({
                       {copy("admin.replaceFile")}
                     </Button>
                   )}
-                  {showingFont ? (
-                    <ul className="text-xs text-muted-foreground">
-                      {(editFiles || editing?.files || []).map((file) => {
-                        const name = typeof file === "string" ? file : file.filename;
-                        return (
-                          <li key={name} className="truncate">
-                            {name.split("/").pop()}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
                 </div>
                 <div className="grid gap-2 border-t pt-3">
                   <Button type="submit">{copy("admin.save")}</Button>

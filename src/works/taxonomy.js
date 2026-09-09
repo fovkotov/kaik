@@ -23,6 +23,14 @@ export function normalizeName(value) {
     .slice(0, 80);
 }
 
+/** Default specimen text a font work is shown with (feed cell, admin tester). */
+export function normalizeSample(value) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 export function emptyWorksCatalog() {
   return { version: 1, updatedAt: null, items: [] };
 }
@@ -42,6 +50,7 @@ export function normalizeWorkItem(item) {
     author: normalizeName(item.author),
     nick: normalizeNick(item.nick),
     stream: String(item.stream || "").trim(),
+    sample: normalizeSample(item.sample) || undefined,
     files,
     width: Number(item.width) > 0 ? Number(item.width) : 0,
     height: Number(item.height) > 0 ? Number(item.height) : 0,

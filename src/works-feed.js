@@ -65,7 +65,7 @@ function sliderMarkup(item, files) {
 function fontMarkup(item, fontFile) {
   return `<div class="works-feed__art works-feed__art--font" data-font-preview data-font-url="${esc(
     workFileUrl(fontFile),
-  )}" data-work-id="${esc(item.id)}"></div>`;
+  )}" data-work-id="${esc(item.id)}"${item.sample ? ` data-font-sample="${esc(item.sample)}"` : ""}></div>`;
 }
 
 /** Same caption as the main-domain collage: name, then @nick. */
@@ -102,11 +102,17 @@ function workMarkup(item) {
 async function paintFontCell(el) {
   const url = el.getAttribute("data-font-url");
   const id = el.getAttribute("data-work-id") || "font";
+  const sample = (el.getAttribute("data-font-sample") || "").trim();
   if (!url) return;
   const family = `wrk-${id.replace(/[^a-z0-9]/gi, "") || "font"}`;
   try {
     const face = new FontFace(family, `url(${JSON.stringify(url)})`);
     document.fonts.add(await face.load());
+    if (sample) {
+      el.textContent = sample;
+      el.style.fontFamily = `"${family}", sans-serif`;
+      return;
+    }
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     let lang = "en";
@@ -123,7 +129,7 @@ async function paintFontCell(el) {
     el.textContent = pickWord(id, lang);
     el.style.fontFamily = `"${family}", sans-serif`;
   } catch {
-    el.textContent = pickWord(id, "en");
+    el.textContent = sample || pickWord(id, "en");
   }
 }
 

@@ -18,14 +18,18 @@ function familyName(id: string) {
 export function FontPreview({
   url,
   id,
+  text,
   className,
 }: {
   url: string;
   id: string;
+  /** Specimen text; when empty a word is auto-picked by the font's script. */
+  text?: string;
   className?: string;
 }) {
   const [word, setWord] = useState("");
   const family = familyName(id);
+  const custom = (text || "").trim();
 
   useEffect(() => {
     let gone = false;
@@ -34,6 +38,10 @@ export function FontPreview({
       .load()
       .then((loaded) => {
         document.fonts.add(loaded);
+        if (custom) {
+          if (!gone) setWord(custom);
+          return;
+        }
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         if (!ctx) {
@@ -52,12 +60,12 @@ export function FontPreview({
         if (!gone) setWord(pickWord(id, lang));
       })
       .catch(() => {
-        if (!gone) setWord(pickWord(id, "en"));
+        if (!gone) setWord(custom || pickWord(id, "en"));
       });
     return () => {
       gone = true;
     };
-  }, [url, id, family]);
+  }, [url, id, family, custom]);
 
   return (
     <p
