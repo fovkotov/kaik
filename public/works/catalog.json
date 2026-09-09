@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T23:24:56.656Z",
+  "updatedAt": "2026-09-09T23:34:40.946Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -532,6 +532,7 @@
       "author": "Артем",
       "nick": "svrdee",
       "stream": "1",
+      "sample": "Solanum",
       "files": [
         "wrk_72ab01e6_0.otf",
         "wrk_72ab01e6_1.otf"
