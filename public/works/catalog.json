@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T23:24:41.692Z",
+  "updatedAt": "2026-09-09T23:24:49.937Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -710,20 +710,6 @@
       "height": 900,
       "createdAt": "2026-09-09T23:04:03.622Z",
       "originalName": "01.webp"
-    },
-    {
-      "id": "wrk_3039ac0e",
-      "type": "lettering",
-      "author": "Ваня",
-      "nick": "vanokregular",
-      "stream": "1",
-      "files": [
-        "wrk_3039ac0e_0.svg"
-      ],
-      "width": 140,
-      "height": 200,
-      "createdAt": "2026-09-09T23:22:02.412Z",
-      "originalName": "Layer_1-2-1.svg"
     },
     {
       "id": "wrk_9a5a324b",
