@@ -183,11 +183,24 @@ function readCardPoseExtents() {
   return { maxRotate, maxBaseY, maxTip };
 }
 
+/** Last sane stage centre — reused while every card is pinned / open / landed. */
+let lastStageCenterY = 0;
+
 function cardStageCenterY(frameH) {
-  const sample = document.querySelector("[data-card]");
-  if (!sample) return frameH / 2;
-  const top = Number.parseFloat(getComputedStyle(sample).top);
-  return Number.isFinite(top) ? top : frameH / 2;
+  // A pinned / open / expanded card has its `top` overridden by the fly pins
+  // (`--fly-t`, fixed box), not the `.card { top: 50% }` stack line. Sampling
+  // one of those mid-close collapsed the fit to `--card-h: 1px`.
+  const sample = document.querySelector(
+    "[data-card]:not(.is-fly-pinned):not(.is-program-open):not([data-expand-host])",
+  );
+  if (sample) {
+    const top = Number.parseFloat(getComputedStyle(sample).top);
+    if (Number.isFinite(top) && top > 0 && top < frameH) {
+      lastStageCenterY = top;
+      return top;
+    }
+  }
+  return lastStageCenterY > 0 && lastStageCenterY < frameH ? lastStageCenterY : frameH / 2;
 }
 
 /** Measure live footer height so card centering fits short Cargo iframes. */
@@ -292,6 +305,9 @@ export function syncCardMetrics() {
   const worksMaxH = Math.max(0, frameW / scale - widthGutter);
   h = Math.min(h, a4MaxH, worksMaxH) * cardSize;
   h = Math.max(1, Math.round(h * 100) / 100);
+  // A collapsed fit (bad centre sample, transient 0-height frame) must never
+  // overwrite a good box — the whole deck would shrink to a sliver.
+  if (h < 48 && frameH > 200) return;
 
   writeCardBox(h / A4_ASPECT, h);
 }
