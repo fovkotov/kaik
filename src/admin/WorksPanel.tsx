@@ -7,7 +7,7 @@ import {
   type PointerEvent,
 } from "react";
 import { toast } from "sonner";
-import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Trash2Icon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Trash2Icon, XIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyDescription,
@@ -1302,41 +1302,12 @@ export function WorksPanel({
           if (!open) closeEditor();
         }}
       >
-        <DialogContent className="top-0 left-0 flex h-[var(--frame-h)] w-[var(--frame-w)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto overscroll-contain rounded-none p-0 sm:max-w-none">
+        <DialogContent
+          showCloseButton={false}
+          className="top-0 left-0 flex h-[var(--frame-h)] w-[var(--frame-w)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto overscroll-contain rounded-none p-0 sm:max-w-none"
+        >
           <DialogTitle className="sr-only">{editDraft.author || copy("admin.works")}</DialogTitle>
           <form onSubmit={saveEdit} className="flex min-h-full flex-col">
-            <div className="flex items-center gap-2 border-b px-4 py-3 pr-14">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={!canCycle}
-                aria-label={copy("admin.prev")}
-                onClick={() => goEdit(-1)}
-              >
-                <ChevronLeftIcon />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={!canCycle}
-                aria-label={copy("admin.next")}
-                onClick={() => goEdit(1)}
-              >
-                <ChevronRightIcon />
-              </Button>
-              {editIndex >= 0 ? (
-                <span className="text-sm text-muted-foreground">
-                  {editIndex + 1} / {visualIds.length}
-                </span>
-              ) : null}
-              {showingSlides && editSlides.length > 1 ? (
-                <span className="text-sm text-muted-foreground">
-                  · {copy("admin.slides").replace("{n}", String(editSlides.length))}
-                </span>
-              ) : null}
-            </div>
             <div
               className={cn(
                 "mx-auto grid w-full flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1.2fr)_minmax(16rem,20rem)]",
@@ -1411,7 +1382,7 @@ export function WorksPanel({
                                 {index + 1}
                                 {slide.upload ? " •" : ""}
                               </span>
-                              <div className="absolute top-2 right-2 flex gap-1 opacity-80 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                                 <Button
                                   type="button"
                                   size="sm"
@@ -1445,51 +1416,71 @@ export function WorksPanel({
                         {copy("admin.replaceHint")}
                       </button>
                     )}
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" onClick={() => pickSlides(null)}>
-                        <FileUpIcon data-icon="inline-start" />
-                        {copy("admin.addSlides")}
-                      </Button>
-                      <Button type="button" variant="ghost" onClick={() => replaceRef.current?.click()}>
-                        {copy("admin.replaceAll")}
-                      </Button>
-                    </div>
                   </div>
                 ) : (
-                <button
-                  type="button"
-                  title={copy("admin.replaceFile")}
-                  className="flex min-h-[min(28rem,calc(var(--frame-h)*0.55))] w-full cursor-pointer flex-col items-center justify-center rounded-xl bg-muted p-6"
-                  onClick={() => replaceRef.current?.click()}
-                >
-                  {showingFont && editFontUrl ? (
-                    <FontPreview
-                      url={editFontUrl}
-                      id={editing?.id || "edit-font"}
-                      className="min-h-40 text-5xl"
-                    />
-                  ) : preview ? (
-                    <img src={preview} alt="" className="max-h-[min(24rem,calc(var(--frame-h)*0.45))] w-full object-contain" />
-                  ) : (
-                    <span className="text-sm text-muted-foreground">{copy(typeKey(editDraft.type))}</span>
-                  )}
-                  {showingFont ? (
-                    <ul className="mt-4 w-full text-left text-xs text-muted-foreground">
-                      {(editFiles || editing?.files || []).map((file) => {
-                        const name = typeof file === "string" ? file : file.filename;
-                        return (
-                          <li key={name} className="truncate">
-                            {name.split("/").pop()}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
-                  <span className="mt-4 text-xs text-muted-foreground">{copy("admin.replaceHint")}</span>
-                </button>
+                  <button
+                    type="button"
+                    title={copy("admin.replaceFile")}
+                    className="flex min-h-[min(28rem,calc(var(--frame-h)*0.55))] w-full cursor-pointer flex-col items-center justify-center rounded-xl bg-muted p-6"
+                    onClick={() => replaceRef.current?.click()}
+                  >
+                    {showingFont && editFontUrl ? (
+                      <FontPreview
+                        url={editFontUrl}
+                        id={editing?.id || "edit-font"}
+                        className="min-h-40 text-5xl"
+                      />
+                    ) : preview ? (
+                      <img
+                        src={preview}
+                        alt=""
+                        className="max-h-[min(24rem,calc(var(--frame-h)*0.45))] w-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">{copy(typeKey(editDraft.type))}</span>
+                    )}
+                  </button>
                 )}
               </div>
               <div className="grid gap-3 content-start sm:sticky sm:top-6 sm:self-start">
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={!canCycle}
+                    aria-label={copy("admin.prev")}
+                    onClick={() => goEdit(-1)}
+                  >
+                    <ChevronLeftIcon />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={!canCycle}
+                    aria-label={copy("admin.next")}
+                    onClick={() => goEdit(1)}
+                  >
+                    <ChevronRightIcon />
+                  </Button>
+                  <span className="ml-1 text-sm text-muted-foreground tabular-nums">
+                    {editIndex >= 0 ? `${editIndex + 1} / ${visualIds.length}` : ""}
+                    {showingSlides && editSlides.length > 1
+                      ? ` · ${copy("admin.slides").replace("{n}", String(editSlides.length))}`
+                      : ""}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="ml-auto"
+                    aria-label={copy("admin.close")}
+                    onClick={closeEditor}
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
                 <TypeTabs
                   value={editDraft.type}
                   onChange={(type) => setEditDraft((current) => ({ ...current, type }))}
@@ -1530,20 +1521,43 @@ export function WorksPanel({
                     }
                   />
                 </div>
+                <div className="grid gap-2 border-t pt-3">
+                  {showingSlides ? (
+                    <Button type="button" variant="outline" onClick={() => pickSlides(null)}>
+                      <FileUpIcon data-icon="inline-start" />
+                      {copy("admin.addSlides")}
+                    </Button>
+                  ) : (
+                    <Button type="button" variant="outline" onClick={() => replaceRef.current?.click()}>
+                      <FileUpIcon data-icon="inline-start" />
+                      {copy("admin.replaceFile")}
+                    </Button>
+                  )}
+                  {showingFont ? (
+                    <ul className="text-xs text-muted-foreground">
+                      {(editFiles || editing?.files || []).map((file) => {
+                        const name = typeof file === "string" ? file : file.filename;
+                        return (
+                          <li key={name} className="truncate">
+                            {name.split("/").pop()}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+                <div className="grid gap-2 border-t pt-3">
+                  <Button type="submit">{copy("admin.save")}</Button>
+                  <Button type="button" variant="outline" onClick={closeEditor}>
+                    {copy("admin.close")}
+                  </Button>
+                  <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
+                    <Trash2Icon data-icon="inline-start" />
+                    {copy("admin.delete")}
+                  </Button>
+                </div>
               </div>
             </div>
-            <DialogFooter className="mx-0 mb-0 mt-auto rounded-none sm:justify-between">
-              <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
-                <Trash2Icon data-icon="inline-start" />
-                {copy("admin.delete")}
-              </Button>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={closeEditor}>
-                  {copy("admin.close")}
-                </Button>
-                <Button type="submit">{copy("admin.save")}</Button>
-              </div>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
