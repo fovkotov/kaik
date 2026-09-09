@@ -77,28 +77,53 @@ export function sortWorksByDate(items) {
   });
 }
 
-/** A workshop piece this compact is a single glyph, not a word. */
-const LETTER_MAX_RATIO = 1.25;
-/** Portrait finals (posters, covers) take the tall 2×2 slot. */
-const TALL_FINAL_MAX_RATIO = 0.95;
-
 export const KIND_LETTER = "letter";
+export const KIND_TALL_FINAL = "tallFinal";
 
 /**
- * Placement on the 6-track works grid (Figma 212:20).
- * Letter → 1 col. Lettering, final project, font → 2 cols.
- * Portrait finals also take 2 rows.
+ * Default placement rules for the 6-track works grid (Figma 212:20).
+ * `letterMaxRatio`: a workshop piece this compact is a single glyph, not a word.
+ * `tallFinalMaxRatio`: portrait finals (posters, covers) take the tall slot.
+ * `spans`: [cols, rows] per kind.
  */
-export function placeWork(item) {
+export const PLACE_RULES = Object.freeze({
+  letterMaxRatio: 1.25,
+  tallFinalMaxRatio: 0.95,
+  spans: Object.freeze({
+    [KIND_LETTER]: [1, 1],
+    [TYPE_LETTERING]: [2, 1],
+    [TYPE_FINAL]: [2, 1],
+    [KIND_TALL_FINAL]: [2, 2],
+    [TYPE_FONT]: [2, 1],
+  }),
+});
+
+function spanOf(spans, key) {
+  const pair = spans[key] || PLACE_RULES.spans[key] || [2, 1];
+  return {
+    cols: Math.max(1, Math.round(Number(pair[0]) || 1)),
+    rows: Math.max(1, Math.round(Number(pair[1]) || 1)),
+  };
+}
+
+/**
+ * Placement on the works grid.
+ * Letter → 1 col. Lettering, final project, font → 2 cols.
+ * Portrait finals also take 2 rows. `rules` lets a page override any of it.
+ */
+export function placeWork(item, rules = PLACE_RULES) {
   const type = normalizeWorkType(item?.type);
   const w = Number(item?.width) || 0;
   const h = Number(item?.height) || 0;
   const ratio = w > 0 && h > 0 ? w / h : 0;
-  if (type === TYPE_LETTERING && ratio > 0 && ratio <= LETTER_MAX_RATIO) {
-    return { cols: 1, rows: 1, kind: KIND_LETTER };
+  const spans = { ...PLACE_RULES.spans, ...(rules?.spans || {}) };
+  const letterMax = Number(rules?.letterMaxRatio ?? PLACE_RULES.letterMaxRatio);
+  const tallMax = Number(rules?.tallFinalMaxRatio ?? PLACE_RULES.tallFinalMaxRatio);
+  if (type === TYPE_LETTERING && ratio > 0 && ratio <= letterMax) {
+    return { ...spanOf(spans, KIND_LETTER), kind: KIND_LETTER };
   }
-  if (type === TYPE_FINAL && ratio > 0 && ratio < TALL_FINAL_MAX_RATIO) {
-    return { cols: 2, rows: 2, kind: type };
+  if (type === TYPE_FINAL && ratio > 0 && ratio < tallMax) {
+    return { ...spanOf(spans, KIND_TALL_FINAL), kind: type };
   }
-  return { cols: 2, rows: 1, kind: type };
+  return { ...spanOf(spans, type), kind: type };
 }

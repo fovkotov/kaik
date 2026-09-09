@@ -3,10 +3,37 @@ import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import { subscribeWorksCatalog } from "./works/live.js";
-import { TYPE_FINAL, TYPE_FONT, placeWork, sortWorksByDate } from "./works/taxonomy.js";
+import {
+  PLACE_RULES,
+  TYPE_FINAL,
+  TYPE_FONT,
+  TYPE_LETTERING,
+  placeWork,
+  sortWorksByDate,
+} from "./works/taxonomy.js";
 
 const EN_WORDS = ["kaik", "letter", "type", "form", "serif", "stroke"];
 const RU_WORDS = ["каик", "буква", "набор", "слово", "шрифт", "форма"];
+
+/** Course pages: tap flips the slide, caption in flow, Figma rules. */
+const DEFAULTS = Object.freeze({
+  root: null,
+  tapNext: true,
+  /** Cells get `data-work-open` + tabindex so a page can open a viewer on click. */
+  openable: false,
+  rules: PLACE_RULES,
+  /** date | type | shuffle */
+  order: "date",
+  /** Array of work types to show, or null for all. */
+  types: null,
+  /** Never let a span exceed the live track count (else grid grows implicit columns). */
+  maxCols: Infinity,
+  /** Long decks hide dots — they would overflow the cell. */
+  manyDots: 12,
+  seed: 1,
+});
+
+const TYPE_ORDER = [TYPE_FINAL, TYPE_LETTERING, TYPE_FONT];
 
 function esc(value) {
   return String(value || "")
@@ -19,8 +46,8 @@ function isFontFile(name) {
   return /\.(ttf|otf|woff2?)$/i.test(String(name || ""));
 }
 
-function imageFiles(item) {
-  return (item.files || []).filter((file) => !isFontFile(file));
+export function imageFiles(item) {
+  return (item?.files || []).filter((file) => !isFontFile(file));
 }
 
 function pickWord(id, lang) {
@@ -40,7 +67,7 @@ function artMarkup(src, item) {
   </div>`;
 }
 
-function sliderMarkup(item, files) {
+function sliderMarkup(item, files, opts) {
   const chevron = esc(publicUrl("assets/cards/history/chevron.svg"));
   const slides = files
     .map(
@@ -50,8 +77,9 @@ function sliderMarkup(item, files) {
         </figure>`,
     )
     .join("");
-  const many = files.length > 12 ? " works-feed__slider--many" : "";
-  return `<div class="img-slider works-feed__slider${many}" data-img-slider data-slider-inline data-slider-tap-next>
+  const many = files.length > opts.manyDots ? " works-feed__slider--many" : "";
+  const tap = opts.tapNext ? " data-slider-tap-next" : "";
+  return `<div class="img-slider works-feed__slider${many}" data-img-slider data-slider-inline${tap} style="${ratioStyle(item)}">
     ${slides}
     <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="${esc(t("history.prev"))}">
       <img class="img-slider__chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
@@ -76,24 +104,28 @@ function whoMarkup(item) {
   }${item.nick ? `<span class="works-card__ig">@${esc(item.nick)}</span>` : ""}</p>`;
 }
 
-function mediaMarkup(item) {
+function mediaMarkup(item, opts) {
   const fontFile = (item.files || []).find((name) => isFontFile(name));
   if (item.type === TYPE_FONT && fontFile) return fontMarkup(item, fontFile);
   if (fontFile && !imageFiles(item).length) return fontMarkup(item, fontFile);
   const images = imageFiles(item);
   if (!images.length) return "";
-  if (item.type === TYPE_FINAL && images.length > 1) return sliderMarkup(item, images);
+  if (item.type === TYPE_FINAL && images.length > 1) return sliderMarkup(item, images, opts);
   return artMarkup(workFileUrl(images[0]), item);
 }
 
-function workMarkup(item) {
-  const media = mediaMarkup(item);
+function workMarkup(item, opts) {
+  const media = mediaMarkup(item, opts);
   if (!media) return "";
-  const { cols, rows, kind } = placeWork(item);
+  const placed = placeWork(item, opts.rules);
+  const cols = Math.max(1, Math.min(placed.cols, opts.maxCols || Infinity));
+  const rows = placed.rows;
   const place = `grid-column: span ${cols}${rows > 1 ? `; grid-row: span ${rows}` : ""}`;
-  return `<article class="works-feed__cell works-feed__cell--${esc(kind)}" data-work-id="${esc(
+  const openable = opts.openable && imageFiles(item).length > 0;
+  const open = openable ? ` data-work-open tabindex="0" role="button"` : "";
+  return `<article class="works-feed__cell works-feed__cell--${esc(placed.kind)}" data-work-id="${esc(
     item.id,
-  )}" data-cols="${cols}" data-rows="${rows}" style="${place}">
+  )}" data-type="${esc(item.type)}" data-cols="${cols}" data-rows="${rows}"${open} style="${place}">
     <div class="works-feed__media">${media}</div>
     ${whoMarkup(item)}
   </article>`;
@@ -139,27 +171,83 @@ function hydrateFonts(root) {
   });
 }
 
-function renderFeed(root, catalog) {
-  const items = sortWorksByDate(catalog.items);
-  const cells = items.map(workMarkup).filter(Boolean).join("");
+/** Deterministic shuffle so tweaking other params does not reshuffle the wall. */
+function shuffleSeeded(items, seed) {
+  let s = (Number(seed) || 1) >>> 0;
+  const rand = () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function orderItems(items, opts) {
+  const byDate = sortWorksByDate(items);
+  if (opts.order === "shuffle") return shuffleSeeded(byDate, opts.seed);
+  if (opts.order === "type") {
+    return [...byDate].sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type));
+  }
+  return byDate;
+}
+
+function renderFeed(root, catalog, opts) {
+  let items = catalog.items;
+  if (Array.isArray(opts.types)) items = items.filter((item) => opts.types.includes(item.type));
+  items = orderItems(items, opts);
+  const cells = items.map((item) => workMarkup(item, opts)).filter(Boolean).join("");
   root.innerHTML = cells ? `<div class="works-feed__grid">${cells}</div>` : "";
   hydrateFonts(root);
   initImgSliders(root);
 }
 
-export function initWorksFeed() {
-  const root = document.querySelector("[data-works-feed]");
+/**
+ * Paint the works catalog into `[data-works-feed]` and keep it live.
+ * Returns a controller: `update(options)` re-renders with new rules,
+ * `catalog` is the last loaded catalog, `destroy()` unsubscribes.
+ */
+export function initWorksFeed(options = {}) {
+  const root = options.root || document.querySelector("[data-works-feed]");
   if (!root) return null;
 
+  let opts = { ...DEFAULTS, ...options, root };
+  let catalog = null;
   let stamp = "";
+
+  const render = () => {
+    if (catalog) renderFeed(root, catalog, opts);
+  };
+
   const paint = async () => {
-    const catalog = await loadWorksCatalog({ bust: true });
-    const next = `${catalog.updatedAt || ""}:${catalog.items.length}`;
-    if (next === stamp) return;
-    stamp = next;
-    renderFeed(root, catalog);
+    const next = await loadWorksCatalog({ bust: true });
+    const key = `${next.updatedAt || ""}:${next.items.length}`;
+    if (key === stamp) return;
+    stamp = key;
+    catalog = next;
+    render();
   };
 
   paint();
-  return subscribeWorksCatalog(paint);
+  const unsubscribe = subscribeWorksCatalog(paint);
+
+  return {
+    get catalog() {
+      return catalog;
+    },
+    get options() {
+      return opts;
+    },
+    update(next = {}) {
+      opts = { ...opts, ...next, root };
+      render();
+    },
+    refresh: render,
+    destroy() {
+      unsubscribe?.();
+    },
+  };
 }

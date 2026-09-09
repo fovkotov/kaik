@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -11,9 +11,64 @@
     <link rel="stylesheet" href="/src/experiment.css" />
   </head>
   <body class="experiment">
-    <main class="experiment-works">
-      <div class="works-feed" data-works-feed></div>
-    </main>
+    <div class="experiment__scroll" data-scroll-root>
+      <header class="site-nav">
+        <a class="site-nav__brand" href="https://kaik.pictures/main" target="_top" rel="noreferrer">
+          Käik: we make cool stuff <span aria-hidden="true">→</span>
+        </a>
+        <nav class="site-nav__links" aria-label="Käik">
+          <a href="https://kaik.pictures/main" target="_top" rel="noreferrer">Main</a>
+          <a href="https://kaik.pictures/education" target="_top" rel="noreferrer">Education</a>
+          <a href="https://kaik.pictures/feed" target="_top" rel="noreferrer">Feed</a>
+          <a class="is-muted" href="https://kaik.pictures/tools" target="_top" rel="noreferrer">Tools</a>
+        </nav>
+        <a href="https://kaik.pictures/information" target="_top" rel="noreferrer">Information</a>
+      </header>
+
+      <main class="experiment-works">
+        <div
+          class="works-feed"
+          data-works-feed
+          data-caption="hover"
+          data-arrows="hover"
+          data-dots="hover"
+          data-rows="fixed"
+        ></div>
+      </main>
+    </div>
+
+    <div
+      class="viewer"
+      data-viewer
+      hidden
+      inert
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Просмотр работы"
+    >
+      <figure class="viewer__stage" data-viewer-track></figure>
+      <button type="button" class="viewer__hit viewer__hit--prev" data-viewer-prev aria-label="Предыдущий слайд">
+        <span class="viewer__arrow" aria-hidden="true">
+          <img class="viewer__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
+        </span>
+      </button>
+      <div class="viewer__hit viewer__hit--mid" data-viewer-mid></div>
+      <button type="button" class="viewer__hit viewer__hit--next" data-viewer-next aria-label="Следующий слайд">
+        <span class="viewer__arrow" aria-hidden="true">
+          <img class="viewer__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
+        </span>
+      </button>
+      <button type="button" class="viewer__close" data-viewer-close aria-label="Закрыть">
+        <img src="/assets/author/lb-close.svg" alt="" width="24" height="24" draggable="false" />
+      </button>
+      <p class="viewer__caption" data-viewer-caption></p>
+      <p class="viewer__counter" data-viewer-counter></p>
+      <div class="viewer__dots" data-viewer-dots role="tablist"></div>
+    </div>
+
+    <div class="tweaks-mount" data-tweaks></div>
+
     <script type="module" src="/src/experiment.js"></script>
   </body>
 </html>
