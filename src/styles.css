@@ -2095,7 +2095,7 @@ html.is-mobile .program-card__track {
 
 html.is-mobile .card.is-program-open[data-program-card][data-expand-host] .program-card,
 html.is-mobile .card.is-program-open[data-expand-settled][data-program-card] .program-card,
-html.is-mobile .card.is-program-open[data-program-card] .program-card {
+html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .program-card {
   touch-action: auto;
 }
 
@@ -3531,13 +3531,13 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   pointer-events: auto;
 }
 
-.card.is-program-open .work-card {
+.card.is-program-open.is-program-scroll .work-card {
   height: auto;
   min-height: 100%;
   overflow: visible;
 }
 
-.card.is-program-open .work-card__face {
+.card.is-program-open.is-program-scroll .work-card__face {
   position: absolute;
   inset: 0 auto auto 0;
   top: 0;
@@ -3546,7 +3546,7 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   height: var(--fly-h);
 }
 
-.card.is-program-open .work-card__full {
+.card.is-program-open.is-program-scroll .work-card__full {
   position: relative;
   pointer-events: auto;
 }
@@ -4067,9 +4067,7 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   width: var(--fly-w);
   height: var(--fly-h);
   margin: 0;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  overflow: hidden;
   transform-style: flat;
   backface-visibility: visible;
   -webkit-backface-visibility: visible;
@@ -4130,8 +4128,21 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   outline: none;
 }
 
-.card.is-fly-pinned {
-  overflow: hidden;
+.card.is-program-open.is-program-scroll {
+  transform: none;
+  transform-style: flat;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  outline: none;
+  /* Fly tween must not restart on click / :active / class churn. */
+  transition: none;
 }
 
 .card.is-program-open .history-card,
@@ -4154,21 +4165,27 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 }
 
 /* Open student-works: same 842 board, unclipped, scroll the board not the card. */
-.card.is-program-open[data-works-card] {
+.card.is-program-open[data-works-card],
+.card.is-program-open[data-works-card].is-program-scroll {
   overflow: hidden;
+  scrollbar-gutter: auto;
 }
 
 .card.is-program-open[data-works-card] .works-card {
   height: 100%;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
-  overflow-anchor: none;
+  overflow: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   /* Desktop last-item inset. Mobile dachshund hang is restored below. */
   padding-bottom: 16px;
+}
+
+.card.is-program-open.is-program-scroll[data-works-card] .works-card {
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
 }
 
 html.is-mobile .card.is-program-open[data-works-card] .works-card {
@@ -4262,7 +4279,7 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
 }
 
 .card.is-program-open[data-expand-settled] .program-card__sheet,
-.card.is-program-open .program-card__sheet {
+.card.is-program-open.is-program-scroll .program-card__sheet {
   flex: 0 0 auto;
   min-height: auto;
   height: auto;
@@ -5344,7 +5361,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   }
 
   .card.is-program-open[data-expand-settled],
-  .card.is-program-open {
+  .card.is-program-open.is-program-scroll {
     border-radius: 0;
   }
 
@@ -5452,7 +5469,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   .card[data-program-card].is-program-open .program-card > .card-illust--program,
   .card[data-program-card].is-program-open[data-expand-host] .program-card > .card-illust--program,
   .card[data-program-card].is-program-open[data-expand-closing] .program-card > .card-illust--program,
-  .card[data-program-card].is-program-open .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open.is-program-scroll .program-card > .card-illust--program,
   .card[data-works-card] > .card-illust--program,
   .card[data-history-card] > .card-illust--program,
   .card-illust--program[data-fly-illust-close],
@@ -5576,14 +5593,15 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
 
   /* Face stays the fullscreen chrome. Inner program/works columns scroll. */
   .card.is-program-open[data-expand-host][data-program-card],
-  .card.is-program-open[data-expand-host][data-works-card] {
+  .card.is-program-open[data-expand-host][data-works-card],
+  .card.is-program-open[data-expand-host][data-program-card].is-program-scroll,
+  .card.is-program-open[data-expand-host][data-works-card].is-program-scroll {
     overflow: hidden;
     touch-action: auto;
   }
 
-  .card.is-program-open[data-program-card][data-expand-host] .program-card,
   .card.is-program-open[data-expand-settled][data-program-card] .program-card,
-  .card.is-program-open[data-program-card] .program-card {
+  .card.is-program-open.is-program-scroll[data-program-card] .program-card {
     height: 100%;
     min-height: 0;
     overflow-x: hidden;
@@ -5596,9 +5614,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     touch-action: auto;
   }
 
-  .card.is-program-open[data-works-card][data-expand-host] .works-card,
   .card.is-program-open[data-expand-settled][data-works-card] .works-card,
-  .card.is-program-open[data-works-card] .works-card {
+  .card.is-program-open.is-program-scroll[data-works-card] .works-card {
     height: 100%;
     min-height: 0;
     overflow-x: hidden;

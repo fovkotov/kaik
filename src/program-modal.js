@@ -649,7 +649,7 @@ export function initProgramModal() {
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(card);
-    card.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
+    card.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     clearExpandHost(card);
     card.style.transform = restTransform;
     clearFlyBox(card);
@@ -677,7 +677,7 @@ export function initProgramModal() {
   function measureStackDest(host, home) {
     const clone = host.cloneNode(false);
     clone.className = host.className;
-    clone.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
+    clone.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     ["data-expand-host", "data-expand-settled", "data-expand-closing", "data-body-grow", "data-fly-lock", "data-focus-open"].forEach(
       (name) => clone.removeAttribute(name),
     );
@@ -697,7 +697,7 @@ export function initProgramModal() {
     host.removeEventListener("wheel", trapCardScroll);
     host.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(host);
-    host.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
+    host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     clearExpandHost(host);
     clearFlyBox(host);
     setIllustOut(host, false);
@@ -803,8 +803,8 @@ export function initProgramModal() {
           card.style.borderRadius = "0px";
           card.setAttribute("data-expand-settled", "");
         }
+        card.classList.add("is-program-scroll");
         card.style.setProperty("--fly-ms", "0ms");
-        card.style.transform = "none";
       }
       syncAria();
       return;
@@ -932,7 +932,7 @@ export function initProgramModal() {
   function settleRetire(el) {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
-    el.classList.remove("is-program-open", "is-work-open");
+    el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
     el.classList.add("is-fly-pinned");
     el.style.setProperty("--fly-ms", "0ms");
     setIllustOut(el, false);
@@ -946,7 +946,7 @@ export function initProgramModal() {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(el);
-    el.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
+    el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     el.style.transform = restTf;
     clearFlyBox(el);
     setIllustOut(el, false);
@@ -1045,7 +1045,7 @@ export function initProgramModal() {
     phase = "closing";
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
-    card?.classList.remove("is-work-open");
+    card?.classList.remove("is-work-open", "is-program-scroll");
     cards.forEach((el) => {
       if (el === card) return;
       if (el.classList.contains("is-fly-pinned") || retiring.has(el)) retireToHome(el);
@@ -1084,7 +1084,7 @@ export function initProgramModal() {
     closeAfter = null;
 
     resetCardScroll(outgoingEl);
-    outgoingEl.classList.remove("is-work-open");
+    outgoingEl.classList.remove("is-work-open", "is-program-scroll");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);
     outgoingEl.removeAttribute("data-focus-open");
