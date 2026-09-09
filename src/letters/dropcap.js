@@ -756,7 +756,8 @@ export async function initDropcaps() {
     mount({ animate: true });
   });
   subscribeCatalog(async () => {
-    const next = await loadCatalog({ bust: true });
+    const next = await loadCatalog({ bust: import.meta.env.DEV });
+    if (!next?.letters?.length) return;
     if (sameCatalog(catalog, next)) return;
     catalog = next;
     hidePopover();

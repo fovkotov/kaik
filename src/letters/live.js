@@ -20,12 +20,17 @@ export function subscribeCatalog(onUpdate) {
     import.meta.hot.on(LETTERS_CATALOG_EVENT, run);
   }
 
-  document.addEventListener("visibilitychange", run);
-  const timer = window.setInterval(run, 3000);
+  /* Production catalog is static. Polling + cache-bust every 3s filled the
+     HTTP cache with unique `?t=` URLs; a failed tick remounted dropcaps. */
+  let timer = 0;
+  if (import.meta.env.DEV) {
+    document.addEventListener("visibilitychange", run);
+    timer = window.setInterval(run, 3000);
+  }
 
   return () => {
     document.removeEventListener("visibilitychange", run);
-    window.clearInterval(timer);
+    if (timer) window.clearInterval(timer);
     import.meta.hot?.off(LETTERS_CATALOG_EVENT, run);
   };
 }

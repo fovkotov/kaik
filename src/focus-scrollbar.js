@@ -238,7 +238,7 @@ export function mountFocusScrollbar(card) {
     if (!isDesktopRail() || !attached.has(card) || out.hidden) return;
     const m = metrics(card);
     const rect = card.getBoundingClientRect();
-    const key = `${rect.left|0},${rect.top|0},${rect.width|0},${rect.height|0},${m.thumbH},${m.scroll}`;
+    const key = `${rect.left|0},${rect.top|0},${rect.width|0},${rect.height|0},${m.thumbH},${m.top}`;
     last = paintLocked(card, track, thumb, out, outThumb, m);
     if (key === lastRectKey) {
       followStable += 1;

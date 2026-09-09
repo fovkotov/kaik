@@ -1147,6 +1147,7 @@ function initDeck() {
       else markIntroDone();
     }
 
+    if (document.visibilityState === "hidden") return;
     if (needsDeckFrame(mobile)) scheduleRender();
   }
 
@@ -1154,6 +1155,9 @@ function initDeck() {
     refreshCardBox();
     refreshDeckScale();
     scheduleRender();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") scheduleRender();
   });
   scheduleRender();
 
