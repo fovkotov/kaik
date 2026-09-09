@@ -108,15 +108,15 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .works-page {
-  padding: 40px var(--gutter) max(72px, calc(36px + var(--frame-clip-bottom)));
+  padding: 24px var(--gutter) max(72px, calc(36px + var(--frame-clip-bottom)));
 }
 
-/* Tabs are the headline: active is ink, inactive is faded. */
+/* Tabs are the headline: active is ink, inactive is faded. They sit under the first block. */
 .works-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0 0.55em;
-  margin-bottom: 26px;
+  margin: 36px 0 26px;
   font-size: clamp(28px, 3.6vw, 56px);
   line-height: 1;
   letter-spacing: -0.03em;
@@ -155,7 +155,7 @@ html.is-viewer-open .experiment-two__scroll {
   --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
   position: relative;
   height: max(420px, calc(var(--hero-frame) * 0.7));
-  margin: 0 calc(-1 * var(--gutter)) 12px;
+  margin: 0 calc(-1 * var(--gutter));
   overflow: hidden;
   isolation: isolate;
   touch-action: pan-y;
@@ -234,6 +234,98 @@ html.is-viewer-open .experiment-two__scroll {
 
 .lettering-hero__credit span:first-child:not(.is-muted) {
   color: var(--ink);
+}
+
+/* Final review — title left, YouTube recording right (final-projects tab). */
+.review-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 32px clamp(24px, 4vw, 64px);
+  padding-top: 16px;
+}
+
+.review-hero[hidden] {
+  display: none;
+}
+
+.review-hero__title {
+  max-width: 9em;
+  margin: 0;
+  font-size: clamp(28px, 3.6vw, 56px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.review-hero__video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #dcdcdc;
+}
+
+.review-hero__video iframe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.review-hero__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.review-hero__play-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(72px, 9vw, 108px);
+  height: clamp(72px, 9vw, 108px);
+  border-radius: 50%;
+  background: var(--ink);
+  transition: transform 160ms var(--ease-out);
+}
+
+.review-hero__play-icon::after {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 6px;
+  border-style: solid;
+  border-width: 15px 0 15px 26px;
+  border-color: transparent transparent transparent var(--bg);
+}
+
+.review-hero__play:focus-visible .review-hero__play-icon {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .review-hero__play:hover .review-hero__play-icon {
+    transform: scale(1.05);
+  }
+}
+
+.review-hero__play:active .review-hero__play-icon {
+  transform: scale(0.97);
+}
+
+.review-hero.is-playing .review-hero__play {
+  display: none;
 }
 
 /* Grid — no plates: art and caption sit right on the page background. */
@@ -582,13 +674,28 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .works-page {
-    padding-top: 28px;
+    padding-top: 16px;
   }
 
   .works-tabs {
     flex-direction: column;
+    align-items: flex-start;
     gap: 4px;
-    margin-bottom: 20px;
+    margin: 28px 0 20px;
+  }
+
+  .works-tab {
+    text-align: left;
+  }
+
+  .review-hero__play-icon::after {
+    border-width: 11px 0 11px 19px;
+  }
+
+  .review-hero {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding-top: 8px;
   }
 
   .lettering-hero {
@@ -639,6 +746,7 @@ html.is-viewer-open .experiment-two__scroll {
   .work-card__art,
   .work-card__meta,
   .works-tab,
+  .review-hero__play-icon,
   .viewer__arrow,
   .viewer__close,
   .viewer__dot::after {

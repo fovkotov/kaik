@@ -26,31 +26,6 @@
       </header>
 
       <main class="works-page">
-        <div class="works-tabs" role="tablist" aria-label="Разделы">
-          <button
-            class="works-tab is-on"
-            type="button"
-            role="tab"
-            id="tab-lettering"
-            aria-selected="true"
-            aria-controls="panel-lettering"
-            data-tab="lettering"
-          >
-            воркшопы
-          </button>
-          <button
-            class="works-tab"
-            type="button"
-            role="tab"
-            id="tab-final"
-            aria-selected="false"
-            aria-controls="panel-final"
-            data-tab="final"
-          >
-            финальные проекты
-          </button>
-        </div>
-
         <section class="lettering-hero" data-lettering-hero aria-label="Интерактивный леттеринг">
           <canvas class="lettering-hero__canvas" data-lettering-canvas aria-hidden="true"></canvas>
           <img class="lettering-hero__fallback" data-lettering-fallback alt="" draggable="false" />
@@ -63,7 +38,41 @@
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <section class="works-panel" role="tabpanel" data-works-panel aria-labelledby="tab-lettering">
+        <section class="review-hero" data-review-hero hidden aria-labelledby="review-title">
+          <h1 class="review-hero__title" id="review-title">финальный просмотр 1&nbsp;потока</h1>
+          <div class="review-hero__video" data-review-video>
+            <button class="review-hero__play" type="button" data-review-play aria-label="Смотреть запись финального просмотра">
+              <span class="review-hero__play-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+        </section>
+
+        <div class="works-tabs" role="tablist" aria-label="Разделы">
+          <button
+            class="works-tab is-on"
+            type="button"
+            role="tab"
+            id="tab-lettering"
+            aria-selected="true"
+            aria-controls="works-panel"
+            data-tab="lettering"
+          >
+            воркшопы
+          </button>
+          <button
+            class="works-tab"
+            type="button"
+            role="tab"
+            id="tab-final"
+            aria-selected="false"
+            aria-controls="works-panel"
+            data-tab="final"
+          >
+            финальные проекты
+          </button>
+        </div>
+
+        <section class="works-panel" role="tabpanel" id="works-panel" data-works-panel aria-labelledby="tab-lettering">
           <div class="works-grid" data-works-grid></div>
           <p class="works-empty" data-works-empty hidden>Здесь пока нет работ.</p>
         </section>

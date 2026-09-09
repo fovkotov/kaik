@@ -9,7 +9,12 @@ const canvas = document.querySelector("[data-lettering-canvas]");
 const fallback = document.querySelector("[data-lettering-fallback]");
 const action = document.querySelector("[data-lettering-action]");
 const credit = document.querySelector("[data-lettering-credit]");
+const reviewHero = document.querySelector("[data-review-hero]");
+const reviewVideo = document.querySelector("[data-review-video]");
+const reviewPlay = document.querySelector("[data-review-play]");
 const panel = document.querySelector("[data-works-panel]");
+
+const REVIEW_VIDEO_ID = "K06Djv3prto";
 const grid = document.querySelector("[data-works-grid]");
 const empty = document.querySelector("[data-works-empty]");
 const tabs = [...document.querySelectorAll("[data-tab]")];
@@ -91,7 +96,29 @@ function setTab(next) {
   const showHero = next === TAB_WORKSHOPS;
   hero.hidden = !showHero;
   shader?.setActive(showHero);
+  reviewHero.hidden = showHero;
+  if (showHero) stopReview();
   renderGrid();
+}
+
+/* ---------- final review video ---------- */
+
+function playReview() {
+  if (reviewHero.classList.contains("is-playing")) return;
+  const frame = document.createElement("iframe");
+  frame.src = `https://www.youtube-nocookie.com/embed/${REVIEW_VIDEO_ID}?autoplay=1&rel=0&playsinline=1`;
+  frame.title = "Финальный просмотр 1 потока";
+  frame.allow = "autoplay; fullscreen; picture-in-picture; clipboard-write";
+  frame.allowFullscreen = true;
+  frame.referrerPolicy = "strict-origin-when-cross-origin";
+  reviewVideo.append(frame);
+  reviewHero.classList.add("is-playing");
+}
+
+/** Leaving the tab: drop the embed so audio stops and the play plate comes back. */
+function stopReview() {
+  reviewVideo.querySelector("iframe")?.remove();
+  reviewHero.classList.remove("is-playing");
 }
 
 function cardFor(item) {
@@ -798,6 +825,7 @@ async function boot() {
     next.focus();
   });
   action.addEventListener("click", nextHero);
+  reviewPlay.addEventListener("click", playReview);
 
   const data = await loadWorksCatalog({ bust: true });
   catalog = data.items || [];
