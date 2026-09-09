@@ -4190,22 +4190,9 @@ html.is-focus-landed body:not(.list) .deck {
   perspective: none;
 }
 
-@media (min-width: 901px) {
-  body:not(.list) [data-deck] .card {
-    scale: 1;
-    transition: scale 280ms var(--ease-out);
-  }
-
-  body:not(.list) [data-deck][data-program-open] .card:not(.is-program-open):not(.is-fly-pinned) {
-    scale: 0.001;
-    pointer-events: none !important;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    body:not(.list) [data-deck] .card {
-      transition: none;
-    }
-  }
+html.is-focus-frozen body:not(.list) [data-deck] .card:not(.is-program-open):not(.is-fly-pinned) {
+  visibility: hidden;
+  pointer-events: none !important;
 }
 
 html.is-focus-landed body:not(.list) .card.is-program-open.is-program-scroll .history-card::before {

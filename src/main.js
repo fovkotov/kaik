@@ -835,8 +835,7 @@ function initDeck() {
     const originY = 0;
     const p = clamp(totalScroll ? y / totalScroll : 0, 0, 1);
 
-    // Desktop focus: siblings scale in CSS, do not fan/slide.
-    const wantSpread = mobile && deck.hasAttribute("data-program-open") ? 1 : 0;
+    const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
     const focusOpenIndex = items.findIndex((entry) => entry.el.hasAttribute("data-focus-open"));
     const lockedIndex = items.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
     const openingIndex = items.findIndex(
