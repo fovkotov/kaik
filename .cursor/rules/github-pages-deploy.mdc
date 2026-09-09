@@ -15,7 +15,8 @@ One Vite app, one GitHub Pages site (`fovkotov/kaik`). A single push to `main` u
 
 | Product | URL path | Source |
 |---|---|---|
-| Site (course) | `/kaik/` | `index.html` |
+| Site (course, flying deck) | `/kaik/` | `index.html` |
+| List (split layout) | `/kaik/list` | `list.html` |
 | Admin | `/kaik/admin` | `admin.html` |
 | Catalog | `/kaik/catalog` | `catalog.html` |
 
@@ -72,6 +73,7 @@ gh run watch --exit-status
 Reply with the three live URLs:
 
 - https://fovkotov.github.io/kaik/
+- https://fovkotov.github.io/kaik/list
 - https://fovkotov.github.io/kaik/admin
 - https://fovkotov.github.io/kaik/catalog
 

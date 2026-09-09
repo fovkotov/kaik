@@ -11,6 +11,7 @@ This site is not a standalone tab. It is framed by another site (Cargo / kaik.pi
 
 - Fill the iframe: `html, body` are `width/height: 100%`.
 - Course landing: `body` is `overflow: hidden`. Scroll lives on `[data-scroll-root].viewport`, never on `window`.
+- Split list (`body.list` / `/list`): `body` is `overflow: hidden`. Scroll lives on the right column `[data-scroll-root].list-right`. An opened card scrolls inside the left pane (or a full-frame overlay on mobile). Do not use window scroll.
 - Admin (`body.admin`): scroll on `body` with `overscroll-behavior: contain`.
 - `position: fixed` UI (panel, deck, toasts, popovers) stays **outside** the scroll root, as a sibling, so it sticks to the iframe viewport.
 - Size against `--frame-w` / `--frame-h` (`calc(100% - clip)` of the iframe). Parent may `postMessage` an explicit pixel size. Do not rely on `100vh` / `100vw` alone inside kaik.
@@ -44,6 +45,6 @@ This site is not a standalone tab. It is framed by another site (Cargo / kaik.pi
 
 ## New pages and features
 
-- Admin, catalog, overlays, modals: they must fit and scroll inside the iframe, not assume a full browser chrome.
+- Admin, catalog, list, overlays, modals: they must fit and scroll inside the iframe, not assume a full browser chrome.
 - Modals: `position: fixed` relative to the iframe; trap overscroll.
 - No `window.open` to same-origin flows that the user expects to see in the embed — stay in-frame unless it is an external destination.

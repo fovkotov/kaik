@@ -1,0 +1,333 @@
+/* Split-list product (`/list`). Overrides deck geometry without touching `/`. */
+
+html,
+body.list {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+body.list {
+  --list-gap: 28px;
+  --list-card-w: min(420px, calc(var(--frame-w) * 0.36));
+  --list-card-h: calc(var(--list-card-w) * var(--card-aspect));
+  --card-w: var(--list-card-w);
+  --card-h: var(--list-card-h);
+  --stack-card-w: var(--list-card-w);
+  --stack-card-h: var(--list-card-h);
+  --deck-scale: 1;
+  overflow: hidden;
+  touch-action: auto;
+}
+
+body.list .list-frame {
+  display: flex;
+  width: var(--frame-w);
+  height: var(--frame-h);
+  margin-top: var(--frame-clip-top);
+  background: #fff;
+  overflow: hidden;
+}
+
+body.list .list-left {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 50%;
+  width: 50%;
+  height: 100%;
+  background: #fff;
+  overflow: hidden;
+}
+
+body.list .list-right {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 50%;
+  width: 50%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  background: var(--bg);
+}
+
+body.list .list-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--list-gap);
+  box-sizing: border-box;
+  width: 100%;
+  padding: 48px 24px 96px;
+}
+
+body.list .list-spacer {
+  flex: 0 0 auto;
+  width: var(--list-card-w);
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    height 420ms var(--ease-out),
+    margin 420ms var(--ease-out);
+}
+
+body.list .list-spacer.is-closed {
+  height: 0 !important;
+  margin: 0 !important;
+}
+
+body.list .list-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+body.list .list-stage:not(:empty) {
+  pointer-events: auto;
+}
+
+/* Lockup sits in the left half — not the flying-deck fixed cluster. */
+body.list .panel,
+body.list .panel__cluster {
+  display: flex !important;
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  transform: none !important;
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+}
+
+body.list .panel__lockup,
+body.list .panel__chrome,
+body.list .panel__lang {
+  position: relative;
+  top: auto;
+  left: auto;
+  bottom: auto;
+  right: auto;
+  transform: none;
+  pointer-events: auto;
+}
+
+body.list .panel__cluster {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  height: auto;
+  max-width: calc(100% - 48px);
+}
+
+body.list .panel__lockup {
+  width: var(--panel-cluster-w);
+  height: auto;
+}
+
+body.list .panel__dates--short,
+body.list .panel__dates--stack {
+  display: none;
+}
+
+body.list .panel__dates:not(.panel__dates--short):not(.panel__dates--stack) {
+  display: block;
+}
+
+body.list .panel__chrome {
+  width: auto;
+  margin-left: calc(var(--panel-dropcap-w) + var(--panel-dropcap-gap));
+}
+
+body.list .list-left.is-covered .panel {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Cards are a normal vertical list — no 3D fly, no absolute stack. */
+body.list .card {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  z-index: 1;
+  width: var(--list-card-w);
+  height: var(--list-card-h);
+  margin: 0;
+  flex: 0 0 auto;
+  transform: rotate(var(--list-rotate, 0deg));
+  transform-origin: 50% 50%;
+  transform-style: flat;
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform;
+}
+
+body.list .card[data-works-card]:not(.is-program-open):not(.is-list-open) {
+  --card-w: var(--list-card-w);
+  --card-h: var(--list-card-h);
+  width: var(--list-card-w);
+  height: var(--list-card-h);
+  margin-top: 0;
+}
+
+body.list .card[data-landing-card] {
+  background: #fff;
+}
+
+body.list .card[data-landing-card] .card__art--cover {
+  display: none;
+}
+
+body.list .card[data-landing-card] .landing-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+body.list .card[data-landing-card]:not(.is-list-open) .landing-card__foot {
+  display: none;
+}
+
+body.list .card.is-list-open {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  transform: none;
+  transform-origin: 50% 50%;
+  border-radius: 0;
+  cursor: default;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.list .card.is-list-open[data-landing-card] .landing-card__foot {
+  display: flex;
+}
+
+body.list .card.is-list-moving {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+html body.list .fly-close:not([hidden]) {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto !important;
+  top: calc(var(--frame-clip-top) + 16px);
+  right: calc(50% + 16px);
+  left: auto;
+}
+
+@media (max-width: 900px) {
+  body.list {
+    --list-card-w: min(320px, calc(var(--frame-w) * 0.78));
+    --list-card-h: calc(var(--list-card-w) * var(--card-aspect));
+    touch-action: auto !important;
+  }
+
+  body.list .list-frame {
+    flex-direction: column;
+  }
+
+  body.list .list-left {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 12px 16px 4px;
+  }
+
+  body.list .panel,
+  body.list .panel__cluster {
+    display: flex !important;
+    height: auto;
+    align-items: flex-start;
+  }
+
+  body.list .panel__cluster {
+    max-width: 100%;
+    gap: 2px;
+  }
+
+  body.list .panel__lockup {
+    --panel-dropcap-h: 56px;
+    --panel-dropcap-w: 44px;
+    width: auto;
+    height: auto;
+  }
+
+  body.list .panel__dropcap .dropcap img,
+  body.list .panel__dropcap .dropcap svg {
+    height: 56px;
+  }
+
+  body.list .panel__chrome {
+    margin-left: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 16px;
+  }
+
+  body.list .panel__dates:not(.panel__dates--short):not(.panel__dates--stack) {
+    display: none;
+  }
+
+  body.list .panel__dates--short {
+    display: block;
+  }
+
+  body.list .panel__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 12px;
+  }
+
+  body.list .list-right {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+  }
+
+  body.list .list-stack {
+    padding: 24px 16px 80px;
+  }
+
+  body.list .list-stage:not(:empty) {
+    position: fixed;
+    top: var(--frame-clip-top);
+    right: 0;
+    bottom: var(--frame-clip-bottom);
+    left: 0;
+    z-index: 30;
+    background: #fff;
+  }
+
+  html body.list .fly-close:not([hidden]) {
+    right: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.list .card,
+  body.list .list-spacer {
+    transition: none !important;
+  }
+}

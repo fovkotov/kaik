@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
@@ -24,7 +25,7 @@ function publicBaseUrls() {
   function withBaseHtml(html) {
     if (!prefix) return html;
     return html.replace(
-      /(\b(?:src|href|poster)\s*=\s*["'])\/(?!\/)((?:(?:assets|fonts|letters|works)\/|(?:program|admin|catalog|index)\.html)[^"']*)/gi,
+      /(\b(?:src|href|poster)\s*=\s*["'])\/(?!\/)((?:(?:assets|fonts|letters|works)\/|(?:program|admin|catalog|list|index)\.html)[^"']*)/gi,
       `$1${prefix}/$2`,
     );
   }
@@ -64,9 +65,26 @@ function publicBaseUrls() {
   };
 }
 
+/** `/list` → `list/index.html` so GitHub Pages pretty paths work without the 404 SPA. */
+function prettyHtmlDirs() {
+  return {
+    name: "pretty-html-dirs",
+    writeBundle(options) {
+      const outDir = options.dir || path.resolve(root, "dist");
+      for (const name of ["list"]) {
+        const src = path.join(outDir, `${name}.html`);
+        if (!fs.existsSync(src)) continue;
+        const dir = path.join(outDir, name);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.copyFileSync(src, path.join(dir, "index.html"));
+      }
+    },
+  };
+}
+
 export default defineConfig({
   base: isCargo ? "./" : "/",
-  plugins: [react(), tailwindcss(), lettersAdminPlugin(), worksAdminPlugin(), publicBaseUrls()],
+  plugins: [react(), tailwindcss(), lettersAdminPlugin(), worksAdminPlugin(), publicBaseUrls(), prettyHtmlDirs()],
   resolve: {
     alias: {
       "@": path.resolve(root, "./src"),
@@ -96,6 +114,8 @@ export default defineConfig({
             admin: path.resolve(root, "admin.html"),
             program: path.resolve(root, "program.html"),
             catalog: path.resolve(root, "catalog.html"),
+            experiment: path.resolve(root, "experiment.html"),
+            list: path.resolve(root, "list.html"),
           },
     },
   },

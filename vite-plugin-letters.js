@@ -250,6 +250,18 @@ export function lettersAdminPlugin() {
           return;
         }
 
+        if (url === "/experiment" || url === "/experiment/") {
+          req.url = "/experiment.html";
+          next();
+          return;
+        }
+
+        if (url === "/list" || url === "/list/") {
+          req.url = "/list.html";
+          next();
+          return;
+        }
+
         if (!url.startsWith("/api/letters")) {
           next();
           return;

@@ -33,6 +33,8 @@ jobs:
         run: |
           touch dist/.nojekyll
           cp dist/index.html dist/404.html
+          mkdir -p dist/list
+          cp dist/list.html dist/list/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

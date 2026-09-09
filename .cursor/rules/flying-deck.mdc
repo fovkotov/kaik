@@ -1,0 +1,21 @@
+---
+description: The flying card deck on / is the preserved production course embed. Do not replace it with the split list.
+alwaysApply: true
+---
+
+# Flying deck is the production course
+
+`/` (Vercel) and `/kaik/` (GitHub Pages) are the **preserved flying card deck** — the Cargo iframe embed on kaik.pictures.
+
+- Source: `index.html` + `src/main.js` (deck fly / focus / destBox / spread stack).
+- Do **not** replace, gut, or swap this route for the split list.
+- Do **not** port fly-lock, destBox, pointer parallax, fan-on-focus, or deck progress onto `/list`.
+
+The split-layout list is a **separate product**:
+
+| Product | Vercel | GitHub Pages | Source |
+|---|---|---|---|
+| Flying deck (keep) | `/` | `/kaik/` | `index.html` |
+| Split list (new) | `/list` | `/kaik/list` | `list.html` |
+
+If you change course cards, reuse markup/CSS in `list.html` — do not delete the deck to “make room” for the list.

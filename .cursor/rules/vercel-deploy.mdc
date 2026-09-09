@@ -15,7 +15,8 @@ One Vite app, one Vercel project (`kaik`), one GitHub Pages site (`fovkotov/kaik
 
 | Product | Vercel | GitHub Pages | Source |
 |---|---|---|---|
-| Site (course) | `/` | `/kaik/` | `index.html` |
+| Site (course, flying deck) | `/` | `/kaik/` | `index.html` |
+| List (split layout) | `/list` | `/kaik/list` | `list.html` |
 | Admin | `/admin` | `/kaik/admin` | `admin.html` |
 | Catalog | `/catalog` | `/kaik/catalog` | `catalog.html` |
 
@@ -48,8 +49,10 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 vercel deploy --prod --yes --project kaik --logs
 Reply with the live URLs:
 
 - https://kaik-one.vercel.app/
+- https://kaik-one.vercel.app/list
 - https://kaik-one.vercel.app/admin
 - https://kaik-one.vercel.app/catalog
 - https://fovkotov.github.io/kaik/
+- https://fovkotov.github.io/kaik/list
 - https://fovkotov.github.io/kaik/admin
 - https://fovkotov.github.io/kaik/catalog
