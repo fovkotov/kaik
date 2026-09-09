@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T22:38:48.584Z",
+  "updatedAt": "2026-09-09T22:40:59.729Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -647,8 +647,6 @@
       "author": "Katia",
       "nick": "hurujoi",
       "stream": "1",
-      "width": 1600,
-      "height": 900,
       "files": [
         "wrk_998fda29_0.webp",
         "wrk_998fda29_1.webp",
@@ -661,8 +659,37 @@
         "wrk_998fda29_8.webp",
         "wrk_998fda29_9.webp"
       ],
+      "width": 1600,
+      "height": 900,
+      "createdAt": "2026-09-09T22:38:48.583Z",
+      "originalName": "01.webp"
+    },
+    {
+      "id": "wrk_c104dfd5",
+      "type": "final",
+      "author": "Андрей",
+      "nick": "fovkotov",
+      "stream": "1",
+      "width": 1600,
+      "height": 900,
+      "files": [
+        "wrk_c104dfd5_0.webp",
+        "wrk_c104dfd5_1.webp",
+        "wrk_c104dfd5_2.webp",
+        "wrk_c104dfd5_3.webp",
+        "wrk_c104dfd5_4.webp",
+        "wrk_c104dfd5_5.webp",
+        "wrk_c104dfd5_6.webp",
+        "wrk_c104dfd5_7.webp",
+        "wrk_c104dfd5_8.webp",
+        "wrk_c104dfd5_9.webp",
+        "wrk_c104dfd5_10.webp",
+        "wrk_c104dfd5_11.webp",
+        "wrk_c104dfd5_12.webp",
+        "wrk_c104dfd5_13.webp"
+      ],
       "originalName": "01.webp",
-      "createdAt": "2026-09-09T22:38:48.583Z"
+      "createdAt": "2026-09-09T22:40:59.729Z"
     }
   ]
 }
