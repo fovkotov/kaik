@@ -115,12 +115,42 @@ html.is-viewer-open .experiment-two__scroll {
 /* Tabs are the headline: active is ink, inactive is faded. They sit under the first block. */
 .works-tabs {
   display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0 24px;
+  margin: 36px 0 26px;
+}
+
+.works-tabs__list {
+  display: flex;
   flex-wrap: wrap;
   gap: 0 0.55em;
-  margin: 36px 0 26px;
   font-size: clamp(28px, 3.6vw, 56px);
   line-height: 1;
   letter-spacing: -0.03em;
+}
+
+/* Lettering credit shares the tabs' baseline, flush right. */
+.works-tabs__credit {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 8px;
+  max-width: min(50%, 480px);
+  margin: 0;
+  font-size: clamp(12px, 1vw, 15px);
+  line-height: 1.2;
+  text-align: right;
+  color: var(--muted);
+}
+
+.works-tabs__credit span:first-child:not(.is-muted) {
+  color: var(--ink);
+}
+
+/* Final-projects tab: the credit goes invisible but keeps its slot so the row never jumps. */
+.works-tabs__credit.is-hidden {
+  visibility: hidden;
 }
 
 .works-tab {
@@ -231,28 +261,6 @@ html.is-viewer-open .experiment-two__scroll {
 .lettering-hero__action:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: -8px;
-}
-
-.lettering-hero__credit {
-  position: absolute;
-  z-index: 3;
-  margin: 0;
-  pointer-events: none;
-  font-size: clamp(12px, 1vw, 15px);
-  line-height: 1.2;
-  right: var(--gutter);
-  bottom: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0 8px;
-  max-width: min(50%, 480px);
-  text-align: right;
-  color: var(--muted);
-}
-
-.lettering-hero__credit span:first-child:not(.is-muted) {
-  color: var(--ink);
 }
 
 /* Final review — title left, YouTube recording right (final-projects tab). */
@@ -811,14 +819,27 @@ html.is-viewer-open .experiment-two__scroll {
     padding-top: 16px;
   }
 
+  /* Mobile: tabs stack, the credit drops under them as a plain left-aligned line. */
   .works-tabs {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: 10px;
     margin: 28px 0 20px;
   }
 
+  .works-tabs__list {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
   .works-tab {
+    text-align: left;
+  }
+
+  .works-tabs__credit {
+    justify-content: flex-start;
+    max-width: none;
     text-align: left;
   }
 

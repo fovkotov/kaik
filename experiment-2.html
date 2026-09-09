@@ -35,7 +35,6 @@
             type="button"
             aria-label="Показать следующий леттеринг"
           ></button>
-          <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
         <section class="review-hero" data-review-hero hidden aria-labelledby="review-title">
@@ -47,29 +46,32 @@
           </div>
         </section>
 
-        <div class="works-tabs" role="tablist" aria-label="Разделы">
-          <button
-            class="works-tab is-on"
-            type="button"
-            role="tab"
-            id="tab-lettering"
-            aria-selected="true"
-            aria-controls="works-panel"
-            data-tab="lettering"
-          >
-            воркшопы
-          </button>
-          <button
-            class="works-tab"
-            type="button"
-            role="tab"
-            id="tab-final"
-            aria-selected="false"
-            aria-controls="works-panel"
-            data-tab="final"
-          >
-            финальные проекты
-          </button>
+        <div class="works-tabs">
+          <div class="works-tabs__list" role="tablist" aria-label="Разделы">
+            <button
+              class="works-tab is-on"
+              type="button"
+              role="tab"
+              id="tab-lettering"
+              aria-selected="true"
+              aria-controls="works-panel"
+              data-tab="lettering"
+            >
+              воркшопы
+            </button>
+            <button
+              class="works-tab"
+              type="button"
+              role="tab"
+              id="tab-final"
+              aria-selected="false"
+              aria-controls="works-panel"
+              data-tab="final"
+            >
+              финальные проекты
+            </button>
+          </div>
+          <p class="works-tabs__credit" data-lettering-credit aria-live="polite"></p>
         </div>
 
         <section class="works-panel" role="tabpanel" id="works-panel" data-works-panel aria-labelledby="tab-lettering">

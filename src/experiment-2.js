@@ -102,6 +102,7 @@ function setTab(next) {
   hero.hidden = !showHero;
   follower?.setActive(showHero);
   reviewHero.hidden = showHero;
+  credit.classList.toggle("is-hidden", !showHero);
   if (showHero) stopReview();
   renderGrid();
 }
