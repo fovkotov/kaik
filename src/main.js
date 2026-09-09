@@ -226,7 +226,8 @@ function initDeck() {
   let spreadMix = 1;
   let spreadMixT0 = 0;
   const SPREAD_MS = 920;
-  const SPREAD_OUT_MS = 1100;
+  /** Collapse with the focus fly (FLY_MS), not after it. Open stay 920. */
+  const SPREAD_OUT_MS = 920;
   const FOCUS_SEL = "[data-card]";
   const programIndex = state.findIndex((item) => item.el.hasAttribute("data-program-card"));
   flyLockedFlag = Boolean(deck.querySelector("[data-fly-lock]"));
@@ -713,7 +714,9 @@ function initDeck() {
   }).observe(deck, {
     subtree: true,
     attributes: true,
-    attributeFilter: ["data-fly-lock"],
+    // data-program-open lives on the deck: closing must wake the loop
+    // or siblings stay fanned until fly-lock drops (~full FLY_MS late).
+    attributeFilter: ["data-fly-lock", "data-program-open"],
   });
 
   window.matchMedia(MOBILE_MQ).addEventListener("change", () => {
@@ -870,7 +873,8 @@ function initDeck() {
     if (spread !== spreadTarget) {
       const dur = spreadTarget > 0 ? SPREAD_MS : SPREAD_OUT_MS;
       const u = reduceMotionSpread() ? 1 : clamp((performance.now() - spreadT0) / dur, 0, 1);
-      spread = lerp(spreadFrom, spreadTarget, spreadEase(u));
+      const ease = spreadTarget > 0 ? spreadEase : flyEase;
+      spread = lerp(spreadFrom, spreadTarget, ease(u));
       if (u >= 1) spread = spreadTarget;
     }
     if (!wantSpread && spread === 0) {
