@@ -1289,14 +1289,19 @@ export function initProgramModal() {
   function syncCloseBtn() {
     const expanded = phase === "open" || phase === "opening";
     const closing = phase === "closing";
-    const showGlobal = (expanded || closing) && Boolean(card) && isMobile();
+    const workOpen =
+      Boolean(card?.hasAttribute("data-work-card")) && card.classList.contains("is-work-open");
+    const showWorkClose = workOpen && expanded && !closing;
+    const showGlobal = (expanded || closing) && Boolean(card) && isMobile() && !showWorkClose;
     if (closeBtn) {
       closeBtn.hidden = !showGlobal;
       closeBtn.classList.toggle("is-leaving", closing);
       if (showGlobal && !closing) closeBtn.setAttribute("aria-label", t(labelKey(card, true)));
     }
     document.querySelectorAll("[data-article-close]").forEach((btn) => {
-      btn.hidden = true;
+      const show = btn.classList.contains("work-card__close") && showWorkClose;
+      btn.hidden = !show;
+      if (show) btn.setAttribute("aria-label", t(labelKey(card, true)));
     });
   }
 

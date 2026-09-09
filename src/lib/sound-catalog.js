@@ -8,13 +8,13 @@ import { isMobile } from "../tweaks.js";
 
 export const ACTION_STORAGE_KEY = "kaik-action-sound-v1";
 export const SCROLL_STORAGE_KEY = "kaik-scroll-sound-v1";
-export const SCROLL_PX_KEY = "kaik-scroll-px-v1";
+export const SCROLL_PX_KEY = "kaik-scroll-px-v2";
 export const DEFAULT_ACTION_ID = "wiki:pop";
 export const DEFAULT_SCROLL_ID = "wiki:pop";
 export const SCROLL_PX_MIN = 20;
 export const SCROLL_PX_MAX = 800;
-/** Live scroll handler fires every 100px with no time throttle. */
-export const SCROLL_PX_DEFAULT = 100;
+/** Live scroll handler fires every 150px with no time throttle (1.5× sparser than 100px). */
+export const SCROLL_PX_DEFAULT = 150;
 
 const storage = safeStorage();
 

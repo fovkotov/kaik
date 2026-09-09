@@ -2207,7 +2207,8 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
     pointer-events: none;
   }
 
-  .card[data-work-card].is-program-open .work-card__nav-btn {
+  .card[data-work-card].is-program-open .work-card__nav-btn,
+  .card[data-work-card].is-program-open .work-card__close {
     pointer-events: auto;
   }
 }
@@ -3236,6 +3237,13 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   background: rgba(85, 85, 85, 0.06);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
+}
+
+.card.is-work-open .work-card__nav .work-card__close:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
 }
 
 .work-card__nav .work-card__close .article-close__icon {
@@ -4497,22 +4505,33 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
   justify-content: center;
 }
 
-/* Desktop never shows the frosted overlay X, even when a card is focused. */
+/* Desktop never shows the frosted overlay X, even when a card is focused.
+   Student-work focus keeps its in-card X (same row as prev/next). */
 html:not(.is-mobile) .fly-close,
 html:not(.is-mobile) .fly-close:not([hidden]),
-html:not(.is-mobile) .article-close,
-html:not(.is-mobile) .article-close:not([hidden]) {
+html:not(.is-mobile) .article-close:not(.work-card__close),
+html:not(.is-mobile) .article-close:not(.work-card__close):not([hidden]) {
   display: none !important;
   pointer-events: none !important;
+}
+
+html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
+  display: flex !important;
+  pointer-events: auto !important;
 }
 
 @media (min-width: 901px) {
   .fly-close,
   .fly-close:not([hidden]),
-  .article-close,
-  .article-close:not([hidden]) {
+  .article-close:not(.work-card__close),
+  .article-close:not(.work-card__close):not([hidden]) {
     display: none !important;
     pointer-events: none !important;
+  }
+
+  .card.is-work-open .work-card__close:not([hidden]) {
+    display: flex !important;
+    pointer-events: auto !important;
   }
 }
 
@@ -5562,9 +5581,9 @@ html:not(.is-mobile) .article-close:not([hidden]) {
     justify-content: center;
   }
 
-  /* History / format / author in-flow X yields to the viewport fly-close. */
-  .card.is-program-open[data-article-card] .article-close-row,
-  .card.is-program-open .work-card__close {
+  /* History / format / author in-flow X yields to the viewport fly-close.
+     Student-work focus keeps its in-card X instead of the overlay. */
+  .card.is-program-open[data-article-card] .article-close-row {
     display: none;
   }
 
@@ -6043,20 +6062,25 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__nav {
-    position: absolute;
-    top: 16px;
-    right: calc(16px + var(--work-chrome-h) + 8px);
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
     z-index: 6;
-    width: auto;
+    width: 100%;
     gap: 4px;
-    padding: 0;
+    padding: 0 16px;
   }
 
+  .card.is-program-open[data-work-card].is-work-open .work-card__close:not([hidden]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__nav-btn,
   .card.is-program-open[data-work-card].is-work-open .work-card__close {
-    display: none;
-  }
-
-  .card.is-program-open[data-work-card].is-work-open .work-card__nav-btn {
     width: var(--work-chrome-h);
     height: var(--work-chrome-h);
     padding: 12px;
@@ -6068,7 +6092,7 @@ html:not(.is-mobile) .article-close:not([hidden]) {
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__who {
-    padding-right: calc(var(--work-chrome-h) * 3 + 16px);
+    padding-right: 0;
   }
 
   .card.is-program-open .work-card__photos {
