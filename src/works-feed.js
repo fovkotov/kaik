@@ -30,8 +30,12 @@ const DEFAULTS = Object.freeze({
   maxCols: Infinity,
   /** Long decks hide dots — they would overflow the cell. */
   manyDots: 12,
+  /** Font cells become a type tester: click the specimen and type your own text. */
+  fontTester: false,
   seed: 1,
 });
+
+const TESTER_MAX_CHARS = 60;
 
 const TYPE_ORDER = [TYPE_FINAL, TYPE_LETTERING, TYPE_FONT];
 
@@ -90,10 +94,15 @@ function sliderMarkup(item, files, opts) {
   </div>`;
 }
 
-function fontMarkup(item, fontFile) {
+function fontMarkup(item, fontFile, opts) {
+  const tester = opts.fontTester
+    ? ` data-font-tester contenteditable="true" spellcheck="false" autocapitalize="off" autocorrect="off" role="textbox" aria-label="${esc(
+        t("works.fontTester"),
+      )}" title="${esc(t("works.fontTester"))}"`
+    : "";
   return `<div class="works-feed__art works-feed__art--font" data-font-preview data-font-url="${esc(
     workFileUrl(fontFile),
-  )}" data-work-id="${esc(item.id)}"${item.sample ? ` data-font-sample="${esc(item.sample)}"` : ""}></div>`;
+  )}" data-work-id="${esc(item.id)}"${item.sample ? ` data-font-sample="${esc(item.sample)}"` : ""}${tester}></div>`;
 }
 
 /** Same caption as the main-domain collage: name, then @nick. */
@@ -106,8 +115,8 @@ function whoMarkup(item) {
 
 function mediaMarkup(item, opts) {
   const fontFile = (item.files || []).find((name) => isFontFile(name));
-  if (item.type === TYPE_FONT && fontFile) return fontMarkup(item, fontFile);
-  if (fontFile && !imageFiles(item).length) return fontMarkup(item, fontFile);
+  if (item.type === TYPE_FONT && fontFile) return fontMarkup(item, fontFile, opts);
+  if (fontFile && !imageFiles(item).length) return fontMarkup(item, fontFile, opts);
   const images = imageFiles(item);
   if (!images.length) return "";
   if (item.type === TYPE_FINAL && images.length > 1) return sliderMarkup(item, images, opts);
@@ -131,18 +140,102 @@ function workMarkup(item, opts) {
   </article>`;
 }
 
+/**
+ * The specimen is set at a fraction of the column width; a long sample (or
+ * whatever the visitor types) is shrunk until it fits the cell on one line.
+ */
+function fitFontCell(el) {
+  el.style.removeProperty("--font-fit");
+  const room = el.clientWidth;
+  if (!room || !el.firstChild) return;
+  // Centred text overflows both ways, so scrollWidth under-reports: measure the glyph run itself.
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const need = range.getBoundingClientRect().width;
+  if (need <= room) return;
+  el.style.setProperty("--font-fit", String(Math.max(0.12, (room / need) * 0.96)));
+}
+
+function plainText(value) {
+  return String(value || "")
+    .replace(/[\r\n\u2028\u2029]+/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, TESTER_MAX_CHARS);
+}
+
+function selectAll(el) {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
+/** Click the specimen, type your own word; empty → back to the stored sample. */
+function bindFontTester(el, fallback) {
+  if (el.dataset.testerBound) return;
+  el.dataset.testerBound = "1";
+  const settle = () => {
+    const next = plainText(el.textContent);
+    if (next !== el.textContent) el.textContent = next;
+    fitFontCell(el);
+  };
+  el.addEventListener("focus", () => {
+    el.closest(".works-feed__cell")?.classList.add("is-typing");
+    requestAnimationFrame(() => selectAll(el));
+  });
+  el.addEventListener("blur", () => {
+    el.closest(".works-feed__cell")?.classList.remove("is-typing");
+    if (!el.textContent.trim()) el.textContent = fallback;
+    settle();
+  });
+  el.addEventListener("input", settle);
+  el.addEventListener("paste", (event) => {
+    event.preventDefault();
+    const text = plainText(event.clipboardData?.getData("text/plain"));
+    if (!text) return;
+    const sel = window.getSelection();
+    if (sel?.rangeCount) {
+      sel.deleteFromDocument();
+      sel.getRangeAt(0).insertNode(document.createTextNode(text));
+      sel.collapseToEnd();
+    } else {
+      el.textContent = text;
+    }
+    settle();
+  });
+  el.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === "Escape") {
+      event.preventDefault();
+      el.blur();
+      return;
+    }
+    // Arrows / space belong to the caret, not to the page or the deck.
+    event.stopPropagation();
+  });
+  // Clicks must not bubble into the cell's open-viewer handler.
+  el.addEventListener("click", (event) => event.stopPropagation());
+  el.addEventListener("pointerdown", (event) => event.stopPropagation());
+  if (typeof ResizeObserver === "function") new ResizeObserver(() => fitFontCell(el)).observe(el);
+}
+
 async function paintFontCell(el) {
   const url = el.getAttribute("data-font-url");
   const id = el.getAttribute("data-work-id") || "font";
   const sample = (el.getAttribute("data-font-sample") || "").trim();
   if (!url) return;
   const family = `wrk-${id.replace(/[^a-z0-9]/gi, "") || "font"}`;
+  const show = (text) => {
+    el.textContent = text;
+    el.style.fontFamily = `"${family}", sans-serif`;
+    fitFontCell(el);
+    if (el.hasAttribute("data-font-tester")) bindFontTester(el, text);
+  };
   try {
     const face = new FontFace(family, `url(${JSON.stringify(url)})`);
     document.fonts.add(await face.load());
     if (sample) {
-      el.textContent = sample;
-      el.style.fontFamily = `"${family}", sans-serif`;
+      show(sample);
       return;
     }
     const canvas = document.createElement("canvas");
@@ -158,10 +251,10 @@ async function paintFontCell(el) {
       if (latin && cyr) lang = id.charCodeAt(0) % 2 ? "ru" : "en";
       else if (cyr && !latin) lang = "ru";
     }
-    el.textContent = pickWord(id, lang);
-    el.style.fontFamily = `"${family}", sans-serif`;
+    show(pickWord(id, lang));
   } catch {
     el.textContent = sample || pickWord(id, "en");
+    fitFontCell(el);
   }
 }
 

@@ -216,11 +216,35 @@ html.is-viewer-open .experiment__scroll {
 
 .works-feed__art--font {
   overflow: hidden;
-  font-size: calc(var(--feed-col) * var(--tw-font-k));
+  font-size: calc(var(--feed-col) * var(--tw-font-k) * var(--font-fit, 1));
   line-height: 1;
   white-space: nowrap;
   text-align: center;
   color: #000;
+}
+
+/* Type tester: the specimen is editable — click it and type. */
+.works-feed__art--font[data-font-tester] {
+  cursor: text;
+  outline: none;
+  caret-color: #000;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.works-feed__art--font[data-font-tester]::selection {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.works-feed__cell--font.is-typing .works-feed__media {
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .works-feed__cell--font:hover .works-feed__media,
+  .works-feed__cell--font:focus-within .works-feed__media {
+    transform: none;
+  }
 }
 
 /* ---- caption: overlay at the bottom, rises on hover ---- */

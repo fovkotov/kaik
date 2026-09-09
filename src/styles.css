@@ -2440,7 +2440,7 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
 
 .works-feed__art--font {
   overflow: hidden;
-  font-size: calc(var(--feed-col) * 0.46);
+  font-size: calc(var(--feed-col) * 0.46 * var(--font-fit, 1));
   line-height: 1;
   white-space: nowrap;
   text-align: center;

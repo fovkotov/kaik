@@ -16,8 +16,9 @@ initEmbed();
 const feedRoot = document.querySelector("[data-works-feed]");
 const viewer = createWorksViewer(document.querySelector("[data-viewer]"));
 
-/* Click on a work opens it fullscreen; the in-cell arrows only flip slides. */
-const feed = initWorksFeed({ root: feedRoot, tapNext: false, openable: true });
+/* Click on a work opens it fullscreen; the in-cell arrows only flip slides;
+   a font cell is a type tester — click the specimen and type. */
+const feed = initWorksFeed({ root: feedRoot, tapNext: false, openable: true, fontTester: true });
 
 function itemOf(cell) {
   return feed?.catalog?.items.find((entry) => entry.id === cell.dataset.workId) || null;
