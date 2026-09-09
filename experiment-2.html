@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Эксперимент 2 — Käik</title>
+    <link
+      rel="icon"
+      href="https://freight.cargo.site/t/original/i/H2765952418214795329571591071100/kaik_favicon.ico"
+    />
+    <link rel="stylesheet" href="/src/experiment-2.css" />
+  </head>
+  <body class="experiment-two">
+    <div class="experiment-two__scroll" data-scroll-root>
+      <header class="site-nav">
+        <a class="site-nav__brand" href="https://kaik.pictures/main" target="_top" rel="noreferrer">
+          Käik: we make cool stuff <span aria-hidden="true">→</span>
+        </a>
+        <nav class="site-nav__links" aria-label="Käik">
+          <a href="https://kaik.pictures/main" target="_top" rel="noreferrer">Main</a>
+          <a href="https://kaik.pictures/education" target="_top" rel="noreferrer">Education</a>
+          <a href="https://kaik.pictures/feed" target="_top" rel="noreferrer">Feed</a>
+          <a class="is-muted" href="https://kaik.pictures/tools" target="_top" rel="noreferrer">Tools</a>
+        </nav>
+        <a href="https://kaik.pictures/information" target="_top" rel="noreferrer">Information</a>
+      </header>
+
+      <main>
+        <section class="lettering-hero" data-lettering-hero aria-label="Интерактивный леттеринг">
+          <p class="lettering-hero__hint">двигайте · нажмите, чтобы сменить</p>
+          <canvas class="lettering-hero__canvas" data-lettering-canvas aria-hidden="true"></canvas>
+          <img class="lettering-hero__fallback" data-lettering-fallback alt="" draggable="false" />
+          <button
+            class="lettering-hero__action"
+            data-lettering-action
+            type="button"
+            aria-label="Показать следующий леттеринг"
+          ></button>
+          <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
+        </section>
+
+        <section class="works-section" aria-labelledby="works-title">
+          <div class="works-section__head">
+            <h1 id="works-title">работы 1 потока</h1>
+            <div class="works-filters">
+              <label class="works-filter">
+                <span>раздел</span>
+                <select data-type-filter>
+                  <option value="lettering">воркшопы</option>
+                  <option value="final">финальные проекты</option>
+                </select>
+              </label>
+              <label class="works-filter">
+                <span>автор</span>
+                <select data-author-filter>
+                  <option value="">все</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="works-grid" data-works-grid aria-live="polite"></div>
+          <p class="works-empty" data-works-empty hidden>Здесь пока нет работ.</p>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/experiment-2.js"></script>
+  </body>
+</html>

@@ -1,0 +1,96 @@
+import { fieldsFromBody, shortId, uploadsToFiles } from "./admin-core.js";
+import { normalizeWorkType } from "./taxonomy.js";
+
+export async function createWorks(readCatalog, commit, body) {
+  const items = Array.isArray(body.items) ? body.items : [];
+  if (!items.length) {
+    const error = new Error("Nothing to save");
+    error.status = 400;
+    throw error;
+  }
+  const current = await readCatalog();
+  const upserts = [];
+  for (const item of items) {
+    const fields = fieldsFromBody(item);
+    const uploads = Array.isArray(item.files) ? item.files : [];
+    if (!uploads.length) throw new Error("Each work needs a file");
+    const id = `wrk_${shortId()}`;
+    const written = uploadsToFiles(id, uploads);
+    upserts.push(...written.blobs);
+    current.items.push({
+      id,
+      ...fields,
+      files: written.files,
+      width: fields.width || written.width,
+      height: fields.height || written.height,
+      originalName: String(uploads[0]?.filename || written.files[0]),
+      createdAt: new Date().toISOString(),
+    });
+  }
+  return commit({ catalog: current, upserts, removes: [] });
+}
+
+export async function patchWork(readCatalog, commit, id, body) {
+  const current = await readCatalog();
+  const index = current.items.findIndex((item) => item.id === id);
+  if (index === -1) {
+    const error = new Error("Not found");
+    error.status = 404;
+    throw error;
+  }
+  const entry = current.items[index];
+  Object.assign(entry, fieldsFromBody(body, entry));
+  const uploads = Array.isArray(body.files) ? body.files : [];
+  const upserts = [];
+  const removes = [];
+  if (uploads.length) {
+    removes.push(...(entry.files || []));
+    const written = uploadsToFiles(entry.id, uploads);
+    upserts.push(...written.blobs);
+    entry.files = written.files;
+    entry.width = entry.width || written.width;
+    entry.height = entry.height || written.height;
+    entry.originalName = String(uploads[0]?.filename || written.files[0]);
+    entry.updatedAt = new Date().toISOString();
+  }
+  return commit({ catalog: current, upserts, removes });
+}
+
+export async function deleteWork(readCatalog, commit, id) {
+  const current = await readCatalog();
+  const index = current.items.findIndex((item) => item.id === id);
+  if (index === -1) {
+    const error = new Error("Not found");
+    error.status = 404;
+    throw error;
+  }
+  const [removed] = current.items.splice(index, 1);
+  return commit({ catalog: current, upserts: [], removes: removed?.files || [] });
+}
+
+export async function bulkPatchWorks(readCatalog, commit, body) {
+  const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
+  const patch = body.patch && typeof body.patch === "object" ? body.patch : {};
+  if (!ids.length) {
+    const error = new Error("Nothing to update");
+    error.status = 400;
+    throw error;
+  }
+  const current = await readCatalog();
+  const wanted = new Set(ids);
+  let found = 0;
+  current.items = current.items.map((entry) => {
+    if (!wanted.has(entry.id)) return entry;
+    found += 1;
+    if (patch.type !== undefined) {
+      return { ...entry, type: normalizeWorkType(patch.type) };
+    }
+    return entry;
+  });
+  if (!found) {
+    const error = new Error("Not found");
+    error.status = 404;
+    throw error;
+  }
+  return commit({ catalog: current, upserts: [], removes: [] });
+}

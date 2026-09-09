@@ -6,8 +6,16 @@
     { "source": "/catalog", "destination": "/catalog.html" },
     { "source": "/program", "destination": "/program.html" },
     { "source": "/experiment", "destination": "/experiment.html" },
+    { "source": "/experiment-2", "destination": "/experiment-2.html" },
     { "source": "/list", "destination": "/list.html" }
   ],
+  "functions": {
+    "api/works.js": { "maxDuration": 60, "includeFiles": "src/**" },
+    "api/works/bulk.js": { "maxDuration": 60, "includeFiles": "src/**" },
+    "api/works/[id].js": { "maxDuration": 60, "includeFiles": "src/**" },
+    "api/works/file/[name].js": { "maxDuration": 60, "includeFiles": "src/**" },
+    "api/works/upload.js": { "maxDuration": 60, "includeFiles": "src/**" }
+  },
   "headers": [
     {
       "source": "/(.*)",

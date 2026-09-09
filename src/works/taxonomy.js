@@ -68,30 +68,28 @@ export function sortWorksByDate(items) {
   });
 }
 
-function idSalt(id) {
-  let n = 0;
-  for (const ch of String(id || "")) n = (n * 31 + ch.charCodeAt(0)) >>> 0;
-  return n;
-}
+/** A workshop piece this compact is a single glyph, not a word. */
+const LETTER_MAX_RATIO = 1.25;
+/** Portrait finals (posters, covers) take the tall 2×2 slot. */
+const TALL_FINAL_MAX_RATIO = 0.95;
 
-function imageFiles(item) {
-  return (item?.files || []).filter((file) => !/\.(ttf|otf|woff2?)$/i.test(String(file || "")));
-}
+export const KIND_LETTER = "letter";
 
-/** Column span on the 5-track works grid. */
-export function spanForWork(item) {
-  if (normalizeWorkType(item?.type) === TYPE_FINAL && imageFiles(item).length > 1) {
-    return { span: 3, split: false };
-  }
+/**
+ * Placement on the 6-track works grid (Figma 212:20).
+ * Letter → 1 col. Lettering, final project, font → 2 cols.
+ * Portrait finals also take 2 rows.
+ */
+export function placeWork(item) {
+  const type = normalizeWorkType(item?.type);
   const w = Number(item?.width) || 0;
   const h = Number(item?.height) || 0;
-  const salt = idSalt(item?.id);
-  if (!w || !h) return { span: 1 + (salt % 2), split: false };
-  const ar = w / h;
-  if (h / w >= 1.6) return { span: 1, split: true };
-  if (w >= 800 || ar >= 2.6) return { span: 5, split: false };
-  if (ar >= 2.0) return { span: salt % 2 ? 4 : 3, split: false };
-  if (ar >= 1.45) return { span: salt % 2 ? 3 : 2, split: false };
-  if (ar >= 1.05) return { span: 2, split: false };
-  return { span: 1, split: false };
+  const ratio = w > 0 && h > 0 ? w / h : 0;
+  if (type === TYPE_LETTERING && ratio > 0 && ratio <= LETTER_MAX_RATIO) {
+    return { cols: 1, rows: 1, kind: KIND_LETTER };
+  }
+  if (type === TYPE_FINAL && ratio > 0 && ratio < TALL_FINAL_MAX_RATIO) {
+    return { cols: 2, rows: 2, kind: type };
+  }
+  return { cols: 2, rows: 1, kind: type };
 }

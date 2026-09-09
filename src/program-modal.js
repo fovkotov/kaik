@@ -17,7 +17,8 @@ const TYPING_SEL = "input, textarea, select, [contenteditable='true']";
 const TOP_GAP = 28;
 const BOTTOM_GAP = 28;
 const OPEN_GUTTER = 48;
-const WORKS_OPEN_SCALE = 1.16;
+/** Open student works fill the iframe minus this inset on every side (6-track feed needs the width). */
+const WORKS_INSET = 40;
 const A4_RATIO = 210 / 297;
 
 /**
@@ -34,12 +35,15 @@ export function desktopFocusDestVisual({ frameW, frameH, cardW, cardH, works = f
   let width = height * ratio;
 
   if (works) {
-    width = height;
-    const grown = height * WORKS_OPEN_SCALE;
-    if (grown <= maxH && grown <= maxW) {
-      width = grown;
-      height = grown;
-    }
+    const focusScale = getFocusScale();
+    const nudge = getFocusNudge();
+    return {
+      left: WORKS_INSET + nudge.x,
+      top: WORKS_INSET + nudge.y,
+      width: Math.max(0, frameW - WORKS_INSET * 2) * focusScale,
+      height: Math.max(0, frameH - WORKS_INSET * 2) * focusScale,
+      rotate: 0,
+    };
   }
 
   if (width > maxW && width > 0) {

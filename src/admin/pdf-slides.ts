@@ -10,20 +10,11 @@ const WEBP_QUALITY = 0.92;
 export type PdfSlide = {
   filename: string;
   mime: string;
-  data: string;
+  blob: Blob;
   preview: string;
   width: number;
   height: number;
 };
-
-function blobToDataUrl(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("read failed"));
-    reader.readAsDataURL(blob);
-  });
-}
 
 function stem(name: string) {
   return name.replace(/\.[^.]+$/, "") || "final";
@@ -52,12 +43,11 @@ export async function pdfToWebpSlides(file: File): Promise<PdfSlide[]> {
       canvas.toBlob(resolve, "image/webp", WEBP_QUALITY);
     });
     if (!blob) throw new Error("webp");
-    const data = await blobToDataUrl(blob);
     slides.push({
       filename: `${base}-${String(i).padStart(2, "0")}.webp`,
       mime: "image/webp",
-      data,
-      preview: data,
+      blob,
+      preview: URL.createObjectURL(blob),
       width: canvas.width,
       height: canvas.height,
     });

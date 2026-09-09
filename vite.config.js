@@ -71,7 +71,7 @@ function prettyHtmlDirs() {
     name: "pretty-html-dirs",
     writeBundle(options) {
       const outDir = options.dir || path.resolve(root, "dist");
-      for (const name of ["list"]) {
+      for (const name of ["list", "experiment-2"]) {
         const src = path.join(outDir, `${name}.html`);
         if (!fs.existsSync(src)) continue;
         const dir = path.join(outDir, name);
@@ -115,7 +115,7 @@ export default defineConfig({
             program: path.resolve(root, "program.html"),
             catalog: path.resolve(root, "catalog.html"),
             ...Object.fromEntries(
-              ["list", "experiment"]
+              ["list", "experiment", "experiment-2"]
                 .filter((name) => fs.existsSync(path.resolve(root, `${name}.html`)))
                 .map((name) => [name, path.resolve(root, `${name}.html`)]),
             ),

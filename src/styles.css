@@ -2374,6 +2374,158 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
   flex-shrink: 0;
 }
 
+/* Student works feed — Figma 212:20.
+   Six 228-wide tracks, 8px column gap, 10px row gap, 277-tall rows, all
+   scaled from the feed's own width (1408 = 6 × 228 + 5 × 8).
+   Letter = 1 track, lettering / final / font = 2 tracks, portrait final = 2×2. */
+.works-feed {
+  container-type: inline-size;
+  width: 100%;
+  padding: var(--works-list-top) 0 0;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.works-feed__grid {
+  --feed-cols: 6;
+  --feed-gap-x: calc(100cqw * 8 / 1408);
+  --feed-gap-y: calc(100cqw * 10 / 1408);
+  --feed-col: calc((100cqw - (var(--feed-cols) - 1) * var(--feed-gap-x)) / var(--feed-cols));
+  --feed-row: calc(var(--feed-col) * 277 / 228);
+  display: grid;
+  grid-template-columns: repeat(var(--feed-cols), minmax(0, 1fr));
+  grid-auto-rows: var(--feed-row);
+  grid-auto-flow: dense;
+  gap: var(--feed-gap-y) var(--feed-gap-x);
+  width: 100%;
+}
+
+.works-feed__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(100cqw * 8 / 1408);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.works-feed__media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.works-feed__art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.works-feed__art > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.works-feed__art--font {
+  overflow: hidden;
+  font-size: calc(var(--feed-col) * 0.46);
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  color: #000;
+}
+
+.works-feed__who {
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.works-feed__who > span + span::before {
+  content: " ";
+}
+
+/* Final project slider fills the cell instead of the history-card 563u track. */
+.works-feed .img-slider {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+}
+
+.works-feed .img-slider__stage {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+}
+
+.works-feed .img-slider__slide {
+  align-items: center;
+  justify-content: center;
+}
+
+.works-feed .img-slider__slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.works-feed .img-slider__dots {
+  height: calc(100cqw * 20 / 1408);
+  margin-top: calc(100cqw * 6 / 1408);
+  padding: 0 calc(100cqw * 6 / 1408);
+}
+
+.works-feed .img-slider__dot {
+  width: calc(100cqw * 12 / 1408);
+}
+
+.works-feed .img-slider__dot::after {
+  width: calc(100cqw * 5 / 1408);
+  height: calc(100cqw * 5 / 1408);
+}
+
+@media (max-width: 900px) {
+  .works-feed__grid {
+    --feed-cols: 2;
+    --feed-gap-x: 8px;
+    --feed-gap-y: 10px;
+  }
+
+  .works-feed__cell {
+    gap: 6px;
+  }
+
+  .works-feed .img-slider__dots {
+    height: 20px;
+    margin-top: 6px;
+    padding: 0 6px;
+  }
+
+  .works-feed .img-slider__dot {
+    width: 12px;
+  }
+
+  .works-feed .img-slider__dot::after {
+    width: 5px;
+    height: 5px;
+  }
+}
+
 @media (max-width: 900px) {
   .card[data-works-card] {
     --works-shift-x: 0px;

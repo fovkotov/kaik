@@ -10,8 +10,9 @@ export function AdminApp() {
   useEffect(() => {
     let alive = true;
     fetch("/api/works")
-      .then((res) => {
-        if (alive) setWritable(res.ok);
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (alive) setWritable(Boolean(res.ok && data.writable));
       })
       .catch(() => {
         if (alive) setWritable(false);

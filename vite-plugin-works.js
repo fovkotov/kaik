@@ -1,19 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { randomBytes } from "node:crypto";
-import { sanitizeSvg } from "./src/letters/svg.js";
-import {
-  emptyWorksCatalog,
-  hydrateWorksCatalog,
-  normalizeName,
-  normalizeNick,
-  normalizeWorkType,
-  WORKS_CATALOG_EVENT,
-} from "./src/works/taxonomy.js";
+import { mimeFromName, rememberPendingUpload, stampCatalog, takePendingUpload } from "./src/works/admin-core.js";
+import { bulkPatchWorks, createWorks, deleteWork, patchWork } from "./src/works/admin-routes.js";
+import { emptyWorksCatalog, hydrateWorksCatalog, WORKS_CATALOG_EVENT } from "./src/works/taxonomy.js";
 
 function json(res, status, body) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(body));
 }
 
@@ -39,63 +33,12 @@ function readBody(req) {
   });
 }
 
-function shortId() {
-  return randomBytes(4).toString("hex");
-}
-
-function extFrom(name, mime) {
-  const match = String(name || "").match(/\.([a-z0-9]+)$/i);
-  if (match) return `.${match[1].toLowerCase()}`;
-  if (String(mime).includes("svg")) return ".svg";
-  if (mime === "image/png") return ".png";
-  if (mime === "image/webp") return ".webp";
-  if (mime === "image/jpeg") return ".jpg";
-  if (String(mime).includes("woff2")) return ".woff2";
-  if (String(mime).includes("woff")) return ".woff";
-  if (String(mime).includes("font") || String(mime).includes("otf")) return ".otf";
-  if (String(mime).includes("ttf")) return ".ttf";
-  return ".bin";
-}
-
-function decodeUpload(file) {
-  const mime = String(file?.mime || "");
-  const data = String(file?.data || "");
-  const filename = String(file?.filename || "file");
-  if (mime.includes("svg") || data.trim().startsWith("<")) {
-    const svg = sanitizeSvg(data);
-    return { buffer: Buffer.from(svg, "utf8"), ext: ".svg" };
-  }
-  const raw = data.replace(/^data:[^;]+;base64,/, "");
-  const buffer = Buffer.from(raw, "base64");
-  if (!buffer.length) throw new Error("Empty file");
-  return { buffer, ext: extFrom(filename, mime) };
-}
-
-function sizeFromSvg(svg) {
-  const view = String(svg).match(/viewBox=["']([\d.\s,-]+)["']/i);
-  if (view) {
-    const parts = view[1].trim().split(/[\s,]+/).map(Number);
-    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
-      return { width: Math.round(parts[2]), height: Math.round(parts[3]) };
-    }
-  }
-  const w = Number(String(svg).match(/\bwidth=["']([\d.]+)/i)?.[1]);
-  const h = Number(String(svg).match(/\bheight=["']([\d.]+)/i)?.[1]);
-  if (w > 0 && h > 0) return { width: Math.round(w), height: Math.round(h) };
-  return { width: 0, height: 0 };
-}
-
-function fieldsFromBody(item, previous = {}) {
-  const type = normalizeWorkType(item.type ?? previous.type);
-  const author = normalizeName(item.author !== undefined ? item.author : previous.author);
-  const nick = normalizeNick(item.nick !== undefined ? item.nick : previous.nick);
-  const stream = String(
-    item.stream !== undefined ? item.stream : previous.stream || "",
-  ).trim();
-  if (!stream) throw new Error("Each work needs a stream");
-  const width = Number(item.width ?? previous.width) || 0;
-  const height = Number(item.height ?? previous.height) || 0;
-  return { type, author, nick, stream, width, height };
+function envelope(catalog) {
+  return {
+    ...catalog,
+    writable: true,
+    fileBase: "/api/works/file/",
+  };
 }
 
 export function worksAdminPlugin() {
@@ -137,39 +80,21 @@ export function worksAdminPlugin() {
     }
   }
 
-  async function writeCatalog(catalog) {
-    const { catalogPath } = paths();
-    catalog.updatedAt = new Date().toISOString();
-    await fs.writeFile(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
-    notifyCatalog();
-    return catalog;
-  }
-
-  async function writeUploads(id, uploads) {
-    const { filesDir } = paths();
+  async function commit({ catalog, upserts = [], removes = [] }) {
+    const { filesDir, catalogPath } = paths();
     await fs.mkdir(filesDir, { recursive: true });
-    const files = [];
-    let width = 0;
-    let height = 0;
-    for (const [index, upload] of uploads.entries()) {
-      const decoded = decodeUpload(upload);
-      const file = `${id}_${index}${decoded.ext}`;
-      await fs.writeFile(path.join(filesDir, file), decoded.buffer);
-      files.push(file);
-      if (!width && decoded.ext === ".svg") {
-        const size = sizeFromSvg(decoded.buffer.toString("utf8"));
-        width = size.width;
-        height = size.height;
-      }
+    for (const file of upserts) {
+      const buffer = file.buffer || takePendingUpload(file.sha);
+      if (!buffer) throw new Error("Missing upload");
+      await fs.writeFile(path.join(filesDir, file.name), buffer);
     }
-    return { files, width, height };
-  }
-
-  async function removeFiles(names) {
-    const { filesDir } = paths();
     await Promise.all(
-      (names || []).map((name) => fs.unlink(path.join(filesDir, name)).catch(() => {})),
+      (removes || []).map((name) => fs.unlink(path.join(filesDir, name)).catch(() => {})),
     );
+    const next = stampCatalog(catalog);
+    await fs.writeFile(catalogPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+    notifyCatalog();
+    return next;
   }
 
   return {
@@ -200,110 +125,58 @@ export function worksAdminPlugin() {
         }
 
         try {
+          const fileMatch = url.match(/^\/api\/works\/file\/([^/]+)$/);
+          if (req.method === "GET" && fileMatch) {
+            const name = decodeURIComponent(fileMatch[1]);
+            const filePath = path.join(paths().filesDir, name);
+            const buffer = await fs.readFile(filePath);
+            res.statusCode = 200;
+            res.setHeader("Content-Type", mimeFromName(name));
+            res.end(buffer);
+            return;
+          }
+
           if (req.method === "GET" && url === "/api/works") {
-            json(res, 200, await readCatalog());
+            json(res, 200, envelope(await readCatalog()));
+            return;
+          }
+
+          if (req.method === "POST" && url === "/api/works/upload") {
+            const chunks = [];
+            await new Promise((resolve, reject) => {
+              req.on("data", (chunk) => chunks.push(chunk));
+              req.on("end", resolve);
+              req.on("error", reject);
+            });
+            const buffer = Buffer.concat(chunks);
+            if (!buffer.length) {
+              json(res, 400, { error: "Empty file" });
+              return;
+            }
+            json(res, 200, { sha: rememberPendingUpload(buffer), bytes: buffer.length });
             return;
           }
 
           if (req.method === "POST" && url === "/api/works") {
             const body = await readBody(req);
-            const items = Array.isArray(body.items) ? body.items : [];
-            if (!items.length) {
-              json(res, 400, { error: "Nothing to save" });
-              return;
-            }
-
-            const catalog = await serial(async () => {
-              const current = await readCatalog();
-              for (const item of items) {
-                const fields = fieldsFromBody(item);
-                const uploads = Array.isArray(item.files) ? item.files : [];
-                if (!uploads.length) throw new Error("Each work needs a file");
-                const id = `wrk_${shortId()}`;
-                const written = await writeUploads(id, uploads);
-                current.items.push({
-                  id,
-                  ...fields,
-                  files: written.files,
-                  width: fields.width || written.width,
-                  height: fields.height || written.height,
-                  originalName: String(uploads[0]?.filename || written.files[0]),
-                  createdAt: new Date().toISOString(),
-                });
-              }
-              return writeCatalog(current);
-            });
-
-            json(res, 200, catalog);
+            json(res, 200, envelope(await serial(() => createWorks(readCatalog, commit, body))));
             return;
           }
 
           if (req.method === "PATCH" && url === "/api/works/bulk") {
             const body = await readBody(req);
-            const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
-            const patch = body.patch && typeof body.patch === "object" ? body.patch : {};
-            if (!ids.length) {
-              json(res, 400, { error: "Nothing to update" });
-              return;
-            }
-            const catalog = await serial(async () => {
-              const current = await readCatalog();
-              const wanted = new Set(ids);
-              let found = 0;
-              current.items = current.items.map((entry) => {
-                if (!wanted.has(entry.id)) return entry;
-                found += 1;
-                if (patch.type !== undefined) {
-                  return { ...entry, type: normalizeWorkType(patch.type) };
-                }
-                return entry;
-              });
-              if (!found) {
-                const err = new Error("Not found");
-                err.status = 404;
-                throw err;
-              }
-              return writeCatalog(current);
-            });
-            json(res, 200, catalog);
+            json(res, 200, envelope(await serial(() => bulkPatchWorks(readCatalog, commit, body))));
             return;
           }
 
           const match = url.match(/^\/api\/works\/([^/]+)$/);
           if (match && (req.method === "PATCH" || req.method === "DELETE")) {
             const id = decodeURIComponent(match[1]);
-            const catalog = await serial(async () => {
-              const current = await readCatalog();
-              const index = current.items.findIndex((item) => item.id === id);
-              if (index === -1) {
-                const err = new Error("Not found");
-                err.status = 404;
-                throw err;
-              }
-
-              if (req.method === "DELETE") {
-                const [removed] = current.items.splice(index, 1);
-                await removeFiles(removed?.files);
-                return writeCatalog(current);
-              }
-
-              const body = await readBody(req);
-              const entry = current.items[index];
-              Object.assign(entry, fieldsFromBody(body, entry));
-              const uploads = Array.isArray(body.files) ? body.files : [];
-              if (uploads.length) {
-                await removeFiles(entry.files);
-                const written = await writeUploads(entry.id, uploads);
-                entry.files = written.files;
-                entry.width = entry.width || written.width;
-                entry.height = entry.height || written.height;
-                entry.originalName = String(uploads[0]?.filename || written.files[0]);
-                entry.updatedAt = new Date().toISOString();
-              }
-              return writeCatalog(current);
-            });
-
-            json(res, 200, catalog);
+            const catalog =
+              req.method === "DELETE"
+                ? await serial(() => deleteWork(readCatalog, commit, id))
+                : await serial(async () => patchWork(readCatalog, commit, id, await readBody(req)));
+            json(res, 200, envelope(catalog));
             return;
           }
 

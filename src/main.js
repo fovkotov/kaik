@@ -8,8 +8,9 @@ import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
 import { initAuthorLightbox, isAuthorLightboxOpen } from "./author-lightbox.js";
 import { initImgSliders } from "./img-slider.js";
 import { initProgramStrips } from "./program-strip.js";
-import { desktopFocusDestVisual, initProgramModal } from "./program-modal.js";
+import { initProgramModal } from "./program-modal.js";
 import { initDropcaps } from "./letters/dropcap.js";
+import { initWorksFeed } from "./works-feed.js";
 import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
 import {
   canPlayCardIntro,
@@ -182,14 +183,11 @@ function initDeck() {
     tip: Number(card.dataset.tip || 12),
     baseZ: Number.parseInt(getComputedStyle(card).zIndex, 10) || cards.length - index,
     inert: false,
-    /** Un-spread visual box; never a live dest/fly rect. */
-    home: null,
   }));
 
   let raf = 0;
   let cardBoxH = 0;
   let cardBoxW = 0;
-  let deckScaleCached = 1;
   let flyLockedFlag = false;
   /** First-load card deal; assigned after listeners, sampled every frame while armed. */
   let deckIntro = null;
@@ -216,21 +214,12 @@ function initDeck() {
   const INERTIA_FRICTION = 0.92;
   /** Scroll/parallax freeze while the program card is in-deck focused */
   let freezeY = null;
-  let spread = 0;
-  let spreadFrom = 0;
-  let spreadTarget = 0;
-  let spreadT0 = 0;
-  /** @type {null | { x: number, y: number, r: number }[]} */
-  let spreadPlan = null;
-  let spreadPlanFrom = null;
-  let spreadPlanFor = -2;
-  let spreadMix = 1;
-  let spreadMixT0 = 0;
-  const SPREAD_MS = 920;
-  /** Collapse with the focus fly (FLY_MS), not after it. Open stay 920. */
-  const SPREAD_OUT_MS = 920;
+  /*
+   * Sibling fan while a card is focused is owned by program-modal.js
+   * (one-shot --fly-* pins, FLY_MS). The deck loop never moves a card that
+   * carries data-fly-lock / is-program-open / is-fly-pinned / data-rest-lock.
+   */
   const FOCUS_SEL = "[data-card]";
-  const programIndex = state.findIndex((item) => item.el.hasAttribute("data-program-card"));
   flyLockedFlag = Boolean(deck.querySelector("[data-fly-lock]"));
   const lockup = document.querySelector("[data-lockup]");
   if (lockup) {
@@ -239,7 +228,8 @@ function initDeck() {
   }
 
   const programLocked = () => flyLockedFlag;
-  const reduceMotionSpread = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const focusOpen = () => deck.hasAttribute("data-program-open");
 
   /** Desktop drops the landing loop twin so it is not a stack/fly slot. */
   function liveItems() {
@@ -280,15 +270,7 @@ function initDeck() {
     cardBoxW = state[0]?.el.offsetWidth || 320;
   }
 
-  function refreshDeckScale() {
-    deckScaleCached =
-      Number.parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
-      ) || 1;
-  }
-
   refreshCardBox();
-  refreshDeckScale();
 
   function scheduleRender() {
     if (raf) return;
@@ -298,7 +280,6 @@ function initDeck() {
   function needsDeckFrame(mobile) {
     if (isFocusFrozen()) return false;
     if (deckIntro) return true;
-    if (spread !== spreadTarget || spreadMix < 1) return true;
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
@@ -377,7 +358,7 @@ function initDeck() {
     const done = typeof onDone === "function" ? onDone : null;
     dragInertia = 0;
     cancelSnap();
-    if (reduceMotionSpread() || Math.abs(from - target) < 0.002) {
+    if (reduceMotion() || Math.abs(from - target) < 0.002) {
       dragProgress = target;
       scheduleRender();
       if (done) afterPoseFrame(done);
@@ -418,149 +399,6 @@ function initDeck() {
     if (isMobile()) dragProgress = freezeY;
     else if (root.scrollTop !== freezeY) root.scrollTop = freezeY;
     root.classList.add("is-fly-locked");
-  }
-
-  function spreadEase(t) {
-    const x = clamp(t, 0, 1);
-    return 1 - (1 - x) ** 4;
-  }
-
-  /** Match `--fly-ease`: cubic-bezier(0.22, 1, 0.32, 1). */
-  const flyEase = (() => {
-    const cx = 3 * 0.22;
-    const bx = 3 * (0.32 - 0.22) - cx;
-    const ax = 1 - cx - bx;
-    const cy = 3 * 1;
-    const by = 3 * (1 - 1) - cy;
-    const ay = 1 - cy - by;
-    const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
-    const sampleDx = (t) => (3 * ax * t + 2 * bx) * t + cx;
-    const sampleY = (t) => ((ay * t + by) * t + cy) * t;
-    return (t) => {
-      const time = clamp(t, 0, 1);
-      let x = time;
-      for (let i = 0; i < 6; i += 1) {
-        const z = sampleX(x) - time;
-        const d = sampleDx(x);
-        if (Math.abs(z) < 1e-5 || Math.abs(d) < 1e-6) break;
-        x -= z / d;
-      }
-      return sampleY(x);
-    };
-  })();
-
-  function spreadAt(plan, i) {
-    return plan?.[i] ?? { x: 0, y: 0, r: 0 };
-  }
-
-  function mixedSpread(i) {
-    const to = spreadAt(spreadPlan, i);
-    if (!spreadPlanFrom || spreadMix >= 1) return to;
-    const from = spreadAt(spreadPlanFrom, i);
-    return {
-      x: lerp(from.x, to.x, spreadMix),
-      y: lerp(from.y, to.y, spreadMix),
-      r: lerp(from.r, to.r, spreadMix),
-    };
-  }
-
-  /**
-   * Sibling spread from stable deck index, not live screen X.
-   * Desktop: j < i → left; j > i → right; Y = 0.
-   * Mobile: X = 0; j < i → up; j > i → down; off-screen.
-   * Landing is dest edge + gap (and width on the left), in deck-local space,
-   * then clamped so a peek stays inside the iframe — no post-tween remasure.
-   */
-  function measureSpread(focusEl, focusIndex) {
-    const mobile = isMobile();
-    const { width: vw, height: vh } = getViewportSize();
-    const works = Boolean(focusEl?.hasAttribute("data-works-card"));
-    const deckScale =
-      Number.parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
-      ) || 1;
-    const scale = Math.max(0.35, deckScale);
-    const toLocal = (px) => px / scale;
-
-    const homeBox = (item, i) => {
-      const flying =
-        item.el.hasAttribute("data-fly-lock") ||
-        item.el.classList.contains("is-program-open") ||
-        item.el.classList.contains("is-fly-pinned");
-      if (flying && item.home) return { ...item.home };
-      const rect = item.el.getBoundingClientRect();
-      const kick = mixedSpread(i);
-      const dx = kick.x * spread * scale;
-      const dy = kick.y * spread * scale;
-      const box = {
-        left: rect.left - dx,
-        right: rect.right - dx,
-        top: rect.top - dy,
-        bottom: rect.bottom - dy,
-        width: rect.width,
-        height: rect.height,
-      };
-      if (!flying) item.home = box;
-      return box;
-    };
-
-    const stackDir = (i) => (focusIndex >= 0 && i < focusIndex ? -1 : 1);
-
-    if (mobile) {
-      const destT = 0;
-      const destB = vh;
-      const gap = 28;
-      return liveItems().map((item, i) => {
-        if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
-        const box = homeBox(item, i);
-        const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
-        const dirY = stackDir(i);
-        const clearY =
-          dirY < 0 ? Math.max(0, box.bottom + gap - destT) : Math.max(0, destB + gap - box.top);
-        const kickY = Math.max(vh * 1.05, box.height + 240) + (dist - 1) * 80;
-        return {
-          x: 0,
-          y: dirY * toLocal(clearY + kickY),
-          r: dirY * (6 + (dist - 1) * 2),
-        };
-      });
-    }
-
-    const root = getComputedStyle(document.documentElement);
-    const stackW = Number.parseFloat(root.getPropertyValue("--stack-card-w")) || 0;
-    const stackH = Number.parseFloat(root.getPropertyValue("--stack-card-h")) || 0;
-    const dest = desktopFocusDestVisual({
-      frameW: vw,
-      frameH: vh,
-      cardW: works ? stackH : stackW,
-      cardH: stackH,
-      works,
-    });
-    const destL = dest.left;
-    const destR = dest.left + dest.width;
-    const gap = works ? 64 : 40;
-    const stepX = works ? 62 : 44;
-    const baseR = 2.8;
-    const stepR = 0.55;
-    const peek = 64;
-
-    return liveItems().map((item, i) => {
-      if (focusIndex >= 0 && i === focusIndex) return { x: 0, y: 0, r: 0 };
-      const box = homeBox(item, i);
-      const dist = focusIndex >= 0 ? Math.max(1, Math.abs(i - focusIndex)) : 1;
-      const dirX = stackDir(i);
-      const extra = (dist - 1) * stepX;
-      const rotPad = Math.abs(Math.sin((item.baseRotate * Math.PI) / 180)) * box.height * 0.35;
-      let targetLeft =
-        dirX < 0 ? destL - gap - rotPad - extra - box.width : destR + gap + rotPad + extra;
-      const peekStack = Math.min(Math.max(24, box.width - 12), peek + (dist - 1) * 14);
-      targetLeft = Math.max(peekStack - box.width, Math.min(vw - peekStack, targetLeft));
-      return {
-        x: toLocal(targetLeft - box.left),
-        y: 0,
-        r: dirX * (baseR + (dist - 1) * stepR) * (works ? 1.2 : 1),
-      };
-    });
   }
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
@@ -735,7 +573,6 @@ function initDeck() {
     lastDeckProgress = null;
     lastDesktopDeltaAt = 0;
     refreshCardBox();
-    refreshDeckScale();
     scheduleRender();
   });
 
@@ -802,7 +639,6 @@ function initDeck() {
     }
 
     holdFlyLock();
-    const spreadScale = Math.max(0.35, deckScaleCached);
     const y = freezeY != null ? freezeY : mobile ? dragProgress : root.scrollTop || 0;
     const span = focusSpanOf(params);
     const cardProgress = mobile
@@ -834,72 +670,17 @@ function initDeck() {
     }
     const originY = 0;
     const p = clamp(totalScroll ? y / totalScroll : 0, 0, 1);
-
-    const wantSpread = deck.hasAttribute("data-program-open") ? 1 : 0;
-    const focusOpenIndex = items.findIndex((entry) => entry.el.hasAttribute("data-focus-open"));
-    const lockedIndex = items.findIndex((entry) => entry.el.hasAttribute("data-fly-lock"));
-    const openingIndex = items.findIndex(
-      (entry) =>
-        entry.el.classList.contains("is-program-open") &&
-        !entry.el.classList.contains("is-fly-pinned"),
-    );
-    const programLive = items.findIndex((entry) => entry.el.hasAttribute("data-program-card"));
-    const spreadAround =
-      focusOpenIndex >= 0
-        ? focusOpenIndex
-        : openingIndex >= 0
-          ? openingIndex
-          : lockedIndex >= 0
-            ? lockedIndex
-            : programLive >= 0
-              ? programLive
-              : programIndex;
-    if (wantSpread && spreadPlanFor !== spreadAround) {
-      const next = measureSpread(spreadAround >= 0 ? items[spreadAround].el : null, spreadAround);
-      if (spreadPlan && spreadPlanFor >= 0 && spreadAround >= 0 && spreadPlanFor !== spreadAround) {
-        spreadPlanFrom = items.map((_, i) => mixedSpread(i));
-        spreadMix = 0;
-        spreadMixT0 = performance.now();
-      } else {
-        spreadPlanFrom = null;
-        spreadMix = 1;
-      }
-      spreadPlan = next;
-      spreadPlanFor = spreadAround;
-    }
-    if (spreadMix < 1) {
-      const u = reduceMotionSpread() ? 1 : clamp((performance.now() - spreadMixT0) / SPREAD_MS, 0, 1);
-      spreadMix = flyEase(u);
-      if (u >= 1) {
-        spreadMix = 1;
-        spreadPlanFrom = null;
-      }
-    }
-    if (wantSpread !== spreadTarget) {
-      spreadTarget = wantSpread;
-      spreadFrom = spread;
-      spreadT0 = performance.now();
-    }
-    if (spread !== spreadTarget) {
-      const dur = spreadTarget > 0 ? SPREAD_MS : SPREAD_OUT_MS;
-      const u = reduceMotionSpread() ? 1 : clamp((performance.now() - spreadT0) / dur, 0, 1);
-      const ease = spreadTarget > 0 ? spreadEase : flyEase;
-      spread = lerp(spreadFrom, spreadTarget, ease(u));
-      if (u >= 1) spread = spreadTarget;
-    }
-    if (!wantSpread && spread === 0) {
-      spreadPlan = null;
-      spreadPlanFrom = null;
-      spreadPlanFor = -2;
-      spreadMix = 1;
-    }
+    const focusing = focusOpen();
 
     items.forEach((item, i) => {
       const t = mobile ? 0 : cardFlightT(i, count, params, p);
       const slot = mobileStackSlot(i, mobile ? Math.max(0, y) : y, focusSpanOf(params));
 
       if (item.el.hasAttribute("data-rest-lock")) {
-        if (spread > 0.001) {
+        // Landed home by program-modal (exact snapshot pose). Hold it while
+        // another card is still focused/closing; hand back to the loop on the
+        // first free frame — same y, so the pose below equals the snapshot.
+        if (focusing) {
           if (mobile) {
             item.el.style.zIndex = String(count - i);
             item.el.style.opacity = "1";
@@ -923,25 +704,12 @@ function initDeck() {
         return;
       }
 
-      if (spread > 0.001) {
-        const homeRect = item.el.getBoundingClientRect();
-        const homeKick = mixedSpread(i);
-        item.home = {
-          left: homeRect.left - homeKick.x * spread * spreadScale,
-          right: homeRect.right - homeKick.x * spread * spreadScale,
-          top: homeRect.top - homeKick.y * spread * spreadScale,
-          bottom: homeRect.bottom - homeKick.y * spread * spreadScale,
-          width: homeRect.width,
-          height: homeRect.height,
-        };
-      }
-
       const baseX = item.baseX * fan;
       const baseY = mobile ? 0 : item.baseY * fan;
 
       const cardH = cardBoxH || vh * 0.55;
       const flyExit =
-        mobile && normalizeViewMode(params.viewMode) === "fly" && !reduceMotionSpread();
+        mobile && normalizeViewMode(params.viewMode) === "fly" && !reduceMotion();
       let tossX = mobile ? 0 : params.travelDir * t * travel;
       let tossY;
       let stackScale = 1;
@@ -978,7 +746,7 @@ function initDeck() {
       const scrollX = baseX + tossX;
       const scrollY = baseY - originY + tossY;
       const stackOpacity = (() => {
-        if (!mobile || wantSpread) return 1;
+        if (!mobile || focusing) return 1;
         if (slot >= 0) return 1;
         if (flyExit) {
           const cardW = cardBoxW || 320;
@@ -986,11 +754,6 @@ function initDeck() {
         }
         return clamp(1 + slot * 1.25, 0, 1);
       })();
-
-      const planned = mixedSpread(i);
-      const spreadX = planned.x * spread;
-      const spreadY = planned.y * spread;
-      const spreadR = planned.r * spread;
 
       const worksCard = item.el.hasAttribute("data-works-card");
       const worksX = worksCard ? Number(params.worksShiftX) || 0 : 0;
@@ -1000,8 +763,8 @@ function initDeck() {
 
       const introX = deckIntro && !flyLocked && !mobile ? deckIntro.shift(i, now, vw) : 0;
       const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, -vh) : 0;
-      const x = scrollX + spreadX + worksX + introX;
-      const yPos = scrollY + spreadY + worksY + introY;
+      const x = scrollX + worksX + introX;
+      const yPos = scrollY + worksY + introY;
 
       const twist = mobile
         ? Number.isFinite(Number(params.cardRotate))
@@ -1011,7 +774,6 @@ function initDeck() {
       const rotateZ =
         (mobile && programCard ? PROGRAM_MOBILE_ROTATE : item.baseRotate * twist) +
         t * item.tip * params.tipScale +
-        spreadR +
         worksR;
       const rotateY =
         t * (params.rotateYBase + i * params.rotateYStep) * (i % 2 === 0 ? 1 : -1);
@@ -1060,7 +822,6 @@ function initDeck() {
   onFrameMetrics(() => {
     if (isFocusFrozen()) return;
     refreshCardBox();
-    refreshDeckScale();
     scheduleRender();
   });
   document.addEventListener("visibilitychange", () => {
@@ -1068,7 +829,6 @@ function initDeck() {
   });
   document.addEventListener("kaik:focus-thawed", () => {
     refreshCardBox();
-    refreshDeckScale();
     scheduleRender();
   });
   scheduleRender();
@@ -1201,3 +961,4 @@ initProgramStrips();
 initFormatVideo();
 initPreviewMedia();
 initDropcaps();
+initWorksFeed();

@@ -3,43 +3,10 @@ import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import { subscribeWorksCatalog } from "./works/live.js";
-import { TYPE_FINAL, TYPE_FONT, TYPE_LETTERING, sortWorksByDate, spanForWork } from "./works/taxonomy.js";
-
-const PLACEHOLDERS = [
-  { span: 1, h: 140 },
-  { span: 4, h: 140 },
-  { span: 2, h: 140 },
-  { span: 3, h: 140 },
-  { span: 1, h: 110 },
-  { span: 2, h: 110 },
-  { span: 2, h: 110 },
-  { span: 5, h: 220 },
-  { span: 1, h: 88, stack: true },
-  { span: 3, h: 184, row: 2 },
-  { span: 1, h: 88, stack: true },
-];
+import { TYPE_FINAL, TYPE_FONT, placeWork, sortWorksByDate } from "./works/taxonomy.js";
 
 const EN_WORDS = ["kaik", "letter", "type", "form", "serif", "stroke"];
 const RU_WORDS = ["каик", "буква", "набор", "слово", "шрифт", "форма"];
-
-function cellStyle(span, row) {
-  const col = `grid-column: span ${span}`;
-  return row ? `${col}; grid-row: span ${row}` : col;
-}
-
-function placeholderMarkup() {
-  return PLACEHOLDERS.map((item) => {
-    if (item.stack) {
-      return `<div class="works-feed__cell works-feed__cell--stack" style="${cellStyle(item.span)}">
-        <div class="works-feed__ph" style="min-height:${item.h}px"></div>
-        <div class="works-feed__ph" style="min-height:${item.h}px"></div>
-      </div>`;
-    }
-    return `<div class="works-feed__cell" style="${cellStyle(item.span, item.row)}">
-      <div class="works-feed__ph" style="min-height:${item.h}px"></div>
-    </div>`;
-  }).join("");
-}
 
 function esc(value) {
   return String(value || "")
@@ -52,9 +19,8 @@ function isFontFile(name) {
   return /\.(ttf|otf|woff2?)$/i.test(String(name || ""));
 }
 
-function fileSrc(item) {
-  const file = item.files?.find((name) => !isFontFile(name)) || item.files?.[0];
-  return file && !isFontFile(file) ? workFileUrl(file) : "";
+function imageFiles(item) {
+  return (item.files || []).filter((file) => !isFontFile(file));
 }
 
 function pickWord(id, lang) {
@@ -64,26 +30,27 @@ function pickWord(id, lang) {
   return list[n % list.length];
 }
 
-function typeKey(item) {
-  return item.type === TYPE_LETTERING ? "works.type.workshop" : "works.type.final";
+function ratioStyle(item) {
+  return item.width && item.height ? `--art-w:${item.width};--art-h:${item.height}` : "";
 }
 
-function slideImages(item) {
-  return (item.files || []).filter((file) => !isFontFile(file));
+function artMarkup(src, item) {
+  return `<div class="works-feed__art" style="${ratioStyle(item)}">
+    <img src="${esc(src)}" alt="" ${item.width ? `width="${item.width}" height="${item.height}"` : ""} loading="lazy" decoding="async" draggable="false" />
+  </div>`;
 }
 
-function sliderMarkup(item) {
-  const files = slideImages(item);
+function sliderMarkup(item, files) {
   const chevron = esc(publicUrl("assets/cards/history/chevron.svg"));
   const slides = files
     .map(
       (file, i) =>
         `<figure class="img-slider__slide${i === 0 ? " is-active" : ""}" data-img-slider-slide>
-          <img src="${esc(workFileUrl(file))}" alt="" draggable="false" />
+          <img src="${esc(workFileUrl(file))}" alt="" ${item.width ? `width="${item.width}" height="${item.height}"` : ""} loading="lazy" decoding="async" draggable="false" />
         </figure>`,
     )
     .join("");
-  return `<div class="img-slider works-feed__slider" data-img-slider data-slider-inline>
+  return `<div class="img-slider works-feed__slider" data-img-slider data-slider-inline data-slider-tap-next>
     ${slides}
     <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="${esc(t("history.prev"))}">
       <img class="img-slider__chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
@@ -94,47 +61,41 @@ function sliderMarkup(item) {
   </div>`;
 }
 
+function fontMarkup(item, fontFile) {
+  return `<div class="works-feed__art works-feed__art--font" data-font-preview data-font-url="${esc(
+    workFileUrl(fontFile),
+  )}" data-work-id="${esc(item.id)}"></div>`;
+}
+
+/** Same caption as the main-domain collage: name, then @nick. */
+function whoMarkup(item) {
+  if (!item.author && !item.nick) return "";
+  return `<p class="works-card__who works-feed__who">${
+    item.author ? `<span>${esc(item.author)}</span>` : ""
+  }${item.nick ? `<span class="works-card__ig">@${esc(item.nick)}</span>` : ""}</p>`;
+}
+
+function mediaMarkup(item) {
+  const fontFile = (item.files || []).find((name) => isFontFile(name));
+  if (item.type === TYPE_FONT && fontFile) return fontMarkup(item, fontFile);
+  if (fontFile && !imageFiles(item).length) return fontMarkup(item, fontFile);
+  const images = imageFiles(item);
+  if (!images.length) return "";
+  if (item.type === TYPE_FINAL && images.length > 1) return sliderMarkup(item, images);
+  return artMarkup(workFileUrl(images[0]), item);
+}
+
 function workMarkup(item) {
-  const { span, split } = spanForWork(item);
-  const src = fileSrc(item);
-  const font = item.type === TYPE_FONT || isFontFile(item.files?.[0]);
-  const fontFile = item.files?.find((name) => isFontFile(name)) || item.files?.[0];
-  const slides = slideImages(item);
-  const who = item.author || item.nick;
-  const ratio =
-    item.width && item.height
-      ? `--art-w:${item.width};--art-h:${item.height}`
-      : "--art-w:2;--art-h:1";
-  const media = font && fontFile
-    ? `<div class="works-feed__art works-feed__art--font" style="${ratio}" data-font-preview data-font-url="${esc(workFileUrl(fontFile))}" data-work-id="${esc(item.id)}"></div>`
-    : item.type === TYPE_FINAL && slides.length > 1
-      ? sliderMarkup(item)
-    : src
-      ? `<div class="works-feed__art" style="${ratio}"><img src="${esc(src)}" alt="" draggable="false" /></div>`
-      : `<div class="works-feed__ph" style="min-height:120px"></div>`;
-  const extra =
-    !font && item.type !== TYPE_FINAL && item.files?.length > 1
-      ? item.files
-          .slice(1)
-          .filter((file) => !isFontFile(file))
-          .map(
-            (file) =>
-              `<div class="works-feed__art" style="${ratio}"><img src="${esc(workFileUrl(file))}" alt="" draggable="false" /></div>`,
-          )
-          .join("")
-      : "";
-  const body =
-    split && extra
-      ? `<div class="works-feed__split">${media}${extra}</div>`
-      : extra
-        ? `<div class="works-feed__gallery">${media}${extra}</div>`
-        : media;
-  const caption = who
-    ? `<p class="works-feed__who"><span>${esc(item.author)}</span>${
-        item.nick ? `<span class="works-feed__ig">@${esc(item.nick)}</span>` : ""
-      }<span class="works-feed__kind" data-i18n="${typeKey(item)}">${esc(t(typeKey(item)))}</span></p>`
-    : "";
-  return `<article class="works-feed__cell" data-work-id="${esc(item.id)}" data-span="${span}" style="${cellStyle(span)}">${body}${caption}</article>`;
+  const media = mediaMarkup(item);
+  if (!media) return "";
+  const { cols, rows, kind } = placeWork(item);
+  const place = `grid-column: span ${cols}${rows > 1 ? `; grid-row: span ${rows}` : ""}`;
+  return `<article class="works-feed__cell works-feed__cell--${esc(kind)}" data-work-id="${esc(
+    item.id,
+  )}" data-cols="${cols}" data-rows="${rows}" style="${place}">
+    <div class="works-feed__media">${media}</div>
+    ${whoMarkup(item)}
+  </article>`;
 }
 
 async function paintFontCell(el) {
@@ -173,9 +134,8 @@ function hydrateFonts(root) {
 
 function renderFeed(root, catalog) {
   const items = sortWorksByDate(catalog.items);
-  root.innerHTML = items.length
-    ? items.map(workMarkup).join("")
-    : placeholderMarkup();
+  const cells = items.map(workMarkup).filter(Boolean).join("");
+  root.innerHTML = cells ? `<div class="works-feed__grid">${cells}</div>` : "";
   hydrateFonts(root);
   initImgSliders(root);
 }

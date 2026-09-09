@@ -517,7 +517,8 @@ function bindSlider(root) {
       event.stopPropagation();
       // Desktop: open the shared fullscreen lightbox (author-works chrome).
       // Mobile: keep tap-to-advance; drag/swipe handles the rest.
-      if (!isMobile()) {
+      // `data-slider-tap-next` (works feed): a click always flips the slide.
+      if (!isMobile() && !root.hasAttribute("data-slider-tap-next")) {
         const items = galleryItems(slides);
         if (items.length) openLightboxGallery(items, pending, root);
         return;

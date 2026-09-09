@@ -73,12 +73,15 @@ type WorksCatalog = {
   version: number;
   updatedAt: string | null;
   items: WorkItem[];
+  writable?: boolean;
+  fileBase?: string;
 };
 
 type UploadFile = {
   filename: string;
   mime: string;
-  data: string;
+  data?: string;
+  blob?: Blob;
   preview: string;
   width?: number;
   height?: number;
@@ -110,42 +113,157 @@ function isFontPath(name: string) {
   return /\.(ttf|otf|woff2?)$/i.test(name);
 }
 
-async function blobToDataUrl(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("read failed"));
-    reader.readAsDataURL(blob);
+const RASTER_LONG_SIDE = 1600;
+const RASTER_WEBP_QUALITY = 0.82;
+const UPLOAD_CONCURRENCY = 3;
+
+function revokeUpload(file: UploadFile) {
+  if (file.preview?.startsWith("blob:")) URL.revokeObjectURL(file.preview);
+}
+
+function revokeUploads(files: UploadFile[]) {
+  for (const file of files) revokeUpload(file);
+}
+
+function yieldUi() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
+async function mapPool<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      out[index] = await fn(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, limit), items.length) }, () => worker()));
+  return out;
+}
+
+function encodeCanvas(canvas: HTMLCanvasElement): Promise<{ blob: Blob; mime: string }> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (webp) => {
+        if (webp) {
+          resolve({ blob: webp, mime: "image/webp" });
+          return;
+        }
+        canvas.toBlob(
+          (jpg) => {
+            if (jpg) resolve({ blob: jpg, mime: "image/jpeg" });
+            else reject(new Error("encode"));
+          },
+          "image/jpeg",
+          0.85,
+        );
+      },
+      "image/webp",
+      RASTER_WEBP_QUALITY,
+    );
   });
 }
 
 async function rasterToWebp(file: File): Promise<UploadFile> {
-  const bitmap = await createImageBitmap(file);
+  const probe = await createImageBitmap(file);
+  const scale = Math.min(1, RASTER_LONG_SIDE / Math.max(probe.width, probe.height, 1));
+  const width = Math.max(1, Math.round(probe.width * scale));
+  const height = Math.max(1, Math.round(probe.height * scale));
+  probe.close();
+  let bitmap: ImageBitmap;
+  try {
+    bitmap =
+      scale < 1
+        ? await createImageBitmap(file, {
+            resizeWidth: width,
+            resizeHeight: height,
+            resizeQuality: "medium",
+          })
+        : await createImageBitmap(file);
+  } catch {
+    bitmap = await createImageBitmap(file);
+  }
   const canvas = document.createElement("canvas");
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     bitmap.close();
     throw new Error("canvas");
   }
-  ctx.drawImage(bitmap, 0, 0);
-  const width = bitmap.width;
-  const height = bitmap.height;
+  ctx.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, "image/webp", 0.92);
-  });
-  if (!blob) throw new Error("webp");
-  const data = await blobToDataUrl(blob);
+  const encoded = await encodeCanvas(canvas);
+  const ext = encoded.mime === "image/jpeg" ? ".jpg" : ".webp";
   return {
-    filename: file.name.replace(/\.[^.]+$/, "") + ".webp",
-    mime: "image/webp",
-    data,
-    preview: data,
+    filename: file.name.replace(/\.[^.]+$/, "") + ext,
+    mime: encoded.mime,
+    blob: encoded.blob,
+    preview: URL.createObjectURL(encoded.blob),
     width,
     height,
   };
+}
+
+function dataUrlToBytes(data: string): Uint8Array {
+  if (data.trim().startsWith("<")) return new TextEncoder().encode(data);
+  const raw = data.includes(",") ? data.slice(data.indexOf(",") + 1) : data;
+  const bin = atob(raw);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function apiFail(status: number, message?: string) {
+  if (status === 413) return "TOO_LARGE";
+  return message || `Request failed (${status})`;
+}
+
+function toastApiError(error: unknown, copy: (key: string) => string) {
+  const message = error instanceof Error ? error.message : "";
+  toast.error(message === "TOO_LARGE" ? copy("admin.tooLarge") : message || copy("admin.error"));
+}
+
+type PackedFile = {
+  filename: string;
+  mime: string;
+  data?: string;
+  sha?: string;
+};
+
+async function packFile(file: UploadFile): Promise<PackedFile> {
+  const svg =
+    file.mime.includes("svg") ||
+    Boolean(file.data && !file.data.startsWith("data:") && file.data.trim().startsWith("<"));
+  if (svg && file.data) {
+    return { filename: file.filename, mime: file.mime, data: file.data };
+  }
+  const body =
+    file.blob ||
+    (file.data ? new Blob([dataUrlToBytes(file.data)], { type: file.mime || "application/octet-stream" }) : null);
+  if (!body) throw new Error("Empty file");
+  const res = await fetch("/api/works/upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": file.mime || body.type || "application/octet-stream",
+      "X-Filename": encodeURIComponent(file.filename),
+    },
+    body,
+  });
+  const text = await res.text();
+  let data: { error?: string; sha?: string } = {};
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = {};
+  }
+  if (!res.ok) throw new Error(apiFail(res.status, data.error));
+  if (!data.sha) throw new Error(apiFail(res.status, "Upload failed"));
+  return { filename: file.filename, mime: file.mime, sha: data.sha };
 }
 
 async function fileToUpload(file: File, asFinal = false): Promise<UploadFile> {
@@ -155,16 +273,13 @@ async function fileToUpload(file: File, asFinal = false): Promise<UploadFile> {
     return { filename: file.name, mime: "image/svg+xml", data, preview: URL.createObjectURL(file) };
   }
   const raster = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
-  if (asFinal && raster) {
-    try {
-      return await rasterToWebp(file);
-    } catch {
-      /* keep original */
-    }
-  }
-  const data = await blobToDataUrl(file);
-  const preview = raster ? data : URL.createObjectURL(file);
-  return { filename: file.name, mime: file.type || "application/octet-stream", data, preview };
+  if (asFinal && raster) return rasterToWebp(file);
+  return {
+    filename: file.name,
+    mime: file.type || "application/octet-stream",
+    blob: file,
+    preview: URL.createObjectURL(file),
+  };
 }
 
 async function worksApi(path: string, options?: RequestInit): Promise<WorksCatalog> {
@@ -172,10 +287,14 @@ async function worksApi(path: string, options?: RequestInit): Promise<WorksCatal
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || "Request failed");
+  const text = await res.text();
+  let data: { error?: string } = {};
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = {};
   }
+  if (!res.ok) throw new Error(apiFail(res.status, data.error));
   return data as WorksCatalog;
 }
 
@@ -192,8 +311,12 @@ function acceptFor(type: WorkType) {
 }
 
 async function filesForType(files: File[], type: WorkType): Promise<UploadFile[]> {
+  const list =
+    type === TYPE_FINAL
+      ? [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }))
+      : [...files];
   const out: UploadFile[] = [];
-  for (const file of files) {
+  for (const file of list) {
     if (type === TYPE_FINAL && kindOf(file) === "pdf") {
       out.push(...(await pdfToWebpSlides(file)));
       continue;
@@ -316,6 +439,7 @@ export function WorksPanel({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [lasso, setLasso] = useState<Lasso | null>(null);
+  const [progress, setProgress] = useState<{ kind: "import" | "save"; n: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -325,6 +449,7 @@ export function WorksPanel({
   const captured = useRef(false);
   const addFilesRef = useRef<(list: FileList | File[]) => Promise<void>>(async () => undefined);
   const lassoRef = useRef<Lasso | null>(null);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -332,7 +457,7 @@ export function WorksPanel({
       try {
         const data = await worksApi("");
         if (!alive) return;
-        setCanWrite(true);
+        setCanWrite(Boolean(data.writable));
         setCatalog((current) => (sameWorksCatalog(current, data) ? current : data));
       } catch {
         const data = (await loadWorksCatalog({ bust: true })) as WorksCatalog;
@@ -382,34 +507,61 @@ export function WorksPanel({
 
   async function addFiles(list: FileList | File[]) {
     const files = [...list];
-    if (!files.length) return;
+    if (!files.length || busyRef.current) return;
+    busyRef.current = true;
+    const fonts = files.filter((file) => kindOf(file) === "font");
+    const rasters = files.filter((file) => kindOf(file) === "raster");
+    const pdfs = files.filter((file) => kindOf(file) === "pdf");
+    const singles = files.filter((file) => {
+      const kind = kindOf(file);
+      return kind === "svg" || kind === "other";
+    });
+    const total = fonts.length + rasters.length + pdfs.length + singles.length;
+    let done = 0;
+    setProgress({ kind: "import", n: 0, total });
+    const toastId = toast.loading(
+      copy("admin.preparing").replace("{n}", "0").replace("{total}", String(total)),
+    );
+    const tick = async () => {
+      done += 1;
+      setProgress({ kind: "import", n: done, total });
+      toast.loading(
+        copy("admin.preparing").replace("{n}", String(done)).replace("{total}", String(total)),
+        { id: toastId },
+      );
+      await yieldUi();
+    };
     try {
-      const fonts = files.filter((file) => kindOf(file) === "font");
-      const rasters = files.filter((file) => kindOf(file) === "raster");
-      const pdfs = files.filter((file) => kindOf(file) === "pdf");
-      const singles = files.filter((file) => {
-        const kind = kindOf(file);
-        return kind === "svg" || kind === "other";
-      });
       const next: InboxItem[] = [];
       if (fonts.length) {
+        const uploaded: UploadFile[] = [];
+        for (const file of fonts) {
+          uploaded.push(await fileToUpload(file));
+          await tick();
+        }
         next.push({
           key: `font-${Date.now()}-${Math.random()}`,
           type: TYPE_FONT,
           author: bulkAuthor,
           nick: normalizeNick(bulkNick),
           stream: bulkStream,
-          files: await Promise.all(fonts.map((file) => fileToUpload(file))),
+          files: uploaded,
         });
       }
+      rasters.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
       if (rasters.length) {
+        const uploaded: UploadFile[] = [];
+        for (const file of rasters) {
+          uploaded.push(await fileToUpload(file, true));
+          await tick();
+        }
         next.push({
           key: `final-${Date.now()}-${Math.random()}`,
           type: TYPE_FINAL,
           author: bulkAuthor,
           nick: normalizeNick(bulkNick),
           stream: bulkStream,
-          files: await Promise.all(rasters.map((file) => fileToUpload(file, true))),
+          files: uploaded,
         });
       }
       for (const file of pdfs) {
@@ -425,6 +577,7 @@ export function WorksPanel({
         } catch {
           toast.error(copy("admin.badPdf"));
         }
+        await tick();
       }
       for (const file of singles) {
         next.push({
@@ -435,10 +588,15 @@ export function WorksPanel({
           stream: bulkStream,
           files: [await fileToUpload(file)],
         });
+        await tick();
       }
       setInbox((current) => [...current, ...next]);
+      toast.dismiss(toastId);
     } catch {
-      toast.error(copy("admin.badSvg"));
+      toast.error(copy("admin.error"), { id: toastId });
+    } finally {
+      busyRef.current = false;
+      setProgress(null);
     }
   }
 
@@ -499,25 +657,59 @@ export function WorksPanel({
       toast.error(copy("admin.fillWorks"));
       return;
     }
+    if (busyRef.current) return;
+    busyRef.current = true;
+    const leftover = [...inbox];
+    const totalFiles = leftover.reduce((sum, item) => sum + item.files.length, 0);
+    let uploaded = 0;
+    setProgress({ kind: "save", n: 0, total: totalFiles });
+    const toastId = toast.loading(
+      copy("admin.sending").replace("{n}", "0").replace("{total}", String(totalFiles)),
+    );
     try {
-      const data = await worksApi("", {
-        method: "POST",
-        body: JSON.stringify({
-          items: inbox.map((item) => ({
-            type: item.type,
-            author: item.author,
-            nick: item.nick,
-            stream: item.stream,
-            ...itemDims(item.files),
-            files: item.files.map(({ filename, mime, data }) => ({ filename, mime, data })),
-          })),
-        }),
-      });
-      setCatalog(data);
+      let data: WorksCatalog | null = null;
+      while (leftover.length) {
+        const item = leftover[0];
+        const files = await mapPool(item.files, UPLOAD_CONCURRENCY, async (file) => {
+          const packed = await packFile(file);
+          uploaded += 1;
+          setProgress({ kind: "save", n: uploaded, total: totalFiles });
+          toast.loading(
+            copy("admin.sending").replace("{n}", String(uploaded)).replace("{total}", String(totalFiles)),
+            { id: toastId },
+          );
+          return packed;
+        });
+        data = await worksApi("", {
+          method: "POST",
+          body: JSON.stringify({
+            items: [
+              {
+                type: item.type,
+                author: item.author,
+                nick: item.nick,
+                stream: item.stream,
+                ...itemDims(item.files),
+                files,
+              },
+            ],
+          }),
+        });
+        revokeUploads(item.files);
+        leftover.shift();
+        setInbox([...leftover]);
+        setCatalog(data);
+      }
       setInbox([]);
-      toast.success(copy("admin.saved"));
+      toast.success(copy("admin.saved"), { id: toastId });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+      const message = error instanceof Error ? error.message : "";
+      toast.error(message === "TOO_LARGE" ? copy("admin.tooLarge") : message || copy("admin.error"), {
+        id: toastId,
+      });
+    } finally {
+      busyRef.current = false;
+      setProgress(null);
     }
   }
 
@@ -558,7 +750,7 @@ export function WorksPanel({
           ...(editFiles
             ? {
                 ...itemDims(editFiles),
-                files: editFiles.map(({ filename, mime, data }) => ({ filename, mime, data })),
+                files: await mapPool(editFiles, UPLOAD_CONCURRENCY, (file) => packFile(file)),
               }
             : {}),
         }),
@@ -566,10 +758,11 @@ export function WorksPanel({
       setCatalog(data);
       const updated = data.items.find((item) => item.id === editing.id) || null;
       setEditing(updated);
+      if (editFiles) revokeUploads(editFiles);
       setEditFiles(null);
       toast.success(copy("admin.saved"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+      toastApiError(error, copy);
     }
   }
 
@@ -587,7 +780,7 @@ export function WorksPanel({
       else setEditing(null);
       toast.success(copy("admin.saved"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+      toastApiError(error, copy);
     }
   }
 
@@ -602,7 +795,7 @@ export function WorksPanel({
       setSelected([]);
       toast.success(copy("admin.saved"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : copy("admin.error"));
+      toastApiError(error, copy);
     }
   }
 
@@ -838,7 +1031,10 @@ export function WorksPanel({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setInbox((current) => current.filter((entry) => entry.key !== item.key))}
+                      onClick={() => {
+                        revokeUploads(item.files);
+                        setInbox((current) => current.filter((entry) => entry.key !== item.key));
+                      }}
                     >
                       {copy("admin.remove")}
                     </Button>
@@ -848,12 +1044,24 @@ export function WorksPanel({
             </ul>
           </CardContent>
           <CardFooter className="justify-between">
-            <Button type="button" variant="ghost" onClick={() => setInbox([])}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={Boolean(progress)}
+              onClick={() => {
+                inbox.forEach((item) => revokeUploads(item.files));
+                setInbox([]);
+              }}
+            >
               {copy("admin.clear")}
             </Button>
-            <Button type="button" onClick={saveInbox}>
+            <Button type="button" disabled={Boolean(progress)} onClick={saveInbox}>
               <FileUpIcon data-icon="inline-start" />
-              {copy("admin.save")}
+              {progress?.kind === "save"
+                ? copy("admin.sending")
+                    .replace("{n}", String(progress.n))
+                    .replace("{total}", String(progress.total))
+                : copy("admin.save")}
             </Button>
           </CardFooter>
         </Card>
@@ -867,6 +1075,7 @@ export function WorksPanel({
             <button
               type="button"
               className="text-sm underline underline-offset-2"
+              disabled={Boolean(progress)}
               onClick={() => inputRef.current?.click()}
             >
               {copy("admin.upload")}
@@ -935,6 +1144,16 @@ export function WorksPanel({
         )}
       </section>
 
+      {progress ? (
+        <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-4">
+          <div className="rounded-full border bg-background px-4 py-2 text-sm shadow-sm">
+            {copy(progress.kind === "import" ? "admin.preparing" : "admin.sending")
+              .replace("{n}", String(progress.n))
+              .replace("{total}", String(progress.total))}
+          </div>
+        </div>
+      ) : null}
+
       {hot ? (
         <div className="pointer-events-none fixed inset-0 z-40 bg-primary/10 ring-4 ring-inset ring-primary/50" />
       ) : null}
@@ -983,6 +1202,7 @@ export function WorksPanel({
         onOpenChange={(open) => {
           if (!open) {
             setEditing(null);
+            if (editFiles) revokeUploads(editFiles);
             setEditFiles(null);
           }
         }}
@@ -1028,7 +1248,10 @@ export function WorksPanel({
                   onChange={(event) => {
                     if (event.target.files) {
                       filesForType([...event.target.files], editDraft.type)
-                        .then(setEditFiles)
+                        .then((files) => {
+                          if (editFiles) revokeUploads(editFiles);
+                          setEditFiles(files);
+                        })
                         .catch(() =>
                           toast.error(
                             editDraft.type === TYPE_FINAL ? copy("admin.badPdf") : copy("admin.badSvg"),
