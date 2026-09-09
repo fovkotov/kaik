@@ -26,7 +26,7 @@ const A4_RATIO = 210 / 297;
  * Same stack rectangle, height-fit to `--frame-h` minus gutter; width follows ratio.
  * destBox converts this through deck scale into `--fly-w` / `--fly-h`.
  */
-export function desktopFocusDestVisual({ frameW, frameH, cardW, cardH, works = false }) {
+export function desktopFocusDestVisual({ frameW, frameH, cardW, cardH, works = false, deckScale = 1 }) {
   const maxW = Math.max(0, frameW - OPEN_GUTTER);
   const maxH = Math.max(0, frameH - TOP_GAP - BOTTOM_GAP);
   const ratio = cardW > 0 && cardH > 0 ? cardW / cardH : A4_RATIO;
@@ -35,13 +35,17 @@ export function desktopFocusDestVisual({ frameW, frameH, cardW, cardH, works = f
   let width = height * ratio;
 
   if (works) {
-    const focusScale = getFocusScale();
+    // Student works: no grow. The board keeps its painted stack size
+    // (deck-local side × deck scale) and just moves to the frame centre.
     const nudge = getFocusNudge();
+    const side = cardW > 0 && cardH > 0 ? { w: cardW * deckScale, h: cardH * deckScale } : null;
+    const w = side ? Math.min(side.w, Math.max(0, frameW - WORKS_INSET * 2)) : Math.max(0, frameW - WORKS_INSET * 2);
+    const h = side ? Math.min(side.h, Math.max(0, frameH - WORKS_INSET * 2)) : Math.max(0, frameH - WORKS_INSET * 2);
     return {
-      left: WORKS_INSET + nudge.x,
-      top: WORKS_INSET + nudge.y,
-      width: Math.max(0, frameW - WORKS_INSET * 2) * focusScale,
-      height: Math.max(0, frameH - WORKS_INSET * 2) * focusScale,
+      left: (frameW - w) / 2 + nudge.x,
+      top: (frameH - h) / 2 + nudge.y,
+      width: w,
+      height: h,
       rotate: 0,
     };
   }
@@ -285,6 +289,10 @@ export function initProgramModal() {
       cardW: size.w,
       cardH: size.h,
       works: Boolean(card?.hasAttribute("data-works-card")),
+      deckScale:
+        Number.parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--deck-scale"),
+        ) || 1,
     });
   }
 
