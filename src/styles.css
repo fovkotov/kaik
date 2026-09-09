@@ -2123,10 +2123,10 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
     calc(var(--frame-w) - 48px)
   );
   --program-open-w: var(--focus-open-w);
+  isolation: isolate;
 }
 
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
-  isolation: isolate;
   --card-w: var(--works-side);
   --card-h: var(--works-side);
   width: var(--works-side);
@@ -4136,7 +4136,7 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   scrollbar-gutter: auto;
 }
 
-.card.is-program-open.is-program-scroll {
+.card.is-program-open.is-program-scroll:not([data-works-card]) {
   position: fixed;
   transform: none !important;
   transform-style: flat;
@@ -4159,17 +4159,29 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   transition: none;
 }
 
-body:not(.list) .card.is-program-open.is-program-scroll,
-body:not(.list) .card.is-program-open.is-program-scroll * {
+.card.is-program-open.is-program-scroll[data-works-card] {
+  transform: none;
+  transform-style: flat;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  overflow: hidden;
+  scrollbar-gutter: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  outline: none;
+  transition: none;
+}
+
+body:not(.list) .card.is-program-open.is-program-scroll:not([data-works-card]),
+body:not(.list) .card.is-program-open.is-program-scroll:not([data-works-card]) * {
   transform-style: flat !important;
   backface-visibility: visible !important;
   -webkit-backface-visibility: visible !important;
   will-change: auto !important;
 }
 
-body:not(.list) .card.is-program-open,
-body:not(.list) .card.is-program-open[data-program-card],
-body:not(.list) .card.is-program-open[data-works-card] {
+body:not(.list) .card.is-program-open:not([data-works-card]),
+body:not(.list) .card.is-program-open[data-program-card] {
   isolation: auto;
 }
 

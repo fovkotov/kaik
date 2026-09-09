@@ -18,19 +18,7 @@ const TOP_GAP = 28;
 const BOTTOM_GAP = 28;
 const OPEN_GUTTER = 48;
 const WORKS_OPEN_SCALE = 1.16;
-const WORKS_OPEN_INSET = 80;
 const A4_RATIO = 210 / 297;
-
-/** Desktop student-works dest: inset rectangle in iframe-visual pixels. */
-export function worksFocusDestVisual(frameW, frameH, inset = WORKS_OPEN_INSET) {
-  return {
-    left: inset,
-    top: inset,
-    width: Math.max(0, frameW - inset * 2),
-    height: Math.max(0, frameH - inset * 2),
-    rotate: 0,
-  };
-}
 
 /**
  * Desktop focus dest in iframe-visual pixels.
@@ -283,16 +271,13 @@ export function initProgramModal() {
     if (isMobile()) {
       return { left: 0, top: 0, width: vw, height: vh, rotate: 0 };
     }
-    if (card?.hasAttribute("data-works-card")) {
-      return worksFocusDestVisual(vw, vh);
-    }
     const size = stackCardSize(from);
     return desktopFocusDestVisual({
       frameW: vw,
       frameH: vh,
       cardW: size.w,
       cardH: size.h,
-      works: false,
+      works: Boolean(card?.hasAttribute("data-works-card")),
     });
   }
 
@@ -547,8 +532,12 @@ export function initProgramModal() {
     );
   }
 
+  function isWorksHost(el = card) {
+    return Boolean(el?.hasAttribute("data-works-card"));
+  }
+
   function flattenLanded(el) {
-    if (!el) return;
+    if (!el || isWorksHost(el)) return;
     const painted = el.getBoundingClientRect();
     const dest = destVisual();
     const box =
@@ -678,8 +667,12 @@ export function initProgramModal() {
 
   function lockCard() {
     if (!card) return;
-    setFocusFrozen(true);
-    cancelIntroAnimations();
+    if (isWorksHost()) {
+      setFocusFrozen(false);
+    } else {
+      setFocusFrozen(true);
+      cancelIntroAnimations();
+    }
     card.setAttribute("data-fly-lock", "");
     card.setAttribute("data-focus-open", "");
     card.classList.remove("is-fly-pinned");
@@ -876,7 +869,12 @@ export function initProgramModal() {
           card.style.borderRadius = "0px";
           card.setAttribute("data-expand-settled", "");
         }
-        flattenLanded(card);
+        if (isWorksHost()) {
+          card.classList.add("is-program-scroll");
+          card.style.setProperty("--fly-ms", "0ms");
+        } else {
+          flattenLanded(card);
+        }
       }
       syncAria();
       return;
@@ -1121,9 +1119,13 @@ export function initProgramModal() {
     window.clearTimeout(flyTimer);
     if (card) {
       card.classList.remove("is-work-open");
-      unflattenLanded(card);
-      if (!card.hasAttribute("data-expand-host")) {
-        pin(destBox(rest), false);
+      if (isWorksHost()) {
+        card.classList.remove("is-program-scroll");
+      } else {
+        unflattenLanded(card);
+        if (!card.hasAttribute("data-expand-host")) {
+          pin(destBox(rest), false);
+        }
       }
     }
     cards.forEach((el) => {
@@ -1164,7 +1166,11 @@ export function initProgramModal() {
     closeAfter = null;
 
     resetCardScroll(outgoingEl);
-    unflattenLanded(outgoingEl);
+    if (isWorksHost(outgoingEl)) {
+      outgoingEl.classList.remove("is-program-scroll");
+    } else {
+      unflattenLanded(outgoingEl);
+    }
     outgoingEl.classList.remove("is-work-open");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);
