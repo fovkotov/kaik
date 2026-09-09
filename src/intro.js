@@ -150,6 +150,17 @@ function animateWhole(el, { delay = 0, scale } = {}) {
     });
 }
 
+/** Drop leftover lockup/nav WAAPI so it cannot keep compositing over a focused card. */
+export function cancelIntroAnimations() {
+  document
+    .querySelectorAll("[data-lockup], .panel__nav, .panel__lang")
+    .forEach((el) => {
+      el.getAnimations?.().forEach((anim) => anim.cancel());
+      clearIntroStyles(el);
+    });
+  markIntroDone();
+}
+
 /** One-shot micro-scale-fade on the fixed panel (enter only, existing copy). */
 export function playTextIntro() {
   markIntroText();

@@ -3,7 +3,7 @@
  * Defaults to the mobile preset so flight can be tuned on a phone.
  */
 
-import { getViewportSize, onFrameMetrics, safeStorage } from "./embed.js";
+import { getViewportSize, isFocusFrozen, onFrameMetrics, safeStorage } from "./embed.js";
 
 const storage = safeStorage();
 
@@ -318,6 +318,7 @@ function setVarIfChanged(el, name, value) {
 }
 
 export function applyDeckParams() {
+  if (isFocusFrozen()) return;
   const p = getParams();
   const mobile = isMobile();
   const scale = Number(p.deckScale);

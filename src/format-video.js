@@ -37,11 +37,18 @@ function bindFormatVideo(media) {
 
   const reduce = () => REDUCE.matches;
 
+  const hostOpen = () => Boolean(media.closest("[data-focus-open], .is-program-open"));
+
   const playIfAllowed = () => {
     if (reduce() && video.muted) {
       video.pause();
       return;
     }
+    if (document.documentElement.classList.contains("is-focus-frozen") && !hostOpen()) {
+      video.pause();
+      return;
+    }
+    if (!video.paused) return;
     tryPlay(video);
   };
 
@@ -74,7 +81,11 @@ function bindFormatVideo(media) {
   );
   io.observe(media);
 
-  if (!reduce()) tryPlay(video);
+  if (!reduce()) playIfAllowed();
+
+  document.addEventListener("kaik:focus-frozen", () => {
+    if (!hostOpen()) video.pause();
+  });
 }
 
 export function initFormatVideo(scope = document) {

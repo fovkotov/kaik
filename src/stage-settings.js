@@ -828,6 +828,7 @@ export function initStageSettings() {
   if (!stageFrameBound) {
     stageFrameBound = true;
     onFrameMetrics(() => {
+      if (document.documentElement.classList.contains("is-focus-frozen")) return;
       applyStageNudge();
       const live = document.querySelector("[data-stage-settings]");
       if (!live) return;

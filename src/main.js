@@ -1,4 +1,4 @@
-import { getScrollRoot, getViewportSize, initEmbed, onFrameMetrics } from "./embed.js";
+import { getScrollRoot, getViewportSize, initEmbed, isFocusFrozen, onFrameMetrics } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
 import { initPreviewMedia } from "./preview-media.js";
 import { initTickClicks } from "./tick-clicks.js";
@@ -14,6 +14,7 @@ import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
 import {
   canPlayCardIntro,
   canPlayTextIntro,
+  cancelIntroAnimations,
   createDeckIntro,
   markIntroDone,
   markIntroReady,
@@ -295,6 +296,7 @@ function initDeck() {
   }
 
   function needsDeckFrame(mobile) {
+    if (isFocusFrozen()) return false;
     if (deckIntro) return true;
     if (spread !== spreadTarget || spreadMix < 1) return true;
     if (drag || snapAnim) return true;
@@ -750,6 +752,14 @@ function initDeck() {
 
   function render() {
     raf = 0;
+    if (isFocusFrozen()) {
+      if (deckIntro) {
+        deckIntro = null;
+        cancelIntroAnimations();
+      }
+      holdFlyLock();
+      return;
+    }
     const params = getParams();
     const mobile = isMobile();
     const items = liveItems();
@@ -1048,12 +1058,18 @@ function initDeck() {
   }
 
   onFrameMetrics(() => {
+    if (isFocusFrozen()) return;
     refreshCardBox();
     refreshDeckScale();
     scheduleRender();
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") scheduleRender();
+  });
+  document.addEventListener("kaik:focus-thawed", () => {
+    refreshCardBox();
+    refreshDeckScale();
+    scheduleRender();
   });
   scheduleRender();
 

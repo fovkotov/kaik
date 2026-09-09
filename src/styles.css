@@ -2123,10 +2123,10 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
     calc(var(--frame-w) - 48px)
   );
   --program-open-w: var(--focus-open-w);
-  isolation: isolate;
 }
 
 .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned) {
+  isolation: isolate;
   --card-w: var(--works-side);
   --card-h: var(--works-side);
   width: var(--works-side);
@@ -4015,6 +4015,9 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   --program-dog-w: calc(321.938 / var(--program-face-w) * var(--card-w));
   --program-dog-hang: calc(74.13 / var(--program-face-w) * var(--card-w));
   --program-sheet-top: calc(109 / var(--program-face-w) * var(--card-w));
+}
+
+[data-program-card]:not(.is-program-open):not(.is-fly-pinned) {
   isolation: isolate;
 }
 
@@ -4128,11 +4131,22 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   outline: none;
 }
 
+.card.is-program-open:not(.is-program-scroll) {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
+
 .card.is-program-open.is-program-scroll {
-  transform: none;
+  position: fixed;
+  transform: none !important;
   transform-style: flat;
   backface-visibility: visible;
   -webkit-backface-visibility: visible;
+  will-change: auto;
+  isolation: auto;
+  filter: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   overflow-x: hidden;
   overflow-y: scroll;
   scrollbar-gutter: stable;
@@ -4143,6 +4157,39 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   outline: none;
   /* Fly tween must not restart on click / :active / class churn. */
   transition: none;
+}
+
+body:not(.list) .card.is-program-open.is-program-scroll,
+body:not(.list) .card.is-program-open.is-program-scroll * {
+  transform-style: flat !important;
+  backface-visibility: visible !important;
+  -webkit-backface-visibility: visible !important;
+  will-change: auto !important;
+}
+
+body:not(.list) .card.is-program-open,
+body:not(.list) .card.is-program-open[data-program-card],
+body:not(.list) .card.is-program-open[data-works-card] {
+  isolation: auto;
+}
+
+html.is-focus-frozen body:not(.list) .deck {
+  perspective: none;
+  transform-style: flat;
+}
+
+html.is-focus-landed body:not(.list) .deck {
+  transform: none;
+  perspective: none;
+}
+
+html.is-focus-frozen body:not(.list) [data-deck] .card:not(.is-program-open):not(.is-fly-pinned) {
+  visibility: hidden;
+  pointer-events: none !important;
+}
+
+html.is-focus-landed body:not(.list) .card.is-program-open.is-program-scroll .history-card::before {
+  transform: none;
 }
 
 .card.is-program-open .history-card,

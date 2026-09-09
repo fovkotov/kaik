@@ -113,6 +113,7 @@ function isSkippedParent(el) {
   if (el.isContentEditable) return true;
   if (el.closest?.(SKIP_SELECTOR)) return true;
   if (el.closest?.("[contenteditable=true]")) return true;
+  if (el.closest?.(".is-program-open, [data-focus-open]")) return true;
   return false;
 }
 
@@ -162,33 +163,56 @@ export function glueHangingPrepositions(root = document.body) {
 }
 
 let started = false;
+let paused = false;
+/** @type {MutationObserver | null} */
+let observer = null;
+
+function observe() {
+  if (paused || !observer || !document.body) return;
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+  });
+}
+
+export function pauseHangingPrepositions() {
+  paused = true;
+  observer?.disconnect();
+}
+
+export function resumeHangingPrepositions() {
+  if (!paused) return;
+  paused = false;
+  observe();
+}
 
 export function initHangingPrepositions() {
   if (started || typeof document === "undefined") return;
   started = true;
 
-  const run = () => glueHangingPrepositions(document.body);
+  const run = () => {
+    if (paused) return;
+    glueHangingPrepositions(document.body);
+  };
   run();
 
   document.addEventListener("kaik:translated", run);
 
-  const observer = new MutationObserver((mutations) => {
-    observer.disconnect();
+  observer = new MutationObserver((mutations) => {
+    if (paused) return;
+    observer?.disconnect();
     for (const mutation of mutations) {
       if (mutation.type === "childList") {
-        mutation.addedNodes.forEach((node) => glueHangingPrepositions(node));
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof Element && node.closest?.(".is-program-open, [data-focus-open]")) {
+            return;
+          }
+          glueHangingPrepositions(node);
+        });
       }
     }
     observe();
   });
-
-  function observe() {
-    if (!document.body) return;
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-    });
-  }
 
   observe();
 }

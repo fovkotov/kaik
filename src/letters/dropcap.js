@@ -503,6 +503,7 @@ function createScrubber() {
   };
 
   const onDeckProgress = (event) => {
+    if (document.documentElement.classList.contains("is-focus-frozen")) return;
     if (reduceMotion() || !scrubs.length) return;
     const { delta } = event.detail || {};
     const meaningful = Math.abs(Number(delta) || 0) > 1e-4;

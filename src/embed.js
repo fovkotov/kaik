@@ -24,7 +24,11 @@
  * Production: https://kaik-one.vercel.app/ (frame-ancestors *). GitHub Pages ok.
  */
 
-import { initHangingPrepositions } from "./hanging-prepositions.js";
+import {
+  initHangingPrepositions,
+  pauseHangingPrepositions,
+  resumeHangingPrepositions,
+} from "./hanging-prepositions.js";
 
 const SOURCE = "kaik-course";
 
@@ -198,6 +202,26 @@ export function getViewportSize() {
   return { width, height };
 }
 
+/** Focused flying-deck card: freeze frame/CSS writes that flash the scroller. */
+export function isFocusFrozen() {
+  return document.documentElement.classList.contains("is-focus-frozen");
+}
+
+export function setFocusFrozen(on) {
+  const root = document.documentElement;
+  const next = Boolean(on);
+  if (root.classList.contains("is-focus-frozen") === next) return;
+  root.classList.toggle("is-focus-frozen", next);
+  if (next) {
+    pauseHangingPrepositions();
+    document.dispatchEvent(new CustomEvent("kaik:focus-frozen"));
+    return;
+  }
+  resumeHangingPrepositions();
+  document.dispatchEvent(new CustomEvent("kaik:focus-thawed"));
+  syncFrameMetrics({ force: true });
+}
+
 /** Run after `--frame-w` / `--frame-h` update (resize, visualViewport, parent message). */
 export function onFrameMetrics(fn) {
   frameListeners.add(fn);
@@ -209,6 +233,15 @@ export function onFrameMetrics(fn) {
  * @param {{ force?: boolean }} [opts] — `force` skips hysteresis (parent message / first paint).
  */
 export function syncFrameMetrics(opts = {}) {
+  if (isFocusFrozen()) {
+    return lastAppliedMetrics
+      ? {
+          width: lastAppliedMetrics.width,
+          height: lastAppliedMetrics.height,
+          applied: false,
+        }
+      : { width: 0, height: 0, applied: false };
+  }
   const force = Boolean(opts.force);
   const root = document.documentElement;
   const { width, height, clipTop, clipBottom, hasParent } = readFrameMetrics();
@@ -251,6 +284,11 @@ export function syncFrameMetrics(opts = {}) {
  * mid-size changes wait until the iframe box settles; orientation applies now.
  */
 function scheduleFrameSync(opts = {}) {
+  if (isFocusFrozen()) {
+    return lastAppliedMetrics
+      ? { width: lastAppliedMetrics.width, height: lastAppliedMetrics.height, applied: false }
+      : { width: 0, height: 0, applied: false };
+  }
   if (opts.force) {
     window.clearTimeout(settleTimer);
     settleTimer = 0;

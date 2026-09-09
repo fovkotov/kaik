@@ -1,5 +1,6 @@
 import { isAuthorLightboxOpen } from "./author-lightbox.js";
-import { getViewportSize, onFrameMetrics } from "./embed.js";
+import { getViewportSize, onFrameMetrics, setFocusFrozen } from "./embed.js";
+import { cancelIntroAnimations } from "./intro.js";
 import { t } from "./scriptik.js";
 import { getFocusNudge, getFocusScale } from "./stage-settings.js";
 import { applyDeckParams, inDeckFlow, isMobile } from "./tweaks.js";
@@ -17,7 +18,19 @@ const TOP_GAP = 28;
 const BOTTOM_GAP = 28;
 const OPEN_GUTTER = 48;
 const WORKS_OPEN_SCALE = 1.16;
+const WORKS_OPEN_INSET = 80;
 const A4_RATIO = 210 / 297;
+
+/** Desktop student-works dest: inset rectangle in iframe-visual pixels. */
+export function worksFocusDestVisual(frameW, frameH, inset = WORKS_OPEN_INSET) {
+  return {
+    left: inset,
+    top: inset,
+    width: Math.max(0, frameW - inset * 2),
+    height: Math.max(0, frameH - inset * 2),
+    rotate: 0,
+  };
+}
 
 /**
  * Desktop focus dest in iframe-visual pixels.
@@ -270,13 +283,16 @@ export function initProgramModal() {
     if (isMobile()) {
       return { left: 0, top: 0, width: vw, height: vh, rotate: 0 };
     }
+    if (card?.hasAttribute("data-works-card")) {
+      return worksFocusDestVisual(vw, vh);
+    }
     const size = stackCardSize(from);
     return desktopFocusDestVisual({
       frameW: vw,
       frameH: vh,
       cardW: size.w,
       cardH: size.h,
-      works: Boolean(card?.hasAttribute("data-works-card")),
+      works: false,
     });
   }
 
@@ -531,8 +547,58 @@ export function initProgramModal() {
     );
   }
 
+  function flattenLanded(el) {
+    if (!el) return;
+    const painted = el.getBoundingClientRect();
+    const dest = destVisual();
+    const box =
+      painted.width > 1 && painted.height > 1
+        ? {
+            left: painted.left,
+            top: painted.top,
+            width: painted.width,
+            height: painted.height,
+          }
+        : dest;
+    document.documentElement.classList.add("is-focus-landed");
+    el.classList.add("is-program-scroll");
+    el.style.position = "fixed";
+    el.style.left = `${box.left}px`;
+    el.style.top = `${box.top}px`;
+    el.style.right = "auto";
+    el.style.margin = "0";
+    el.style.width = `${box.width}px`;
+    el.style.height = `${box.height}px`;
+    el.style.transform = "none";
+    el.style.willChange = "auto";
+    el.style.zIndex = "80";
+    el.style.setProperty("--fly-l", `${box.left}px`);
+    el.style.setProperty("--fly-t", `${box.top}px`);
+    el.style.setProperty("--fly-w", `${box.width}px`);
+    el.style.setProperty("--fly-h", `${box.height}px`);
+    el.style.setProperty("--fly-rot", "0deg");
+    el.style.setProperty("--fly-ms", "0ms");
+  }
+
+  function unflattenLanded(el) {
+    if (!el) return;
+    document.documentElement.classList.remove("is-focus-landed");
+    el.classList.remove("is-program-scroll");
+    el.style.position = "";
+    el.style.left = "";
+    el.style.top = "";
+    el.style.right = "";
+    el.style.margin = "";
+    el.style.width = "";
+    el.style.height = "";
+    el.style.zIndex = "";
+    el.style.transform = "";
+    el.style.willChange = "";
+  }
+
   function pinEl(el, box, withTransition) {
     if (!el) return;
+    if (el.classList.contains("is-program-scroll")) return;
     /* Re-writing --fly-* on every Cargo tick reflows the open scroller (blink). */
     if (!withTransition && flyVarsClose(el, box)) return;
     el.style.left = "";
@@ -612,6 +678,8 @@ export function initProgramModal() {
 
   function lockCard() {
     if (!card) return;
+    setFocusFrozen(true);
+    cancelIntroAnimations();
     card.setAttribute("data-fly-lock", "");
     card.setAttribute("data-focus-open", "");
     card.classList.remove("is-fly-pinned");
@@ -649,6 +717,7 @@ export function initProgramModal() {
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(card);
+    unflattenLanded(card);
     card.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     clearExpandHost(card);
     card.style.transform = restTransform;
@@ -697,6 +766,7 @@ export function initProgramModal() {
     host.removeEventListener("wheel", trapCardScroll);
     host.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(host);
+    unflattenLanded(host);
     host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     clearExpandHost(host);
     clearFlyBox(host);
@@ -755,6 +825,9 @@ export function initProgramModal() {
     const next = closeAfter;
     closeAfter = null;
     card = null;
+    document.documentElement.classList.remove("is-focus-landed");
+    setFocusFrozen(false);
+    applyDeckParams();
     syncAria();
     next?.();
   }
@@ -803,8 +876,7 @@ export function initProgramModal() {
           card.style.borderRadius = "0px";
           card.setAttribute("data-expand-settled", "");
         }
-        card.classList.add("is-program-scroll");
-        card.style.setProperty("--fly-ms", "0ms");
+        flattenLanded(card);
       }
       syncAria();
       return;
@@ -932,6 +1004,7 @@ export function initProgramModal() {
   function settleRetire(el) {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
+    unflattenLanded(el);
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
     el.classList.add("is-fly-pinned");
     el.style.setProperty("--fly-ms", "0ms");
@@ -946,6 +1019,7 @@ export function initProgramModal() {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(el);
+    unflattenLanded(el);
     el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
     el.style.transform = restTf;
     clearFlyBox(el);
@@ -1045,7 +1119,13 @@ export function initProgramModal() {
     phase = "closing";
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
-    card?.classList.remove("is-work-open", "is-program-scroll");
+    if (card) {
+      card.classList.remove("is-work-open");
+      unflattenLanded(card);
+      if (!card.hasAttribute("data-expand-host")) {
+        pin(destBox(rest), false);
+      }
+    }
     cards.forEach((el) => {
       if (el === card) return;
       if (el.classList.contains("is-fly-pinned") || retiring.has(el)) retireToHome(el);
@@ -1084,7 +1164,8 @@ export function initProgramModal() {
     closeAfter = null;
 
     resetCardScroll(outgoingEl);
-    outgoingEl.classList.remove("is-work-open", "is-program-scroll");
+    unflattenLanded(outgoingEl);
+    outgoingEl.classList.remove("is-work-open");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);
     outgoingEl.removeAttribute("data-focus-open");
