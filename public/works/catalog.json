@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T21:23:37.806Z",
+  "updatedAt": "2026-09-09T21:23:40.239Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -477,20 +477,6 @@
       "height": 157,
       "createdAt": "2026-09-08T14:27:00.000Z",
       "originalName": "alena-last.svg"
-    },
-    {
-      "id": "wrk_769c6e62",
-      "type": "lettering",
-      "author": "tmp",
-      "nick": "tmp",
-      "stream": "1",
-      "width": 0,
-      "height": 0,
-      "files": [
-        "wrk_769c6e62_0.svg"
-      ],
-      "originalName": "t.svg",
-      "createdAt": "2026-09-09T21:23:37.806Z"
     }
   ]
 }
