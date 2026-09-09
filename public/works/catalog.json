@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T21:53:59.196Z",
+  "updatedAt": "2026-09-09T21:54:06.669Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -625,8 +625,6 @@
       "author": "АРТЕМ",
       "nick": "svrdee",
       "stream": "1",
-      "width": 1920,
-      "height": 1080,
       "files": [
         "wrk_42ce5d93_0.webp",
         "wrk_42ce5d93_1.webp",
@@ -642,8 +640,36 @@
         "wrk_42ce5d93_11.webp",
         "wrk_42ce5d93_12.webp"
       ],
+      "width": 1920,
+      "height": 1080,
+      "createdAt": "2026-09-09T21:53:59.196Z",
+      "originalName": "01.webp"
+    },
+    {
+      "id": "wrk_626a0d94",
+      "type": "final",
+      "author": "АРТЕМ",
+      "nick": "svrdee",
+      "stream": "1",
+      "width": 1920,
+      "height": 1080,
+      "files": [
+        "wrk_626a0d94_0.webp",
+        "wrk_626a0d94_1.webp",
+        "wrk_626a0d94_2.webp",
+        "wrk_626a0d94_3.webp",
+        "wrk_626a0d94_4.webp",
+        "wrk_626a0d94_5.webp",
+        "wrk_626a0d94_6.webp",
+        "wrk_626a0d94_7.webp",
+        "wrk_626a0d94_8.webp",
+        "wrk_626a0d94_9.webp",
+        "wrk_626a0d94_10.webp",
+        "wrk_626a0d94_11.webp",
+        "wrk_626a0d94_12.webp"
+      ],
       "originalName": "01.webp",
-      "createdAt": "2026-09-09T21:53:59.196Z"
+      "createdAt": "2026-09-09T21:54:06.669Z"
     }
   ]
 }
