@@ -121,6 +121,10 @@ function isFontPath(name: string) {
 const RASTER_LONG_SIDE = 1600;
 const RASTER_WEBP_QUALITY = 0.82;
 const UPLOAD_CONCURRENCY = 3;
+/** Works per catalog commit; keeps one POST well inside the 60 s function budget. */
+const BATCH_ITEMS = 12;
+/** Inline SVG payload per POST (Vercel body limit is 4.5 MB). */
+const BATCH_BYTES = 2_500_000;
 
 function revokeUpload(file: UploadFile) {
   if (file.preview?.startsWith("blob:")) URL.revokeObjectURL(file.preview);
@@ -691,47 +695,72 @@ export function WorksPanel({
     }
     if (busyRef.current) return;
     busyRef.current = true;
-    const leftover = [...inbox];
+    let leftover = [...inbox];
     const totalFiles = leftover.reduce((sum, item) => sum + item.files.length, 0);
-    let uploaded = 0;
-    setProgress({ kind: "save", n: 0, total: totalFiles });
+    let saved = 0;
+    let inflight = 0;
     const toastId = toast.loading(
       copy("admin.sending").replace("{n}", "0").replace("{total}", String(totalFiles)),
     );
+    const report = () => {
+      const n = Math.min(totalFiles, saved + inflight);
+      setProgress({ kind: "save", n, total: totalFiles });
+      toast.loading(
+        copy("admin.sending").replace("{n}", String(n)).replace("{total}", String(totalFiles)),
+        { id: toastId },
+      );
+    };
+    report();
     try {
-      let data: WorksCatalog | null = null;
-      while (leftover.length) {
-        const item = leftover[0];
-        const files = await mapPool(item.files, UPLOAD_CONCURRENCY, async (file) => {
-          const packed = await packFile(file);
-          uploaded += 1;
-          setProgress({ kind: "save", n: uploaded, total: totalFiles });
-          toast.loading(
-            copy("admin.sending").replace("{n}", String(uploaded)).replace("{total}", String(totalFiles)),
-            { id: toastId },
-          );
-          return packed;
-        });
-        data = await worksApi("", {
+      // Works are committed in batches: one GitHub commit per batch instead of
+      // one per work, which is what made 150 SVGs at once fall over.
+      let batch: { item: InboxItem; files: PackedFile[] }[] = [];
+      let batchBytes = 0;
+      const flush = async () => {
+        if (!batch.length) return;
+        const data = await worksApi("", {
           method: "POST",
           body: JSON.stringify({
-            items: [
-              {
-                type: item.type,
-                author: item.author,
-                nick: item.nick,
-                stream: item.stream,
-                ...itemDims(item.files),
-                files,
-              },
-            ],
+            items: batch.map(({ item, files }) => ({
+              type: item.type,
+              author: item.author,
+              nick: item.nick,
+              stream: item.stream,
+              ...itemDims(item.files),
+              files,
+            })),
           }),
         });
-        revokeUploads(item.files);
-        leftover.shift();
+        const done = new Set(batch.map(({ item }) => item.key));
+        for (const { item } of batch) {
+          revokeUploads(item.files);
+          saved += item.files.length;
+        }
+        inflight = 0;
+        batch = [];
+        batchBytes = 0;
+        leftover = leftover.filter((item) => !done.has(item.key));
         setInbox([...leftover]);
         setCatalog(data);
+        report();
+      };
+      for (const item of [...leftover]) {
+        const files = await mapPool(item.files, UPLOAD_CONCURRENCY, async (file) => {
+          const packed = await packFile(file);
+          if (packed.sha) {
+            inflight += 1;
+            report();
+          }
+          return packed;
+        });
+        const bytes = JSON.stringify(files).length;
+        if (batch.length && (batch.length >= BATCH_ITEMS || batchBytes + bytes > BATCH_BYTES)) {
+          await flush();
+        }
+        batch.push({ item, files });
+        batchBytes += bytes;
       }
+      await flush();
       setInbox([]);
       toast.success(copy("admin.saved"), { id: toastId });
     } catch (error) {

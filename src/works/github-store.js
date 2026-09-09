@@ -46,6 +46,26 @@ async function gh(pathname, init = {}) {
   return data;
 }
 
+// Blob creation is content-addressed (same bytes → same sha), so a retry after
+// a transient GitHub 5xx / network hiccup can never duplicate anything.
+async function ghBlob(owner, repo, base64) {
+  const delays = [500, 1200, 2500];
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await gh(`/repos/${owner}/${repo}/git/blobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: base64, encoding: "base64" }),
+      });
+    } catch (error) {
+      const status = Number(error?.status) || 0;
+      const transient = status === 0 || status >= 500;
+      if (!transient || attempt >= delays.length) throw error;
+      await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+    }
+  }
+}
+
 function rawUrl(filePath) {
   const { owner, repo, branch } = repoParts();
   return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`;
@@ -76,11 +96,7 @@ export async function createGitBlob(buffer) {
     throw error;
   }
   const { owner, repo } = repoParts();
-  const blob = await gh(`/repos/${owner}/${repo}/git/blobs`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content: Buffer.from(buffer).toString("base64"), encoding: "base64" }),
-  });
+  const blob = await ghBlob(owner, repo, Buffer.from(buffer).toString("base64"));
   return blob.sha;
 }
 
@@ -129,15 +145,7 @@ export async function commitWorks({ catalog, upserts = [], removes = [] }) {
   const head = await gh(`/repos/${owner}/${repo}/git/commits/${headSha}`);
   const blobs = [];
   for (const file of upserts) {
-    const sha =
-      file.sha ||
-      (
-        await gh(`/repos/${owner}/${repo}/git/blobs`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: Buffer.from(file.buffer).toString("base64"), encoding: "base64" }),
-        })
-      ).sha;
+    const sha = file.sha || (await ghBlob(owner, repo, Buffer.from(file.buffer).toString("base64"))).sha;
     blobs.push({
       path: `public/works/files/${file.name}`,
       mode: "100644",
@@ -145,14 +153,11 @@ export async function commitWorks({ catalog, upserts = [], removes = [] }) {
       sha,
     });
   }
-  const catalogBlob = await gh(`/repos/${owner}/${repo}/git/blobs`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      content: Buffer.from(`${JSON.stringify(next, null, 2)}\n`, "utf8").toString("base64"),
-      encoding: "base64",
-    }),
-  });
+  const catalogBlob = await ghBlob(
+    owner,
+    repo,
+    Buffer.from(`${JSON.stringify(next, null, 2)}\n`, "utf8").toString("base64"),
+  );
   blobs.push({
     path: "public/works/catalog.json",
     mode: "100644",

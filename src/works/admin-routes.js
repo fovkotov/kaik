@@ -1,7 +1,50 @@
 import { fieldsFromBody, shortId, uploadsToFiles } from "./admin-core.js";
 import { normalizeWorkType } from "./taxonomy.js";
 
-export async function createWorks(readCatalog, commit, body) {
+const RETRY_DELAYS_MS = [600, 1500, 3000];
+
+/**
+ * GitHub's Git Data API is eventually consistent: right after a commit the
+ * next `git/ref` read may still return the old head, so the following ref
+ * update fails with 422 "not a fast forward"; blob/tree creation also throws
+ * sporadic 5xx. Those are safe to retry from scratch — the whole operation
+ * re-reads the catalog, so nothing stale is written back.
+ */
+function retryable(error) {
+  const status = Number(error?.status) || 0;
+  return status === 409 || status === 422 || status >= 500;
+}
+
+export async function withRetry(op) {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await op();
+    } catch (error) {
+      if (!retryable(error) || attempt >= RETRY_DELAYS_MS.length) throw error;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+      attempt += 1;
+    }
+  }
+}
+
+export function createWorks(readCatalog, commit, body) {
+  return withRetry(() => createWorksOnce(readCatalog, commit, body));
+}
+
+export function patchWork(readCatalog, commit, id, body) {
+  return withRetry(() => patchWorkOnce(readCatalog, commit, id, body));
+}
+
+export function deleteWork(readCatalog, commit, id) {
+  return withRetry(() => deleteWorkOnce(readCatalog, commit, id));
+}
+
+export function bulkPatchWorks(readCatalog, commit, body) {
+  return withRetry(() => bulkPatchWorksOnce(readCatalog, commit, body));
+}
+
+async function createWorksOnce(readCatalog, commit, body) {
   const items = Array.isArray(body.items) ? body.items : [];
   if (!items.length) {
     const error = new Error("Nothing to save");
@@ -30,7 +73,7 @@ export async function createWorks(readCatalog, commit, body) {
   return commit({ catalog: current, upserts, removes: [] });
 }
 
-export async function patchWork(readCatalog, commit, id, body) {
+async function patchWorkOnce(readCatalog, commit, id, body) {
   const current = await readCatalog();
   const index = current.items.findIndex((item) => item.id === id);
   if (index === -1) {
@@ -58,7 +101,7 @@ export async function patchWork(readCatalog, commit, id, body) {
   return commit({ catalog: current, upserts, removes });
 }
 
-export async function deleteWork(readCatalog, commit, id) {
+async function deleteWorkOnce(readCatalog, commit, id) {
   const current = await readCatalog();
   const index = current.items.findIndex((item) => item.id === id);
   if (index === -1) {
@@ -70,7 +113,7 @@ export async function deleteWork(readCatalog, commit, id) {
   return commit({ catalog: current, upserts: [], removes: removed?.files || [] });
 }
 
-export async function bulkPatchWorks(readCatalog, commit, body) {
+async function bulkPatchWorksOnce(readCatalog, commit, body) {
   const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
   const patch = body.patch && typeof body.patch === "object" ? body.patch : {};
   if (!ids.length) {
