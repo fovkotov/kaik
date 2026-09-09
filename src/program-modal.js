@@ -384,7 +384,6 @@ export function initProgramModal() {
     // to dest width snaps --u paddings/type while the box is still stacked.
     el.style.removeProperty("--card-w");
     if (pose.radius != null) el.style.borderRadius = pose.radius;
-    el.style.willChange = withTransition ? "transform, width, height" : "";
   }
 
   function clearExpandHost(el) {
@@ -650,7 +649,7 @@ export function initProgramModal() {
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(card);
-    card.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+    card.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
     clearExpandHost(card);
     card.style.transform = restTransform;
     clearFlyBox(card);
@@ -678,7 +677,7 @@ export function initProgramModal() {
   function measureStackDest(host, home) {
     const clone = host.cloneNode(false);
     clone.className = host.className;
-    clone.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+    clone.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
     ["data-expand-host", "data-expand-settled", "data-expand-closing", "data-body-grow", "data-fly-lock", "data-focus-open"].forEach(
       (name) => clone.removeAttribute(name),
     );
@@ -698,7 +697,7 @@ export function initProgramModal() {
     host.removeEventListener("wheel", trapCardScroll);
     host.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(host);
-    host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+    host.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
     clearExpandHost(host);
     clearFlyBox(host);
     setIllustOut(host, false);
@@ -804,10 +803,8 @@ export function initProgramModal() {
           card.style.borderRadius = "0px";
           card.setAttribute("data-expand-settled", "");
         }
-        card.classList.add("is-program-scroll");
-        // Overlay pin (absolute → fixed, same inset 0) must not restart
-        // width/type with a leftover duration. Zero after the scheme swap.
         card.style.setProperty("--fly-ms", "0ms");
+        card.style.transform = "none";
       }
       syncAria();
       return;
@@ -935,7 +932,7 @@ export function initProgramModal() {
   function settleRetire(el) {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
-    el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
+    el.classList.remove("is-program-open", "is-work-open");
     el.classList.add("is-fly-pinned");
     el.style.setProperty("--fly-ms", "0ms");
     setIllustOut(el, false);
@@ -949,7 +946,7 @@ export function initProgramModal() {
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
     resetCardScroll(el);
-    el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+    el.classList.remove("is-program-open", "is-work-open", "is-fly-pinned");
     el.style.transform = restTf;
     clearFlyBox(el);
     setIllustOut(el, false);
@@ -1048,7 +1045,7 @@ export function initProgramModal() {
     phase = "closing";
     closeAfter = typeof after === "function" ? after : null;
     window.clearTimeout(flyTimer);
-    card?.classList.remove("is-work-open", "is-program-scroll");
+    card?.classList.remove("is-work-open");
     cards.forEach((el) => {
       if (el === card) return;
       if (el.classList.contains("is-fly-pinned") || retiring.has(el)) retireToHome(el);
@@ -1087,7 +1084,7 @@ export function initProgramModal() {
     closeAfter = null;
 
     resetCardScroll(outgoingEl);
-    outgoingEl.classList.remove("is-work-open", "is-program-scroll");
+    outgoingEl.classList.remove("is-work-open");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);
     outgoingEl.removeAttribute("data-focus-open");
@@ -1501,26 +1498,7 @@ export function initProgramModal() {
   const onFrameResize = () => {
     if (phase !== "open") return;
     syncCloseBtn();
-    if (card?.hasAttribute("data-expand-host")) {
-      const next = expandOpenPose(fromLocal || captureExpandFrom(card));
-      if (
-        Math.abs(card.offsetWidth - next.width) < 3 &&
-        Math.abs(card.offsetHeight - next.height) < 3
-      ) {
-        return;
-      }
-      applyExpandPose(card, next, false);
-      card.style.borderRadius = "0px";
-      const size = stackCardSize(rest);
-      if (rest && size.w > 0 && size.h > 0) {
-        rest = { ...rest, width: size.w, height: size.h };
-      }
-    } else {
-      pin(destBox(rest), false);
-    }
   };
-  // Only re-pin when embed actually committed a new frame — raw resize/vv
-  // storms from Cargo `--viewport-height` used to flash the open card.
   onFrameMetrics(onFrameResize);
   document.addEventListener("kaik:stage-nudge", onFrameResize);
 
