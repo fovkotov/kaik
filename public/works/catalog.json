@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-09T21:35:50.187Z",
+  "updatedAt": "2026-09-09T21:52:03.952Z",
   "items": [
     {
       "id": "wrk_e66e8c47",
@@ -529,17 +529,17 @@
     {
       "id": "wrk_72ab01e6",
       "type": "font",
-      "author": "1",
-      "nick": "1",
+      "author": "Артем",
+      "nick": "svrdee",
       "stream": "1",
-      "width": 0,
-      "height": 0,
       "files": [
         "wrk_72ab01e6_0.otf",
         "wrk_72ab01e6_1.otf"
       ],
-      "originalName": "Solanum-Regular (1).otf",
-      "createdAt": "2026-09-09T21:35:50.187Z"
+      "width": 0,
+      "height": 0,
+      "createdAt": "2026-09-09T21:35:50.187Z",
+      "originalName": "Solanum-Regular (1).otf"
     }
   ]
 }
