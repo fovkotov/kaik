@@ -96,6 +96,10 @@ type InboxItem = {
   files: UploadFile[];
 };
 
+// One slide of a final project in the editor: either an existing catalog file
+// or a freshly picked upload that will replace / extend the set on save.
+type Slide = { key: string; file?: string; upload?: UploadFile };
+
 type Lasso = { x0: number; y0: number; x1: number; y1: number };
 
 const DRAG_PX = 6;
@@ -229,11 +233,29 @@ function toastApiError(error: unknown, copy: (key: string) => string) {
 }
 
 type PackedFile = {
-  filename: string;
-  mime: string;
+  filename?: string;
+  mime?: string;
   data?: string;
   sha?: string;
+  keep?: string;
 };
+
+function packSlide(slide: Slide): Promise<PackedFile> {
+  if (slide.upload) return packFile(slide.upload);
+  return Promise.resolve({ keep: slide.file || "" });
+}
+
+function toSlide(upload: UploadFile): Slide {
+  return { key: `up-${Date.now()}-${Math.random()}`, upload };
+}
+
+function slidesFrom(item: WorkItem | null): Slide[] {
+  return (item?.files || []).map((file) => ({ key: file, file }));
+}
+
+function revokeSlides(slides: Slide[]) {
+  for (const slide of slides) if (slide.upload) revokeUpload(slide.upload);
+}
 
 async function packFile(file: UploadFile): Promise<PackedFile> {
   const svg =
@@ -386,10 +408,14 @@ function TypeSelect({
   );
 }
 
+function fileSrc(item: WorkItem, file: string) {
+  return `${workFileUrl(file)}?t=${encodeURIComponent(item.updatedAt || item.createdAt || "")}`;
+}
+
 function thumbSrc(item: WorkItem) {
   const file = item.files?.[0];
   if (!file || isFontPath(file)) return "";
-  return `${workFileUrl(file)}?t=${encodeURIComponent(item.updatedAt || item.createdAt || "")}`;
+  return fileSrc(item, file);
 }
 
 function fontUrl(item: WorkItem) {
@@ -436,12 +462,16 @@ export function WorksPanel({
     stream: "",
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
+  const [editSlides, setEditSlides] = useState<Slide[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [lasso, setLasso] = useState<Lasso | null>(null);
   const [progress, setProgress] = useState<{ kind: "import" | "save"; n: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
+  const slideInputRef = useRef<HTMLInputElement>(null);
+  // Index of the slide being replaced; null = append picked files to the end.
+  const slideTarget = useRef<number | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const dragDepth = useRef(0);
   const lassoOrigin = useRef<{ x: number; y: number; pointerId: number } | null>(null);
@@ -713,7 +743,13 @@ export function WorksPanel({
     }
   }
 
+  function discardEditUploads() {
+    if (editFiles) revokeUploads(editFiles);
+    revokeSlides(editSlides);
+  }
+
   function openEditor(item: WorkItem) {
+    discardEditUploads();
     setEditing(item);
     setEditDraft({
       type: normalizeWorkType(item.type),
@@ -722,6 +758,50 @@ export function WorksPanel({
       stream: item.stream,
     });
     setEditFiles(null);
+    setEditSlides(slidesFrom(item));
+  }
+
+  function closeEditor() {
+    discardEditUploads();
+    setEditing(null);
+    setEditFiles(null);
+    setEditSlides([]);
+  }
+
+  function pickSlides(target: number | null) {
+    slideTarget.current = target;
+    slideInputRef.current?.click();
+  }
+
+  function removeSlide(index: number) {
+    setEditSlides((current) => {
+      if (current.length < 2) return current;
+      const next = [...current];
+      const [gone] = next.splice(index, 1);
+      if (gone?.upload) revokeUpload(gone.upload);
+      return next;
+    });
+  }
+
+  async function onSlidesPicked(list: FileList) {
+    let files: UploadFile[];
+    try {
+      files = await filesForType([...list], TYPE_FINAL);
+    } catch {
+      toast.error(copy("admin.badPdf"));
+      return;
+    }
+    if (!files.length) return;
+    const target = slideTarget.current;
+    slideTarget.current = null;
+    setEditSlides((current) => {
+      const next = [...current];
+      const fresh = files.map(toSlide);
+      if (target === null || target < 0 || target >= next.length) return [...next, ...fresh];
+      const [old] = next.splice(target, 1, ...fresh);
+      if (old?.upload) revokeUpload(old.upload);
+      return next;
+    });
   }
 
   function goEdit(dir: number) {
@@ -739,7 +819,25 @@ export function WorksPanel({
       toast.error(copy("admin.devOnly"));
       return;
     }
+    const finalMode = editDraft.type === TYPE_FINAL;
+    if (finalMode && slidesDirty && !editSlides.length) {
+      toast.error(copy("admin.minSlide"));
+      return;
+    }
     try {
+      let filesPatch: Record<string, unknown> = {};
+      if (finalMode && slidesDirty) {
+        const first = editSlides[0]?.upload;
+        filesPatch = {
+          ...(first ? itemDims([first]) : {}),
+          files: await mapPool(editSlides, UPLOAD_CONCURRENCY, (slide) => packSlide(slide)),
+        };
+      } else if (!finalMode && editFiles) {
+        filesPatch = {
+          ...itemDims(editFiles),
+          files: await mapPool(editFiles, UPLOAD_CONCURRENCY, (file) => packFile(file)),
+        };
+      }
       const data = await worksApi(`/${editing.id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -747,19 +845,15 @@ export function WorksPanel({
           author: editDraft.author,
           nick: editDraft.nick,
           stream: editDraft.stream,
-          ...(editFiles
-            ? {
-                ...itemDims(editFiles),
-                files: await mapPool(editFiles, UPLOAD_CONCURRENCY, (file) => packFile(file)),
-              }
-            : {}),
+          ...filesPatch,
         }),
       });
       setCatalog(data);
       const updated = data.items.find((item) => item.id === editing.id) || null;
+      discardEditUploads();
       setEditing(updated);
-      if (editFiles) revokeUploads(editFiles);
       setEditFiles(null);
+      setEditSlides(slidesFrom(updated));
       toast.success(copy("admin.saved"));
     } catch (error) {
       toastApiError(error, copy);
@@ -777,7 +871,7 @@ export function WorksPanel({
       setConfirmDelete(false);
       const next = fallbackId ? data.items.find((item) => item.id === fallbackId) : undefined;
       if (next) openEditor(next);
-      else setEditing(null);
+      else closeEditor();
       toast.success(copy("admin.saved"));
     } catch (error) {
       toastApiError(error, copy);
@@ -890,6 +984,11 @@ export function WorksPanel({
   const editFontUrl = editFiles?.[0]?.preview || (editing ? fontUrl(editing) : "");
   const rubber = lasso && dragged.current ? lassoBox(lasso) : null;
   const showingFont = editDraft.type === TYPE_FONT;
+  const showingSlides = editDraft.type === TYPE_FINAL;
+  const slidesDirty =
+    editSlides.some((slide) => slide.upload) ||
+    editSlides.length !== (editing?.files?.length ?? 0) ||
+    editSlides.some((slide, index) => slide.file !== editing?.files?.[index]);
 
   return (
     <>
@@ -1200,11 +1299,7 @@ export function WorksPanel({
       <Dialog
         open={Boolean(editing)}
         onOpenChange={(open) => {
-          if (!open) {
-            setEditing(null);
-            if (editFiles) revokeUploads(editFiles);
-            setEditFiles(null);
-          }
+          if (!open) closeEditor();
         }}
       >
         <DialogContent className="top-0 left-0 flex h-[var(--frame-h)] w-[var(--frame-w)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto overscroll-contain rounded-none p-0 sm:max-w-none">
@@ -1236,8 +1331,18 @@ export function WorksPanel({
                   {editIndex + 1} / {visualIds.length}
                 </span>
               ) : null}
+              {showingSlides && editSlides.length > 1 ? (
+                <span className="text-sm text-muted-foreground">
+                  · {copy("admin.slides").replace("{n}", String(editSlides.length))}
+                </span>
+              ) : null}
             </div>
-            <div className="mx-auto grid w-full max-w-5xl flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1.2fr)_minmax(16rem,20rem)]">
+            <div
+              className={cn(
+                "mx-auto grid w-full flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1.2fr)_minmax(16rem,20rem)]",
+                showingSlides ? "max-w-none" : "max-w-5xl",
+              )}
+            >
               <div className="grid gap-2">
                 <input
                   ref={replaceRef}
@@ -1247,20 +1352,110 @@ export function WorksPanel({
                   className="sr-only"
                   onChange={(event) => {
                     if (event.target.files) {
-                      filesForType([...event.target.files], editDraft.type)
+                      const type = editDraft.type;
+                      filesForType([...event.target.files], type)
                         .then((files) => {
+                          if (type === TYPE_FINAL) {
+                            revokeSlides(editSlides);
+                            setEditSlides(files.map(toSlide));
+                            return;
+                          }
                           if (editFiles) revokeUploads(editFiles);
                           setEditFiles(files);
                         })
                         .catch(() =>
-                          toast.error(
-                            editDraft.type === TYPE_FINAL ? copy("admin.badPdf") : copy("admin.badSvg"),
-                          ),
+                          toast.error(type === TYPE_FINAL ? copy("admin.badPdf") : copy("admin.badSvg")),
                         );
                     }
                     event.target.value = "";
                   }}
                 />
+                <input
+                  ref={slideInputRef}
+                  type="file"
+                  accept={acceptFor(TYPE_FINAL)}
+                  multiple
+                  className="sr-only"
+                  onChange={(event) => {
+                    if (event.target.files) onSlidesPicked(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+                {showingSlides ? (
+                  <div className="grid gap-3">
+                    {editSlides.length ? (
+                      <ol className="grid gap-3">
+                        {editSlides.map((slide, index) => {
+                          const src =
+                            slide.upload?.preview || (editing && slide.file ? fileSrc(editing, slide.file) : "");
+                          return (
+                            <li
+                              key={slide.key}
+                              className="group relative overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10"
+                            >
+                              <button
+                                type="button"
+                                title={copy("admin.replaceSlide")}
+                                className="block w-full cursor-pointer"
+                                onClick={() => pickSlides(index)}
+                              >
+                                {src ? (
+                                  <img src={src} alt="" className="block h-auto w-full" />
+                                ) : (
+                                  <span className="flex aspect-[4/3] items-center justify-center text-sm text-muted-foreground">
+                                    {copy("admin.slide").replace("{n}", String(index + 1))}
+                                  </span>
+                                )}
+                              </button>
+                              <span className="pointer-events-none absolute top-2 left-2 rounded-md bg-background/85 px-1.5 py-0.5 text-xs tabular-nums backdrop-blur">
+                                {index + 1}
+                                {slide.upload ? " •" : ""}
+                              </span>
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-80 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  className="shadow-sm"
+                                  onClick={() => pickSlides(index)}
+                                >
+                                  {copy("admin.replaceSlide")}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  className="shadow-sm"
+                                  disabled={editSlides.length < 2}
+                                  onClick={() => removeSlide(index)}
+                                >
+                                  {copy("admin.remove")}
+                                </Button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    ) : (
+                      <button
+                        type="button"
+                        className="flex min-h-[min(20rem,calc(var(--frame-h)*0.4))] w-full cursor-pointer items-center justify-center rounded-xl bg-muted p-6 text-sm text-muted-foreground"
+                        onClick={() => pickSlides(null)}
+                      >
+                        {copy("admin.replaceHint")}
+                      </button>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" onClick={() => pickSlides(null)}>
+                        <FileUpIcon data-icon="inline-start" />
+                        {copy("admin.addSlides")}
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => replaceRef.current?.click()}>
+                        {copy("admin.replaceAll")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
                 <button
                   type="button"
                   title={copy("admin.replaceFile")}
@@ -1292,8 +1487,9 @@ export function WorksPanel({
                   ) : null}
                   <span className="mt-4 text-xs text-muted-foreground">{copy("admin.replaceHint")}</span>
                 </button>
+                )}
               </div>
-              <div className="grid gap-3 content-start">
+              <div className="grid gap-3 content-start sm:sticky sm:top-6 sm:self-start">
                 <TypeTabs
                   value={editDraft.type}
                   onChange={(type) => setEditDraft((current) => ({ ...current, type }))}
@@ -1342,7 +1538,7 @@ export function WorksPanel({
                 {copy("admin.delete")}
               </Button>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditing(null)}>
+                <Button type="button" variant="outline" onClick={closeEditor}>
                   {copy("admin.close")}
                 </Button>
                 <Button type="submit">{copy("admin.save")}</Button>

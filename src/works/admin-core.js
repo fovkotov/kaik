@@ -88,21 +88,36 @@ export function fieldsFromBody(item, previous = {}) {
   return { type, author, nick, stream, width, height };
 }
 
-export function uploadsToFiles(id, uploads) {
+// `uploads` may mix new files (data/sha) with `{ keep: "<existing name>" }`
+// entries that reference files the work already owns — used for per-slide
+// replace/remove/reorder without re-uploading untouched slides.
+export function uploadsToFiles(id, uploads, existing = []) {
   const files = [];
   const blobs = [];
   let width = 0;
   let height = 0;
+  const kept = new Set(
+    uploads.filter((upload) => upload?.keep).map((upload) => String(upload.keep)),
+  );
+  const nameFor = (index, ext) => {
+    const plain = `${id}_${index}${ext}`;
+    return kept.has(plain) ? `${id}_${index}_${shortId()}${ext}` : plain;
+  };
   for (const [index, upload] of uploads.entries()) {
+    if (upload?.keep) {
+      const name = String(upload.keep);
+      if (!existing.includes(name) || files.includes(name)) throw new Error("Unknown file");
+      files.push(name);
+      continue;
+    }
     if (upload?.sha && !upload?.data) {
-      const ext = extFrom(upload.filename, upload.mime);
-      const file = `${id}_${index}${ext}`;
+      const file = nameFor(index, extFrom(upload.filename, upload.mime));
       files.push(file);
       blobs.push({ name: file, sha: String(upload.sha) });
       continue;
     }
     const decoded = decodeUpload(upload);
-    const file = `${id}_${index}${decoded.ext}`;
+    const file = nameFor(index, decoded.ext);
     files.push(file);
     blobs.push({ name: file, buffer: decoded.buffer });
     if (!width && decoded.ext === ".svg") {

@@ -44,13 +44,15 @@ export async function patchWork(readCatalog, commit, id, body) {
   const upserts = [];
   const removes = [];
   if (uploads.length) {
-    removes.push(...(entry.files || []));
-    const written = uploadsToFiles(entry.id, uploads);
+    const previous = entry.files || [];
+    const written = uploadsToFiles(entry.id, uploads, previous);
+    // Only drop files that are neither kept nor overwritten by a new upload.
+    removes.push(...previous.filter((name) => !written.files.includes(name)));
     upserts.push(...written.blobs);
     entry.files = written.files;
     entry.width = entry.width || written.width;
     entry.height = entry.height || written.height;
-    entry.originalName = String(uploads[0]?.filename || written.files[0]);
+    if (!uploads[0]?.keep) entry.originalName = String(uploads[0]?.filename || written.files[0]);
     entry.updatedAt = new Date().toISOString();
   }
   return commit({ catalog: current, upserts, removes });
