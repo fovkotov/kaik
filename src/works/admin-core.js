@@ -4,10 +4,12 @@ import {
   hydrateWorksCatalog,
   normalizeGridSpan,
   normalizeExperiment2Layout,
+  normalizeGlyph,
   normalizeName,
   normalizeNick,
   normalizeSample,
   normalizeWorkType,
+  TYPE_DAILY,
 } from "./taxonomy.js";
 
 export function shortId() {
@@ -92,10 +94,15 @@ export function fieldsFromBody(item, previous = {}) {
   // Author, nick and stream are optional; an empty value is stored as "".
   const stream = String(item.stream !== undefined ? item.stream : previous.stream || "").trim();
   const sample = normalizeSample(item.sample !== undefined ? item.sample : previous.sample) || undefined;
+  // The glyph tag only makes sense for daily-practice letters; other types drop it.
+  const glyph =
+    type === TYPE_DAILY
+      ? normalizeGlyph(item.glyph !== undefined ? item.glyph : previous.glyph) || undefined
+      : undefined;
   const width = Number(item.width ?? previous.width) || 0;
   const height = Number(item.height ?? previous.height) || 0;
   const gridSpan = normalizeGridSpan(item.gridSpan !== undefined ? item.gridSpan : previous.gridSpan);
-  return { type, author, nick, stream, sample, width, height, gridSpan };
+  return { type, author, nick, stream, sample, glyph, width, height, gridSpan };
 }
 
 export function layoutFromBody(value) {

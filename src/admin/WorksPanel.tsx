@@ -66,6 +66,8 @@ type WorkItem = {
   nick: string;
   stream: string;
   sample?: string;
+  /** Daily practice only: which letter this is. */
+  glyph?: string;
   files: string[];
   width?: number;
   height?: number;
@@ -99,6 +101,7 @@ type InboxItem = {
   author: string;
   nick: string;
   stream: string;
+  glyph?: string;
   files: UploadFile[];
 };
 
@@ -661,6 +664,7 @@ export function WorksPanel({
     nick: "",
     stream: "",
     sample: "",
+    glyph: "",
     gridSpan: "auto" as GridSpan,
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
@@ -956,6 +960,7 @@ export function WorksPanel({
               author: item.author,
               nick: item.nick,
               stream: item.stream,
+              glyph: item.glyph || "",
               ...itemDims(item.files),
               files,
             })),
@@ -1015,6 +1020,7 @@ export function WorksPanel({
       nick: item.nick,
       stream: item.stream,
       sample: item.sample || "",
+      glyph: item.glyph || "",
       gridSpan: normalizeGridSpan(item.gridSpan) as GridSpan,
     });
     setEditFiles(null);
@@ -1106,6 +1112,7 @@ export function WorksPanel({
           nick: editDraft.nick,
           stream: editDraft.stream,
           sample: editDraft.sample,
+          glyph: editDraft.glyph,
           gridSpan: editDraft.gridSpan,
           ...filesPatch,
         }),
@@ -1392,7 +1399,12 @@ export function WorksPanel({
               {inbox.map((item) => (
                 <li
                   key={item.key}
-                  className="grid items-center gap-3 rounded-xl border p-2 sm:grid-cols-[72px_auto_1fr_1fr_auto]"
+                  className={cn(
+                    "grid items-center gap-3 rounded-xl border p-2",
+                    item.type === TYPE_DAILY
+                      ? "sm:grid-cols-[72px_auto_5rem_1fr_1fr_auto]"
+                      : "sm:grid-cols-[72px_auto_1fr_1fr_auto]",
+                  )}
                 >
                   <div className="relative size-[72px] overflow-hidden rounded-lg bg-muted">
                     {item.type === TYPE_FONT && item.files[0]?.preview ? (
@@ -1415,6 +1427,21 @@ export function WorksPanel({
                     }}
                     copy={copy}
                   />
+                  {item.type === TYPE_DAILY ? (
+                    <Input
+                      placeholder={copy("admin.glyph")}
+                      aria-label={copy("admin.glyph")}
+                      maxLength={8}
+                      className="text-center"
+                      value={item.glyph || ""}
+                      onChange={(event) => {
+                        const glyph = event.target.value;
+                        setInbox((current) =>
+                          current.map((entry) => (entry.key === item.key ? { ...entry, glyph } : entry)),
+                        );
+                      }}
+                    />
+                  ) : null}
                   <AuthorNickInput
                     placeholder={copy("admin.authorNick")}
                     aria-label={copy("admin.author")}
@@ -1543,6 +1570,7 @@ export function WorksPanel({
                     {item.nick ? ` @${item.nick}` : ""}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
+                    {item.glyph ? `${item.glyph} · ` : ""}
                     {copy(typeKey(item.type))}
                     {item.stream ? ` · ${item.stream}` : ""}
                   </p>
@@ -1846,6 +1874,20 @@ export function WorksPanel({
                     ariaLabel={copy("admin.gridSpan")}
                   />
                 </div>
+                {editDraft.type === TYPE_DAILY ? (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="work-edit-glyph">{copy("admin.glyph")}</Label>
+                    <Input
+                      id="work-edit-glyph"
+                      maxLength={8}
+                      placeholder={copy("admin.glyphHint")}
+                      value={editDraft.glyph}
+                      onChange={(event) =>
+                        setEditDraft((current) => ({ ...current, glyph: event.target.value }))
+                      }
+                    />
+                  </div>
+                ) : null}
                 {showingFont ? (
                   <div className="grid gap-1.5">
                     <Label htmlFor="work-edit-sample">{copy("admin.sample")}</Label>
