@@ -155,26 +155,48 @@ html.is-viewer-open .experiment-two__scroll {
   mix-blend-mode: multiply;
 }
 
-/* Loader text while the first lettering SVG hydrates; gone once ready.
-   Figma: Helvetica Rounded Bold 21 / 100%, tracking 0, centred, #000 at 40%. */
+/* Loader while the first lettering SVG hydrates; gone once ready.
+   Figma 243:95948 (1440×800, #f5f5f5): a 162px-tall group centred in the frame —
+   scooter mark 109.876×110.986 (black at 24%), 17px gap, then the caption:
+   Helvetica Rounded Bold 17 / 100%, tracking 0, centred in a 290px box, #000 at 24%.
+   The mark sits 9px left of the caption's axis (656..766 vs 575..865). */
 .lettering-hero__loader {
   position: absolute;
   left: 50%;
   top: 50%;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 17px;
   width: max-content;
-  max-width: 90%;
+  max-width: calc(100% - 32px);
   margin: 0;
   transform: translate(-50%, -50%);
-  color: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  user-select: none;
+}
+
+.lettering-hero__loader-mark {
+  display: block;
+  width: 109.876px;
+  height: 110.986px;
+  transform: translateX(-9.06px);
+  -webkit-user-drag: none;
+}
+
+.lettering-hero__loader-text {
+  display: block;
+  width: 290px;
+  max-width: 100%;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.24);
   font-family: "Helvetica Rounded", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 21px;
+  font-size: 17px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
   text-align: center;
-  pointer-events: none;
-  user-select: none;
+  overflow-wrap: break-word;
 }
 
 .lettering-hero.is-loaded .lettering-hero__loader {
@@ -1107,15 +1129,18 @@ html.is-viewer-open .experiment-two__scroll {
     font-size: clamp(10px, 3vw, 14px);
   }
 
+  /* Mobile: the artwork keeps the page's 16px side gutter so it never kisses the screen edge. */
   .viewer__stage {
-    inset: calc(56px + var(--frame-clip-top)) 0 calc(84px + var(--frame-clip-bottom));
+    inset: calc(56px + var(--frame-clip-top)) var(--edge) calc(84px + var(--frame-clip-bottom));
   }
 
-  /* Mobile: caption sits on its own line above the full-width dots pill. */
+  /* Mobile: caption sits on its own centred line above the dots pill, same axis as the dots. */
   .viewer__caption {
     left: 16px;
     right: 16px;
     bottom: calc(60px + var(--frame-clip-bottom));
+    justify-content: center;
+    text-align: center;
   }
 }
 
