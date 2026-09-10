@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ComponentProps,
+  type DragEvent as ReactDragEvent,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
@@ -669,6 +670,8 @@ export function WorksPanel({
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
   const [editSlides, setEditSlides] = useState<Slide[]>([]);
+  const [editDrop, setEditDrop] = useState(false);
+  const [editDropSlide, setEditDropSlide] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmBulk, setConfirmBulk] = useState(false);
   const inflight = useInflight();
@@ -705,6 +708,11 @@ export function WorksPanel({
   const dragged = useRef(false);
   const captured = useRef(false);
   const addFilesRef = useRef<(list: FileList | File[]) => Promise<void>>(async () => undefined);
+  const applyEditUploadsRef = useRef<
+    (list: FileList | File[], target?: number | "all" | "append") => Promise<void>
+  >(async () => undefined);
+  const editTypeRef = useRef(editDraft.type);
+  editTypeRef.current = editDraft.type;
   const lassoRef = useRef<Lasso | null>(null);
   const busyRef = useRef(false);
 
@@ -868,6 +876,7 @@ export function WorksPanel({
     function onEnter(event: DragEvent) {
       if (!isFileDrag(event)) return;
       event.preventDefault();
+      if (editingRef.current) return;
       dragDepth.current += 1;
       setHot(true);
     }
@@ -889,7 +898,22 @@ export function WorksPanel({
       event.preventDefault();
       dragDepth.current = 0;
       setHot(false);
-      if (event.dataTransfer?.files?.length) addFilesRef.current(event.dataTransfer.files);
+      const files = event.dataTransfer?.files;
+      if (!files?.length) return;
+      // Open editor: a drop on the left pane replaces that work's file.
+      // Anywhere else in the dialog is ignored so it does not land in the inbox.
+      if (editingRef.current) {
+        const node = event.target instanceof Element ? event.target : null;
+        const slide = node?.closest("[data-edit-slide]");
+        const surface = node?.closest("[data-edit-surface]");
+        if (slide) {
+          applyEditUploadsRef.current(files, Number(slide.getAttribute("data-edit-slide")));
+        } else if (surface) {
+          applyEditUploadsRef.current(files, "all");
+        }
+        return;
+      }
+      addFilesRef.current(files);
     }
     document.addEventListener("dragenter", onEnter);
     document.addEventListener("dragover", onOver);
@@ -907,14 +931,18 @@ export function WorksPanel({
   // Figma, SVG markup from "Copy as SVG", or files copied in Finder. Typing
   // into fields and open dialogs keep the native paste.
   useEffect(() => {
-    const typing = "input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='dialog']";
+    const typing = "input, textarea, select, [contenteditable=''], [contenteditable='true']";
     function onPaste(event: ClipboardEvent) {
       if (event.defaultPrevented) return;
       if (event.target instanceof Element && event.target.closest(typing)) return;
-      if (editingRef.current || confirmRef.current) return;
+      if (confirmRef.current) return;
       const files = filesFromClipboard(event.clipboardData);
       if (!files.length) return;
       event.preventDefault();
+      if (editingRef.current) {
+        applyEditUploadsRef.current(files, "all");
+        return;
+      }
       addFilesRef.current(files);
     }
     document.addEventListener("paste", onPaste);
@@ -1032,6 +1060,8 @@ export function WorksPanel({
     setEditing(null);
     setEditFiles(null);
     setEditSlides([]);
+    setEditDrop(false);
+    setEditDropSlide(null);
   }
 
   function pickSlides(target: number | null) {
@@ -1049,25 +1079,78 @@ export function WorksPanel({
     });
   }
 
-  async function onSlidesPicked(list: FileList) {
+  async function applyEditUploads(list: FileList | File[], target: number | "all" | "append" = "all") {
+    const type = editTypeRef.current;
+    const incoming = [...list];
+    if (!incoming.length) return;
     let files: UploadFile[];
     try {
-      files = await filesForType([...list], TYPE_FINAL);
+      files = await filesForType(incoming, type);
     } catch {
-      toast.error(copy("admin.badPdf"));
+      toast.error(type === TYPE_FINAL ? copy("admin.badPdf") : copy("admin.badSvg"));
       return;
     }
     if (!files.length) return;
+    if (type === TYPE_FINAL) {
+      setEditSlides((current) => {
+        const fresh = files.map(toSlide);
+        if (target === "append") return [...current, ...fresh];
+        if (typeof target === "number" && target >= 0 && target < current.length) {
+          const next = [...current];
+          const [old] = next.splice(target, 1, ...fresh);
+          if (old?.upload) revokeUpload(old.upload);
+          return next;
+        }
+        revokeSlides(current);
+        return fresh;
+      });
+      return;
+    }
+    setEditFiles((current) => {
+      if (current) revokeUploads(current);
+      return files;
+    });
+  }
+
+  applyEditUploadsRef.current = applyEditUploads;
+
+  async function onSlidesPicked(list: FileList) {
     const target = slideTarget.current;
     slideTarget.current = null;
-    setEditSlides((current) => {
-      const next = [...current];
-      const fresh = files.map(toSlide);
-      if (target === null || target < 0 || target >= next.length) return [...next, ...fresh];
-      const [old] = next.splice(target, 1, ...fresh);
-      if (old?.upload) revokeUpload(old.upload);
-      return next;
-    });
+    await applyEditUploads(list, target === null ? "append" : target);
+  }
+
+  function isFileDragOver(event: ReactDragEvent) {
+    return Boolean(event.dataTransfer?.types?.includes("Files"));
+  }
+
+  function onEditSurfaceDragOver(event: ReactDragEvent<HTMLDivElement>) {
+    if (!isFileDragOver(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+    const slide = event.target instanceof Element ? event.target.closest("[data-edit-slide]") : null;
+    setEditDrop(true);
+    setEditDropSlide(slide ? Number(slide.getAttribute("data-edit-slide")) : null);
+  }
+
+  function onEditSurfaceDragLeave(event: ReactDragEvent<HTMLDivElement>) {
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget.contains(next)) return;
+    setEditDrop(false);
+    setEditDropSlide(null);
+  }
+
+  function onEditSurfaceDrop(event: ReactDragEvent<HTMLDivElement>) {
+    if (!isFileDragOver(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setEditDrop(false);
+    setEditDropSlide(null);
+    const files = event.dataTransfer?.files;
+    if (!files?.length) return;
+    const slide = event.target instanceof Element ? event.target.closest("[data-edit-slide]") : null;
+    applyEditUploads(files, slide ? Number(slide.getAttribute("data-edit-slide")) : "all");
   }
 
   function goEdit(dir: number) {
@@ -1664,7 +1747,16 @@ export function WorksPanel({
           <DialogTitle className="sr-only">{editDraft.author || copy("admin.works")}</DialogTitle>
           <form onSubmit={saveEdit} className="flex min-h-full flex-col">
             <div className="grid w-full flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1fr)_20rem]">
-              <div className="grid gap-2">
+              <div
+                data-edit-surface
+                className={cn(
+                  "grid gap-2 rounded-xl transition-[box-shadow]",
+                  editDrop && editDropSlide === null ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "",
+                )}
+                onDragOver={onEditSurfaceDragOver}
+                onDragLeave={onEditSurfaceDragLeave}
+                onDrop={onEditSurfaceDrop}
+              >
                 <input
                   ref={replaceRef}
                   type="file"
@@ -1672,22 +1764,7 @@ export function WorksPanel({
                   multiple={editDraft.type === TYPE_FINAL || editDraft.type === TYPE_FONT}
                   className="sr-only"
                   onChange={(event) => {
-                    if (event.target.files) {
-                      const type = editDraft.type;
-                      filesForType([...event.target.files], type)
-                        .then((files) => {
-                          if (type === TYPE_FINAL) {
-                            revokeSlides(editSlides);
-                            setEditSlides(files.map(toSlide));
-                            return;
-                          }
-                          if (editFiles) revokeUploads(editFiles);
-                          setEditFiles(files);
-                        })
-                        .catch(() =>
-                          toast.error(type === TYPE_FINAL ? copy("admin.badPdf") : copy("admin.badSvg")),
-                        );
-                    }
+                    if (event.target.files) applyEditUploads(event.target.files, "all");
                     event.target.value = "";
                   }}
                 />
@@ -1712,7 +1789,11 @@ export function WorksPanel({
                           return (
                             <li
                               key={slide.key}
-                              className="group relative overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10"
+                              data-edit-slide={index}
+                              className={cn(
+                                "group relative overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10 transition-[box-shadow]",
+                                editDropSlide === index ? "ring-2 ring-primary" : "",
+                              )}
                             >
                               <button
                                 type="button"
@@ -1770,7 +1851,7 @@ export function WorksPanel({
                 ) : (
                   <button
                     type="button"
-                    title={copy("admin.replaceFile")}
+                    title={copy("admin.replaceHint")}
                     className="flex min-h-[calc(var(--frame-h)-3rem)] w-full cursor-pointer flex-col items-center justify-center self-start rounded-xl bg-muted p-6"
                     onClick={() => replaceRef.current?.click()}
                   >
