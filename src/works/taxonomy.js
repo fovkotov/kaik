@@ -7,12 +7,12 @@ export const WORK_TYPES = [TYPE_LETTERING, TYPE_DAILY, TYPE_FINAL, TYPE_FONT];
 export const WORKS_CATALOG_EVENT = "works-catalog";
 const DEFAULT_TYPE_PATTERNS = Object.freeze({
   [TYPE_DAILY]: Object.freeze({ baseSpan: 1, interval: 1, span: 1 }),
-  [TYPE_LETTERING]: Object.freeze({ baseSpan: 2, interval: 6, span: 4 }),
-  [TYPE_FINAL]: Object.freeze({ baseSpan: 3, interval: 6, span: 3 }),
-  [TYPE_FONT]: Object.freeze({ baseSpan: 5 }),
+  [TYPE_LETTERING]: Object.freeze({ baseSpan: 4, interval: 4, span: 8 }),
+  [TYPE_FINAL]: Object.freeze({ baseSpan: 3, interval: 6, span: 5 }),
+  [TYPE_FONT]: Object.freeze({ baseSpan: 10 }),
 });
 export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
-  columns: 6,
+  columns: 12,
   cellRatio: 0.823,
   gapX: 4,
   gapY: 4,

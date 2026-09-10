@@ -24,14 +24,14 @@
   --frame-h: 100%;
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
-  --grid-columns: 6;
+  --grid-columns: 12;
   --grid-row-h: 277px;
-  --grid-gap-x: 12px;
-  --grid-gap-y: 20px;
+  --grid-gap-x: 4px;
+  --grid-gap-y: 4px;
   --cell-align-x: center;
-  --cell-align-y: center;
+  --cell-align-y: top;
   --cell-pack-x: center;
-  --cell-pack-y: center;
+  --cell-pack-y: flex-start;
 }
 
 * {
