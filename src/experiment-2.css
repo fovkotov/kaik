@@ -1130,6 +1130,7 @@ html.is-viewer-open .experiment-two__scroll {
 
   .filter-bar {
     grid-template-columns: 1fr;
+    top: calc(12px + var(--frame-clip-top));
     margin: calc(-1 * var(--hero-h)) calc(var(--edge) - var(--gutter)) 0;
   }
 
@@ -1184,11 +1185,16 @@ html.is-viewer-open .experiment-two__scroll {
     inset: calc(56px + var(--frame-clip-top)) var(--edge) calc(84px + var(--frame-clip-bottom));
   }
 
-  /* Mobile: caption sits on its own centred line above the dots pill, same axis as the dots. */
+  /* Mobile: dots sit 12px from the iframe bottom; caption stays the same
+     36px above them (was 24px dots / 60px caption). */
+  .viewer__dots {
+    bottom: calc(12px + var(--frame-clip-bottom));
+  }
+
   .viewer__caption {
     left: 16px;
     right: 16px;
-    bottom: calc(60px + var(--frame-clip-bottom));
+    bottom: calc(48px + var(--frame-clip-bottom));
     justify-content: center;
     text-align: center;
   }
