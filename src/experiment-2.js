@@ -164,18 +164,23 @@ function retranslateDynamic() {
   });
 }
 
-/** Single chip that shows the current language; a click flips en ↔ ru. */
+/** Language chip shows the current locale; a click flips en ↔ ru.
+    Two copies exist (desktop sticky row, mobile bottom bar); CSS shows one at a time. */
 function setupLanguage() {
-  const toggle = document.querySelector("[data-lang-toggle]");
-  const label = toggle?.querySelector("[data-lang-label]");
+  const toggles = [...document.querySelectorAll("[data-lang-toggle]")];
+  const labels = toggles.map((toggle) => toggle.querySelector("[data-lang-label]")).filter(Boolean);
   document.addEventListener("kaik:translated", (event) => {
     const locale = event.detail?.locale || getLocale();
-    if (label) label.textContent = locale;
+    labels.forEach((label) => {
+      label.textContent = locale;
+    });
     retranslateDynamic();
   });
-  toggle?.addEventListener("click", (event) => {
-    playTickClick(event);
-    setLocale(getLocale() === "ru" ? "en" : "ru");
+  toggles.forEach((toggle) => {
+    toggle.addEventListener("click", (event) => {
+      playTickClick(event);
+      setLocale(getLocale() === "ru" ? "en" : "ru");
+    });
   });
   applyTranslations(getLocale());
 }
@@ -2030,7 +2035,9 @@ async function boot() {
   setupHero();
   setupGridGeometry();
   setupFilters();
-  document.querySelector("[data-enroll]")?.addEventListener("click", (event) => playTickClick(event));
+  document.querySelectorAll("[data-enroll]").forEach((link) => {
+    link.addEventListener("click", (event) => playTickClick(event));
+  });
   syncIslandSticky();
   new ResizeObserver(syncIslandSticky).observe(document.querySelector("[data-filter-bar]") || grid);
   viewer = createViewer(document.querySelector("[data-viewer]"));

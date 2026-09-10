@@ -61,7 +61,9 @@
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <!-- One sticky row: language chip | filter island | signup chip. -->
+        <!-- Desktop: one sticky row — language chip | filter island | signup chip.
+             Mobile: only the island (two rows) sticks up top; the side chips live in
+             the fixed bottom bar below (data-mobile-bar). -->
         <div class="filter-bar" data-filter-bar>
           <button
             class="filter-chip filter-chip--lang filter-bar__side filter-bar__side--start"
@@ -105,6 +107,29 @@
         </section>
       </main>
       </div>
+    </div>
+
+    <!-- Mobile only: en/ru + signup pinned to the bottom of the iframe. Sibling of the
+         scroll root so position: fixed sticks to the frame, not the scroller. -->
+    <div class="mobile-bar" data-mobile-bar>
+      <button
+        class="filter-chip filter-chip--lang"
+        type="button"
+        data-lang-toggle
+        aria-label="Переключить язык"
+        data-i18n-aria="exp2.lang"
+      >
+        <span class="filter-chip__plate" data-lang-label>en</span>
+      </button>
+      <a
+        class="filter-chip filter-chip--enroll"
+        href="https://web.tribute.tg/p/AOo"
+        target="_top"
+        rel="noopener"
+        data-enroll
+      >
+        <span class="filter-chip__plate" data-i18n="exp2.enroll">записаться на курс</span>
+      </a>
     </div>
 
     <aside class="grid-settings" data-grid-settings hidden aria-label="Настройки сетки">
