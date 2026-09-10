@@ -33,6 +33,8 @@
   --gutter: clamp(18px, 4.4vw, 72px);
   --edge: 16px;
   --font-tester-h: 365px;
+  /* Mobile font tester: a fixed strip; the specimen is sized from it, so nothing spills. */
+  --font-card-h-mobile: 80px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --frame-w: 100vw;
   --frame-h: 100%;
@@ -1205,11 +1207,16 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .experiment-two {
-    --font-tester-h: 90px;
+    --font-tester-h: var(--font-card-h-mobile);
   }
 
+  /* Fixed-height strip: the glyphs are sized from the strip (not from the card width),
+     line-height 1 so the line box fits, and the box clips — the grid span is the strip itself. */
   .work-card__font-specimen {
-    font-size: calc(min(22cqw, 72px) * var(--font-fit, 1));
+    padding: 0 8px;
+    font-size: calc(min(22cqw, var(--font-card-h-mobile) * 0.55) * var(--font-fit, 1));
+    line-height: 1;
+    overflow: hidden;
   }
 }
 

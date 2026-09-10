@@ -17,7 +17,8 @@ const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
 const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
 const FONT_TESTER_MAX_CHARS = 60;
 const FONT_TESTER_PX = 365;
-const FONT_TESTER_PX_MOBILE = 90;
+/* Fallback only — the live value is `--font-card-h-mobile` in experiment-2.css. */
+const FONT_TESTER_PX_MOBILE = 80;
 
 const hero = document.querySelector("[data-lettering-hero]");
 const letteringImage = document.querySelector("[data-lettering-image]");
@@ -58,7 +59,13 @@ let cardGuardPasses = 0;
 /* Card media (img src / webfont) is fetched only when the card nears the viewport. */
 let mediaObserver = null;
 const pendingHydration = new Map();
+/* Lookahead for fetching card files: 1.5 screens on desktop, 1.5× that on mobile,
+   where a thumb-flick covers more screens per second and the link is slower. */
 const MEDIA_ROOT_MARGIN = "150% 0px";
+const MEDIA_ROOT_MARGIN_MOBILE = "225% 0px";
+/* Cards fade in while still this many screens below the fold on mobile, so they
+   are already opaque by the time they scroll in (desktop keeps the in-view reveal). */
+const ENTER_LOOKAHEAD_MOBILE = 0.5;
 /* How many hero letterings block the first reveal; the rest warm up in idle time. */
 const HERO_EAGER = 1;
 const HERO_WARM_CONCURRENCY = 2;
@@ -343,9 +350,16 @@ function plainSpecimenText(value) {
     .slice(0, FONT_TESTER_MAX_CHARS);
 }
 
+/** Mobile tester strip height from CSS (`--font-card-h-mobile`), so the JS never disagrees with the stylesheet. */
+function fontTesterMobilePx() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--font-card-h-mobile");
+  const px = Number.parseFloat(raw);
+  return px > 0 ? px : FONT_TESTER_PX_MOBILE;
+}
+
 function fitFontSpecimen(specimen) {
   const width = specimen.clientWidth;
-  const height = specimen.clientHeight || (NARROW.matches ? FONT_TESTER_PX_MOBILE : FONT_TESTER_PX);
+  const height = specimen.clientHeight || (NARROW.matches ? fontTesterMobilePx() : FONT_TESTER_PX);
   if (!width || !specimen.firstChild) return;
   const current = Number.parseFloat(specimen.style.getPropertyValue("--font-fit")) || 1;
   const range = document.createRange();
@@ -479,9 +493,13 @@ function intrinsicArtHeight(card, boxWidth) {
   return 0;
 }
 
-/** Desktop tester is 365px; mobile is ~90px. Ink may overflow, so we span painted glyphs on desktop. */
+/**
+ * Desktop tester is 365px and ink may overflow, so we span painted glyphs.
+ * Mobile is a fixed strip (`--font-card-h-mobile`) whose specimen is sized from
+ * the strip and clipped, so the strip itself is the whole answer.
+ */
 function intrinsicSpecimenHeight(card) {
-  if (NARROW.matches) return FONT_TESTER_PX_MOBILE;
+  if (NARROW.matches) return fontTesterMobilePx();
   const specimen = card.querySelector(".work-card__font-specimen");
   const art = card.querySelector(".work-card__art");
   if (!specimen) return art?.scrollHeight || FONT_TESTER_PX;
@@ -524,9 +542,15 @@ function measureCards() {
     const metaBox = meta?.getBoundingClientRect();
     const metaHeight = meta ? Math.max(meta.scrollHeight, metaBox?.height || 0) : 0;
     const isFont = card.classList.contains("work-card--font");
+    /* Mobile font strip: fixed height, clipped specimen — already contained, so no
+       painted-overflow guard may bump it. */
+    const fixedArt = isFont && NARROW.matches;
     let artHeight = isFont ? intrinsicSpecimenHeight(card) : intrinsicArtHeight(card, boxWidth);
-    artHeight = Math.max(artHeight, art?.scrollHeight || 0);
-    if (isFont && art && metaBox) {
+    if (!fixedArt) artHeight = Math.max(artHeight, art?.scrollHeight || 0);
+    /* Ink spilling into the caption: only meaningful while the caption is rendered —
+       a `display: none` meta reports a zero rect at y=0, which would read as
+       "overflows by the card's whole viewport offset". */
+    if (isFont && !fixedArt && art && metaBox && metaBox.height > 0) {
       const artBox = art.getBoundingClientRect();
       if (artBox.bottom > metaBox.top + 0.5) {
         artHeight = Math.max(artHeight, artBox.height + (artBox.bottom - metaBox.top));
@@ -577,9 +601,13 @@ function observeCardMedia() {
         hydrateCard(entry.target);
       }
     },
-    { root, rootMargin: MEDIA_ROOT_MARGIN, threshold: 0 },
+    { root, rootMargin: isMobile() ? MEDIA_ROOT_MARGIN_MOBILE : MEDIA_ROOT_MARGIN, threshold: 0 },
   );
   pendingHydration.forEach((_, card) => mediaObserver.observe(card));
+}
+
+function enterLookahead() {
+  return isMobile() ? ENTER_LOOKAHEAD_MOBILE : 0;
 }
 
 function hydrateCard(card) {
@@ -598,9 +626,10 @@ function cardInScrollView(card) {
   const root = document.querySelector("[data-scroll-root]");
   const box = card.getBoundingClientRect();
   if (!(box.width || box.height)) return false;
-  if (!root) return box.bottom > 0 && box.top < window.innerHeight;
+  const ahead = enterLookahead();
+  if (!root) return box.bottom > 0 && box.top < window.innerHeight * (1 + ahead);
   const view = root.getBoundingClientRect();
-  return box.bottom > view.top && box.top < view.bottom;
+  return box.bottom > view.top && box.top < view.bottom + view.height * ahead;
 }
 
 function playCardEnter(card) {
@@ -649,7 +678,7 @@ function observeCardEnters() {
         if (entry.isIntersecting) requestCardEnter(entry.target);
       });
     },
-    { root, threshold: 0.08 },
+    { root, rootMargin: `0px 0px ${Math.round(enterLookahead() * 100)}% 0px`, threshold: 0.08 },
   );
   grid.querySelectorAll(".work-card").forEach((card) => enterObserver.observe(card));
 }
@@ -697,7 +726,10 @@ function cardFor(item, span) {
     preview.style.aspectRatio = `${Number(item.width)} / ${Number(item.height)}`;
   }
   const image = document.createElement("img");
-  image.loading = "lazy";
+  /* Not `loading="lazy"`: the viewport gate is our IntersectionObserver (with its
+     wider mobile lookahead). The browser's own lazy distance (~1250px on 4G in
+     Chrome) would otherwise hold the fetch back until the card is much closer. */
+  image.loading = "eager";
   image.decoding = "async";
   image.draggable = false;
   revealOnLoad(image, preview, { skeleton: coverCrop });
