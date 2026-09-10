@@ -131,6 +131,7 @@ function hasAuthorIdentity(item) {
 
 /** Name, @nick and stream as spans; muted parts get `.is-muted`. */
 function metaNodes(item) {
+  if (!hasAuthorIdentity(item)) return [];
   const nodes = [];
   const author = fieldText(item?.author);
   const nick = fieldText(item?.nick);
@@ -152,13 +153,19 @@ function metaNodes(item) {
     streamEl.textContent = t("exp2.stream").replace("{n}", stream);
     nodes.push(streamEl);
   }
-  if (!nodes.length) {
-    const anon = document.createElement("span");
-    anon.className = "is-muted";
-    anon.textContent = t("exp2.anon");
-    nodes.push(anon);
-  }
   return nodes;
+}
+
+/** Fill or clear the hero credit so an empty identity leaves no leftover row. */
+function syncLetteringCredit(item) {
+  if (!credit) return;
+  if (!hasAuthorIdentity(item)) {
+    credit.replaceChildren();
+    credit.hidden = true;
+    return;
+  }
+  credit.hidden = false;
+  credit.replaceChildren(...metaNodes(item));
 }
 
 function altFor(item) {
@@ -195,7 +202,7 @@ function syncCardMeta(card, item) {
 function retranslateDynamic() {
   if (activeLettering) {
     letteringImage.alt = altFor(activeLettering);
-    credit.replaceChildren(...metaNodes(activeLettering));
+    syncLetteringCredit(activeLettering);
   }
   grid.querySelectorAll(".work-card").forEach((card) => {
     const item = catalog.find((entry) => entry.id === card.dataset.workId);
@@ -989,7 +996,7 @@ function setHero(item) {
   activeLettering = item;
   letteringImage.src = workFileUrl(file);
   letteringImage.alt = altFor(item);
-  credit.replaceChildren(...metaNodes(item));
+  syncLetteringCredit(item);
 
   /* Loader/fade belongs only to startup. Ignore superseded load events. */
   if (!hero.classList.contains("is-loaded")) {
@@ -1300,6 +1307,7 @@ function createViewer(root) {
     captionFor = current;
     const nodes = items[current]?.caption?.() ?? [];
     caption.replaceChildren(...nodes);
+    caption.hidden = nodes.length === 0;
   }
 
   function syncDots(active = index) {

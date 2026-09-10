@@ -1023,6 +1023,13 @@ html.is-viewer-open .experiment-two__scroll {
   pointer-events: none;
 }
 
+.viewer__caption:empty,
+.viewer__caption[hidden],
+.lettering-hero__credit:empty,
+.lettering-hero__credit[hidden] {
+  display: none;
+}
+
 .viewer__caption .is-muted {
   color: var(--muted);
 }
