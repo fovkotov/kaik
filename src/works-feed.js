@@ -12,6 +12,7 @@ import {
   placeWork,
   sortWorksByDate,
 } from "./works/taxonomy.js";
+import { fontFlags, shapeFontText } from "./works/font-display.js";
 
 const EN_WORDS = ["kaik", "letter", "type", "form", "serif", "stroke"];
 const RU_WORDS = ["каик", "буква", "набор", "слово", "шрифт", "форма"];
@@ -101,9 +102,12 @@ function fontMarkup(item, fontFile, opts) {
         t("works.fontTester"),
       )}" title="${esc(t("works.fontTester"))}"`
     : "";
+  const flags = fontFlags(item);
   return `<div class="works-feed__art works-feed__art--font" data-font-preview data-font-url="${esc(
     workFileUrl(fontFile),
-  )}" data-work-id="${esc(item.id)}"${item.sample ? ` data-font-sample="${esc(item.sample)}"` : ""}${tester}></div>`;
+  )}" data-work-id="${esc(item.id)}"${item.sample ? ` data-font-sample="${esc(item.sample)}"` : ""}${
+    flags.caps ? " data-font-caps" : ""
+  }${flags.latin ? " data-font-latin" : ""}${tester}></div>`;
 }
 
 /** Same caption as the main-domain collage: name, then @nick. */
@@ -173,11 +177,16 @@ function selectAll(el) {
 }
 
 /** Click the specimen, type your own word; empty → back to the stored sample. */
+function flagsFromEl(el) {
+  return { caps: el.hasAttribute("data-font-caps"), latin: el.hasAttribute("data-font-latin") };
+}
+
 function bindFontTester(el, fallback) {
   if (el.dataset.testerBound) return;
   el.dataset.testerBound = "1";
+  const flags = flagsFromEl(el);
   const settle = () => {
-    const next = plainText(el.textContent);
+    const next = shapeFontText(plainText(el.textContent), flags);
     if (next !== el.textContent) el.textContent = next;
     fitFontCell(el);
   };
@@ -193,7 +202,7 @@ function bindFontTester(el, fallback) {
   el.addEventListener("input", settle);
   el.addEventListener("paste", (event) => {
     event.preventDefault();
-    const text = plainText(event.clipboardData?.getData("text/plain"));
+    const text = shapeFontText(plainText(event.clipboardData?.getData("text/plain")), flags);
     if (!text) return;
     const sel = window.getSelection();
     if (sel?.rangeCount) {
@@ -223,7 +232,8 @@ function bindFontTester(el, fallback) {
 async function paintFontCell(el) {
   const url = el.getAttribute("data-font-url");
   const id = el.getAttribute("data-work-id") || "font";
-  const sample = (el.getAttribute("data-font-sample") || "").trim();
+  const flags = flagsFromEl(el);
+  const sample = shapeFontText((el.getAttribute("data-font-sample") || "").trim(), flags);
   if (!url) return;
   const family = `wrk-${id.replace(/[^a-z0-9]/gi, "") || "font"}`;
   const show = (text) => {
@@ -242,19 +252,19 @@ async function paintFontCell(el) {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     let lang = "en";
-    if (ctx) {
+    if (ctx && !flags.latin) {
       ctx.font = `48px "${family}", serif`;
       const w = ctx.measureText("W").width;
       const zh = ctx.measureText("Ж").width;
       ctx.font = "48px serif";
-      const latin = Math.abs(w - ctx.measureText("W").width) > 0.8;
+      const hasLatin = Math.abs(w - ctx.measureText("W").width) > 0.8;
       const cyr = Math.abs(zh - ctx.measureText("Ж").width) > 0.8;
-      if (latin && cyr) lang = id.charCodeAt(0) % 2 ? "ru" : "en";
-      else if (cyr && !latin) lang = "ru";
+      if (hasLatin && cyr) lang = id.charCodeAt(0) % 2 ? "ru" : "en";
+      else if (cyr && !hasLatin) lang = "ru";
     }
-    show(pickWord(id, lang));
+    show(shapeFontText(pickWord(id, lang), flags));
   } catch {
-    el.textContent = sample || pickWord(id, "en");
+    el.textContent = sample || shapeFontText(pickWord(id, "en"), flags);
     fitFontCell(el);
   }
 }

@@ -69,6 +69,8 @@ type WorkItem = {
   sample?: string;
   /** Daily practice only: which letter this is. */
   glyph?: string;
+  caps?: boolean;
+  latin?: boolean;
   files: string[];
   width?: number;
   height?: number;
@@ -666,6 +668,8 @@ export function WorksPanel({
     stream: "",
     sample: "",
     glyph: "",
+    caps: false,
+    latin: false,
     gridSpan: "auto" as GridSpan,
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
@@ -1049,6 +1053,8 @@ export function WorksPanel({
       stream: item.stream,
       sample: item.sample || "",
       glyph: item.glyph || "",
+      caps: Boolean(item.caps),
+      latin: Boolean(item.latin),
       gridSpan: normalizeGridSpan(item.gridSpan) as GridSpan,
     });
     setEditFiles(null);
@@ -1196,6 +1202,8 @@ export function WorksPanel({
           stream: editDraft.stream,
           sample: editDraft.sample,
           glyph: editDraft.glyph,
+          caps: editDraft.caps,
+          latin: editDraft.latin,
           gridSpan: editDraft.gridSpan,
           ...filesPatch,
         }),
@@ -1657,7 +1665,13 @@ export function WorksPanel({
               >
                 <div className="aspect-[4/3] overflow-hidden rounded-lg bg-muted">
                   {normalizeWorkType(item.type) === TYPE_FONT && fontUrl(item) ? (
-                    <FontPreview url={fontUrl(item)} id={item.id} />
+                    <FontPreview
+                      url={fontUrl(item)}
+                      id={item.id}
+                      text={item.sample}
+                      caps={item.caps}
+                      latin={item.latin}
+                    />
                   ) : thumbSrc(item) ? (
                     <img src={thumbSrc(item)} alt="" className="pointer-events-none size-full object-contain" />
                   ) : (
@@ -1889,6 +1903,8 @@ export function WorksPanel({
                               url={face.url}
                               id={`${editing?.id || "edit-font"}-${index}`}
                               text={editDraft.sample}
+                              caps={editDraft.caps}
+                              latin={editDraft.latin}
                               className="min-h-24 w-full overflow-visible text-clip whitespace-normal text-[clamp(2.5rem,9vw,10rem)] leading-none"
                             />
                             <span className="text-center text-xs text-muted-foreground">{face.name}</span>
@@ -2015,6 +2031,26 @@ export function WorksPanel({
                         setEditDraft((current) => ({ ...current, sample: event.target.value }))
                       }
                     />
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={editDraft.caps}
+                        onChange={(event) =>
+                          setEditDraft((current) => ({ ...current, caps: event.target.checked }))
+                        }
+                      />
+                      {copy("admin.fontCaps")}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={editDraft.latin}
+                        onChange={(event) =>
+                          setEditDraft((current) => ({ ...current, latin: event.target.checked }))
+                        }
+                      />
+                      {copy("admin.fontLatin")}
+                    </label>
                   </div>
                 ) : null}
                 <div className="grid gap-2 border-t pt-3">

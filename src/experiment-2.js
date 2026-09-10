@@ -12,6 +12,7 @@ import {
   TYPE_LETTERING,
   normalizeExperiment2Layout,
 } from "./works/taxonomy.js";
+import { fontFlags, shapeFontText } from "./works/font-display.js";
 
 const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
 const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
@@ -416,9 +417,9 @@ function fitFontSpecimen(specimen) {
   if (specimen.style.getPropertyValue("--font-fit") !== prev) scheduleCardMeasure();
 }
 
-function bindFontSpecimen(specimen, fallback) {
+function bindFontSpecimen(specimen, fallback, flags = {}) {
   const settle = () => {
-    const next = plainSpecimenText(specimen.textContent);
+    const next = shapeFontText(plainSpecimenText(specimen.textContent), flags);
     if (next !== specimen.textContent) specimen.textContent = next;
     fitFontSpecimen(specimen);
   };
@@ -436,7 +437,11 @@ function bindFontSpecimen(specimen, fallback) {
   specimen.addEventListener("input", settle);
   specimen.addEventListener("paste", (event) => {
     event.preventDefault();
-    document.execCommand("insertText", false, plainSpecimenText(event.clipboardData?.getData("text/plain")));
+    document.execCommand(
+      "insertText",
+      false,
+      shapeFontText(plainSpecimenText(event.clipboardData?.getData("text/plain")), flags),
+    );
     settle();
   });
   specimen.addEventListener("keydown", (event) => {
@@ -454,9 +459,10 @@ function bindFontSpecimen(specimen, fallback) {
 
 /** Synchronous part: fallback text and editing; the webfont itself waits for the viewport. */
 function mountFontSpecimen(specimen, item) {
-  const fallback = item.sample || "Käik";
+  const flags = fontFlags(item);
+  const fallback = shapeFontText(item.sample || "Käik", flags);
   specimen.textContent = fallback;
-  bindFontSpecimen(specimen, fallback);
+  bindFontSpecimen(specimen, fallback, flags);
 }
 
 async function hydrateFontSpecimen(specimen, item, file) {

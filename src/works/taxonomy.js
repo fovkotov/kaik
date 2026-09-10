@@ -129,6 +129,10 @@ export function normalizeSample(value) {
     .slice(0, 120);
 }
 
+export function normalizeFlag(value) {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
 /** Which letter a daily-practice piece shows ("А", "Ж", "&"…). Short, no inner spaces. */
 export function normalizeGlyph(value) {
   return Array.from(String(value ?? "").replace(/\s+/g, "").trim())
@@ -163,6 +167,8 @@ export function normalizeWorkItem(item) {
     stream: String(item.stream || "").trim(),
     sample: normalizeSample(item.sample) || undefined,
     glyph: normalizeGlyph(item.glyph) || undefined,
+    caps: type === TYPE_FONT && normalizeFlag(item.caps) ? true : undefined,
+    latin: type === TYPE_FONT && normalizeFlag(item.latin) ? true : undefined,
     files,
     width: Number(item.width) > 0 ? Number(item.width) : 0,
     height: Number(item.height) > 0 ? Number(item.height) : 0,
