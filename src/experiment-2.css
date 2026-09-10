@@ -16,6 +16,7 @@
   --skeleton: rgba(0, 0, 0, 0.06);
   --gutter: clamp(18px, 4.4vw, 72px);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --frame-w: 100vw;
   --frame-h: 100%;
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
@@ -216,11 +217,16 @@ html.is-viewer-open .experiment-two__scroll {
   pointer-events: none;
 }
 
+.works-panel {
+  width: calc(min(100vw, var(--frame-w)) - 8px);
+  margin-left: calc(4px - var(--gutter));
+}
+
 .works-grid {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-auto-rows: auto;
+  grid-auto-rows: var(--grid-row-h);
   column-gap: var(--grid-gap-x);
   row-gap: var(--grid-gap-y);
   margin-top: clamp(24px, 4vw, 56px);
@@ -229,6 +235,7 @@ html.is-viewer-open .experiment-two__scroll {
 .work-card {
   display: grid;
   grid-column: span var(--card-span, 1);
+  grid-row: span var(--card-row-span, 1);
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--grid-row-h) auto;
   align-self: start;
@@ -295,9 +302,13 @@ html.is-viewer-open .experiment-two__scroll {
   opacity: 1;
 }
 
-/* Daily and workshop glyphs always consume their complete column span.
-   Their intrinsic ratio determines height; the equal-height art row clips only
-   when that full-width result is taller than the row. */
+/* Daily and workshop glyphs consume their complete column span. JS reserves
+   enough grid rows for this intrinsic-ratio height plus the caption. */
+.work-card:is([data-type="daily"], [data-type="lettering"]) {
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+}
+
 .work-card:not([data-type="final"]) .work-card__preview {
   flex: 0 0 auto;
   width: 100%;

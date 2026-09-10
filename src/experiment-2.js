@@ -305,6 +305,53 @@ async function hydrateFontSpecimen(specimen, item, file) {
   fitFontSpecimen(specimen);
 }
 
+function setArtworkDimensions(card, preview, width, height) {
+  const intrinsicWidth = Number(width);
+  const intrinsicHeight = Number(height);
+  if (!(intrinsicWidth > 0 && intrinsicHeight > 0)) return false;
+  card.dataset.artWidth = String(intrinsicWidth);
+  card.dataset.artHeight = String(intrinsicHeight);
+  preview.style.aspectRatio = `${intrinsicWidth} / ${intrinsicHeight}`;
+  return true;
+}
+
+function setCardRowSpan(card, neededCardHeight) {
+  const rowHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h"));
+  if (!(neededCardHeight > 0 && rowHeight > 0)) return;
+  const rowPitch = rowHeight + layout.gapY;
+  const rowSpan = Math.max(1, Math.ceil((neededCardHeight + layout.gapY) / rowPitch - 0.001));
+  if (card.dataset.rowSpan === String(rowSpan)) return;
+  card.dataset.rowSpan = String(rowSpan);
+  card.style.setProperty("--card-row-span", String(rowSpan));
+}
+
+function measureArtworkCard(card) {
+  if (!card?.matches('[data-type="daily"], [data-type="lettering"]')) return;
+  const intrinsicWidth = Number(card.dataset.artWidth);
+  const intrinsicHeight = Number(card.dataset.artHeight);
+  const cardWidth = card.getBoundingClientRect().width;
+  if (!(intrinsicWidth > 0 && intrinsicHeight > 0 && cardWidth > 0)) return;
+
+  const meta = card.querySelector(".work-card__meta");
+  const metaHeight = meta?.getBoundingClientRect().height || 0;
+  const cardGap = Number.parseFloat(getComputedStyle(card).rowGap) || 0;
+  const neededArtHeight = cardWidth * intrinsicHeight / intrinsicWidth;
+  const neededCardHeight = neededArtHeight + cardGap + metaHeight;
+  setCardRowSpan(card, neededCardHeight);
+}
+
+function measureCardRows() {
+  grid.querySelectorAll(".work-card").forEach((card) => {
+    if (card.matches('[data-type="daily"], [data-type="lettering"]')) {
+      measureArtworkCard(card);
+      return;
+    }
+    // Finals and font specimens retain their fixed one-cell art treatment;
+    // only their grid occupancy grows enough to include the existing caption.
+    setCardRowSpan(card, card.getBoundingClientRect().height);
+  });
+}
+
 function cardFor(item, span) {
   if (item.type === TYPE_FONT) return fontCardFor(item, span);
   const cover = imageFiles(item)[0];
@@ -320,12 +367,21 @@ function cardFor(item, span) {
   art.className = "work-card__art";
   const preview = document.createElement("span");
   preview.className = "work-card__preview";
+  const hasCatalogDimensions = setArtworkDimensions(card, preview, item.width, item.height);
   const image = document.createElement("img");
   image.alt = altFor(item);
   image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
   revealOnLoad(image, preview);
+  if (!hasCatalogDimensions) {
+    const useNaturalDimensions = () => {
+      if (!setArtworkDimensions(card, preview, image.naturalWidth, image.naturalHeight)) return;
+      requestAnimationFrame(() => measureArtworkCard(card));
+    };
+    image.addEventListener("load", useNaturalDimensions, { once: true });
+    if (image.complete && image.naturalWidth) queueMicrotask(useNaturalDimensions);
+  }
   image.src = workFileUrl(cover);
   preview.append(image);
   art.append(preview);
@@ -405,6 +461,7 @@ function renderGrid() {
   const fragment = document.createDocumentFragment();
   planned.forEach(({ item, span }) => fragment.append(cardFor(item, span)));
   grid.replaceChildren(fragment);
+  measureCardRows();
   empty.hidden = works.length > 0;
 }
 
@@ -456,6 +513,7 @@ function setupGridGeometry() {
     const gaps = Math.max(0, layout.columns - 1) * layout.gapX;
     const track = Math.max(1, (grid.clientWidth - gaps) / layout.columns);
     grid.style.setProperty("--grid-row-h", `${track / layout.cellRatio}px`);
+    measureCardRows();
   };
   new ResizeObserver(measureGridGeometry).observe(grid);
   measureGridGeometry();
