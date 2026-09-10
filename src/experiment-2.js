@@ -65,6 +65,15 @@ function imageFiles(item) {
   return (item?.files || []).filter((file) => !FONT_RE.test(file));
 }
 
+function isSvgFile(file) {
+  return /\.svg$/i.test(String(file || ""));
+}
+
+/** Raster finals stay 16:9 cover. SVG covers keep their real aspect so swashes are not cropped. */
+function usesCoverCrop(item) {
+  return item?.type === TYPE_FINAL && !isSvgFile(imageFiles(item)[0]);
+}
+
 function fontFile(item) {
   return (item?.files || []).find((file) => FONT_RE.test(file)) || null;
 }
@@ -363,9 +372,9 @@ function setArtworkDimensions(card, preview, width, height) {
   if (!(intrinsicWidth > 0 && intrinsicHeight > 0)) return false;
   card.dataset.artWidth = String(intrinsicWidth);
   card.dataset.artHeight = String(intrinsicHeight);
-  /* Lettering/daily must size from the img (width 100% / height auto), not a
-     catalog aspect box that can disagree with the file and clip the paint. */
-  if (card.dataset.type === TYPE_FINAL) {
+  /* Lettering/daily and SVG finals size from the img (width 100% / height auto).
+     Raster finals keep a 16:9 cover plate. */
+  if (card.dataset.fit === "cover") {
     preview.style.aspectRatio = "16 / 9";
   } else {
     preview.style.removeProperty("aspect-ratio");
@@ -426,7 +435,7 @@ function intrinsicArtHeight(card) {
   const image = preview?.querySelector("img");
   const boxWidth = artBoxWidth(card);
 
-  if (card.dataset.type === TYPE_FINAL && boxWidth > 0) return boxWidth * (9 / 16);
+  if (card.dataset.fit === "cover" && boxWidth > 0) return boxWidth * (9 / 16);
 
   const naturalW = image?.naturalWidth || Number(card.dataset.artWidth);
   const naturalH = image?.naturalHeight || Number(card.dataset.artHeight);
@@ -608,6 +617,15 @@ function observeCardEnters() {
 
 function bindArtworkMetrics(card, preview, image) {
   const applyNatural = () => {
+    const src = image.currentSrc || image.src || "";
+    if (/\.svg(?:$|\?)/i.test(src) || card.dataset.fit === "contain") {
+      card.dataset.fit = "contain";
+      preview.style.overflow = "visible";
+      image.style.objectFit = "contain";
+      image.style.width = "100%";
+      image.style.height = "auto";
+      image.style.overflow = "visible";
+    }
     if (!setArtworkDimensions(card, preview, image.naturalWidth, image.naturalHeight)) return;
     scheduleCardMeasure();
   };
@@ -632,19 +650,21 @@ function cardFor(item, span) {
   art.className = "work-card__art";
   const preview = document.createElement("span");
   preview.className = "work-card__preview";
-  if (item.type === TYPE_FINAL) setArtworkDimensions(card, preview, 16, 9);
+  const coverCrop = usesCoverCrop(item);
+  card.dataset.fit = coverCrop ? "cover" : "contain";
+  if (coverCrop) setArtworkDimensions(card, preview, 16, 9);
   else setArtworkDimensions(card, preview, item.width, item.height);
   const image = document.createElement("img");
   image.alt = altFor(item);
   image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
-  revealOnLoad(image, preview, { skeleton: item.type === TYPE_FINAL });
+  revealOnLoad(image, preview, { skeleton: coverCrop });
   image.src = workFileUrl(cover);
   const ready = () => markCardEnterReady(card);
   image.addEventListener("load", ready, { once: true });
   image.addEventListener("error", ready, { once: true });
-  if (item.type === TYPE_FINAL) {
+  if (coverCrop) {
     image.addEventListener("load", () => scheduleCardMeasure());
     image.decode?.().then(() => scheduleCardMeasure()).catch(() => {});
   } else {

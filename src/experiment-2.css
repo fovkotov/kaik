@@ -288,6 +288,7 @@ html.is-viewer-open .experiment-two__scroll {
   max-height: none;
   object-fit: contain;
   object-position: var(--cell-align-x) var(--cell-align-y);
+  overflow: visible;
   user-select: none;
   -webkit-user-drag: none;
   opacity: 0;
@@ -311,25 +312,27 @@ html.is-viewer-open .experiment-two__scroll {
   opacity: 1;
 }
 
-.work-card:not([data-type="final"]) .work-card__preview::before,
-.work-card:not([data-type="final"]) .work-card__preview:not(.is-loaded)::after {
+.work-card[data-fit="contain"] .work-card__preview::before,
+.work-card[data-fit="contain"] .work-card__preview:not(.is-loaded)::after {
   content: none;
   display: none;
 }
 
-.work-card:not([data-type="final"]) .work-card__preview {
+.work-card[data-fit="contain"] .work-card__preview {
   flex: 0 0 auto;
   width: 100%;
   max-width: 100%;
   height: auto;
+  overflow: visible;
 }
 
-.work-card:not([data-type="final"]) .work-card__preview img {
+.work-card[data-fit="contain"] .work-card__preview img {
   width: 100%;
   max-width: 100%;
   min-width: 0;
   height: auto;
   object-fit: contain;
+  overflow: visible;
 }
 
 .work-card__font-specimen {
@@ -424,7 +427,7 @@ html.is-viewer-open .experiment-two__scroll {
   pointer-events: none;
 }
 
-.work-card.is-skeleton:not([data-type="final"]) .work-card__preview {
+.work-card.is-skeleton[data-fit="contain"] .work-card__preview {
   height: var(--grid-row-h);
 }
 
@@ -445,7 +448,7 @@ html.is-viewer-open .experiment-two__scroll {
   width: 38%;
 }
 
-.work-card[data-type="final"] .work-card__preview {
+.work-card[data-fit="cover"] .work-card__preview {
   flex: 0 0 auto;
   width: 100%;
   height: auto;
@@ -453,7 +456,7 @@ html.is-viewer-open .experiment-two__scroll {
   aspect-ratio: 16 / 9;
 }
 
-.work-card[data-type="final"] .work-card__preview img {
+.work-card[data-fit="cover"] .work-card__preview img {
   object-fit: cover;
 }
 
