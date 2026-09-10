@@ -512,6 +512,7 @@ html.is-viewer-open .experiment-two__scroll {
   transition: transform 200ms var(--ease-out);
 }
 
+/* Caption under the art: only mounted in JS when the author has a name and/or nick. */
 .work-card__meta {
   display: flex;
   flex-wrap: wrap;
@@ -524,6 +525,10 @@ html.is-viewer-open .experiment-two__scroll {
   text-align: center;
   overflow-wrap: anywhere;
   transition: opacity 160ms var(--ease-out);
+}
+
+.work-card__meta:empty {
+  display: none;
 }
 
 .work-card__meta .is-muted {
@@ -563,7 +568,8 @@ html.is-viewer-open .experiment-two__scroll {
    gutters so the side chips sit --edge from the iframe like the grid. */
 .filter-bar {
   position: sticky;
-  top: calc(var(--edge) + var(--frame-clip-top));
+  /* Desktop: flush to iframe top (frame-clip only). Mobile overrides to 12px. */
+  top: var(--frame-clip-top);
   z-index: 40;
   display: grid;
   grid-template-columns: 1fr auto 1fr;

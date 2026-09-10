@@ -119,25 +119,38 @@ function shuffled(items) {
   return result;
 }
 
+/** Trimmed catalog string, or "" when missing / whitespace-only. */
+function fieldText(value) {
+  return String(value ?? "").trim();
+}
+
+/** Cards only show a caption when the author has a name and/or nick. */
+function hasAuthorIdentity(item) {
+  return Boolean(fieldText(item?.author) || fieldText(item?.nick));
+}
+
 /** Name, @nick and stream as spans; muted parts get `.is-muted`. */
 function metaNodes(item) {
   const nodes = [];
-  if (item.author) {
+  const author = fieldText(item?.author);
+  const nick = fieldText(item?.nick);
+  const stream = fieldText(item?.stream);
+  if (author) {
     const name = document.createElement("span");
-    name.textContent = item.author;
+    name.textContent = author;
     nodes.push(name);
   }
-  if (item.nick) {
-    const nick = document.createElement("span");
-    nick.className = "is-muted";
-    nick.textContent = `@${item.nick}`;
-    nodes.push(nick);
+  if (nick) {
+    const nickEl = document.createElement("span");
+    nickEl.className = "is-muted";
+    nickEl.textContent = `@${nick}`;
+    nodes.push(nickEl);
   }
-  if (item.stream) {
-    const stream = document.createElement("span");
-    stream.className = "is-muted";
-    stream.textContent = t("exp2.stream").replace("{n}", String(item.stream));
-    nodes.push(stream);
+  if (stream) {
+    const streamEl = document.createElement("span");
+    streamEl.className = "is-muted";
+    streamEl.textContent = t("exp2.stream").replace("{n}", stream);
+    nodes.push(streamEl);
   }
   if (!nodes.length) {
     const anon = document.createElement("span");
@@ -157,7 +170,23 @@ function altFor(item) {
         : item.type === TYPE_FONT
           ? t("exp2.kind.font")
           : t("exp2.kind.workshop");
-  return item.author ? `${kind}, ${item.author}` : kind;
+  const author = fieldText(item?.author);
+  return author ? `${kind}, ${author}` : kind;
+}
+
+/** Ensure grid cards only keep `.work-card__meta` when author identity exists. */
+function syncCardMeta(card, item) {
+  let meta = card.querySelector(".work-card__meta");
+  if (!hasAuthorIdentity(item)) {
+    meta?.remove();
+    return;
+  }
+  if (!meta) {
+    meta = document.createElement(card.tagName === "BUTTON" ? "span" : "div");
+    meta.className = "work-card__meta";
+    card.append(meta);
+  }
+  meta.replaceChildren(...metaNodes(item));
 }
 
 /* ---------- language ---------- */
@@ -171,7 +200,7 @@ function retranslateDynamic() {
   grid.querySelectorAll(".work-card").forEach((card) => {
     const item = catalog.find((entry) => entry.id === card.dataset.workId);
     if (!item) return;
-    card.querySelector(".work-card__meta")?.replaceChildren(...metaNodes(item));
+    syncCardMeta(card, item);
     const image = card.querySelector("img");
     if (image) image.alt = altFor(item);
     card.querySelector(".work-card__font-specimen")?.setAttribute("aria-label", t("works.fontTester"));
@@ -737,11 +766,13 @@ function cardFor(item, span) {
   preview.append(image);
   art.append(preview);
 
-  const meta = document.createElement("span");
-  meta.className = "work-card__meta";
-  meta.append(...metaNodes(item));
-
-  card.append(art, meta);
+  card.append(art);
+  if (hasAuthorIdentity(item)) {
+    const meta = document.createElement("span");
+    meta.className = "work-card__meta";
+    meta.append(...metaNodes(item));
+    card.append(meta);
+  }
   card.addEventListener("click", (event) => openViewerFor(item, card, event));
   /* src (and alt, so an src-less img never paints alt text) wait for the viewport. */
   queueCardMedia(card, () => {
@@ -771,10 +802,13 @@ function fontCardFor(item, span) {
   specimen.setAttribute("aria-label", t("works.fontTester"));
   art.append(specimen);
 
-  const meta = document.createElement("div");
-  meta.className = "work-card__meta";
-  meta.append(...metaNodes(item));
-  card.append(art, meta);
+  card.append(art);
+  if (hasAuthorIdentity(item)) {
+    const meta = document.createElement("div");
+    meta.className = "work-card__meta";
+    meta.append(...metaNodes(item));
+    card.append(meta);
+  }
   mountFontSpecimen(specimen, item);
   queueCardMedia(card, () => hydrateFontSpecimen(specimen, item, file));
   return card;
