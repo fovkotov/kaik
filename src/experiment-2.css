@@ -11,6 +11,10 @@
   --ink: rgba(0, 0, 0, 0.75);
   --muted: rgba(0, 0, 0, 0.35);
   --lb-btn: rgba(85, 85, 85, 0.8);
+  --viewer-btn: #e5e5e5;
+  --viewer-btn-blur: 46px;
+  --viewer-btn-size: 34px;
+  --hover-lift: 6px;
   --dot: rgba(0, 0, 0, 0.2);
   --dot-on: rgba(0, 0, 0, 0.64);
   --skeleton: rgba(0, 0, 0, 0.06);
@@ -204,22 +208,26 @@ html.is-viewer-open .experiment-two__scroll {
 
 .lettering-hero__credit {
   position: absolute;
+  left: var(--gutter);
   right: var(--gutter);
   bottom: 16px;
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 0 8px;
   margin: 0;
   font-size: clamp(10px, 1vw, 14px);
   color: var(--muted);
+  text-align: center;
   pointer-events: none;
 }
 
 .works-panel {
-  width: calc(min(100vw, var(--frame-w)) - 8px);
-  margin-left: calc(4px - var(--gutter));
+  /* Bleed past page gutters so only the works grid sits 4px from the iframe. */
+  width: calc(100% + 2 * var(--gutter) - 8px);
+  max-width: none;
+  margin-inline: calc(4px - var(--gutter));
 }
 
 .works-grid {
@@ -392,6 +400,7 @@ html.is-viewer-open .experiment-two__scroll {
 
 .work-card.is-skeleton .work-card__meta {
   display: grid;
+  justify-items: center;
   gap: 6px;
   opacity: 1;
 }
@@ -425,10 +434,14 @@ html.is-viewer-open .experiment-two__scroll {
 .work-card__meta {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 2px 8px;
+  min-width: 0;
   margin: 0;
   font-size: 14px;
   line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
   transition: opacity 160ms var(--ease-out);
 }
 
@@ -448,7 +461,7 @@ html.is-viewer-open .experiment-two__scroll {
 
   .work-card:hover .work-card__art,
   .work-card:focus-visible .work-card__art {
-    transform: translateY(-6px);
+    transform: translateY(calc(-1 * var(--hover-lift)));
   }
 
   .work-card:hover .work-card__meta,
@@ -516,7 +529,7 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .filter-chip--font .filter-chip__plate {
-  background: #a8e6b0;
+  background: #b28753;
 }
 
 .filter-chip[aria-checked="false"] .filter-chip__plate {
@@ -526,7 +539,7 @@ html.is-viewer-open .experiment-two__scroll {
 
 @media (hover: hover) and (pointer: fine) {
   .filter-chip:hover .filter-chip__plate {
-    transform: translateY(-6px);
+    transform: translateY(calc(-1 * var(--hover-lift)));
   }
 }
 
@@ -768,11 +781,13 @@ html.is-viewer-open .experiment-two__scroll {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-  border-radius: 120px;
-  background: var(--lb-btn);
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
+  padding: 0;
+  border-radius: 140px;
+  background: var(--viewer-btn);
+  backdrop-filter: blur(var(--viewer-btn-blur));
+  -webkit-backdrop-filter: blur(var(--viewer-btn-blur));
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: transform 120ms var(--ease-out);
@@ -782,14 +797,14 @@ html.is-viewer-open .experiment-two__scroll {
   display: flex;
 }
 
-.viewer__hit--prev .viewer__chevron {
+.viewer__hit--next .viewer__chevron {
   transform: scaleX(-1);
 }
 
 .viewer__chevron {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
   pointer-events: none;
 }
 
@@ -816,21 +831,25 @@ html.is-viewer-open .experiment-two__scroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  padding: 10px;
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
+  padding: 0;
   border: 0;
-  border-radius: 173px;
-  background: var(--lb-btn);
+  border-radius: 140px;
+  background: var(--viewer-btn);
+  backdrop-filter: blur(var(--viewer-btn-blur));
+  -webkit-backdrop-filter: blur(var(--viewer-btn-blur));
   cursor: pointer;
   transition: transform 120ms var(--ease-out);
 }
 
 .viewer__close img {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: 14px;
+  height: 14px;
   pointer-events: none;
+  filter: brightness(0);
+  opacity: 0.4;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -967,7 +986,7 @@ html.is-viewer-open .experiment-two__scroll {
   .lettering-hero__credit {
     right: 12px;
     left: 12px;
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .filter-island {
@@ -1025,7 +1044,7 @@ html.is-viewer-open .experiment-two__scroll {
     transform: none;
   }
 
-  .filter-chip:hover {
+  .filter-chip:hover .filter-chip__plate {
     transform: none;
   }
 
