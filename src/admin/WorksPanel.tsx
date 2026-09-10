@@ -76,9 +76,12 @@ type WorkItem = {
 
 type Experiment2Layout = {
   columns: number;
-  largeIntervals: number[];
-  largeSpan: number;
-  dailySpans: number[];
+  cellRatio: number;
+  gapX: number;
+  gapY: number;
+  alignX: "start" | "center" | "end";
+  alignY: "start" | "center" | "end";
+  typePatterns: Record<string, { interval: number; span: number }>;
 };
 
 type WorksCatalog = {
@@ -554,9 +557,12 @@ export function WorksPanel({
   const [bulkNick, setBulkNick] = useState("");
   const [bulkStream, setBulkStream] = useState("");
   const [layoutDraft, setLayoutDraft] = useState({
-    intervals: "6, 5, 7",
-    largeSpan: "3",
-    dailySpans: "1, 3",
+    dailyInterval: "1",
+    dailySpan: "3",
+    letteringInterval: "6",
+    letteringSpan: "3",
+    finalInterval: "6",
+    finalSpan: "3",
   });
   const [catalogType, setCatalogType] = useState<WorkType>(TYPE_LETTERING);
   const [hot, setHot] = useState(false);
@@ -632,9 +638,12 @@ export function WorksPanel({
   useEffect(() => {
     const next = normalizeExperiment2Layout(catalog.layout);
     setLayoutDraft({
-      intervals: next.largeIntervals.join(", "),
-      largeSpan: String(next.largeSpan),
-      dailySpans: next.dailySpans.join(", "),
+      dailyInterval: String(next.typePatterns[TYPE_DAILY].interval),
+      dailySpan: String(next.typePatterns[TYPE_DAILY].span),
+      letteringInterval: String(next.typePatterns[TYPE_LETTERING].interval),
+      letteringSpan: String(next.typePatterns[TYPE_LETTERING].span),
+      finalInterval: String(next.typePatterns[TYPE_FINAL].interval),
+      finalSpan: String(next.typePatterns[TYPE_FINAL].span),
     });
   }, [catalog.updatedAt]);
 
@@ -1070,27 +1079,36 @@ export function WorksPanel({
       toast.error(copy("admin.devOnly"));
       return;
     }
-    const parseSequence = (value: string, max: number) => {
-      const entries = value.split(",").map((entry) => Number(entry.trim()));
-      return entries.length > 0 &&
-        entries.every((entry) => Number.isInteger(entry) && entry >= 1 && entry <= max)
-        ? entries
-        : null;
-    };
-    // Interval values are card counts, so the default 7 must remain valid.
-    // Actual spans are constrained to the six available tracks.
-    const intervals = parseSequence(layoutDraft.intervals, 99);
-    const dailySpans = parseSequence(layoutDraft.dailySpans, 6);
-    const largeSpan = Number(layoutDraft.largeSpan);
-    if (!intervals || !dailySpans || !Number.isInteger(largeSpan) || largeSpan < 1 || largeSpan > 6) {
+    const values = Object.fromEntries(
+      Object.entries(layoutDraft).map(([key, value]) => [key, Number(value)]),
+    ) as Record<keyof typeof layoutDraft, number>;
+    const validInterval = (value: number) => Number.isInteger(value) && value >= 1 && value <= 99;
+    const validSpan = (value: number) =>
+      Number.isInteger(value) && value >= 1 && value <= normalizeExperiment2Layout(catalog.layout).columns;
+    if (
+      !validInterval(values.dailyInterval) ||
+      !validSpan(values.dailySpan) ||
+      !validInterval(values.letteringInterval) ||
+      !validSpan(values.letteringSpan) ||
+      !validInterval(values.finalInterval) ||
+      !validSpan(values.finalSpan)
+    ) {
       toast.error(copy("admin.layoutInvalid"));
       return;
     }
     try {
+      const current = normalizeExperiment2Layout(catalog.layout);
       const data = await worksApi("/layout", {
         method: "PATCH",
         body: JSON.stringify({
-          layout: { columns: 6, largeIntervals: intervals, largeSpan, dailySpans },
+          layout: {
+            ...current,
+            typePatterns: {
+              [TYPE_DAILY]: { interval: values.dailyInterval, span: values.dailySpan },
+              [TYPE_LETTERING]: { interval: values.letteringInterval, span: values.letteringSpan },
+              [TYPE_FINAL]: { interval: values.finalInterval, span: values.finalSpan },
+            },
+          },
         }),
       });
       setCatalog(data);
@@ -1445,41 +1463,41 @@ export function WorksPanel({
           }}
         >
           <CardContent className="grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="works-layout-intervals">{copy("admin.layoutIntervals")}</Label>
-              <Input
-                id="works-layout-intervals"
-                inputMode="numeric"
-                value={layoutDraft.intervals}
-                onChange={(event) =>
-                  setLayoutDraft((current) => ({ ...current, intervals: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="works-layout-large">{copy("admin.layoutLargeSpan")}</Label>
-              <Input
-                id="works-layout-large"
-                type="number"
-                min={1}
-                max={6}
-                value={layoutDraft.largeSpan}
-                onChange={(event) =>
-                  setLayoutDraft((current) => ({ ...current, largeSpan: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="works-layout-daily">{copy("admin.layoutDailySpans")}</Label>
-              <Input
-                id="works-layout-daily"
-                inputMode="numeric"
-                value={layoutDraft.dailySpans}
-                onChange={(event) =>
-                  setLayoutDraft((current) => ({ ...current, dailySpans: event.target.value }))
-                }
-              />
-            </div>
+            {[
+              [TYPE_DAILY, "dailyInterval", "dailySpan"],
+              [TYPE_LETTERING, "letteringInterval", "letteringSpan"],
+              [TYPE_FINAL, "finalInterval", "finalSpan"],
+            ].map(([type, intervalKey, spanKey]) => (
+              <fieldset key={type} className="grid grid-cols-2 gap-3 rounded-lg border p-3">
+                <legend className="px-1 text-sm font-medium">{copy(typeKey(type))}</legend>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`works-layout-${type}-interval`}>{copy("admin.layoutInterval")}</Label>
+                  <Input
+                    id={`works-layout-${type}-interval`}
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={layoutDraft[intervalKey as keyof typeof layoutDraft]}
+                    onChange={(event) =>
+                      setLayoutDraft((current) => ({ ...current, [intervalKey]: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`works-layout-${type}-span`}>{copy("admin.layoutLargeSpan")}</Label>
+                  <Input
+                    id={`works-layout-${type}-span`}
+                    type="number"
+                    min={1}
+                    max={normalizeExperiment2Layout(catalog.layout).columns}
+                    value={layoutDraft[spanKey as keyof typeof layoutDraft]}
+                    onChange={(event) =>
+                      setLayoutDraft((current) => ({ ...current, [spanKey]: event.target.value }))
+                    }
+                  />
+                </div>
+              </fieldset>
+            ))}
           </CardContent>
           <CardFooter className="justify-end">
             <Button type="submit">{copy("admin.saveLayout")}</Button>

@@ -5,16 +5,24 @@ export const TYPE_FONT = "font";
 export const TYPE_DAILY = "daily";
 export const WORK_TYPES = [TYPE_LETTERING, TYPE_DAILY, TYPE_FINAL, TYPE_FONT];
 export const WORKS_CATALOG_EVENT = "works-catalog";
+const DEFAULT_TYPE_PATTERNS = Object.freeze({
+  [TYPE_DAILY]: Object.freeze({ interval: 1, span: 3 }),
+  [TYPE_LETTERING]: Object.freeze({ interval: 6, span: 3 }),
+  [TYPE_FINAL]: Object.freeze({ interval: 6, span: 3 }),
+});
 export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   columns: 6,
-  largeIntervals: Object.freeze([6, 5, 7]),
-  largeSpan: 3,
-  dailySpans: Object.freeze([1, 3]),
+  cellRatio: 228 / 277,
+  gapX: 12,
+  gapY: 20,
+  alignX: "center",
+  alignY: "center",
+  typePatterns: DEFAULT_TYPE_PATTERNS,
 });
 
-function boundedInteger(value, fallback, max = 6) {
+function boundedInteger(value, fallback, max = 6, min = 1) {
   const span = Math.round(Number(value));
-  return span >= 1 && span <= max ? span : fallback;
+  return span >= min && span <= max ? span : fallback;
 }
 
 export function normalizeGridSpan(value) {
@@ -23,23 +31,46 @@ export function normalizeGridSpan(value) {
 
 export function normalizeExperiment2Layout(value) {
   const raw = value && typeof value === "object" ? value : {};
-  const columns = boundedInteger(raw.columns, EXPERIMENT_2_LAYOUT_DEFAULTS.columns);
-  const sequence = (candidate, fallback, max = 6) => {
-    if (!Array.isArray(candidate) || !candidate.length) return [...fallback];
-    const normalized = candidate
-      .map((entry) => boundedInteger(entry, 0, max))
-      .filter(Boolean);
-    return normalized.length ? normalized : [...fallback];
+  const columns = boundedInteger(raw.columns, EXPERIMENT_2_LAYOUT_DEFAULTS.columns, 12, 2);
+  const finite = (candidate, fallback, min, max) => {
+    const number = Number(candidate);
+    return Number.isFinite(number) && number >= min && number <= max ? number : fallback;
   };
+  const axis = (candidate, fallback) =>
+    ["start", "center", "end"].includes(candidate) ? candidate : fallback;
+  const oldInterval = Array.isArray(raw.largeIntervals)
+    ? raw.largeIntervals[0]
+    : raw.intervals?.[0] ?? raw.interval;
+  const oldDailyInterval =
+    Array.isArray(raw.dailySpans) && raw.dailySpans.length > 1 ? raw.dailySpans.length - 1 : 1;
+  const oldDailySpan =
+    Array.isArray(raw.dailySpans) ? raw.dailySpans.find((entry) => Number(entry) > 1) : undefined;
+  const rawPatterns = raw.typePatterns && typeof raw.typePatterns === "object" ? raw.typePatterns : {};
+  const typePatterns = {};
+  for (const type of [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL]) {
+    const fallback = DEFAULT_TYPE_PATTERNS[type];
+    const candidate = rawPatterns[type] && typeof rawPatterns[type] === "object" ? rawPatterns[type] : {};
+    typePatterns[type] = {
+      interval: boundedInteger(
+        candidate.interval ?? (type === TYPE_DAILY ? oldDailyInterval : oldInterval),
+        fallback.interval,
+        99,
+      ),
+      span: boundedInteger(
+        candidate.span ?? (type === TYPE_DAILY ? oldDailySpan : raw.largeSpan),
+        fallback.span,
+        columns,
+      ),
+    };
+  }
   return {
     columns,
-    largeIntervals: sequence(
-      raw.largeIntervals ?? raw.intervals,
-      EXPERIMENT_2_LAYOUT_DEFAULTS.largeIntervals,
-      99,
-    ),
-    largeSpan: boundedInteger(raw.largeSpan, EXPERIMENT_2_LAYOUT_DEFAULTS.largeSpan),
-    dailySpans: sequence(raw.dailySpans, EXPERIMENT_2_LAYOUT_DEFAULTS.dailySpans),
+    cellRatio: finite(raw.cellRatio, EXPERIMENT_2_LAYOUT_DEFAULTS.cellRatio, 0.25, 4),
+    gapX: finite(raw.gapX, EXPERIMENT_2_LAYOUT_DEFAULTS.gapX, 0, 80),
+    gapY: finite(raw.gapY, EXPERIMENT_2_LAYOUT_DEFAULTS.gapY, 0, 80),
+    alignX: axis(raw.alignX, EXPERIMENT_2_LAYOUT_DEFAULTS.alignX),
+    alignY: axis(raw.alignY, EXPERIMENT_2_LAYOUT_DEFAULTS.alignY),
+    typePatterns,
   };
 }
 

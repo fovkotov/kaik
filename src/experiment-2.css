@@ -19,6 +19,12 @@
   --frame-h: 100%;
   --frame-clip-top: 0px;
   --frame-clip-bottom: 0px;
+  --grid-columns: 6;
+  --grid-row-h: 277px;
+  --grid-gap-x: 12px;
+  --grid-gap-y: 20px;
+  --cell-align-x: center;
+  --cell-align-y: center;
 }
 
 * {
@@ -208,13 +214,13 @@ html.is-viewer-open .experiment-two__scroll {
   pointer-events: none;
 }
 
-/* Six tracks are invariant; only gaps and labels compress with the iframe. */
 .works-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-auto-rows: var(--grid-row-h, 277px);
-  gap: clamp(8px, 1.25vw, 20px) clamp(4px, 0.8vw, 12px);
+  grid-auto-rows: var(--grid-row-h);
+  column-gap: var(--grid-gap-x);
+  row-gap: var(--grid-gap-y);
   margin-top: clamp(24px, 4vw, 56px);
 }
 
@@ -249,6 +255,7 @@ html.is-viewer-open .experiment-two__scroll {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  object-position: var(--cell-align-x) var(--cell-align-y);
   user-select: none;
   -webkit-user-drag: none;
   opacity: 0;
@@ -387,7 +394,7 @@ html.is-viewer-open .experiment-two__scroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 0;
   max-width: calc(100% - 24px);
   transform: translateX(-50%);
 }
@@ -404,7 +411,7 @@ html.is-viewer-open .experiment-two__scroll {
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition: opacity 160ms var(--ease-out), filter 160ms var(--ease-out);
+  transition: transform 160ms var(--ease-out);
 }
 
 .filter-chip--daily {
@@ -420,8 +427,14 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .filter-chip[aria-checked="false"] {
-  opacity: 0.28;
-  filter: saturate(0.25);
+  color: #b0b0b0;
+  background: #dcdcdc;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .filter-chip:hover {
+    transform: translateY(-6px);
+  }
 }
 
 .filter-chip:focus-visible {
@@ -429,7 +442,142 @@ html.is-viewer-open .experiment-two__scroll {
   outline-offset: 3px;
 }
 
-/* Fullscreen viewer — same chrome as the site lightbox, light palette. */
+/* Hidden local controls: keyboard G is the only opener. */
+.grid-settings {
+  position: fixed;
+  top: calc(12px + var(--frame-clip-top));
+  right: 12px;
+  z-index: 70;
+  width: min(300px, calc(100% - 24px));
+  max-height: calc(var(--frame-h) - var(--frame-clip-top) - var(--frame-clip-bottom) - 24px);
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 8px;
+  background: rgba(245, 245, 245, 0.94);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.14);
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  backdrop-filter: blur(18px);
+}
+
+.grid-settings[hidden] {
+  display: none;
+}
+
+.grid-settings__head,
+.grid-settings__geometry,
+.grid-settings__patterns fieldset {
+  display: grid;
+  gap: 6px;
+}
+
+.grid-settings__head {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.grid-settings__head button,
+.grid-settings__reset,
+.grid-settings__align-grid button {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: #fff;
+  color: #222;
+  cursor: pointer;
+}
+
+.grid-settings__head button {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.grid-settings__geometry {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid-settings label {
+  display: grid;
+  gap: 2px;
+}
+
+.grid-settings input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 5px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+}
+
+.grid-settings fieldset {
+  min-width: 0;
+  margin: 8px 0 0;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+}
+
+.grid-settings legend {
+  padding: 0 3px;
+}
+
+.grid-settings__align-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 3px;
+}
+
+.grid-settings__align-grid button {
+  position: relative;
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border-radius: 2px;
+}
+
+.grid-settings__align-grid button::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  left: var(--align-dot-x, 50%);
+  top: var(--align-dot-y, 50%);
+  transform: translate(-50%, -50%);
+}
+
+.grid-settings__align-grid button:nth-child(3n + 1) { --align-dot-x: 25%; }
+.grid-settings__align-grid button:nth-child(3n) { --align-dot-x: 75%; }
+.grid-settings__align-grid button:nth-child(-n + 3) { --align-dot-y: 25%; }
+.grid-settings__align-grid button:nth-child(n + 7) { --align-dot-y: 75%; }
+.grid-settings__align-grid button[aria-pressed="true"] {
+  background: #222;
+  color: #fff;
+}
+
+.grid-settings__patterns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.grid-settings__patterns fieldset {
+  grid-template-columns: 1fr;
+}
+
+.grid-settings__reset {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+/* Fullscreen viewer — exact /experiment chrome, light palette. */
 .viewer {
   position: fixed;
   inset: 0;
@@ -522,20 +670,6 @@ html.is-viewer-open .experiment-two__scroll {
   display: none;
 }
 
-/*
- * Button chrome from Figma (Untitledik · node 221:132):
- * 34×34, fill rgba(0,0,0,0.1), radius 140px, background blur 46px, glyph black @ 40%.
- */
-.viewer__arrow,
-.viewer__close {
-  --viewer-chrome: rgba(0, 0, 0, 0.1);
-  --viewer-blur: 46px;
-  background: var(--viewer-chrome);
-  backdrop-filter: blur(var(--viewer-blur));
-  -webkit-backdrop-filter: blur(var(--viewer-blur));
-  border-radius: 140px;
-}
-
 .viewer__arrow {
   position: fixed;
   left: 0;
@@ -544,34 +678,33 @@ html.is-viewer-open .experiment-two__scroll {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
   border: 0;
-  transform: translate(-50%, -50%) scale(1.05);
+  border-radius: 120px;
+  background: var(--lb-btn);
+  transform: translate(-50%, -50%);
   pointer-events: none;
-  transition: transform 160ms var(--ease-out);
+  transition: transform 120ms var(--ease-out);
 }
 
 .viewer__hit.is-aiming .viewer__arrow {
   display: flex;
 }
 
-/* Figma exports the left chevron; the right one is its mirror. */
-.viewer__hit--next .viewer__chevron {
+.viewer__hit--prev .viewer__chevron {
   transform: scaleX(-1);
 }
 
 .viewer__chevron {
   display: block;
-  width: 34px;
-  height: 34px;
+  width: 20px;
+  height: 20px;
   pointer-events: none;
 }
 
-.viewer__hit.is-aiming:active .viewer__arrow,
-.viewer__hit--prev:active .viewer__arrow,
-.viewer__hit--next:active .viewer__arrow {
+.viewer__hit:active .viewer__arrow {
   transform: translate(-50%, -50%) scale(0.97);
 }
 
@@ -593,25 +726,26 @@ html.is-viewer-open .experiment-two__scroll {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   margin: 0;
-  padding: 0;
+  padding: 10px;
   border: 0;
+  border-radius: 173px;
+  background: var(--lb-btn);
   line-height: 0;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
   -webkit-tap-highlight-color: transparent;
   transform: scale(1);
-  transition: transform 160ms var(--ease-out);
+  transition: transform 120ms var(--ease-out);
 }
 
 .viewer__close img {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   pointer-events: none;
 }
 
@@ -644,30 +778,36 @@ html.is-viewer-open .experiment-two__scroll {
   color: var(--muted);
 }
 
-/* Bare dots, no plate — bottom-centred like the site lightbox. */
+/* Dynamic dots: a clipped 7-slot viewport around a 3-dot main window. */
 .viewer__dots {
+  --dots-visible: 1;
   position: absolute;
   left: 50%;
   bottom: calc(24px + var(--frame-clip-bottom));
   z-index: 4;
+  width: calc(var(--dots-visible) * 16px);
+  height: 28px;
+  overflow: hidden;
+  transform: translateX(-50%);
+}
+
+.viewer__dots-track {
+  --dots-x: 0px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 28px;
-  /* Long final projects: the pill stays on screen and the dots tighten instead. */
-  max-width: calc(100% - 32px);
-  padding: 0 8px;
-  transform: translateX(-50%);
-  pointer-events: auto;
+  height: 100%;
+  transform: translate3d(var(--dots-x), 0, 0);
+  transition: transform 200ms ease;
+  will-change: transform;
 }
 
 .viewer__dot {
+  --dot-scale: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 1 16px;
+  flex: 0 0 auto;
   width: 16px;
-  min-width: 9px;
   height: 100%;
   padding: 0;
   border: 0;
@@ -680,16 +820,17 @@ html.is-viewer-open .experiment-two__scroll {
 
 .viewer__dot::after {
   content: "";
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  /* No plate under them any more, so idle dots get a touch more ink to stay readable. */
-  background: rgba(0, 0, 0, 0.28);
-  transition: background 200ms ease;
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(var(--dot-scale));
+  transition: transform 200ms ease, background 200ms ease;
 }
 
 .viewer__dot.is-active::after {
-  background: var(--dot-on);
+  background: rgba(0, 0, 0, 0.64);
+  transition: transform 200ms ease, background 500ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -730,8 +871,7 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .works-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 8px 4px;
+    grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   }
 
   .work-card__meta {
@@ -748,7 +888,6 @@ html.is-viewer-open .experiment-two__scroll {
 
   .filter-island {
     bottom: max(12px, calc(env(safe-area-inset-bottom) + var(--frame-clip-bottom)));
-    gap: 3px;
   }
 
   .filter-chip {
@@ -779,6 +918,7 @@ html.is-viewer-open .experiment-two__scroll {
   .filter-chip,
   .viewer__arrow,
   .viewer__close,
+  .viewer__dots-track,
   .viewer__dot::after,
   .work-card__art img,
   .lettering-hero__image {
@@ -798,6 +938,10 @@ html.is-viewer-open .experiment-two__scroll {
 
   .work-card:hover .work-card__art,
   .work-card:focus-visible .work-card__art {
+    transform: none;
+  }
+
+  .filter-chip:hover {
     transform: none;
   }
 

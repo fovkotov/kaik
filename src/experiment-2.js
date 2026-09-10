@@ -1,7 +1,12 @@
-import { initEmbed } from "./embed.js";
+import { initEmbed, safeStorage } from "./embed.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
-import { TYPE_DAILY, TYPE_FINAL, TYPE_LETTERING } from "./works/taxonomy.js";
+import {
+  TYPE_DAILY,
+  TYPE_FINAL,
+  TYPE_LETTERING,
+  normalizeExperiment2Layout,
+} from "./works/taxonomy.js";
 
 const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL];
 
@@ -12,19 +17,24 @@ const credit = document.querySelector("[data-lettering-credit]");
 const grid = document.querySelector("[data-works-grid]");
 const empty = document.querySelector("[data-works-empty]");
 const filters = [...document.querySelectorAll("[data-filter]")];
+const settingsPanel = document.querySelector("[data-grid-settings]");
+const storage = safeStorage();
+const SETTINGS_KEY = "kaik:experiment-2:grid";
 
 const COARSE = window.matchMedia("(pointer: coarse)");
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 let catalog = [];
-let layout = undefined;
+let catalogLayout = normalizeExperiment2Layout();
+let layout = catalogLayout;
 let catalogReady = false;
 let workshopWorks = [];
 const enabledTypes = new Set(VISUAL_TYPES);
 let activeLettering = null;
 let follower = null;
 let viewer = null;
+let measureGridGeometry = () => {};
 
 /* ---------- helpers ---------- */
 
@@ -46,6 +56,15 @@ function shufflePick(items, excludeId = "") {
   const pool = items.filter((item) => item.id !== excludeId);
   const source = pool.length ? pool : items;
   return source[Math.floor(Math.random() * source.length)];
+}
+
+function shuffled(items) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 /** Name, @nick and stream as spans; muted parts get `.is-muted`. */
@@ -85,6 +104,123 @@ function altFor(item) {
         ? "Daily Practice"
         : "Работа воркшопа";
   return item.author ? `${kind}, ${item.author}` : kind;
+}
+
+/* ---------- local grid settings ---------- */
+
+function readStoredLayout() {
+  try {
+    const raw = storage.getItem(SETTINGS_KEY);
+    return raw ? normalizeExperiment2Layout(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyLayout(next, { persist = false } = {}) {
+  layout = normalizeExperiment2Layout(next);
+  grid.style.setProperty("--grid-columns", String(layout.columns));
+  grid.style.setProperty("--grid-gap-x", `${layout.gapX}px`);
+  grid.style.setProperty("--grid-gap-y", `${layout.gapY}px`);
+  grid.style.setProperty(
+    "--cell-align-x",
+    layout.alignX === "start" ? "left" : layout.alignX === "end" ? "right" : "center",
+  );
+  grid.style.setProperty(
+    "--cell-align-y",
+    layout.alignY === "start" ? "top" : layout.alignY === "end" ? "bottom" : "center",
+  );
+  if (persist) {
+    try {
+      storage.setItem(SETTINGS_KEY, JSON.stringify(layout));
+    } catch {
+      // safeStorage normally absorbs this; storage can still disappear mid-session.
+    }
+  }
+  measureGridGeometry();
+  syncSettingsPanel();
+  renderGrid();
+}
+
+function syncSettingsPanel() {
+  if (!settingsPanel) return;
+  for (const name of ["columns", "cellRatio", "gapX", "gapY"]) {
+    const input = settingsPanel.querySelector(`[name="${name}"]`);
+    if (input && document.activeElement !== input) input.value = String(Number(layout[name].toFixed?.(3) ?? layout[name]));
+  }
+  settingsPanel.querySelectorAll("[data-pattern]").forEach((group) => {
+    const pattern = layout.typePatterns[group.dataset.pattern];
+    if (!pattern) return;
+    for (const name of ["interval", "span"]) {
+      const input = group.querySelector(`[name="${name}"]`);
+      if (input && document.activeElement !== input) input.value = String(pattern[name]);
+      if (name === "span" && input) input.max = String(layout.columns);
+    }
+  });
+  settingsPanel.querySelectorAll("[data-align]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      button.dataset.align === `${layout.alignX},${layout.alignY}` ? "true" : "false",
+    );
+  });
+}
+
+function setupGridSettings() {
+  if (!settingsPanel) return;
+  const updateNumber = (input) => {
+    const value = Number(input.value);
+    if (!Number.isFinite(value)) return;
+    const group = input.closest("[data-pattern]");
+    if (group) {
+      applyLayout(
+        {
+          ...layout,
+          typePatterns: {
+            ...layout.typePatterns,
+            [group.dataset.pattern]: {
+              ...layout.typePatterns[group.dataset.pattern],
+              [input.name]: value,
+            },
+          },
+        },
+        { persist: true },
+      );
+      return;
+    }
+    applyLayout({ ...layout, [input.name]: value }, { persist: true });
+  };
+  settingsPanel.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("input", () => updateNumber(input));
+  });
+  settingsPanel.querySelectorAll("[data-align]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const [alignX, alignY] = button.dataset.align.split(",");
+      applyLayout({ ...layout, alignX, alignY }, { persist: true });
+    });
+  });
+  settingsPanel.querySelector("[data-grid-settings-close]")?.addEventListener("click", () => {
+    settingsPanel.hidden = true;
+  });
+  settingsPanel.querySelector("[data-grid-settings-reset]")?.addEventListener("click", () => {
+    storage.removeItem(SETTINGS_KEY);
+    applyLayout(catalogLayout);
+  });
+  window.addEventListener("keydown", (event) => {
+    const typing = event.target instanceof Element &&
+      event.target.closest("input, textarea, select, [contenteditable='true']");
+    if (typing) return;
+    if (event.key === "Escape" && !settingsPanel.hidden) {
+      event.preventDefault();
+      settingsPanel.hidden = true;
+      return;
+    }
+    if ((event.key === "g" || event.key === "G") && !viewer?.isOpen) {
+      event.preventDefault();
+      settingsPanel.hidden = !settingsPanel.hidden;
+      if (!settingsPanel.hidden) syncSettingsPanel();
+    }
+  });
+  syncSettingsPanel();
 }
 
 /* ---------- mixed grid ---------- */
@@ -193,14 +329,13 @@ function renderSkeletons() {
 }
 
 function setupGridGeometry() {
-  const measure = () => {
-    const styles = getComputedStyle(grid);
-    const gap = Number.parseFloat(styles.columnGap) || 0;
-    const track = Math.max(1, (grid.clientWidth - gap * 5) / 6);
-    grid.style.setProperty("--grid-row-h", `${(track * 277) / 228}px`);
+  measureGridGeometry = () => {
+    const gaps = Math.max(0, layout.columns - 1) * layout.gapX;
+    const track = Math.max(1, (grid.clientWidth - gaps) / layout.columns);
+    grid.style.setProperty("--grid-row-h", `${track / layout.cellRatio}px`);
   };
-  new ResizeObserver(measure).observe(grid);
-  measure();
+  new ResizeObserver(measureGridGeometry).observe(grid);
+  measureGridGeometry();
 }
 
 function setupFilters() {
@@ -338,6 +473,10 @@ const SPRING_RESPONSE = 0.4;
 const MIN_Z = 1;
 const MAX_Z = 4;
 const ABSORB_MS = 400;
+const DOTS_MAIN = 3;
+const DOTS_VISIBLE = DOTS_MAIN + 4;
+const DOT_SLOT = 16;
+const DOT_SCALE = [1, 0.75, 0.5, 0.33];
 
 function createViewer(root) {
   const track = root.querySelector("[data-viewer-track]");
@@ -351,6 +490,9 @@ function createViewer(root) {
   let items = [];
   let slides = [];
   let dots = [];
+  let dotsTrack = null;
+  let dotAnchor = 0;
+  let dotLast = -1;
   let index = 0;
   let pending = 0;
   let shift = 0;
@@ -432,11 +574,28 @@ function createViewer(root) {
     const current = wrap(active);
     syncSlides(current);
     syncCaption(current);
+    layoutDots(current);
+  }
+
+  function layoutDots(active) {
+    const n = dots.length;
+    if (!n || !dotsTrack) return;
+    const main = Math.min(n, DOTS_MAIN);
+    if (dotLast < 0) dotAnchor = Math.min(active, main - 1);
+    else dotAnchor = Math.max(0, Math.min(main - 1, dotAnchor + (active - dotLast)));
+    dotLast = active;
+    const start = Math.max(0, Math.min(n - main, active - dotAnchor));
+    const end = start + main - 1;
     dots.forEach((dot, i) => {
-      const on = i === current;
+      const distance = i < start ? start - i : i > end ? i - end : 0;
+      dot.style.setProperty("--dot-scale", String(DOT_SCALE[Math.min(distance, DOT_SCALE.length - 1)]));
+      const on = i === active;
       dot.classList.toggle("is-active", on);
       dot.setAttribute("aria-current", on ? "true" : "false");
     });
+    const visible = Math.min(n, DOTS_VISIBLE);
+    const x = n > DOTS_VISIBLE ? ((visible - 1) / 2 - (start + end) / 2) * DOT_SLOT : 0;
+    dotsTrack.style.setProperty("--dots-x", `${x}px`);
   }
 
   function paint(offset) {
@@ -698,7 +857,12 @@ function createViewer(root) {
   }
 
   function buildDots() {
-    pager.replaceChildren();
+    dotsTrack = document.createElement("div");
+    dotsTrack.className = "viewer__dots-track";
+    pager.replaceChildren(dotsTrack);
+    pager.style.setProperty("--dots-visible", String(Math.min(items.length, DOTS_VISIBLE)));
+    dotAnchor = 0;
+    dotLast = -1;
     dots = items.map((_, i) => {
       const dot = document.createElement("button");
       dot.type = "button";
@@ -710,7 +874,7 @@ function createViewer(root) {
         event.stopPropagation();
         goTo(i);
       });
-      pager.append(dot);
+      dotsTrack.append(dot);
       return dot;
     });
   }
@@ -1062,7 +1226,13 @@ function createViewer(root) {
     paint(shift);
   }).observe(root);
 
-  return { open: openSlides, close };
+  return {
+    open: openSlides,
+    close,
+    get isOpen() {
+      return open;
+    },
+  };
 }
 
 /* ---------- boot ---------- */
@@ -1073,6 +1243,7 @@ async function boot() {
   setupGridGeometry();
   setupFilters();
   viewer = createViewer(document.querySelector("[data-viewer]"));
+  setupGridSettings();
 
   action.addEventListener("click", nextHero);
 
@@ -1088,12 +1259,12 @@ async function boot() {
     console.warn("Experiment 2 catalog unavailable", error);
     data = { items: [] };
   }
-  catalog = data.items || [];
-  layout = data.layout;
+  catalog = shuffled(data.items || []);
+  catalogLayout = normalizeExperiment2Layout(data.layout);
   catalogReady = true;
   grid.removeAttribute("aria-busy");
   workshopWorks = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
-  renderGrid();
+  applyLayout(readStoredLayout() ?? catalogLayout);
   const first = shufflePick(workshopWorks);
   if (first) setHero(first);
   else hero.classList.add("is-loaded");

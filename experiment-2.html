@@ -45,6 +45,51 @@
       </main>
     </div>
 
+    <aside class="grid-settings" data-grid-settings hidden aria-label="Настройки сетки">
+      <div class="grid-settings__head">
+        <strong>grid</strong>
+        <button type="button" data-grid-settings-close aria-label="Закрыть">×</button>
+      </div>
+      <div class="grid-settings__geometry">
+        <label>columns <input name="columns" type="number" min="2" max="12" step="1" /></label>
+        <label>W/H <input name="cellRatio" type="number" min="0.25" max="4" step="0.01" /></label>
+        <label>gap X <input name="gapX" type="number" min="0" max="80" step="1" /></label>
+        <label>gap Y <input name="gapY" type="number" min="0" max="80" step="1" /></label>
+      </div>
+      <fieldset class="grid-settings__align">
+        <legend>content alignment</legend>
+        <div class="grid-settings__align-grid" data-grid-alignment>
+          <button type="button" data-align="start,start" aria-label="Сверху слева"></button>
+          <button type="button" data-align="center,start" aria-label="Сверху по центру"></button>
+          <button type="button" data-align="end,start" aria-label="Сверху справа"></button>
+          <button type="button" data-align="start,center" aria-label="Слева по центру"></button>
+          <button type="button" data-align="center,center" aria-label="По центру"></button>
+          <button type="button" data-align="end,center" aria-label="Справа по центру"></button>
+          <button type="button" data-align="start,end" aria-label="Снизу слева"></button>
+          <button type="button" data-align="center,end" aria-label="Снизу по центру"></button>
+          <button type="button" data-align="end,end" aria-label="Снизу справа"></button>
+        </div>
+      </fieldset>
+      <div class="grid-settings__patterns">
+        <fieldset data-pattern="daily">
+          <legend>daily</legend>
+          <label>every <input name="interval" type="number" min="1" max="99" step="1" /></label>
+          <label>span <input name="span" type="number" min="1" max="12" step="1" /></label>
+        </fieldset>
+        <fieldset data-pattern="lettering">
+          <legend>workshop</legend>
+          <label>every <input name="interval" type="number" min="1" max="99" step="1" /></label>
+          <label>span <input name="span" type="number" min="1" max="12" step="1" /></label>
+        </fieldset>
+        <fieldset data-pattern="final">
+          <legend>final</legend>
+          <label>every <input name="interval" type="number" min="1" max="99" step="1" /></label>
+          <label>span <input name="span" type="number" min="1" max="12" step="1" /></label>
+        </fieldset>
+      </div>
+      <button class="grid-settings__reset" type="button" data-grid-settings-reset>Reset to catalog defaults</button>
+    </aside>
+
     <div class="filter-island" aria-label="Фильтры работ">
       <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
         daily practice
@@ -70,17 +115,17 @@
       <figure class="viewer__stage" data-viewer-track></figure>
       <button type="button" class="viewer__hit viewer__hit--prev" data-viewer-prev aria-label="Предыдущий слайд">
         <span class="viewer__arrow" aria-hidden="true">
-          <img class="viewer__chevron" src="/assets/author/e2-chevron.svg" alt="" width="34" height="34" draggable="false" />
+          <img class="viewer__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
         </span>
       </button>
       <div class="viewer__hit viewer__hit--mid" data-viewer-mid></div>
       <button type="button" class="viewer__hit viewer__hit--next" data-viewer-next aria-label="Следующий слайд">
         <span class="viewer__arrow" aria-hidden="true">
-          <img class="viewer__chevron" src="/assets/author/e2-chevron.svg" alt="" width="34" height="34" draggable="false" />
+          <img class="viewer__chevron" src="/assets/author/lb-chevron.svg" alt="" width="20" height="20" draggable="false" />
         </span>
       </button>
       <button type="button" class="viewer__close" data-viewer-close aria-label="Закрыть">
-        <img src="/assets/author/e2-close.svg" alt="" width="20" height="20" draggable="false" />
+        <img src="/assets/author/lb-close.svg" alt="" width="24" height="24" draggable="false" />
       </button>
       <p class="viewer__caption" data-viewer-caption></p>
       <div class="viewer__dots" data-viewer-dots role="tablist"></div>
