@@ -123,6 +123,67 @@ function isFontPath(name: string) {
   return /\.(ttf|otf|woff2?)$/i.test(name);
 }
 
+let pasteCounter = 0;
+
+function looksLikeSvg(text: string) {
+  const head = text.trimStart().slice(0, 200).toLowerCase();
+  return (head.startsWith("<svg") || head.startsWith("<?xml") || head.startsWith("<!doctype svg")) && /<svg[\s>]/i.test(text);
+}
+
+// Figma "Copy as SVG" puts markup in text/plain; name the file after the
+// root <svg id> or <title> when there is one so the inbox reads naturally.
+function svgFileName(markup: string, ordinal: number) {
+  const root = markup.match(/<svg\b[^>]*>/i)?.[0] ?? "";
+  const id = root.match(/\sid=["']([^"']+)["']/i)?.[1];
+  const title = markup.match(/<title[^>]*>([^<]{1,80})<\/title>/i)?.[1];
+  const raw = (id || title || "").trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ");
+  return `${raw || `pasted-${ordinal}`}.svg`;
+}
+
+// Turn a paste into File objects the same way a drop would deliver them.
+// Files win (PNG copied from Figma, SVG/PDF from Finder); otherwise inline
+// SVG markup in text becomes a synthetic .svg file. Anything else → nothing.
+function filesFromClipboard(data: DataTransfer | null): File[] {
+  if (!data) return [];
+  const files: File[] = [];
+  const seen = new Set<File>();
+  const push = (file: File | null) => {
+    if (file && !seen.has(file)) {
+      seen.add(file);
+      files.push(file);
+    }
+  };
+  for (const item of Array.from(data.items ?? [])) {
+    if (item.kind === "file") push(item.getAsFile());
+  }
+  for (const file of Array.from(data.files ?? [])) push(file);
+  if (files.length) {
+    return files.map((file) => {
+      // Clipboard bitmaps arrive as "image.png" — give each its own name so
+      // several pastes do not collide in the inbox or on disk.
+      if (!/^image\.\w+$/i.test(file.name) && file.name) return file;
+      pasteCounter += 1;
+      const ext = file.type.split("/")[1]?.replace("jpeg", "jpg").replace("svg+xml", "svg") || "png";
+      return new File([file], `pasted-${pasteCounter}.${ext}`, { type: file.type, lastModified: Date.now() });
+    });
+  }
+  const text = data.getData("text/plain") || "";
+  const markup = looksLikeSvg(text) ? text : "";
+  if (!markup) {
+    const html = data.getData("text/html") || "";
+    const start = html.search(/<svg[\s>]/i);
+    const end = html.toLowerCase().lastIndexOf("</svg>");
+    if (start >= 0 && end > start) {
+      const inline = html.slice(start, end + "</svg>".length);
+      pasteCounter += 1;
+      return [new File([inline], svgFileName(inline, pasteCounter), { type: "image/svg+xml" })];
+    }
+    return [];
+  }
+  pasteCounter += 1;
+  return [new File([markup.trim()], svgFileName(markup, pasteCounter), { type: "image/svg+xml" })];
+}
+
 const RASTER_LONG_SIDE = 1600;
 const RASTER_WEBP_QUALITY = 0.82;
 const UPLOAD_CONCURRENCY = 3;
@@ -787,6 +848,24 @@ export function WorksPanel({
       document.removeEventListener("dragleave", onLeave);
       document.removeEventListener("drop", onDrop);
     };
+  }, []);
+
+  // ⌘V anywhere on the page feeds the inbox like a drop: a PNG copied in
+  // Figma, SVG markup from "Copy as SVG", or files copied in Finder. Typing
+  // into fields and open dialogs keep the native paste.
+  useEffect(() => {
+    const typing = "input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='dialog']";
+    function onPaste(event: ClipboardEvent) {
+      if (event.defaultPrevented) return;
+      if (event.target instanceof Element && event.target.closest(typing)) return;
+      if (editingRef.current || confirmRef.current) return;
+      const files = filesFromClipboard(event.clipboardData);
+      if (!files.length) return;
+      event.preventDefault();
+      addFilesRef.current(files);
+    }
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
   }, []);
 
   // Author, nick and stream are optional — only the files are required.
