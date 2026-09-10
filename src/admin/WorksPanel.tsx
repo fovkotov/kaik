@@ -558,9 +558,9 @@ export function WorksPanel({
   const [bulkStream, setBulkStream] = useState("");
   const [layoutDraft, setLayoutDraft] = useState({
     dailyInterval: "1",
-    dailySpan: "3",
+    dailySpan: "1",
     letteringInterval: "6",
-    letteringSpan: "3",
+    letteringSpan: "4",
     finalInterval: "6",
     finalSpan: "3",
   });

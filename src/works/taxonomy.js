@@ -6,17 +6,17 @@ export const TYPE_DAILY = "daily";
 export const WORK_TYPES = [TYPE_LETTERING, TYPE_DAILY, TYPE_FINAL, TYPE_FONT];
 export const WORKS_CATALOG_EVENT = "works-catalog";
 const DEFAULT_TYPE_PATTERNS = Object.freeze({
-  [TYPE_DAILY]: Object.freeze({ interval: 1, span: 3 }),
-  [TYPE_LETTERING]: Object.freeze({ interval: 6, span: 3 }),
+  [TYPE_DAILY]: Object.freeze({ interval: 1, span: 1 }),
+  [TYPE_LETTERING]: Object.freeze({ interval: 6, span: 4 }),
   [TYPE_FINAL]: Object.freeze({ interval: 6, span: 3 }),
 });
 export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   columns: 6,
-  cellRatio: 228 / 277,
-  gapX: 12,
-  gapY: 20,
+  cellRatio: 0.823,
+  gapX: 4,
+  gapY: 4,
   alignX: "center",
-  alignY: "center",
+  alignY: "start",
   typePatterns: DEFAULT_TYPE_PATTERNS,
 });
 
