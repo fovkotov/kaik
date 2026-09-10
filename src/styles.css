@@ -2148,7 +2148,6 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
   inset: 0;
   display: block;
   background: #9d9d9d;
-  animation: link-card-blink 2s steps(1, end) infinite;
   pointer-events: none;
   user-select: none;
 }
@@ -2220,24 +2219,6 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
   height: 100%;
   pointer-events: none;
   user-select: none;
-}
-
-@keyframes link-card-blink {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .link-card__face {
-    animation: none;
-  }
 }
 
 .card[data-works-card] {
