@@ -164,7 +164,7 @@ function flyExitPose(t, exitDist, params = getParams()) {
 }
 
 /**
- * Desktop: scroll-driven stack (right → left). No cursor follow.
+ * Desktop: scroll-driven stack (right → left) + cursor parallax / hover lift.
  * Mobile: physical deck — rear cards smaller and slightly higher, grow to the front.
  */
 function initDeck() {
@@ -182,9 +182,18 @@ function initDeck() {
     baseY: Number(card.dataset.baseY || 0),
     tip: Number(card.dataset.tip || 12),
     baseZ: Number.parseInt(getComputedStyle(card).zIndex, 10) || cards.length - index,
+    /** Eased 0–1 hover lift; frozen (not reset) while the card is fly/rest-locked. */
+    hover: 0,
+    hoverTarget: 0,
     inert: false,
   }));
 
+  /** Desktop cursor parallax: pointer normalised to −1..1, eased per frame. */
+  const pointer = { x: 0, y: 0 };
+  const pointerSmooth = { x: 0, y: 0 };
+  /** Below this the eased values snap to target so the loop can stop. */
+  const EASE_EPS = 0.002;
+  let hoveredIndex = -1;
   let raf = 0;
   let cardBoxH = 0;
   let cardBoxW = 0;
@@ -283,7 +292,13 @@ function initDeck() {
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
-    if (programLocked()) return false;
+    /* Open card freezes pointer/hover — do not keep compositing the stack. */
+    if (programLocked() || focusOpen()) return false;
+    /* Eased values snap to target in render(), so `!==` means still converging. */
+    if (pointerSmooth.x !== pointer.x || pointerSmooth.y !== pointer.y) return true;
+    for (const item of state) {
+      if (item.hover !== item.hoverTarget) return true;
+    }
     if (lastDesktopDeltaAt > 0 && performance.now() - lastDesktopDeltaAt < 90) return true;
     return false;
   }
@@ -400,6 +415,68 @@ function initDeck() {
     else if (root.scrollTop !== freezeY) root.scrollTop = freezeY;
     root.classList.add("is-fly-locked");
   }
+
+  // —— Desktop: hover lift + cursor parallax ——
+  /** Cards owned by program-modal (focus flight, fan, landing) never take hover. */
+  function hoverLiftBlocked(el) {
+    return (
+      el.hasAttribute("data-fly-lock") ||
+      el.hasAttribute("data-rest-lock") ||
+      el.classList.contains("is-program-open") ||
+      el.classList.contains("is-fly-pinned")
+    );
+  }
+
+  function pointerStillOn(el, event) {
+    if (el.contains(event.relatedTarget)) return true;
+    if (typeof event.clientX !== "number" || typeof event.clientY !== "number") return false;
+    const hit = document.elementFromPoint(event.clientX, event.clientY);
+    return Boolean(hit && el.contains(hit));
+  }
+
+  /** Eased lerp that lands exactly on the target so needsDeckFrame can go quiet. */
+  function easeTo(current, target, amount) {
+    const next = lerp(current, target, amount);
+    return Math.abs(next - target) < EASE_EPS ? target : next;
+  }
+
+  state.forEach((item) => {
+    item.el.addEventListener("pointerenter", (event) => {
+      if (isMobile()) return;
+      if (!inDeckFlow(item.el)) return;
+      if (programLocked() || focusOpen() || hoverLiftBlocked(item.el)) return;
+      if (event.buttons) return;
+      hoveredIndex = item.index;
+      item.el.classList.add("is-hovered");
+      scheduleRender();
+    });
+
+    item.el.addEventListener("pointerleave", (event) => {
+      if (hoverLiftBlocked(item.el)) return;
+      // Click/select often fires leave while the cursor is still on the card.
+      if (event.buttons || pointerStillOn(item.el, event)) return;
+      if (hoveredIndex === item.index) hoveredIndex = -1;
+      item.el.classList.remove("is-hovered");
+      scheduleRender();
+    });
+  });
+
+  window.addEventListener(
+    "pointermove",
+    (event) => {
+      if (isMobile() || programLocked() || focusOpen() || isFocusFrozen()) return;
+      const { width, height } = getViewportSize();
+      if (!width || !height) return;
+      const x = clamp((event.clientX / width) * 2 - 1, -1, 1);
+      const y = clamp((event.clientY / height) * 2 - 1, -1, 1);
+      /* Trackpad / iframe jitter must not keep every card on a rAF diet. */
+      if (Math.abs(x - pointer.x) < 0.008 && Math.abs(y - pointer.y) < 0.008) return;
+      pointer.x = x;
+      pointer.y = y;
+      scheduleRender();
+    },
+    { passive: true },
+  );
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
   const DRAG_IGNORE =
@@ -672,6 +749,14 @@ function initDeck() {
     const p = clamp(totalScroll ? y / totalScroll : 0, 0, 1);
     const focusing = focusOpen();
 
+    // Pointer target stops updating once locked (pointermove guard), and the
+    // eased value holds too, so a card handed back from program-modal lands
+    // on exactly the snapshot pose it left with, then eases to the live cursor.
+    if (!locked && !mobile) {
+      pointerSmooth.x = easeTo(pointerSmooth.x, pointer.x, params.pointerLerp);
+      pointerSmooth.y = easeTo(pointerSmooth.y, pointer.y, params.pointerLerp);
+    }
+
     items.forEach((item, i) => {
       const t = mobile ? 0 : cardFlightT(i, count, params, p);
       const slot = mobileStackSlot(i, mobile ? Math.max(0, y) : y, focusSpanOf(params));
@@ -681,6 +766,8 @@ function initDeck() {
         // another card is still focused/closing; hand back to the loop on the
         // first free frame — same y, so the pose below equals the snapshot.
         if (focusing) {
+          if (hoveredIndex === i) hoveredIndex = -1;
+          item.hoverTarget = item.hover;
           if (mobile) {
             item.el.style.zIndex = String(count - i);
             item.el.style.opacity = "1";
@@ -696,6 +783,10 @@ function initDeck() {
         item.el.classList.contains("is-program-open") ||
         item.el.classList.contains("is-fly-pinned");
       if (flyLocked) {
+        // Keep item.hover as-is: the snapshot pose program-modal returns this
+        // card to includes that lift, so the handover frame matches exactly.
+        if (hoveredIndex === i) hoveredIndex = -1;
+        item.hoverTarget = item.hover;
         if (mobile) {
           item.el.style.zIndex = String(count - i);
           item.el.style.opacity = "1";
@@ -703,6 +794,21 @@ function initDeck() {
         setStackHit(item.el, { mobile, inert: false });
         return;
       }
+
+      item.hoverTarget = !mobile && !locked && hoveredIndex === i ? 1 : 0;
+      item.hover = mobile
+        ? item.hoverTarget
+        : easeTo(item.hover, item.hoverTarget, params.hoverLerp);
+
+      // While locked pointerSmooth is frozen (not zeroed) so a sibling that
+      // lands home mid-close keeps its snapshot offset instead of jumping.
+      const depth = Math.pow(params.cursorFalloff, i);
+      const pointerAmt = mobile ? 0 : depth;
+      const parallaxX = pointerSmooth.x * params.parallaxX * pointerAmt;
+      const parallaxY = pointerSmooth.y * params.parallaxY * pointerAmt;
+      const cursorRotY = pointerSmooth.x * params.cursorTiltY * pointerAmt;
+      const cursorRotX = -pointerSmooth.y * params.cursorTiltX * pointerAmt;
+      const cursorRotZ = pointerSmooth.x * params.cursorTiltZ * pointerAmt * 0.65;
 
       const baseX = item.baseX * fan;
       const baseY = mobile ? 0 : item.baseY * fan;
@@ -763,8 +869,8 @@ function initDeck() {
 
       const introX = deckIntro && !flyLocked && !mobile ? deckIntro.shift(i, now, vw) : 0;
       const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, -vh) : 0;
-      const x = scrollX + worksX + introX;
-      const yPos = scrollY + worksY + introY;
+      const x = scrollX + parallaxX + worksX + introX;
+      const yPos = scrollY + parallaxY - item.hover * params.hoverLift + worksY + introY;
 
       const twist = mobile
         ? Number.isFinite(Number(params.cardRotate))
@@ -774,11 +880,12 @@ function initDeck() {
       const rotateZ =
         (mobile && programCard ? PROGRAM_MOBILE_ROTATE : item.baseRotate * twist) +
         t * item.tip * params.tipScale +
+        cursorRotZ +
         worksR;
       const rotateY =
-        t * (params.rotateYBase + i * params.rotateYStep) * (i % 2 === 0 ? 1 : -1);
+        t * (params.rotateYBase + i * params.rotateYStep) * (i % 2 === 0 ? 1 : -1) + cursorRotY;
       const rotateX =
-        t * params.rotateXAmt * (i % 2 === 0 ? -1 : 1);
+        t * params.rotateXAmt * (i % 2 === 0 ? -1 : 1) + cursorRotX;
 
       const pose = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${stackScale})`;
       if (item.el.style.transform !== pose) item.el.style.transform = pose;
