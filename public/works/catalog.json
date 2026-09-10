@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T03:30:22.988Z",
+  "updatedAt": "2026-09-10T03:30:29.263Z",
   "layout": {
     "columns": 12,
     "cellRatio": 1,
@@ -3504,6 +3504,7 @@
       "author": "Артем",
       "nick": "svrdee",
       "stream": "1",
+      "sample": "Solanum",
       "files": [
         "wrk_5c4c30b8_0.otf"
       ],
