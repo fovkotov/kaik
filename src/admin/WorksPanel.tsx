@@ -7,7 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { toast } from "sonner";
-import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Loader2Icon, Trash2Icon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, FileUpIcon, Trash2Icon, XIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -229,7 +229,9 @@ function dataUrlToBytes(data: string): Uint8Array {
 }
 
 // Network activity counter shared by every works request; drives the
-// bottom-right loader so any pending call (not only bulk saves) is visible.
+// bottom-right loading toast so any pending call (not only bulk saves) is visible.
+const INFLIGHT_TOAST_ID = "kaik-inflight";
+const INFLIGHT_TOAST_GRACE_MS = 200;
 let inflightCount = 0;
 const inflightListeners = new Set<(n: number) => void>();
 
@@ -523,6 +525,25 @@ export function WorksPanel({
   const [selected, setSelected] = useState<string[]>([]);
   const [lasso, setLasso] = useState<Lasso | null>(null);
   const [progress, setProgress] = useState<{ kind: "import" | "save"; n: number; total: number } | null>(null);
+  // Network activity / import progress lives in the same toast stack as
+  // errors and "saved", so every status message shares one look and position.
+  // One toast id → the text updates in place; a short grace before dismiss
+  // keeps back-to-back requests from flickering the toast in and out.
+  useEffect(() => {
+    const busy = progress !== null || inflight > 0;
+    if (!busy) {
+      const timer = window.setTimeout(() => toast.dismiss(INFLIGHT_TOAST_ID), INFLIGHT_TOAST_GRACE_MS);
+      return () => window.clearTimeout(timer);
+    }
+    const text = progress
+      ? copy(progress.kind === "import" ? "admin.preparing" : "admin.sending")
+          .replace("{n}", String(progress.n))
+          .replace("{total}", String(progress.total))
+      : copy("admin.loading");
+    toast.loading(text, { id: INFLIGHT_TOAST_ID, duration: Infinity, dismissible: false });
+    return undefined;
+  }, [progress, inflight, copy]);
+  useEffect(() => () => toast.dismiss(INFLIGHT_TOAST_ID), []);
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const slideInputRef = useRef<HTMLInputElement>(null);
@@ -1373,26 +1394,6 @@ export function WorksPanel({
           </Empty>
         )}
       </section>
-
-      {progress || inflight > 0 ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className={cn(
-            "pointer-events-none fixed right-4 z-50 flex items-center gap-2 rounded-full border bg-background/95 px-3 py-1.5 text-sm shadow-sm backdrop-blur transition-[bottom]",
-            selected.length > 0 ? "bottom-16" : "bottom-4",
-          )}
-        >
-          <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-          <span className="tabular-nums">
-            {progress
-              ? copy(progress.kind === "import" ? "admin.preparing" : "admin.sending")
-                  .replace("{n}", String(progress.n))
-                  .replace("{total}", String(progress.total))
-              : copy("admin.loading")}
-          </span>
-        </div>
-      ) : null}
 
       {hot ? (
         <div className="pointer-events-none fixed inset-0 z-40 bg-primary/10 ring-4 ring-inset ring-primary/50" />

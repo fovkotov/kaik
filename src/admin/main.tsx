@@ -16,7 +16,7 @@ createRoot(document.getElementById("admin-root")!).render(
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <TooltipProvider>
         <AdminApp />
-        {/* Toasts stack above the bottom-right loader pill. */}
+        {/* Offset clears the bulk-selection bar; the loading state is a toast in this same stack. */}
         <Toaster position="bottom-right" offset={{ bottom: 56, right: 16 }} mobileOffset={{ bottom: 56 }} />
       </TooltipProvider>
     </ThemeProvider>
