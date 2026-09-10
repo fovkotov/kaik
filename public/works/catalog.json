@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T20:55:28.816Z",
+  "updatedAt": "2026-09-10T21:27:24.701Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -693,6 +693,7 @@
       "author": "Андрей",
       "nick": "fovkotov",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_c104dfd5_12.webp",
         "wrk_c104dfd5_13.webp"
