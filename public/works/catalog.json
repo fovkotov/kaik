@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T20:53:13.815Z",
+  "updatedAt": "2026-09-10T20:53:43.452Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -703,20 +703,16 @@
       "nick": "hurujoi",
       "stream": "1",
       "files": [
-        "wrk_998fda29_0.webp",
-        "wrk_998fda29_1.webp",
-        "wrk_998fda29_2.webp",
-        "wrk_998fda29_3.webp",
         "wrk_998fda29_4.webp",
         "wrk_998fda29_5.webp",
         "wrk_998fda29_6.webp",
         "wrk_998fda29_7.webp",
-        "wrk_998fda29_8.webp",
-        "wrk_998fda29_9.webp"
+        "wrk_998fda29_8.webp"
       ],
       "width": 1600,
       "height": 900,
       "createdAt": "2026-09-09T22:38:48.583Z",
+      "updatedAt": "2026-09-10T20:53:43.452Z",
       "originalName": "01.webp",
       "gridSpan": "auto"
     },
