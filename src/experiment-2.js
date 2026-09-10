@@ -17,6 +17,7 @@ const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
 const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
 const FONT_TESTER_MAX_CHARS = 60;
 const FONT_TESTER_PX = 365;
+const FONT_TESTER_PX_MOBILE = 90;
 
 const hero = document.querySelector("[data-lettering-hero]");
 const letteringImage = document.querySelector("[data-lettering-image]");
@@ -344,7 +345,7 @@ function plainSpecimenText(value) {
 
 function fitFontSpecimen(specimen) {
   const width = specimen.clientWidth;
-  const height = specimen.clientHeight || FONT_TESTER_PX;
+  const height = specimen.clientHeight || (NARROW.matches ? FONT_TESTER_PX_MOBILE : FONT_TESTER_PX);
   if (!width || !specimen.firstChild) return;
   const current = Number.parseFloat(specimen.style.getPropertyValue("--font-fit")) || 1;
   const range = document.createRange();
@@ -478,8 +479,9 @@ function intrinsicArtHeight(card, boxWidth) {
   return 0;
 }
 
-/** Tester box is 365px; ink may overflow, so the card spans the painted glyphs. */
+/** Desktop tester is 365px; mobile is ~90px. Ink may overflow, so we span painted glyphs on desktop. */
 function intrinsicSpecimenHeight(card) {
+  if (NARROW.matches) return FONT_TESTER_PX_MOBILE;
   const specimen = card.querySelector(".work-card__font-specimen");
   const art = card.querySelector(".work-card__art");
   if (!specimen) return art?.scrollHeight || FONT_TESTER_PX;

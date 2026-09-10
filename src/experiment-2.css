@@ -1203,6 +1203,14 @@ html.is-viewer-open .experiment-two__scroll {
     justify-content: center;
     text-align: center;
   }
+
+  .experiment-two {
+    --font-tester-h: 90px;
+  }
+
+  .work-card__font-specimen {
+    font-size: calc(min(22cqw, 72px) * var(--font-fit, 1));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
