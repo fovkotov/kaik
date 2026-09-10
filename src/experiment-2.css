@@ -1,6 +1,9 @@
+/* Latin + Cyrillic subset (~100 kB) of the 6.3 MB OTF; the full file stays as a fallback only. */
 @font-face {
   font-family: "Kaik Rounded";
-  src: url("/fonts/sf-pro-rounded-bold.otf") format("opentype");
+  src:
+    url("/fonts/sf-pro-rounded-bold-subset.woff2") format("woff2"),
+    url("/fonts/sf-pro-rounded-bold.otf") format("opentype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;

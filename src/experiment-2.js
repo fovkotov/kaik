@@ -52,9 +52,15 @@ let activeLettering = null;
 let follower = null;
 let viewer = null;
 let measureGridGeometry = () => {};
-let cardGeometryObserver = null;
 let cardMeasureFrame = 0;
 let cardGuardPasses = 0;
+/* Card media (img src / webfont) is fetched only when the card nears the viewport. */
+let mediaObserver = null;
+const pendingHydration = new Map();
+const MEDIA_ROOT_MARGIN = "150% 0px";
+/* How many hero letterings block the first reveal; the rest warm up in idle time. */
+const HERO_EAGER = 1;
+const HERO_WARM_CONCURRENCY = 2;
 let pageLenis = null;
 let enterObserver = null;
 let enterIndex = 0;
@@ -162,6 +168,8 @@ function retranslateDynamic() {
     if (image) image.alt = altFor(item);
     card.querySelector(".work-card__font-specimen")?.setAttribute("aria-label", t("works.fontTester"));
   });
+  /* Captions may wrap differently in the other language. */
+  scheduleCardMeasure();
 }
 
 /** Language chip shows the current locale; a click flips en ↔ ru.
@@ -393,11 +401,15 @@ function bindFontSpecimen(specimen, fallback) {
   }).observe(specimen);
 }
 
-async function hydrateFontSpecimen(specimen, item, file) {
+/** Synchronous part: fallback text and editing; the webfont itself waits for the viewport. */
+function mountFontSpecimen(specimen, item) {
   const fallback = item.sample || "Käik";
-  const family = `exp2-${String(item.id).replace(/[^a-z0-9]/gi, "") || "font"}`;
   specimen.textContent = fallback;
   bindFontSpecimen(specimen, fallback);
+}
+
+async function hydrateFontSpecimen(specimen, item, file) {
+  const family = `exp2-${String(item.id).replace(/[^a-z0-9]/gi, "") || "font"}`;
   try {
     const face = new FontFace(family, `url(${JSON.stringify(workFileUrl(file))})`);
     const loaded = await face.load();
@@ -452,57 +464,14 @@ function rowUnitPx() {
   );
 }
 
-function allottedCardHeight(card) {
-  const rowUnit = rowUnitPx();
-  const span = Number(card.dataset.rowSpan) || 1;
-  if (!(rowUnit > 0 && span > 0)) return 0;
-  return span * rowUnit + Math.max(0, span - 1) * layout.gapY;
-}
-
-function setCardRowSpan(card, neededCardHeight) {
-  const rowUnit = rowUnitPx();
-  if (!card || !(neededCardHeight > 0 && rowUnit > 0)) return false;
-  const rowPitch = rowUnit + layout.gapY;
-  const rowSpan = Math.max(1, Math.ceil((neededCardHeight + layout.gapY) / rowPitch));
-  if (card.dataset.rowSpan === String(rowSpan)) return false;
-  card.dataset.rowSpan = String(rowSpan);
-  card.style.setProperty("--card-row-span", String(rowSpan));
-  return true;
-}
-
-function metaBlockHeight(card) {
-  const meta = card.querySelector(".work-card__meta");
-  if (!meta) return 0;
-  return Math.max(meta.scrollHeight, meta.getBoundingClientRect().height);
-}
-
-function cardStackGap(card) {
-  return Number.parseFloat(getComputedStyle(card).rowGap) || 0;
-}
-
-/** Layout width of the span — never a transformed/overflowing paint box. */
-function artBoxWidth(card) {
-  return card.clientWidth || 0;
-}
-
 /** Scaled natural height of the media, never the already-clipped box. */
-function intrinsicArtHeight(card) {
-  const preview = card.querySelector(".work-card__preview");
-  const image = preview?.querySelector("img");
-  const boxWidth = artBoxWidth(card);
-
-  if (card.dataset.fit === "cover" && boxWidth > 0) return boxWidth * (9 / 16);
-
+function intrinsicArtHeight(card, boxWidth) {
+  if (card.dataset.fit === "cover") return boxWidth * (9 / 16);
+  const image = card.querySelector(".work-card__preview img");
+  /* Catalog dims reserve the span before the (lazy) file arrives; natural dims take over after. */
   const naturalW = image?.naturalWidth || Number(card.dataset.artWidth);
   const naturalH = image?.naturalHeight || Number(card.dataset.artHeight);
-  if (naturalW > 0 && naturalH > 0 && boxWidth > 0) {
-    return boxWidth * (naturalH / naturalW);
-  }
-
-  if (image) {
-    const painted = Math.max(image.scrollHeight, preview?.scrollHeight || 0);
-    if (painted > 0) return painted;
-  }
+  if (naturalW > 0 && naturalH > 0) return boxWidth * (naturalH / naturalW);
   return 0;
 }
 
@@ -526,89 +495,98 @@ function intrinsicSpecimenHeight(card) {
   );
 }
 
-function intrinsicCardHeight(card) {
-  if (card.classList.contains("work-card--font")) {
-    const artHeight = intrinsicSpecimenHeight(card);
-    if (!(artHeight > 0)) return 0;
-    return artHeight + cardStackGap(card) + metaBlockHeight(card);
-  }
-  const artHeight = intrinsicArtHeight(card);
-  if (!(artHeight > 0)) return 0;
-  return artHeight + cardStackGap(card) + metaBlockHeight(card);
-}
-
-function measureArtworkCard(card) {
-  if (!card?.querySelector(".work-card__preview")) return;
-  if (!(card.getBoundingClientRect().width > 0)) return;
-  setCardRowSpan(card, intrinsicCardHeight(card));
-}
-
-function measureCardRows() {
-  grid.querySelectorAll(".work-card").forEach((card) => {
-    if (card.querySelector(".work-card__preview")) {
-      measureArtworkCard(card);
-      return;
-    }
-    setCardRowSpan(card, intrinsicCardHeight(card));
-  });
-}
-
-function guardUnclippedCards() {
-  let bumped = false;
-  grid.querySelectorAll(".work-card").forEach((card) => {
-    const allotted = allottedCardHeight(card);
+/**
+ * One pass over every card: read all geometry first, then write all row spans.
+ * The needed height is the larger of the intrinsic estimate (catalog / natural
+ * dims scaled to the span) and what is actually painted (art + caption, plus any
+ * ink that overflows into the caption), so a single pass never ping-pongs
+ * between a "measure" and a "guard" value. Returns true when a span changed.
+ */
+function measureCards() {
+  const cards = grid.querySelectorAll(".work-card");
+  if (!cards.length) return false;
+  const rowUnit = rowUnitPx();
+  if (!(rowUnit > 0)) return false;
+  const rowPitch = rowUnit + layout.gapY;
+  /* `.work-card { gap: 0 }` — one computed style per pass, not one per card. */
+  const stackGap = Number.parseFloat(getComputedStyle(cards[0]).rowGap) || 0;
+  const writes = [];
+  for (const card of cards) {
+    const boxWidth = card.clientWidth;
+    if (!(boxWidth > 0)) continue;
     const art = card.querySelector(".work-card__art");
     const meta = card.querySelector(".work-card__meta");
-    const artBox = art?.getBoundingClientRect();
     const metaBox = meta?.getBoundingClientRect();
-    let needed = Math.max(
-      intrinsicCardHeight(card),
-      card.scrollHeight,
-      (art?.scrollHeight || 0) + cardStackGap(card) + metaBlockHeight(card),
-    );
-    if (artBox && metaBox && artBox.bottom > metaBox.top + 0.5) {
-      needed = Math.max(needed, artBox.height + cardStackGap(card) + metaBox.height + (artBox.bottom - metaBox.top));
+    const metaHeight = meta ? Math.max(meta.scrollHeight, metaBox?.height || 0) : 0;
+    const isFont = card.classList.contains("work-card--font");
+    let artHeight = isFont ? intrinsicSpecimenHeight(card) : intrinsicArtHeight(card, boxWidth);
+    artHeight = Math.max(artHeight, art?.scrollHeight || 0);
+    if (isFont && art && metaBox) {
+      const artBox = art.getBoundingClientRect();
+      if (artBox.bottom > metaBox.top + 0.5) {
+        artHeight = Math.max(artHeight, artBox.height + (artBox.bottom - metaBox.top));
+      }
     }
-    if (!(needed > 0)) return;
-    if (allotted > 0 && needed <= allotted + 0.5) return;
-    if (setCardRowSpan(card, needed)) bumped = true;
-  });
-  if (!bumped || cardGuardPasses >= 6) {
-    cardGuardPasses = 0;
-    return;
+    if (!(artHeight > 0)) continue;
+    const needed = artHeight + stackGap + metaHeight;
+    const rowSpan = Math.max(1, Math.ceil((needed + layout.gapY) / rowPitch));
+    if (card.dataset.rowSpan !== String(rowSpan)) writes.push([card, rowSpan]);
   }
-  cardGuardPasses += 1;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      measureCardRows();
-      guardUnclippedCards();
-    });
-  });
+  for (const [card, rowSpan] of writes) {
+    card.dataset.rowSpan = String(rowSpan);
+    card.style.setProperty("--card-row-span", String(rowSpan));
+  }
+  return writes.length > 0;
 }
 
+/** Double-rAF so styles/images have settled; re-runs while spans still move, a few times at most. */
 function scheduleCardMeasure() {
   cancelAnimationFrame(cardMeasureFrame);
   cardMeasureFrame = requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      measureCardRows();
-      guardUnclippedCards();
+    cardMeasureFrame = requestAnimationFrame(() => {
+      const changed = measureCards();
+      if (changed && cardGuardPasses < 4) {
+        cardGuardPasses += 1;
+        scheduleCardMeasure();
+        return;
+      }
+      cardGuardPasses = 0;
     });
   });
 }
 
-function observeCardGeometry() {
-  cardGeometryObserver?.disconnect();
-  cardGeometryObserver = new ResizeObserver(() => {
-    scheduleCardMeasure();
-  });
-  grid.querySelectorAll(".work-card").forEach((card) => {
-    cardGeometryObserver.observe(card);
-    card
-      .querySelectorAll(
-        ".work-card__art, .work-card__preview, .work-card__preview img, .work-card__meta, .work-card__font-specimen",
-      )
-      .forEach((node) => cardGeometryObserver.observe(node));
-  });
+/* ---------- lazy media ---------- */
+
+/**
+ * Card files (SVG/raster covers, specimen webfonts) start downloading only when
+ * the card is within ~1.5 screens of the scroller. Spans are already reserved
+ * from catalog dims, so hydration never shifts the grid.
+ */
+function observeCardMedia() {
+  mediaObserver?.disconnect();
+  const root = document.querySelector("[data-scroll-root]");
+  mediaObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        hydrateCard(entry.target);
+      }
+    },
+    { root, rootMargin: MEDIA_ROOT_MARGIN, threshold: 0 },
+  );
+  pendingHydration.forEach((_, card) => mediaObserver.observe(card));
+}
+
+function hydrateCard(card) {
+  const run = pendingHydration.get(card);
+  if (!run) return;
+  pendingHydration.delete(card);
+  mediaObserver?.unobserve(card);
+  run();
+}
+
+function queueCardMedia(card, run) {
+  pendingHydration.set(card, run);
 }
 
 function cardInScrollView(card) {
@@ -685,9 +663,9 @@ function bindArtworkMetrics(card, preview, image) {
     if (!setArtworkDimensions(card, preview, image.naturalWidth, image.naturalHeight)) return;
     scheduleCardMeasure();
   };
+  /* `load` alone: an eager decode() would force every lazy image to download at once. */
   image.addEventListener("load", applyNatural);
   image.addEventListener("error", () => scheduleCardMeasure(), { once: true });
-  image.decode?.().then(applyNatural).catch(() => {});
   if (image.complete && image.naturalWidth) queueMicrotask(applyNatural);
 }
 
@@ -709,24 +687,20 @@ function cardFor(item, span) {
   const coverCrop = usesCoverCrop(item);
   card.dataset.fit = coverCrop ? "cover" : "contain";
   if (coverCrop) setArtworkDimensions(card, preview, 16, 9);
-  else setArtworkDimensions(card, preview, item.width, item.height);
+  else if (setArtworkDimensions(card, preview, item.width, item.height)) {
+    /* Placeholder box from catalog dims until the file arrives; applyNatural clears it. */
+    preview.style.aspectRatio = `${Number(item.width)} / ${Number(item.height)}`;
+  }
   const image = document.createElement("img");
-  image.alt = altFor(item);
   image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
   revealOnLoad(image, preview, { skeleton: coverCrop });
-  image.src = workFileUrl(cover);
   const ready = () => markCardEnterReady(card);
   image.addEventListener("load", ready, { once: true });
   image.addEventListener("error", ready, { once: true });
-  if (coverCrop) {
-    image.addEventListener("load", () => scheduleCardMeasure());
-    image.decode?.().then(() => scheduleCardMeasure()).catch(() => {});
-  } else {
-    bindArtworkMetrics(card, preview, image);
-  }
-  if (image.complete && image.naturalWidth) queueMicrotask(ready);
+  if (coverCrop) image.addEventListener("load", () => scheduleCardMeasure());
+  else bindArtworkMetrics(card, preview, image);
   preview.append(image);
   art.append(preview);
 
@@ -736,6 +710,12 @@ function cardFor(item, span) {
 
   card.append(art, meta);
   card.addEventListener("click", (event) => openViewerFor(item, card, event));
+  /* src (and alt, so an src-less img never paints alt text) wait for the viewport. */
+  queueCardMedia(card, () => {
+    image.alt = altFor(item);
+    image.src = workFileUrl(cover);
+    if (image.complete && image.naturalWidth) queueMicrotask(ready);
+  });
   return card;
 }
 
@@ -762,7 +742,8 @@ function fontCardFor(item, span) {
   meta.className = "work-card__meta";
   meta.append(...metaNodes(item));
   card.append(art, meta);
-  hydrateFontSpecimen(specimen, item, file);
+  mountFontSpecimen(specimen, item);
+  queueCardMedia(card, () => hydrateFontSpecimen(specimen, item, file));
   return card;
 }
 
@@ -806,10 +787,12 @@ function renderGrid() {
   const works = visibleWorks();
   const planned = planExperiment2(works, layout, activeColumns());
   const fragment = document.createDocumentFragment();
+  pendingHydration.clear();
   planned.forEach(({ item, span }) => fragment.append(cardFor(item, span)));
   grid.replaceChildren(fragment);
-  measureCardRows();
-  observeCardGeometry();
+  /* One synchronous pass so the first paint already has spans from catalog dims. */
+  measureCards();
+  observeCardMedia();
   observeCardEnters();
   scheduleCardMeasure();
   empty.hidden = works.length > 0;
@@ -824,7 +807,6 @@ function setupGridGeometry() {
     // Row step scales with the column: ~4% of a track (min 4px), so the snap
     // slack stays invisible and the implicit row count stays bounded.
     grid.style.setProperty("--grid-row-unit", `${Math.max(4, Math.round(track / 24))}px`);
-    measureCardRows();
     scheduleCardMeasure();
   };
   new ResizeObserver(measureGridGeometry).observe(grid);
@@ -880,27 +862,47 @@ function revealOnLoad(image, frame, { skeleton = true } = {}) {
 
 /* ---------- hero ---------- */
 
+function preloadHeroImage(item) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    const done = (ok) => resolve(ok ? item : null);
+    image.decoding = "async";
+    image.addEventListener("load", () => done(true), { once: true });
+    image.addEventListener("error", () => done(false), { once: true });
+    image.src = workFileUrl(svgFile(item));
+    if (image.complete) done(image.naturalWidth > 0);
+  });
+}
+
+const idle =
+  typeof requestIdleCallback === "function"
+    ? (fn) => requestIdleCallback(fn, { timeout: 1500 })
+    : (fn) => setTimeout(fn, 200);
+
 /**
- * Start every workshop request together and wait before revealing the first
- * one. Once the hero is interactive, every queued URL is already in the
- * browser image cache instead of making the user's tap wait on the network.
+ * Reveal the hero as soon as the first lettering has pixels; the rest of the
+ * deck warms the image cache in idle time, a couple of files at a time, and
+ * joins `workshopWorks` as it lands — so a tap always hits a cached SVG, but
+ * the first paint on a slow link no longer waits for all ~50 downloads.
  */
 async function preloadHeroWorks(items) {
-  const loaded = await Promise.all(
-    items.map(
-      (item) =>
-        new Promise((resolve) => {
-          const image = new Image();
-          const done = (ok) => resolve(ok ? item : null);
-          image.decoding = "async";
-          image.addEventListener("load", () => done(true), { once: true });
-          image.addEventListener("error", () => done(false), { once: true });
-          image.src = workFileUrl(svgFile(item));
-          if (image.complete) done(image.naturalWidth > 0);
-        }),
-    ),
-  );
-  return loaded.filter(Boolean);
+  const queue = [...items];
+  const ready = [];
+  while (queue.length && ready.length < HERO_EAGER) {
+    const item = await preloadHeroImage(queue.shift());
+    if (item) ready.push(item);
+  }
+  const warm = () => {
+    if (!queue.length) return;
+    const batch = queue.splice(0, HERO_WARM_CONCURRENCY);
+    Promise.all(batch.map(preloadHeroImage)).then((loaded) => {
+      /* `ready` becomes `workshopWorks` in boot; pushing here grows the live deck. */
+      loaded.filter(Boolean).forEach((item) => ready.push(item));
+      idle(warm);
+    });
+  };
+  idle(warm);
+  return ready;
 }
 
 function refillHeroQueue() {
@@ -2064,8 +2066,10 @@ async function boot() {
   catalogReady = true;
   grid.removeAttribute("aria-busy");
   const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
+  /* Hero request goes out before the grid's so it wins the network queue. */
+  const heroReady = preloadHeroWorks(heroCandidates);
   applyLayout(readStoredLayout() ?? catalogLayout);
-  workshopWorks = await preloadHeroWorks(heroCandidates);
+  workshopWorks = await heroReady;
   if (workshopWorks.length) nextHero();
   else hero.classList.add("is-loaded");
   document.fonts.ready.then(() => scheduleCardMeasure()).catch(() => {});
