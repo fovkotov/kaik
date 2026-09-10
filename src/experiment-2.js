@@ -41,6 +41,8 @@ let activeLettering = null;
 let follower = null;
 let viewer = null;
 let measureGridGeometry = () => {};
+let cardGeometryObserver = null;
+let cardMeasureFrame = 0;
 
 /* ---------- helpers ---------- */
 
@@ -303,6 +305,10 @@ async function hydrateFontSpecimen(specimen, item, file) {
     specimen.classList.add("is-font-error");
   }
   fitFontSpecimen(specimen);
+  requestAnimationFrame(() => {
+    const card = specimen.closest(".work-card");
+    setCardRowSpan(card, card?.getBoundingClientRect().height);
+  });
 }
 
 function setArtworkDimensions(card, preview, width, height) {
@@ -326,7 +332,7 @@ function setCardRowSpan(card, neededCardHeight) {
 }
 
 function measureArtworkCard(card) {
-  if (!card?.matches('[data-type="daily"], [data-type="lettering"]')) return;
+  if (!card?.querySelector(".work-card__preview")) return;
   const intrinsicWidth = Number(card.dataset.artWidth);
   const intrinsicHeight = Number(card.dataset.artHeight);
   const cardWidth = card.getBoundingClientRect().width;
@@ -342,13 +348,34 @@ function measureArtworkCard(card) {
 
 function measureCardRows() {
   grid.querySelectorAll(".work-card").forEach((card) => {
-    if (card.matches('[data-type="daily"], [data-type="lettering"]')) {
+    if (card.querySelector(".work-card__preview")) {
       measureArtworkCard(card);
       return;
     }
-    // Finals and font specimens retain their fixed one-cell art treatment;
-    // only their grid occupancy grows enough to include the existing caption.
+    // Font specimens retain their configured one-cell art height; their grid
+    // occupancy still grows enough to contain that art and its caption.
     setCardRowSpan(card, card.getBoundingClientRect().height);
+  });
+}
+
+function observeCardGeometry() {
+  cardGeometryObserver?.disconnect();
+  cardGeometryObserver = new ResizeObserver((entries) => {
+    const cards = new Set(
+      entries.map((entry) => entry.target.closest(".work-card")).filter(Boolean),
+    );
+    cancelAnimationFrame(cardMeasureFrame);
+    cardMeasureFrame = requestAnimationFrame(() => {
+      cards.forEach((card) => {
+        if (card.querySelector(".work-card__preview")) measureArtworkCard(card);
+        else setCardRowSpan(card, card.getBoundingClientRect().height);
+      });
+    });
+  });
+  grid.querySelectorAll(".work-card").forEach((card) => {
+    cardGeometryObserver.observe(card);
+    card.querySelectorAll(".work-card__preview, .work-card__meta, .work-card__font-specimen")
+      .forEach((node) => cardGeometryObserver.observe(node));
   });
 }
 
@@ -367,7 +394,10 @@ function cardFor(item, span) {
   art.className = "work-card__art";
   const preview = document.createElement("span");
   preview.className = "work-card__preview";
-  const hasCatalogDimensions = setArtworkDimensions(card, preview, item.width, item.height);
+  const hasCatalogDimensions =
+    item.type === TYPE_FINAL
+      ? setArtworkDimensions(card, preview, 16, 9)
+      : setArtworkDimensions(card, preview, item.width, item.height);
   const image = document.createElement("img");
   image.alt = altFor(item);
   image.loading = "lazy";
@@ -462,6 +492,7 @@ function renderGrid() {
   planned.forEach(({ item, span }) => fragment.append(cardFor(item, span)));
   grid.replaceChildren(fragment);
   measureCardRows();
+  observeCardGeometry();
   empty.hidden = works.length > 0;
 }
 
@@ -492,6 +523,7 @@ function renderSkeletons() {
     art.className = "work-card__art";
     const preview = document.createElement("span");
     preview.className = "work-card__preview skeleton";
+    if (item.type === TYPE_FINAL) setArtworkDimensions(card, preview, 16, 9);
     art.append(preview);
     const meta = document.createElement("span");
     meta.className = "work-card__meta";
@@ -504,6 +536,8 @@ function renderSkeletons() {
     fragment.append(card);
   }
   grid.replaceChildren(fragment);
+  measureCardRows();
+  observeCardGeometry();
   grid.setAttribute("aria-busy", "true");
   empty.hidden = true;
 }

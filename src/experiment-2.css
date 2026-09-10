@@ -302,9 +302,9 @@ html.is-viewer-open .experiment-two__scroll {
   opacity: 1;
 }
 
-/* Daily and workshop glyphs consume their complete column span. JS reserves
-   enough grid rows for this intrinsic-ratio height plus the caption. */
-.work-card:is([data-type="daily"], [data-type="lettering"]) {
+/* Every image preview consumes its complete column span. JS reserves enough
+   grid rows for the scaled media plus the caption. */
+.work-card:not(.work-card--font) {
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100%;
 }
@@ -408,7 +408,7 @@ html.is-viewer-open .experiment-two__scroll {
 
 .work-card[data-type="final"] .work-card__preview {
   flex: 0 0 auto;
-  width: min(100cqw, calc(100cqh * 1.7777777778));
+  width: 100%;
   height: auto;
   aspect-ratio: 16 / 9;
 }
