@@ -71,6 +71,7 @@ type WorkItem = {
   glyph?: string;
   caps?: boolean;
   latin?: boolean;
+  hidden?: boolean;
   files: string[];
   width?: number;
   height?: number;
@@ -670,6 +671,7 @@ export function WorksPanel({
     glyph: "",
     caps: false,
     latin: false,
+    hidden: false,
     gridSpan: "auto" as GridSpan,
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
@@ -1055,6 +1057,7 @@ export function WorksPanel({
       glyph: item.glyph || "",
       caps: Boolean(item.caps),
       latin: Boolean(item.latin),
+      hidden: Boolean(item.hidden),
       gridSpan: normalizeGridSpan(item.gridSpan) as GridSpan,
     });
     setEditFiles(null);
@@ -1204,6 +1207,7 @@ export function WorksPanel({
           glyph: editDraft.glyph,
           caps: editDraft.caps,
           latin: editDraft.latin,
+          hidden: editDraft.hidden,
           gridSpan: editDraft.gridSpan,
           ...filesPatch,
         }),
@@ -1259,6 +1263,21 @@ export function WorksPanel({
       const data = await worksApi("/bulk", {
         method: "PATCH",
         body: JSON.stringify({ ids: selected, patch: { gridSpan } }),
+      });
+      setCatalog(data);
+      setSelected([]);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toastApiError(error, copy);
+    }
+  }
+
+  async function applyBulkHidden(hidden: boolean) {
+    if (!selected.length || !canWrite) return;
+    try {
+      const data = await worksApi("/bulk", {
+        method: "PATCH",
+        body: JSON.stringify({ ids: selected, patch: { hidden } }),
       });
       setCatalog(data);
       setSelected([]);
@@ -1655,6 +1674,7 @@ export function WorksPanel({
                 className={cn(
                   "grid cursor-pointer gap-2 overflow-hidden rounded-xl bg-card p-2 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/40",
                   selected.includes(item.id) && "ring-2 ring-primary",
+                  item.hidden && "opacity-50",
                 )}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -1690,6 +1710,7 @@ export function WorksPanel({
                     </p>
                   )}
                   <p className="truncate text-xs text-muted-foreground">
+                    {item.hidden ? `${copy("admin.hidden")} · ` : ""}
                     {copy(typeKey(item.type))}
                     {item.stream ? ` · ${item.stream}` : ""}
                   </p>
@@ -1742,6 +1763,19 @@ export function WorksPanel({
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selected.every((id) => items.find((item) => item.id === id)?.hidden)}
+                  ref={(node) => {
+                    if (!node) return;
+                    const hiddenCount = selected.filter((id) => items.find((item) => item.id === id)?.hidden).length;
+                    node.indeterminate = hiddenCount > 0 && hiddenCount < selected.length;
+                  }}
+                  onChange={(event) => applyBulkHidden(event.target.checked)}
+                />
+                {copy("admin.hideOnSite")}
+              </label>
               <TypeTabs value={catalogType} onChange={applyBulkType} copy={copy} />
               <GridSpanSelect
                 value=""
@@ -2005,6 +2039,16 @@ export function WorksPanel({
                     ariaLabel={copy("admin.gridSpan")}
                   />
                 </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={editDraft.hidden}
+                    onChange={(event) =>
+                      setEditDraft((current) => ({ ...current, hidden: event.target.checked }))
+                    }
+                  />
+                  {copy("admin.hideOnSite")}
+                </label>
                 {editDraft.type === TYPE_DAILY ? (
                   <div className="grid gap-1.5">
                     <Label htmlFor="work-edit-glyph">{copy("admin.glyph")}</Label>

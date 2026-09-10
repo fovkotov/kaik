@@ -113,10 +113,13 @@ export function fieldsFromBody(item, previous = {}) {
     type === TYPE_FONT && normalizeFlag(item.latin !== undefined ? item.latin : previous.latin)
       ? true
       : undefined;
+  const hidden = normalizeFlag(item.hidden !== undefined ? item.hidden : previous.hidden)
+    ? true
+    : undefined;
   const width = Number(item.width ?? previous.width) || 0;
   const height = Number(item.height ?? previous.height) || 0;
   const gridSpan = normalizeGridSpan(item.gridSpan !== undefined ? item.gridSpan : previous.gridSpan);
-  return { type, author, nick, stream, sample, glyph, caps, latin, width, height, gridSpan };
+  return { type, author, nick, stream, sample, glyph, caps, latin, hidden, width, height, gridSpan };
 }
 
 export function layoutFromBody(value) {

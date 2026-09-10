@@ -830,6 +830,7 @@ function fontCardFor(item, span) {
 function visibleWorks() {
   return catalog.filter(
     (item) =>
+      !item.hidden &&
       enabledTypes.has(item.type) &&
       VISUAL_TYPES.includes(item.type) &&
       (item.type === TYPE_FONT ? Boolean(fontFile(item)) : imageFiles(item).length > 0),
@@ -1129,7 +1130,9 @@ async function startHero() {
     playTickClick(event);
     nextHero();
   });
-  const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
+  const heroCandidates = catalog.filter(
+    (item) => !item.hidden && item.type === TYPE_LETTERING && svgFile(item),
+  );
   workshopWorks = await preloadHeroWorks(heroCandidates);
   if (workshopWorks.length) nextHero();
   else hero.classList.add("is-loaded");

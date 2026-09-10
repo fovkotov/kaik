@@ -1,5 +1,5 @@
 import { fieldsFromBody, layoutFromBody, shortId, uploadsToFiles } from "./admin-core.js";
-import { normalizeGridSpan, normalizeWorkType, TYPE_DAILY } from "./taxonomy.js";
+import { normalizeFlag, normalizeGridSpan, normalizeWorkType, TYPE_DAILY } from "./taxonomy.js";
 
 const RETRY_DELAYS_MS = [600, 1500, 3000];
 
@@ -170,6 +170,9 @@ async function bulkPatchWorksOnce(readCatalog, commit, body) {
     }
     if (patch.gridSpan !== undefined) {
       next = { ...next, gridSpan: normalizeGridSpan(patch.gridSpan) };
+    }
+    if (patch.hidden !== undefined) {
+      next = { ...next, hidden: normalizeFlag(patch.hidden) ? true : undefined };
     }
     return next;
   });
