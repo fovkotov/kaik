@@ -3,6 +3,9 @@
   "updatedAt": "2026-09-10T03:30:29.263Z",
   "layout": {
     "columns": 12,
+    "mobileColumns": 4,
+    "heroVh": 100,
+    "heroVhMobile": 78,
     "cellRatio": 1,
     "gapX": 16,
     "gapY": 16,

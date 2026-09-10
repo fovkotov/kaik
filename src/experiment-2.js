@@ -23,6 +23,7 @@ const letteringImage = document.querySelector("[data-lettering-image]");
 const action = document.querySelector("[data-lettering-action]");
 const credit = document.querySelector("[data-lettering-credit]");
 const grid = document.querySelector("[data-works-grid]");
+const page = document.querySelector(".works-page");
 const empty = document.querySelector("[data-works-empty]");
 const filters = [...document.querySelectorAll("[data-filter]")];
 const settingsPanel = document.querySelector("[data-grid-settings]");
@@ -35,6 +36,8 @@ const ENTER_STAGGER_MS = 40;
 const COARSE = window.matchMedia("(pointer: coarse)");
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
+/* The page's mobile breakpoint — same query as the CSS. Picks mobileColumns / heroVhMobile. */
+const NARROW = window.matchMedia("(max-width: 760px)");
 
 let catalog = [];
 let catalogLayout = normalizeExperiment2Layout();
@@ -60,6 +63,15 @@ let enterIndex = 0;
 
 function isMobile() {
   return COARSE.matches || window.innerWidth <= 760;
+}
+
+/** Live track count: `columns` on desktop, `mobileColumns` at the mobile breakpoint. */
+function activeColumns() {
+  return NARROW.matches ? layout.mobileColumns : layout.columns;
+}
+
+function activeHeroVh() {
+  return NARROW.matches ? layout.heroVhMobile : layout.heroVh;
 }
 
 function imageFiles(item) {
@@ -181,7 +193,8 @@ function readStoredLayout() {
 
 function applyLayout(next, { persist = false } = {}) {
   layout = normalizeExperiment2Layout(next);
-  grid.style.setProperty("--grid-columns", String(layout.columns));
+  grid.style.setProperty("--grid-columns", String(activeColumns()));
+  page?.style.setProperty("--hero-vh", String(activeHeroVh()));
   grid.style.setProperty("--grid-gap-x", `${layout.gapX}px`);
   grid.style.setProperty("--grid-gap-y", `${layout.gapY}px`);
   grid.style.setProperty(
@@ -209,13 +222,16 @@ function applyLayout(next, { persist = false } = {}) {
     }
   }
   measureGridGeometry();
+  /* Hero height may have changed: re-fit the lettering and re-measure the sticky row. */
+  follower?.measure();
+  syncIslandSticky();
   syncSettingsPanel();
   renderGrid();
 }
 
 function syncSettingsPanel() {
   if (!settingsPanel) return;
-  for (const name of ["columns", "cellRatio", "gapX", "gapY"]) {
+  for (const name of ["columns", "mobileColumns", "heroVh", "heroVhMobile", "cellRatio", "gapX", "gapY"]) {
     const input = settingsPanel.querySelector(`[name="${name}"]`);
     if (input && document.activeElement !== input) input.value = String(Number(layout[name].toFixed?.(3) ?? layout[name]));
   }
@@ -783,7 +799,7 @@ function renderGrid() {
     return;
   }
   const works = visibleWorks();
-  const planned = planExperiment2(works, layout);
+  const planned = planExperiment2(works, layout, activeColumns());
   const fragment = document.createDocumentFragment();
   planned.forEach(({ item, span }) => fragment.append(cardFor(item, span)));
   grid.replaceChildren(fragment);
@@ -796,8 +812,9 @@ function renderGrid() {
 
 function setupGridGeometry() {
   measureGridGeometry = () => {
-    const gaps = Math.max(0, layout.columns - 1) * layout.gapX;
-    const track = Math.max(1, (grid.clientWidth - gaps) / layout.columns);
+    const columns = activeColumns();
+    const gaps = Math.max(0, columns - 1) * layout.gapX;
+    const track = Math.max(1, (grid.clientWidth - gaps) / columns);
     grid.style.setProperty("--grid-row-h", `${track / layout.cellRatio}px`);
     // Row step scales with the column: ~4% of a track (min 4px), so the snap
     // slack stays invisible and the implicit row count stays bounded.
@@ -807,6 +824,10 @@ function setupGridGeometry() {
   };
   new ResizeObserver(measureGridGeometry).observe(grid);
   measureGridGeometry();
+  /* Crossing the breakpoint swaps columns and hero height: re-plan the feed with the other set. */
+  NARROW.addEventListener("change", () => {
+    if (catalogReady) applyLayout(layout);
+  });
 }
 
 /**
@@ -992,6 +1013,8 @@ function createFollower() {
       active = Boolean(on);
       wake();
     },
+    /** Re-clamp after the hero box changes size (G-panel hero height). */
+    measure,
   };
 }
 
@@ -2000,6 +2023,10 @@ async function boot() {
   initEmbed();
   setupLanguage();
   initSmoothScroll();
+  /* Hero height and track count before the catalog arrives, so the first paint does not jump. */
+  layout = readStoredLayout() ?? catalogLayout;
+  page?.style.setProperty("--hero-vh", String(activeHeroVh()));
+  grid.style.setProperty("--grid-columns", String(activeColumns()));
   setupHero();
   setupGridGeometry();
   setupFilters();

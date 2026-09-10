@@ -13,6 +13,11 @@ const DEFAULT_TYPE_PATTERNS = Object.freeze({
 });
 export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   columns: 12,
+  /** Track count at the page's mobile breakpoint (≤760px); spans clamp to it. */
+  mobileColumns: 4,
+  /** Hero height in vh, desktop and mobile. Mobile keeps the filter row and first works in view. */
+  heroVh: 100,
+  heroVhMobile: 78,
   cellRatio: 1,
   gapX: 16,
   gapY: 16,
@@ -35,6 +40,7 @@ export function normalizeGridSpan(value) {
 export function normalizeExperiment2Layout(value) {
   const raw = value && typeof value === "object" ? value : {};
   const columns = boundedInteger(raw.columns, EXPERIMENT_2_LAYOUT_DEFAULTS.columns, 12, 2);
+  const mobileColumns = boundedInteger(raw.mobileColumns, EXPERIMENT_2_LAYOUT_DEFAULTS.mobileColumns, 12, 1);
   const finite = (candidate, fallback, min, max) => {
     const number = Number(candidate);
     return Number.isFinite(number) && number >= min && number <= max ? number : fallback;
@@ -75,6 +81,9 @@ export function normalizeExperiment2Layout(value) {
   }
   return {
     columns,
+    mobileColumns,
+    heroVh: finite(raw.heroVh, EXPERIMENT_2_LAYOUT_DEFAULTS.heroVh, 20, 200),
+    heroVhMobile: finite(raw.heroVhMobile, EXPERIMENT_2_LAYOUT_DEFAULTS.heroVhMobile, 20, 200),
     cellRatio: finite(raw.cellRatio, EXPERIMENT_2_LAYOUT_DEFAULTS.cellRatio, 0.25, 4),
     gapX: finite(raw.gapX, EXPERIMENT_2_LAYOUT_DEFAULTS.gapX, 0, 80),
     gapY: finite(raw.gapY, EXPERIMENT_2_LAYOUT_DEFAULTS.gapY, 0, 80),
