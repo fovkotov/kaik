@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T20:43:01.933Z",
+  "updatedAt": "2026-09-10T20:52:31.515Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3206,6 +3206,7 @@
       "author": "Katia",
       "nick": "hurujoi",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_1fd98157_0.svg"
       ],
@@ -3251,6 +3252,7 @@
       "author": "Андрей",
       "nick": "fovkotov",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_10848fd1_0.svg"
       ],
@@ -3296,6 +3298,7 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_64ace0a6_0.svg"
       ],
@@ -3311,6 +3314,7 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_0ce0356d_0.svg"
       ],
@@ -3326,6 +3330,7 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_122ca0ac_0.svg"
       ],
@@ -3341,6 +3346,7 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_a28bb63e_0.svg"
       ],
@@ -3356,6 +3362,7 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_6a277378_0.svg"
       ],
@@ -3371,6 +3378,7 @@
       "author": "надя",
       "nick": "oh_narcy",
       "stream": "1",
+      "hidden": true,
       "files": [
         "wrk_67baf1e9_0.svg"
       ],
