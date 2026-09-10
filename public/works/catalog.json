@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T01:22:33.593Z",
+  "updatedAt": "2026-09-10T01:26:38.430Z",
   "layout": {
     "columns": 6,
     "cellRatio": 0.823,
@@ -3010,6 +3010,21 @@
       "createdAt": "2026-09-10T00:08:52.870Z",
       "originalName": "Layer_1-2.svg",
       "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_651db906",
+      "type": "lettering",
+      "author": "надя",
+      "nick": "oh_narcy",
+      "stream": "1",
+      "width": 933,
+      "height": 355,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_651db906_0.svg"
+      ],
+      "originalName": "Group 2136141395.svg",
+      "createdAt": "2026-09-10T01:26:38.430Z"
     }
   ]
 }
