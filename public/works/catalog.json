@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T02:04:29.962Z",
+  "updatedAt": "2026-09-10T02:40:04.624Z",
   "layout": {
     "columns": 12,
     "cellRatio": 0.823,
@@ -3443,14 +3443,14 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
-      "width": 820,
-      "height": 355,
-      "gridSpan": "auto",
       "files": [
         "wrk_3badea24_0.svg"
       ],
+      "width": 820,
+      "height": 355,
+      "createdAt": "2026-09-10T02:04:29.962Z",
       "originalName": "Group 2136141410.svg",
-      "createdAt": "2026-09-10T02:04:29.962Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_b6d9e9a2",
@@ -3458,29 +3458,14 @@
       "author": "Артём",
       "nick": "svrdee",
       "stream": "1",
-      "width": 1190,
-      "height": 355,
-      "gridSpan": "auto",
       "files": [
         "wrk_b6d9e9a2_0.svg"
       ],
-      "originalName": "Group 2136141411.svg",
-      "createdAt": "2026-09-10T02:04:29.962Z"
-    },
-    {
-      "id": "wrk_b2938fa2",
-      "type": "lettering",
-      "author": "Андрей",
-      "nick": "fovkotov",
-      "stream": "1",
-      "width": 998,
+      "width": 1190,
       "height": 355,
-      "gridSpan": "auto",
-      "files": [
-        "wrk_b2938fa2_0.svg"
-      ],
-      "originalName": "Group 2136141412.svg",
-      "createdAt": "2026-09-10T02:04:29.962Z"
+      "createdAt": "2026-09-10T02:04:29.962Z",
+      "originalName": "Group 2136141411.svg",
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_1fcc0363",
@@ -3488,14 +3473,14 @@
       "author": "alena",
       "nick": "alenapichh",
       "stream": "1",
-      "width": 1621,
-      "height": 355,
-      "gridSpan": "auto",
       "files": [
         "wrk_1fcc0363_0.svg"
       ],
+      "width": 1621,
+      "height": 355,
+      "createdAt": "2026-09-10T02:04:29.962Z",
       "originalName": "Group-1.svg",
-      "createdAt": "2026-09-10T02:04:29.962Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_fdc56911",
@@ -3503,14 +3488,14 @@
       "author": "Андрей",
       "nick": "iamprpl",
       "stream": "1",
-      "width": 561,
-      "height": 355,
-      "gridSpan": "auto",
       "files": [
         "wrk_fdc56911_0.svg"
       ],
+      "width": 561,
+      "height": 355,
+      "createdAt": "2026-09-10T02:04:29.962Z",
       "originalName": "kaik 2.2.svg",
-      "createdAt": "2026-09-10T02:04:29.962Z"
+      "gridSpan": "auto"
     }
   ]
 }
