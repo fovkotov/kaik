@@ -4302,7 +4302,9 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   -webkit-backdrop-filter: none;
   overflow-x: hidden;
   overflow-y: scroll;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   overflow-anchor: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -4310,6 +4312,148 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   outline: none;
   /* Fly tween must not restart on click / :active / class churn. */
   transition: none;
+}
+
+/* Native bar hidden — the pink focus rail (focus-scrollbar.js) is the scrollbar. */
+.card.is-program-open::-webkit-scrollbar,
+.card.is-program-open.is-program-scroll::-webkit-scrollbar,
+.card.is-program-open[data-works-card] .works-card::-webkit-scrollbar,
+.card.is-program-open[data-program-card][data-expand-host] .program-card::-webkit-scrollbar,
+.card.is-program-open[data-works-card][data-expand-host] .works-card::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.card.is-program-open,
+.card.is-program-open[data-works-card] .works-card {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-focus-scroll] {
+  --fly-ms: 0.92s;
+  --fly-ease: cubic-bezier(0.22, 1, 0.32, 1);
+  --focus-view: 0px;
+  --focus-rail: 7px;
+  position: sticky;
+  top: 0;
+  float: right;
+  z-index: 24;
+  box-sizing: border-box;
+  width: 0;
+  height: 0;
+  margin: 0;
+  overflow: visible;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  opacity: 0;
+  /* No transform on the sticky host — transform makes sticky act like relative. */
+  transition: opacity var(--fly-ms) var(--fly-ease);
+}
+
+/* Thumbs only — no translucent rail behind the magenta pill. */
+[data-focus-scroll]::before,
+[data-focus-scroll-out]::before {
+  content: none;
+}
+
+[data-focus-scroll].is-on {
+  opacity: 1;
+}
+
+[data-focus-scroll][hidden] {
+  display: none;
+}
+
+[data-focus-scroll-thumb] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: auto;
+  width: var(--focus-rail);
+  background: #ff91f8;
+  border-radius: 999px;
+  pointer-events: auto;
+  cursor: inherit;
+  touch-action: none;
+  will-change: transform;
+}
+
+[data-focus-scroll-out] {
+  display: none;
+}
+
+.card.is-program-open.is-wheel-scrolling,
+.card.is-program-open.is-wheel-scrolling * {
+  cursor: default;
+}
+
+.card.is-program-open.is-wheel-scrolling [data-focus-scroll-thumb],
+[data-focus-scroll].is-wheel-scrolling [data-focus-scroll-thumb],
+[data-focus-scroll-out].is-wheel-scrolling [data-focus-scroll-thumb] {
+  pointer-events: none;
+}
+
+[data-focus-scroll].is-dragging [data-focus-scroll-thumb],
+[data-focus-scroll-out].is-dragging [data-focus-scroll-thumb] {
+  cursor: grabbing;
+  pointer-events: auto;
+}
+
+@media (min-width: 901px) {
+  html:not(.is-mobile) [data-focus-scroll] {
+    --focus-rail: 14px;
+    /* Same fixed layer as the outer half — card overflow must not clip one side. */
+    position: fixed;
+    float: none;
+    top: 0;
+    right: auto;
+    left: auto;
+    z-index: 44;
+    width: 14px;
+    height: 0;
+  }
+
+  html:not(.is-mobile) [data-focus-scroll-thumb] {
+    border-radius: 999px 0 0 999px;
+  }
+
+  html:not(.is-mobile) [data-focus-scroll-out] {
+    display: block;
+    --fly-ms: 0.92s;
+    --fly-ease: cubic-bezier(0.22, 1, 0.32, 1);
+    --focus-view: 0px;
+    position: fixed;
+    z-index: 45;
+    box-sizing: border-box;
+    width: 14px;
+    margin: 0;
+    overflow: visible;
+    pointer-events: none;
+    touch-action: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity var(--fly-ms) var(--fly-ease);
+  }
+
+  html:not(.is-mobile) [data-focus-scroll-out].is-on {
+    opacity: 1;
+  }
+
+  html:not(.is-mobile) [data-focus-scroll-out][hidden] {
+    display: none;
+  }
+
+  html:not(.is-mobile) [data-focus-scroll-out] [data-focus-scroll-thumb] {
+    right: auto;
+    left: 0;
+    width: 100%;
+    border-radius: 0 999px 999px 0;
+    /* Cover the card-edge hairline / AA seam under the outer half. */
+    box-shadow: -2px 0 0 #ff91f8;
+  }
 }
 
 .card.is-program-open.is-program-scroll[data-works-card] {
@@ -4398,7 +4542,9 @@ html.is-focus-landed body:not(.list) .card.is-program-open.is-program-scroll .hi
 .card.is-program-open.is-program-scroll[data-works-card] .works-card {
   overflow-x: hidden;
   overflow-y: scroll;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   overflow-anchor: none;
 }
 
@@ -4503,6 +4649,11 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
 @media (prefers-reduced-motion: reduce) {
   .card.is-program-open,
   .card.is-program-open[data-expand-host] {
+    transition: none;
+  }
+
+  [data-focus-scroll],
+  [data-focus-scroll-out] {
     transition: none;
   }
 
@@ -5820,7 +5971,9 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     min-height: 0;
     overflow-x: hidden;
     overflow-y: scroll;
-    scrollbar-gutter: stable;
+    scrollbar-gutter: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     overflow-anchor: none;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -5834,7 +5987,9 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     min-height: 0;
     overflow-x: hidden;
     overflow-y: scroll;
-    scrollbar-gutter: stable;
+    scrollbar-gutter: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     overflow-anchor: none;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
