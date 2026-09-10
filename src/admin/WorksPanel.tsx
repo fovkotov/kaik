@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
@@ -48,6 +49,7 @@ import {
   TYPE_LETTERING,
   WORK_TYPES,
   normalizeGridSpan,
+  normalizeName,
   normalizeNick,
   normalizeWorkType,
   sortWorksByDate,
@@ -550,6 +552,51 @@ function GridSpanSelect({
   );
 }
 
+// Author and nick are typed into one field: "Андрей @iamprpl". The first "@"
+// splits it — text before is the name, text after is the handle. No "@" →
+// name only; leading "@" → handle only.
+function splitAuthorNick(value: string): { author: string; nick: string } {
+  const at = value.indexOf("@");
+  if (at < 0) return { author: normalizeName(value), nick: "" };
+  return {
+    author: normalizeName(value.slice(0, at)),
+    nick: normalizeNick(value.slice(at + 1).replace(/[@\s]+/g, "")),
+  };
+}
+
+function joinAuthorNick(author: string, nick: string) {
+  return nick ? `${author} @${nick}`.trim() : author;
+}
+
+// One controlled input over two state fields. The raw text is kept locally
+// so a trailing "@" (nick not typed yet) survives the round trip; when the
+// fields change from outside (e.g. "apply to all") the text is re-derived.
+function AuthorNickInput({
+  author,
+  nick,
+  onChange,
+  ...rest
+}: Omit<ComponentProps<typeof Input>, "value" | "onChange" | "list"> & {
+  author: string;
+  nick: string;
+  onChange: (next: { author: string; nick: string }) => void;
+}) {
+  const [text, setText] = useState(() => joinAuthorNick(author, nick));
+  const parsed = splitAuthorNick(text);
+  const value = parsed.author === author && parsed.nick === nick ? text : joinAuthorNick(author, nick);
+  return (
+    <Input
+      {...rest}
+      list="works-author-nick-list"
+      value={value}
+      onChange={(event) => {
+        setText(event.target.value);
+        onChange(splitAuthorNick(event.target.value));
+      }}
+    />
+  );
+}
+
 function fileSrc(item: WorkItem, file: string) {
   return `${workFileUrl(file)}?t=${encodeURIComponent(item.updatedAt || item.createdAt || "")}`;
 }
@@ -681,8 +728,10 @@ export function WorksPanel({
     () => items.filter((item) => normalizeWorkType(item.type) === catalogType),
     [items, catalogType],
   );
-  const authors = useMemo(() => uniqueWorkValues(items, "author"), [items]);
-  const nicks = useMemo(() => uniqueWorkValues(items, "nick"), [items]);
+  const authorNicks = useMemo(
+    () => [...new Set(items.map((item) => joinAuthorNick(item.author || "", item.nick || "")).filter(Boolean))],
+    [items],
+  );
   const streams = useMemo(() => uniqueWorkValues(items, "stream"), [items]);
   const visualIds = useMemo(() => visible.map((item) => item.id), [visible]);
   const editIndex = editing ? visualIds.indexOf(editing.id) : -1;
@@ -1302,20 +1351,15 @@ export function WorksPanel({
             <div className="flex flex-wrap items-end gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="works-bulk-author">{copy("admin.author")}</Label>
-                <Input
+                <AuthorNickInput
                   id="works-bulk-author"
-                  list="works-author-list"
-                  value={bulkAuthor}
-                  onChange={(event) => setBulkAuthor(event.target.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="works-bulk-nick">{copy("admin.nick")}</Label>
-                <Input
-                  id="works-bulk-nick"
-                  list="works-nick-list"
-                  value={bulkNick}
-                  onChange={(event) => setBulkNick(event.target.value)}
+                  placeholder={copy("admin.authorNick")}
+                  author={bulkAuthor}
+                  nick={bulkNick}
+                  onChange={({ author, nick }) => {
+                    setBulkAuthor(author);
+                    setBulkNick(nick);
+                  }}
                 />
               </div>
               <div className="grid gap-1.5">
@@ -1348,7 +1392,7 @@ export function WorksPanel({
               {inbox.map((item) => (
                 <li
                   key={item.key}
-                  className="grid items-center gap-3 rounded-xl border p-2 sm:grid-cols-[72px_auto_1fr_1fr_1fr_auto]"
+                  className="grid items-center gap-3 rounded-xl border p-2 sm:grid-cols-[72px_auto_1fr_1fr_auto]"
                 >
                   <div className="relative size-[72px] overflow-hidden rounded-lg bg-muted">
                     {item.type === TYPE_FONT && item.files[0]?.preview ? (
@@ -1371,25 +1415,14 @@ export function WorksPanel({
                     }}
                     copy={copy}
                   />
-                  <Input
-                    placeholder={copy("admin.author")}
-                    list="works-author-list"
-                    value={item.author}
-                    onChange={(event) => {
-                      const author = event.target.value;
+                  <AuthorNickInput
+                    placeholder={copy("admin.authorNick")}
+                    aria-label={copy("admin.author")}
+                    author={item.author}
+                    nick={item.nick}
+                    onChange={({ author, nick }) => {
                       setInbox((current) =>
-                        current.map((entry) => (entry.key === item.key ? { ...entry, author } : entry)),
-                      );
-                    }}
-                  />
-                  <Input
-                    placeholder={copy("admin.nick")}
-                    list="works-nick-list"
-                    value={item.nick}
-                    onChange={(event) => {
-                      const nick = normalizeNick(event.target.value);
-                      setInbox((current) =>
-                        current.map((entry) => (entry.key === item.key ? { ...entry, nick } : entry)),
+                        current.map((entry) => (entry.key === item.key ? { ...entry, author, nick } : entry)),
                       );
                     }}
                   />
@@ -1579,13 +1612,8 @@ export function WorksPanel({
         </div>
       ) : null}
 
-      <datalist id="works-author-list">
-        {authors.map((value) => (
-          <option key={value} value={value} />
-        ))}
-      </datalist>
-      <datalist id="works-nick-list">
-        {nicks.map((value) => (
+      <datalist id="works-author-nick-list">
+        {authorNicks.map((value) => (
           <option key={value} value={value} />
         ))}
       </datalist>
@@ -1786,23 +1814,13 @@ export function WorksPanel({
                 />
                 <div className="grid gap-1.5">
                   <Label htmlFor="work-edit-author">{copy("admin.author")}</Label>
-                  <Input
+                  <AuthorNickInput
                     id="work-edit-author"
-                    list="works-author-list"
-                    value={editDraft.author}
-                    onChange={(event) =>
-                      setEditDraft((current) => ({ ...current, author: event.target.value }))
-                    }
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="work-edit-nick">{copy("admin.nick")}</Label>
-                  <Input
-                    id="work-edit-nick"
-                    list="works-nick-list"
-                    value={editDraft.nick}
-                    onChange={(event) =>
-                      setEditDraft((current) => ({ ...current, nick: normalizeNick(event.target.value) }))
+                    placeholder={copy("admin.authorNick")}
+                    author={editDraft.author}
+                    nick={editDraft.nick}
+                    onChange={({ author, nick }) =>
+                      setEditDraft((current) => ({ ...current, author, nick }))
                     }
                   />
                 </div>
