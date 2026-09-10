@@ -266,14 +266,24 @@ function plainSpecimenText(value) {
 }
 
 function fitFontSpecimen(specimen) {
-  specimen.style.removeProperty("--font-fit");
-  if (!specimen.clientWidth || !specimen.firstChild) return;
+  const width = specimen.clientWidth;
+  if (!width || !specimen.firstChild) return;
+  const current = Number.parseFloat(specimen.style.getPropertyValue("--font-fit")) || 1;
   const range = document.createRange();
   range.selectNodeContents(specimen);
   const needed = range.getBoundingClientRect().width;
-  if (needed > specimen.clientWidth) {
-    specimen.style.setProperty("--font-fit", String(Math.max(0.12, (specimen.clientWidth / needed) * 0.96)));
+  if (!(needed > 0)) return;
+  let next = current;
+  if (needed > width + 0.5) {
+    next = Math.max(0.12, current * (width / needed) * 0.96);
+  } else if (current < 1 && needed < width * 0.92) {
+    next = Math.min(1, current * (width / needed) * 0.96);
   }
+  const rounded = Math.round(next * 1000) / 1000;
+  const prev = specimen.style.getPropertyValue("--font-fit");
+  if (rounded >= 0.999) specimen.style.removeProperty("--font-fit");
+  else specimen.style.setProperty("--font-fit", String(rounded));
+  if (specimen.style.getPropertyValue("--font-fit") !== prev) scheduleCardMeasure();
 }
 
 function bindFontSpecimen(specimen, fallback) {
@@ -306,7 +316,10 @@ function bindFontSpecimen(specimen, fallback) {
     }
     event.stopPropagation();
   });
-  new ResizeObserver(() => fitFontSpecimen(specimen)).observe(specimen);
+  new ResizeObserver(() => {
+    fitFontSpecimen(specimen);
+    scheduleCardMeasure();
+  }).observe(specimen);
 }
 
 async function hydrateFontSpecimen(specimen, item, file) {
@@ -316,10 +329,22 @@ async function hydrateFontSpecimen(specimen, item, file) {
   bindFontSpecimen(specimen, fallback);
   try {
     const face = new FontFace(family, `url(${JSON.stringify(workFileUrl(file))})`);
-    document.fonts.add(await face.load());
+    const loaded = await face.load();
+    document.fonts.add(loaded);
     specimen.style.fontFamily = `"${family}", sans-serif`;
+    await document.fonts.ready;
+    await document.fonts.load(`48px "${family}"`).catch(() => {});
+    loaded.loaded.then(() => {
+      fitFontSpecimen(specimen);
+      scheduleCardMeasure();
+    }).catch(() => {});
   } catch {
     specimen.classList.add("is-font-error");
+  }
+  try {
+    await document.fonts.ready;
+  } catch {
+    /* third-party iframe can reject FontFaceSet */
   }
   fitFontSpecimen(specimen);
   scheduleCardMeasure();
@@ -332,7 +357,13 @@ function setArtworkDimensions(card, preview, width, height) {
   if (!(intrinsicWidth > 0 && intrinsicHeight > 0)) return false;
   card.dataset.artWidth = String(intrinsicWidth);
   card.dataset.artHeight = String(intrinsicHeight);
-  preview.style.aspectRatio = `${intrinsicWidth} / ${intrinsicHeight}`;
+  /* Lettering/daily must size from the img (width 100% / height auto), not a
+     catalog aspect box that can disagree with the file and clip the paint. */
+  if (card.dataset.type === TYPE_FINAL) {
+    preview.style.aspectRatio = "16 / 9";
+  } else {
+    preview.style.removeProperty("aspect-ratio");
+  }
   return true;
 }
 
@@ -378,40 +409,57 @@ function cardStackGap(card) {
   return Number.parseFloat(getComputedStyle(card).rowGap) || 0;
 }
 
+/** Layout width of the span — never a transformed/overflowing paint box. */
+function artBoxWidth(card) {
+  return card.clientWidth || 0;
+}
+
 /** Scaled natural height of the media, never the already-clipped box. */
 function intrinsicArtHeight(card) {
   const preview = card.querySelector(".work-card__preview");
   const image = preview?.querySelector("img");
-  const cellHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h")) || 0;
-  const boxWidth =
-    image?.getBoundingClientRect().width ||
-    preview?.getBoundingClientRect().width ||
-    card.getBoundingClientRect().width;
+  const boxWidth = artBoxWidth(card);
 
   if (card.dataset.type === TYPE_FINAL && boxWidth > 0) return boxWidth * (9 / 16);
 
-  if (image && image.naturalWidth > 0 && image.naturalHeight > 0 && boxWidth > 0) {
-    return boxWidth * (image.naturalHeight / image.naturalWidth);
+  const naturalW = image?.naturalWidth || Number(card.dataset.artWidth);
+  const naturalH = image?.naturalHeight || Number(card.dataset.artHeight);
+  if (naturalW > 0 && naturalH > 0 && boxWidth > 0) {
+    return boxWidth * (naturalH / naturalW);
   }
 
-  const catalogWidth = Number(card.dataset.artWidth);
-  const catalogHeight = Number(card.dataset.artHeight);
-  if (catalogWidth > 0 && catalogHeight > 0 && boxWidth > 0) {
-    return boxWidth * (catalogHeight / catalogWidth);
-  }
-
-  if (preview) {
-    const painted = Math.max(preview.scrollHeight, image?.scrollHeight || 0);
+  if (image) {
+    const painted = Math.max(image.scrollHeight, preview?.scrollHeight || 0);
     if (painted > 0) return painted;
   }
-  return cellHeight;
+  return 0;
+}
+
+/** Rendered specimen ink + padding after the webfont is in, never --grid-row-h. */
+function intrinsicSpecimenHeight(card) {
+  const specimen = card.querySelector(".work-card__font-specimen");
+  const art = card.querySelector(".work-card__art");
+  if (!specimen) return art?.scrollHeight || 0;
+  const fontSize = Number.parseFloat(getComputedStyle(specimen).fontSize) || 0;
+  let textHeight = 0;
+  if (specimen.firstChild) {
+    const range = document.createRange();
+    range.selectNodeContents(specimen);
+    textHeight = range.getBoundingClientRect().height;
+  }
+  return Math.max(
+    specimen.scrollHeight,
+    specimen.offsetHeight,
+    art?.scrollHeight || 0,
+    textHeight,
+    fontSize * 2.4,
+  );
 }
 
 function intrinsicCardHeight(card) {
   if (card.classList.contains("work-card--font")) {
-    const art = card.querySelector(".work-card__art");
-    const cellHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h")) || 0;
-    const artHeight = Math.max(cellHeight, art?.scrollHeight || 0);
+    const artHeight = intrinsicSpecimenHeight(card);
+    if (!(artHeight > 0)) return 0;
     return artHeight + cardStackGap(card) + metaBlockHeight(card);
   }
   const artHeight = intrinsicArtHeight(card);
@@ -439,13 +487,18 @@ function guardUnclippedCards() {
   let bumped = false;
   grid.querySelectorAll(".work-card").forEach((card) => {
     const allotted = allottedCardHeight(card);
-    const needed = Math.max(
+    const art = card.querySelector(".work-card__art");
+    const meta = card.querySelector(".work-card__meta");
+    const artBox = art?.getBoundingClientRect();
+    const metaBox = meta?.getBoundingClientRect();
+    let needed = Math.max(
       intrinsicCardHeight(card),
       card.scrollHeight,
-      (card.querySelector(".work-card__art")?.scrollHeight || 0) +
-        cardStackGap(card) +
-        metaBlockHeight(card),
+      (art?.scrollHeight || 0) + cardStackGap(card) + metaBlockHeight(card),
     );
+    if (artBox && metaBox && artBox.bottom > metaBox.top + 0.5) {
+      needed = Math.max(needed, artBox.height + cardStackGap(card) + metaBox.height + (artBox.bottom - metaBox.top));
+    }
     if (!(needed > 0)) return;
     if (allotted > 0 && needed <= allotted + 0.5) return;
     if (setCardRowSpan(card, needed)) bumped = true;
@@ -1809,6 +1862,8 @@ async function boot() {
   if (workshopWorks.length) nextHero();
   else hero.classList.add("is-loaded");
   document.fonts.ready.then(() => scheduleCardMeasure()).catch(() => {});
+  document.fonts.addEventListener("loadingdone", () => scheduleCardMeasure());
+  document.fonts.addEventListener("loadingerror", () => scheduleCardMeasure());
 }
 
 boot();

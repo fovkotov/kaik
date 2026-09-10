@@ -255,14 +255,11 @@ html.is-viewer-open .experiment-two__scroll {
 
 .work-card.is-enter {
   opacity: 0;
-  transform: translate3d(0, 8px, 0) scale(1.04);
-  transform-origin: 50% 55%;
   pointer-events: none;
 }
 
 .work-card.is-entered {
   opacity: 1;
-  transform: none;
 }
 
 .work-card {
@@ -270,9 +267,10 @@ html.is-viewer-open .experiment-two__scroll {
   grid-column: span var(--card-span, 1);
   grid-row: span var(--card-row-span, 1);
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: var(--grid-row-h) auto;
+  grid-template-rows: auto auto;
   align-self: start;
   min-width: 0;
+  max-width: 100%;
   height: auto;
   overflow: visible;
   gap: clamp(4px, 0.65vw, 10px);
@@ -289,22 +287,24 @@ html.is-viewer-open .experiment-two__scroll {
   align-items: var(--cell-pack-y);
   justify-content: var(--cell-pack-x);
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   min-height: 0;
   overflow: visible;
 }
 
 .work-card--font .work-card__art {
-  container-type: size;
+  container-type: inline-size;
 }
 
 .work-card__preview {
   position: relative;
   display: block;
+  flex: 0 0 auto;
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  height: 100%;
+  height: auto;
   overflow: visible;
 }
 
@@ -313,7 +313,10 @@ html.is-viewer-open .experiment-two__scroll {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  max-height: none;
   object-fit: contain;
   object-position: var(--cell-align-x) var(--cell-align-y);
   user-select: none;
@@ -345,37 +348,35 @@ html.is-viewer-open .experiment-two__scroll {
   display: none;
 }
 
-/* Image cards size to the media. JS reserves enough implicit rows for the
-   scaled artwork plus the caption — the art track must not shrink to a clip. */
-.work-card:not(.work-card--font):not(.is-skeleton) {
-  grid-template-rows: auto auto;
-  height: auto;
-}
-
 .work-card:not([data-type="final"]) .work-card__preview {
   flex: 0 0 auto;
   width: 100%;
+  max-width: 100%;
   height: auto;
 }
 
 .work-card:not([data-type="final"]) .work-card__preview img {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: auto;
-  object-fit: initial;
+  object-fit: contain;
 }
 
 .work-card__font-specimen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
-  height: 100%;
-  overflow: hidden;
+  height: auto;
+  min-height: 2.4em;
+  overflow: visible;
+  box-sizing: content-box;
+  padding: 0.4em 0;
   color: #000;
   font-size: calc(32cqw * var(--font-fit, 1));
   font-weight: 400;
-  line-height: 1;
+  line-height: 1.35;
   white-space: nowrap;
   text-align: center;
   outline: none;
