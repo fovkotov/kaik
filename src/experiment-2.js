@@ -30,6 +30,9 @@ let catalogLayout = normalizeExperiment2Layout();
 let layout = catalogLayout;
 let catalogReady = false;
 let workshopWorks = [];
+let heroQueue = [];
+let heroQueueIndex = -1;
+let heroGeneration = 0;
 const enabledTypes = new Set(VISUAL_TYPES);
 let activeLettering = null;
 let follower = null;
@@ -49,13 +52,6 @@ function imageFiles(item) {
 /** The hero draws vector only: the first .svg of a work, or nothing. */
 function svgFile(item) {
   return (item?.files || []).find((file) => /\.svg$/i.test(file)) || null;
-}
-
-function shufflePick(items, excludeId = "") {
-  if (!items.length) return null;
-  const pool = items.filter((item) => item.id !== excludeId);
-  const source = pool.length ? pool : items;
-  return source[Math.floor(Math.random() * source.length)];
 }
 
 function shuffled(items) {
@@ -361,18 +357,65 @@ function revealOnLoad(image, frame) {
 
 /* ---------- hero ---------- */
 
+/**
+ * Start every workshop request together and wait before revealing the first
+ * one. Once the hero is interactive, every queued URL is already in the
+ * browser image cache instead of making the user's tap wait on the network.
+ */
+async function preloadHeroWorks(items) {
+  const loaded = await Promise.all(
+    items.map(
+      (item) =>
+        new Promise((resolve) => {
+          const image = new Image();
+          const done = (ok) => resolve(ok ? item : null);
+          image.decoding = "async";
+          image.addEventListener("load", () => done(true), { once: true });
+          image.addEventListener("error", () => done(false), { once: true });
+          image.src = workFileUrl(svgFile(item));
+          if (image.complete) done(image.naturalWidth > 0);
+        }),
+    ),
+  );
+  return loaded.filter(Boolean);
+}
+
+function refillHeroQueue() {
+  heroQueue = shuffled(workshopWorks);
+  if (heroQueue.length > 1 && heroQueue[0]?.id === activeLettering?.id) {
+    [heroQueue[0], heroQueue[1]] = [heroQueue[1], heroQueue[0]];
+  }
+  heroQueueIndex = 0;
+}
+
 function setHero(item) {
   const file = svgFile(item);
   if (!file) return;
+  const generation = ++heroGeneration;
   activeLettering = item;
   letteringImage.src = workFileUrl(file);
   letteringImage.alt = altFor(item);
   credit.replaceChildren(...metaNodes(item));
+
+  /* Skeleton/fade belongs only to startup. Ignore superseded load events. */
+  if (!hero.classList.contains("is-loaded")) {
+    const reveal = () => {
+      letteringImage.removeEventListener("load", reveal);
+      letteringImage.removeEventListener("error", reveal);
+      if (generation === heroGeneration) hero.classList.add("is-loaded");
+    };
+    letteringImage.addEventListener("load", reveal);
+    letteringImage.addEventListener("error", reveal);
+    if (letteringImage.complete && letteringImage.naturalWidth) queueMicrotask(reveal);
+  }
 }
 
 function nextHero() {
-  const next = shufflePick(workshopWorks, activeLettering?.id);
-  if (next) setHero(next);
+  if (!workshopWorks.length) return;
+  if (heroQueueIndex < 0 || heroQueueIndex >= heroQueue.length) refillHeroQueue();
+  const next = heroQueue[heroQueueIndex];
+  heroQueueIndex += 1;
+  setHero(next);
 }
 
 /**
@@ -1247,9 +1290,7 @@ async function boot() {
 
   action.addEventListener("click", nextHero);
 
-  /* Skeleton hero + grid while the catalog is in flight. */
-  letteringImage.addEventListener("load", () => hero.classList.add("is-loaded"), { once: true });
-  letteringImage.addEventListener("error", () => hero.classList.add("is-loaded"), { once: true });
+  /* Skeleton hero + grid while the catalog and hero image cache are in flight. */
   renderSkeletons();
 
   let data;
@@ -1263,10 +1304,10 @@ async function boot() {
   catalogLayout = normalizeExperiment2Layout(data.layout);
   catalogReady = true;
   grid.removeAttribute("aria-busy");
-  workshopWorks = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
+  const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
   applyLayout(readStoredLayout() ?? catalogLayout);
-  const first = shufflePick(workshopWorks);
-  if (first) setHero(first);
+  workshopWorks = await preloadHeroWorks(heroCandidates);
+  if (workshopWorks.length) nextHero();
   else hero.classList.add("is-loaded");
 }
 
