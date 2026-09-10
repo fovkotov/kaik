@@ -1165,8 +1165,7 @@ html.is-viewer-open .experiment-two__scroll {
     position: fixed;
     left: var(--edge);
     right: var(--edge);
-    /* Lifted 100px above the gutter so it clears the host's mobile browser chrome. */
-    bottom: calc(var(--edge) + var(--frame-clip-bottom) + 100px);
+    bottom: calc(var(--edge) + var(--frame-clip-bottom));
     z-index: 40;
     display: flex;
     align-items: center;
