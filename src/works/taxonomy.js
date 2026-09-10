@@ -5,6 +5,43 @@ export const TYPE_FONT = "font";
 export const TYPE_DAILY = "daily";
 export const WORK_TYPES = [TYPE_LETTERING, TYPE_DAILY, TYPE_FINAL, TYPE_FONT];
 export const WORKS_CATALOG_EVENT = "works-catalog";
+export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
+  columns: 6,
+  largeIntervals: Object.freeze([6, 5, 7]),
+  largeSpan: 3,
+  dailySpans: Object.freeze([1, 3]),
+});
+
+function boundedInteger(value, fallback, max = 6) {
+  const span = Math.round(Number(value));
+  return span >= 1 && span <= max ? span : fallback;
+}
+
+export function normalizeGridSpan(value) {
+  return value === 1 || value === "1" ? 1 : value === 3 || value === "3" ? 3 : "auto";
+}
+
+export function normalizeExperiment2Layout(value) {
+  const raw = value && typeof value === "object" ? value : {};
+  const columns = boundedInteger(raw.columns, EXPERIMENT_2_LAYOUT_DEFAULTS.columns);
+  const sequence = (candidate, fallback, max = 6) => {
+    if (!Array.isArray(candidate) || !candidate.length) return [...fallback];
+    const normalized = candidate
+      .map((entry) => boundedInteger(entry, 0, max))
+      .filter(Boolean);
+    return normalized.length ? normalized : [...fallback];
+  };
+  return {
+    columns,
+    largeIntervals: sequence(
+      raw.largeIntervals ?? raw.intervals,
+      EXPERIMENT_2_LAYOUT_DEFAULTS.largeIntervals,
+      99,
+    ),
+    largeSpan: boundedInteger(raw.largeSpan, EXPERIMENT_2_LAYOUT_DEFAULTS.largeSpan),
+    dailySpans: sequence(raw.dailySpans, EXPERIMENT_2_LAYOUT_DEFAULTS.dailySpans),
+  };
+}
 
 export function normalizeWorkType(value) {
   const key = String(value || "").trim().toLowerCase();
@@ -34,7 +71,12 @@ export function normalizeSample(value) {
 }
 
 export function emptyWorksCatalog() {
-  return { version: 1, updatedAt: null, items: [] };
+  return {
+    version: 1,
+    updatedAt: null,
+    layout: normalizeExperiment2Layout(),
+    items: [],
+  };
 }
 
 export function normalizeWorkItem(item) {
@@ -59,14 +101,19 @@ export function normalizeWorkItem(item) {
     createdAt: String(item.createdAt || ""),
     updatedAt: item.updatedAt ? String(item.updatedAt) : undefined,
     originalName: String(item.originalName || files[0] || ""),
+    gridSpan: normalizeGridSpan(item.gridSpan),
   };
 }
 
 export function hydrateWorksCatalog(data) {
   if (!data || !Array.isArray(data.items)) return emptyWorksCatalog();
+  // `layout.experiment2` was used by an early draft. Accept it while writing
+  // the simpler public `catalog.layout` shape going forward.
+  const layout = data.layout?.experiment2 ?? data.layout;
   return {
     version: 1,
     updatedAt: data.updatedAt || null,
+    layout: normalizeExperiment2Layout(layout),
     items: data.items.map(normalizeWorkItem).filter(Boolean),
   };
 }

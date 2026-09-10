@@ -109,76 +109,7 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .works-page {
-  padding: 24px var(--gutter) max(72px, calc(36px + var(--frame-clip-bottom)));
-}
-
-/* Tabs are the headline: active is ink, inactive is faded. They sit under the first block. */
-.works-tabs {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0 24px;
-  margin: 36px 0 26px;
-}
-
-.works-tabs__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.55em;
-  font-size: clamp(28px, 3.6vw, 56px);
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-/* Lettering credit shares the tabs' baseline, flush right. */
-.works-tabs__credit {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0 8px;
-  max-width: min(50%, 480px);
-  margin: 0;
-  font-size: clamp(12px, 1vw, 15px);
-  line-height: 1.2;
-  text-align: right;
-  color: var(--muted);
-}
-
-.works-tabs__credit span:first-child:not(.is-muted) {
-  color: var(--ink);
-}
-
-/* Final-projects tab: the credit goes invisible but keeps its slot so the row never jumps. */
-.works-tabs__credit.is-hidden {
-  visibility: hidden;
-}
-
-.works-tab {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  color: var(--ink);
-  opacity: 0.3;
-  cursor: pointer;
-  transition: opacity 160ms var(--ease-out);
-}
-
-.works-tab.is-on {
-  color: #000;
-  opacity: 1;
-  cursor: default;
-}
-
-.works-tab:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 4px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .works-tab:not(.is-on):hover {
-    opacity: 0.55;
-  }
+  padding: 24px var(--gutter) max(104px, calc(72px + var(--frame-clip-bottom)));
 }
 
 /* Both first blocks share one height so the tabs and grid never jump on switch. */
@@ -188,7 +119,7 @@ html.is-viewer-open .experiment-two__scroll {
   --hero-h: max(420px, calc(var(--hero-frame) * 0.7));
 }
 
-/* Lettering hero — workshops tab only, sits above the grid. */
+/* Interactive lettering stays above the mixed feed. */
 .lettering-hero {
   position: relative;
   height: var(--hero-h);
@@ -196,10 +127,6 @@ html.is-viewer-open .experiment-two__scroll {
   overflow: hidden;
   isolation: isolate;
   touch-action: pan-y;
-}
-
-.lettering-hero[hidden] {
-  display: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -266,112 +193,38 @@ html.is-viewer-open .experiment-two__scroll {
   outline-offset: -8px;
 }
 
-/* Final review — title left, YouTube recording right (final-projects tab). */
-.review-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  align-items: start;
-  align-content: start;
-  gap: 32px clamp(24px, 4vw, 64px);
-  /* Same box as the lettering hero; may only grow if the content really needs it. */
-  min-height: var(--hero-h);
-  box-sizing: border-box;
-  padding-top: 16px;
-}
-
-.review-hero[hidden] {
-  display: none;
-}
-
-.review-hero__title {
-  max-width: 9em;
+.lettering-hero__credit {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 16px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 8px;
   margin: 0;
-  font-size: clamp(28px, 3.6vw, 56px);
-  line-height: 1;
-  letter-spacing: -0.03em;
+  font-size: clamp(10px, 1vw, 14px);
+  color: var(--muted);
+  pointer-events: none;
 }
 
-.review-hero__video {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: #dcdcdc;
-}
-
-.review-hero__video iframe {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-.review-hero__play {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-}
-
-.review-hero__play-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: clamp(72px, 9vw, 108px);
-  height: clamp(72px, 9vw, 108px);
-  border-radius: 50%;
-  background: var(--ink);
-  transition: transform 160ms var(--ease-out);
-}
-
-.review-hero__play-icon::after {
-  content: "";
-  width: 0;
-  height: 0;
-  margin-left: 6px;
-  border-style: solid;
-  border-width: 15px 0 15px 26px;
-  border-color: transparent transparent transparent var(--bg);
-}
-
-.review-hero__play:focus-visible .review-hero__play-icon {
-  outline: 2px solid var(--ink);
-  outline-offset: 4px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .review-hero__play:hover .review-hero__play-icon {
-    transform: scale(1.05);
-  }
-}
-
-.review-hero__play:active .review-hero__play-icon {
-  transform: scale(0.97);
-}
-
-.review-hero.is-playing .review-hero__play {
-  display: none;
-}
-
-/* Grid — no plates: art and caption sit right on the page background. */
+/* Six tracks are invariant; only gaps and labels compress with the iframe. */
 .works-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 32px clamp(14px, 2vw, 28px);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  grid-auto-rows: var(--grid-row-h, 277px);
+  gap: clamp(8px, 1.25vw, 20px) clamp(4px, 0.8vw, 12px);
+  margin-top: clamp(24px, 4vw, 56px);
 }
 
 .work-card {
   display: grid;
-  gap: 10px;
+  grid-column: span var(--card-span, 1);
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  height: 100%;
+  gap: clamp(4px, 0.65vw, 10px);
   appearance: none;
   border: 0;
   background: transparent;
@@ -385,7 +238,7 @@ html.is-viewer-open .experiment-two__scroll {
   align-items: center;
   justify-content: center;
   width: 100%;
-  aspect-ratio: 1.5;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -475,12 +328,7 @@ html.is-viewer-open .experiment-two__scroll {
   width: 38%;
 }
 
-/* Final projects are strict 16:9 covers; workshop lettering keeps its contain box. */
-.works-grid[data-tab="final"] .work-card__art {
-  aspect-ratio: 16 / 9;
-}
-
-.works-grid[data-tab="final"] .work-card__art img {
+.work-card[data-type="final"] .work-card__art img {
   object-fit: cover;
 }
 
@@ -529,6 +377,56 @@ html.is-viewer-open .experiment-two__scroll {
   margin: 0;
   color: var(--muted);
   font-size: 20px;
+}
+
+.filter-island {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + var(--frame-clip-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+  transform: translateX(-50%);
+}
+
+.filter-chip {
+  flex: none;
+  appearance: none;
+  border: 0;
+  border-radius: 2px;
+  padding: 1px 2px 2px;
+  color: rgba(0, 0, 0, 0.75);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 160ms var(--ease-out), filter 160ms var(--ease-out);
+}
+
+.filter-chip--daily {
+  background: #0095ff;
+}
+
+.filter-chip--lettering {
+  background: #fed301;
+}
+
+.filter-chip--final {
+  background: #ff91f8;
+}
+
+.filter-chip[aria-checked="false"] {
+  opacity: 0.28;
+  filter: saturate(0.25);
+}
+
+.filter-chip:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.75);
+  outline-offset: 3px;
 }
 
 /* Fullscreen viewer — same chrome as the site lightbox, light palette. */
@@ -822,40 +720,6 @@ html.is-viewer-open .experiment-two__scroll {
     padding-top: 16px;
   }
 
-  /* Mobile: tabs stack, the credit drops under them as a plain left-aligned line. */
-  .works-tabs {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    margin: 28px 0 20px;
-  }
-
-  .works-tabs__list {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .works-tab {
-    text-align: left;
-  }
-
-  .works-tabs__credit {
-    justify-content: flex-start;
-    max-width: none;
-    text-align: left;
-  }
-
-  .review-hero__play-icon::after {
-    border-width: 11px 0 11px 19px;
-  }
-
-  .review-hero {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    padding-top: 8px;
-  }
-
   .works-page {
     --hero-h: max(320px, calc(var(--hero-frame) * 0.55));
   }
@@ -866,12 +730,29 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .works-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 14px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px 4px;
   }
 
   .work-card__meta {
-    font-size: 12px;
+    gap: 1px 3px;
+    font-size: clamp(8px, 2.7vw, 12px);
+    line-height: 1.1;
+  }
+
+  .lettering-hero__credit {
+    right: 12px;
+    left: 12px;
+    justify-content: flex-start;
+  }
+
+  .filter-island {
+    bottom: max(12px, calc(env(safe-area-inset-bottom) + var(--frame-clip-bottom)));
+    gap: 3px;
+  }
+
+  .filter-chip {
+    font-size: clamp(11px, 3.7vw, 17px);
   }
 
   .viewer__stage {
@@ -895,8 +776,7 @@ html.is-viewer-open .experiment-two__scroll {
 @media (prefers-reduced-motion: reduce) {
   .work-card__art,
   .work-card__meta,
-  .works-tab,
-  .review-hero__play-icon,
+  .filter-chip,
   .viewer__arrow,
   .viewer__close,
   .viewer__dot::after,

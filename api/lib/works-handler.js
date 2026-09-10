@@ -3,6 +3,7 @@ import {
   bulkPatchWorks,
   createWorks,
   deleteWork,
+  patchWorksLayout,
   patchWork,
 } from "../../src/works/admin-routes.js";
 import {
@@ -123,6 +124,13 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (method === "PATCH" && parts[0] === "layout" && parts.length === 1) {
+      const body = await readJson(req);
+      const catalog = await serial(() => patchWorksLayout(readWorksCatalog, commitWorks, body));
+      send(res, 200, envelope(catalog));
+      return;
+    }
+
     if (method === "DELETE" && parts[0] === "bulk" && parts.length === 1) {
       const body = await readJson(req);
       const catalog = await serial(() => bulkDeleteWorks(readWorksCatalog, commitWorks, body));
@@ -130,7 +138,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    if (parts.length === 1 && parts[0] !== "file" && parts[0] !== "bulk") {
+    if (parts.length === 1 && !["file", "bulk", "layout"].includes(parts[0])) {
       const id = decodeURIComponent(parts[0]);
       if (method === "DELETE") {
         const catalog = await serial(() => deleteWork(readWorksCatalog, commitWorks, id));

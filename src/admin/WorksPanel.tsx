@@ -47,6 +47,8 @@ import {
   TYPE_FONT,
   TYPE_LETTERING,
   WORK_TYPES,
+  normalizeExperiment2Layout,
+  normalizeGridSpan,
   normalizeNick,
   normalizeWorkType,
   sortWorksByDate,
@@ -69,6 +71,14 @@ type WorkItem = {
   originalName?: string;
   createdAt: string;
   updatedAt?: string;
+  gridSpan?: "auto" | 1 | 3;
+};
+
+type Experiment2Layout = {
+  columns: number;
+  largeIntervals: number[];
+  largeSpan: number;
+  dailySpans: number[];
 };
 
 type WorksCatalog = {
@@ -77,6 +87,7 @@ type WorksCatalog = {
   items: WorkItem[];
   writable?: boolean;
   fileBase?: string;
+  layout: Experiment2Layout;
 };
 
 type UploadFile = {
@@ -97,6 +108,8 @@ type InboxItem = {
   stream: string;
   files: UploadFile[];
 };
+
+type GridSpan = "auto" | 1 | 3;
 
 // One slide of a final project in the editor: either an existing catalog file
 // or a freshly picked upload that will replace / extend the set on save.
@@ -452,6 +465,39 @@ function TypeSelect({
   );
 }
 
+function GridSpanSelect({
+  value,
+  onChange,
+  copy,
+  ariaLabel,
+  placeholder,
+}: {
+  value: GridSpan | "";
+  onChange: (value: GridSpan) => void;
+  copy: (key: string) => string;
+  ariaLabel?: string;
+  placeholder?: string;
+}) {
+  return (
+    <select
+      value={value}
+      aria-label={ariaLabel || copy("admin.gridSpan")}
+      onChange={(event) => {
+        if (event.target.value) onChange(normalizeGridSpan(event.target.value) as GridSpan);
+      }}
+    >
+      {placeholder ? (
+        <option value="" disabled>
+          {placeholder}
+        </option>
+      ) : null}
+      <option value="auto">{copy("admin.gridSpan.auto")}</option>
+      <option value="1">{copy("admin.gridSpan.one")}</option>
+      <option value="3">{copy("admin.gridSpan.three")}</option>
+    </select>
+  );
+}
+
 function fileSrc(item: WorkItem, file: string) {
   return `${workFileUrl(file)}?t=${encodeURIComponent(item.updatedAt || item.createdAt || "")}`;
 }
@@ -507,6 +553,11 @@ export function WorksPanel({
   const [bulkAuthor, setBulkAuthor] = useState("");
   const [bulkNick, setBulkNick] = useState("");
   const [bulkStream, setBulkStream] = useState("");
+  const [layoutDraft, setLayoutDraft] = useState({
+    intervals: "6, 5, 7",
+    largeSpan: "3",
+    dailySpans: "1, 3",
+  });
   const [catalogType, setCatalogType] = useState<WorkType>(TYPE_LETTERING);
   const [hot, setHot] = useState(false);
   const [editing, setEditing] = useState<WorkItem | null>(null);
@@ -516,6 +567,7 @@ export function WorksPanel({
     nick: "",
     stream: "",
     sample: "",
+    gridSpan: "auto" as GridSpan,
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
   const [editSlides, setEditSlides] = useState<Slide[]>([]);
@@ -576,6 +628,15 @@ export function WorksPanel({
     pull();
     return subscribeWorksCatalog(pull);
   }, []);
+
+  useEffect(() => {
+    const next = normalizeExperiment2Layout(catalog.layout);
+    setLayoutDraft({
+      intervals: next.largeIntervals.join(", "),
+      largeSpan: String(next.largeSpan),
+      dailySpans: next.dailySpans.join(", "),
+    });
+  }, [catalog.updatedAt]);
 
   const items = useMemo(() => sortWorksByDate(catalog.items) as WorkItem[], [catalog]);
   const visible = useMemo(
@@ -751,8 +812,9 @@ export function WorksPanel({
     };
   }, []);
 
+  // Author, nick and stream are optional — only the files are required.
   function inboxReady(item: InboxItem) {
-    return Boolean(item.author.trim() && item.stream.trim() && item.files.length);
+    return item.files.length > 0;
   }
 
   async function saveInbox() {
@@ -848,6 +910,7 @@ export function WorksPanel({
       nick: item.nick,
       stream: item.stream,
       sample: item.sample || "",
+      gridSpan: normalizeGridSpan(item.gridSpan) as GridSpan,
     });
     setEditFiles(null);
     setEditSlides(slidesFrom(item));
@@ -938,6 +1001,7 @@ export function WorksPanel({
           nick: editDraft.nick,
           stream: editDraft.stream,
           sample: editDraft.sample,
+          gridSpan: editDraft.gridSpan,
           ...filesPatch,
         }),
       });
@@ -980,6 +1044,56 @@ export function WorksPanel({
       });
       setCatalog(data);
       setSelected([]);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toastApiError(error, copy);
+    }
+  }
+
+  async function applyBulkGridSpan(gridSpan: GridSpan) {
+    if (!selected.length || !canWrite) return;
+    try {
+      const data = await worksApi("/bulk", {
+        method: "PATCH",
+        body: JSON.stringify({ ids: selected, patch: { gridSpan } }),
+      });
+      setCatalog(data);
+      setSelected([]);
+      toast.success(copy("admin.saved"));
+    } catch (error) {
+      toastApiError(error, copy);
+    }
+  }
+
+  async function saveLayout() {
+    if (!canWrite) {
+      toast.error(copy("admin.devOnly"));
+      return;
+    }
+    const parseSequence = (value: string, max: number) => {
+      const entries = value.split(",").map((entry) => Number(entry.trim()));
+      return entries.length > 0 &&
+        entries.every((entry) => Number.isInteger(entry) && entry >= 1 && entry <= max)
+        ? entries
+        : null;
+    };
+    // Interval values are card counts, so the default 7 must remain valid.
+    // Actual spans are constrained to the six available tracks.
+    const intervals = parseSequence(layoutDraft.intervals, 99);
+    const dailySpans = parseSequence(layoutDraft.dailySpans, 6);
+    const largeSpan = Number(layoutDraft.largeSpan);
+    if (!intervals || !dailySpans || !Number.isInteger(largeSpan) || largeSpan < 1 || largeSpan > 6) {
+      toast.error(copy("admin.layoutInvalid"));
+      return;
+    }
+    try {
+      const data = await worksApi("/layout", {
+        method: "PATCH",
+        body: JSON.stringify({
+          layout: { columns: 6, largeIntervals: intervals, largeSpan, dailySpans },
+        }),
+      });
+      setCatalog(data);
       toast.success(copy("admin.saved"));
     } catch (error) {
       toastApiError(error, copy);
@@ -1319,6 +1433,60 @@ export function WorksPanel({
         </Card>
       ) : null}
 
+      <Card data-no-lasso>
+        <CardHeader className="border-b">
+          <CardTitle>{copy("admin.layoutTitle")}</CardTitle>
+          <CardDescription>{copy("admin.layoutDescription")}</CardDescription>
+        </CardHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveLayout();
+          }}
+        >
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="works-layout-intervals">{copy("admin.layoutIntervals")}</Label>
+              <Input
+                id="works-layout-intervals"
+                inputMode="numeric"
+                value={layoutDraft.intervals}
+                onChange={(event) =>
+                  setLayoutDraft((current) => ({ ...current, intervals: event.target.value }))
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="works-layout-large">{copy("admin.layoutLargeSpan")}</Label>
+              <Input
+                id="works-layout-large"
+                type="number"
+                min={1}
+                max={6}
+                value={layoutDraft.largeSpan}
+                onChange={(event) =>
+                  setLayoutDraft((current) => ({ ...current, largeSpan: event.target.value }))
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="works-layout-daily">{copy("admin.layoutDailySpans")}</Label>
+              <Input
+                id="works-layout-daily"
+                inputMode="numeric"
+                value={layoutDraft.dailySpans}
+                onChange={(event) =>
+                  setLayoutDraft((current) => ({ ...current, dailySpans: event.target.value }))
+                }
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button type="submit">{copy("admin.saveLayout")}</Button>
+          </CardFooter>
+        </form>
+      </Card>
+
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -1346,7 +1514,7 @@ export function WorksPanel({
                 role="button"
                 tabIndex={0}
                 data-work-id={item.id}
-                title={`${item.author} @${item.nick} · ${item.stream}`}
+                title={[item.author, item.nick && `@${item.nick}`, item.stream].filter(Boolean).join(" · ")}
                 className={cn(
                   "grid cursor-pointer gap-2 overflow-hidden rounded-xl bg-card p-2 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/40",
                   selected.includes(item.id) && "ring-2 ring-primary",
@@ -1428,6 +1596,13 @@ export function WorksPanel({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <TypeTabs value={catalogType} onChange={applyBulkType} copy={copy} />
+              <GridSpanSelect
+                value=""
+                onChange={applyBulkGridSpan}
+                copy={copy}
+                ariaLabel={copy("admin.bulkGridSpan")}
+                placeholder={copy("admin.bulkGridSpan")}
+              />
               <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmBulk(true)}>
                 <Trash2Icon data-icon="inline-start" />
                 {copy("admin.delete")}
@@ -1646,7 +1821,6 @@ export function WorksPanel({
                   <Label htmlFor="work-edit-author">{copy("admin.author")}</Label>
                   <Input
                     id="work-edit-author"
-                    required
                     list="works-author-list"
                     value={editDraft.author}
                     onChange={(event) =>
@@ -1669,12 +1843,22 @@ export function WorksPanel({
                   <Label htmlFor="work-edit-stream">{copy("admin.stream")}</Label>
                   <Input
                     id="work-edit-stream"
-                    required
                     list="works-stream-list"
                     value={editDraft.stream}
                     onChange={(event) =>
                       setEditDraft((current) => ({ ...current, stream: event.target.value }))
                     }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="work-edit-grid-span">{copy("admin.gridSpan")}</Label>
+                  <GridSpanSelect
+                    value={editDraft.gridSpan}
+                    onChange={(gridSpan) =>
+                      setEditDraft((current) => ({ ...current, gridSpan }))
+                    }
+                    copy={copy}
+                    ariaLabel={copy("admin.gridSpan")}
                   />
                 </div>
                 {showingFont ? (

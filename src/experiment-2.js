@@ -1,31 +1,27 @@
 import { initEmbed } from "./embed.js";
+import { planExperiment2 } from "./experiment-2-planner.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
+import { TYPE_DAILY, TYPE_FINAL, TYPE_LETTERING } from "./works/taxonomy.js";
 
-const TAB_WORKSHOPS = "lettering";
-const TAB_FINAL = "final";
+const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL];
 
 const hero = document.querySelector("[data-lettering-hero]");
 const letteringImage = document.querySelector("[data-lettering-image]");
 const action = document.querySelector("[data-lettering-action]");
 const credit = document.querySelector("[data-lettering-credit]");
-const reviewHero = document.querySelector("[data-review-hero]");
-const reviewVideo = document.querySelector("[data-review-video]");
-const reviewPlay = document.querySelector("[data-review-play]");
-const panel = document.querySelector("[data-works-panel]");
-
-const REVIEW_VIDEO_ID = "K06Djv3prto";
 const grid = document.querySelector("[data-works-grid]");
 const empty = document.querySelector("[data-works-empty]");
-const tabs = [...document.querySelectorAll("[data-tab]")];
+const filters = [...document.querySelectorAll("[data-filter]")];
 
 const COARSE = window.matchMedia("(pointer: coarse)");
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 let catalog = [];
+let layout = undefined;
 let catalogReady = false;
 let workshopWorks = [];
-let activeTab = TAB_WORKSHOPS;
+const enabledTypes = new Set(VISUAL_TYPES);
 let activeLettering = null;
 let follower = null;
 let viewer = null;
@@ -82,57 +78,26 @@ function metaNodes(item) {
 }
 
 function altFor(item) {
-  const kind = item.type === TAB_FINAL ? "Финальный проект" : "Работа воркшопа";
+  const kind =
+    item.type === TYPE_FINAL
+      ? "Финальный проект"
+      : item.type === TYPE_DAILY
+        ? "Daily Practice"
+        : "Работа воркшопа";
   return item.author ? `${kind}, ${item.author}` : kind;
 }
 
-/* ---------- tabs + grid ---------- */
+/* ---------- mixed grid ---------- */
 
-function setTab(next) {
-  if (next !== TAB_WORKSHOPS && next !== TAB_FINAL) return;
-  activeTab = next;
-  tabs.forEach((tab) => {
-    const on = tab.dataset.tab === next;
-    tab.classList.toggle("is-on", on);
-    tab.setAttribute("aria-selected", on ? "true" : "false");
-    tab.tabIndex = on ? 0 : -1;
-  });
-  panel.setAttribute("aria-labelledby", `tab-${next}`);
-  const showHero = next === TAB_WORKSHOPS;
-  hero.hidden = !showHero;
-  follower?.setActive(showHero);
-  reviewHero.hidden = showHero;
-  credit.classList.toggle("is-hidden", !showHero);
-  if (showHero) stopReview();
-  renderGrid();
-}
-
-/* ---------- final review video ---------- */
-
-function playReview() {
-  if (reviewHero.classList.contains("is-playing")) return;
-  const frame = document.createElement("iframe");
-  frame.src = `https://www.youtube-nocookie.com/embed/${REVIEW_VIDEO_ID}?autoplay=1&rel=0&playsinline=1`;
-  frame.title = "Финальный просмотр 1 потока";
-  frame.allow = "autoplay; fullscreen; picture-in-picture; clipboard-write";
-  frame.allowFullscreen = true;
-  frame.referrerPolicy = "strict-origin-when-cross-origin";
-  reviewVideo.append(frame);
-  reviewHero.classList.add("is-playing");
-}
-
-/** Leaving the tab: drop the embed so audio stops and the play plate comes back. */
-function stopReview() {
-  reviewVideo.querySelector("iframe")?.remove();
-  reviewHero.classList.remove("is-playing");
-}
-
-function cardFor(item) {
+function cardFor(item, span) {
   const cover = imageFiles(item)[0];
   const card = document.createElement("button");
   card.type = "button";
   card.className = "work-card";
   card.dataset.workId = item.id;
+  card.dataset.type = item.type;
+  card.dataset.span = String(span);
+  card.style.setProperty("--card-span", String(span));
 
   const art = document.createElement("span");
   art.className = "work-card__art";
@@ -154,9 +119,10 @@ function cardFor(item) {
   return card;
 }
 
-/** Works of the active tab, in grid order. */
 function visibleWorks() {
-  return catalog.filter((item) => item.type === activeTab && imageFiles(item).length);
+  return catalog.filter(
+    (item) => enabledTypes.has(item.type) && VISUAL_TYPES.includes(item.type) && imageFiles(item).length,
+  );
 }
 
 function slideFor(item, file) {
@@ -164,16 +130,16 @@ function slideFor(item, file) {
 }
 
 /**
- * Final project: slides are its own files. Workshops: slides are the workshop
- * works themselves, in grid order, starting from the one that was clicked.
+ * A final project pages through its own files. Daily and workshop cards share
+ * one non-final browsing sequence in the currently visible filtered order.
  */
 function openViewerFor(item, card) {
   if (!viewer) return;
-  if (item.type === TAB_FINAL) {
+  if (item.type === TYPE_FINAL) {
     viewer.open(imageFiles(item).map((file) => slideFor(item, file)), 0, card);
     return;
   }
-  const works = visibleWorks();
+  const works = visibleWorks().filter((work) => work.type !== TYPE_FINAL);
   const slides = works.map((work) => slideFor(work, imageFiles(work)[0]));
   const start = Math.max(0, works.findIndex((work) => work.id === item.id));
   viewer.open(slides, start, card);
@@ -185,23 +151,29 @@ function renderGrid() {
     return;
   }
   const works = visibleWorks();
+  const planned = planExperiment2(works, layout);
   const fragment = document.createDocumentFragment();
-  works.forEach((item) => fragment.append(cardFor(item)));
+  planned.forEach(({ item, span }) => fragment.append(cardFor(item, span)));
   grid.replaceChildren(fragment);
-  grid.dataset.tab = activeTab;
   empty.hidden = works.length > 0;
 }
 
 /* ---------- skeletons ---------- */
 
-const SKELETON_CARDS = 8;
+const SKELETON_CARDS = 18;
 
 /** Shimmer plates in the exact card geometry so the real grid drops in without a shift. */
 function renderSkeletons() {
   const fragment = document.createDocumentFragment();
-  for (let i = 0; i < SKELETON_CARDS; i += 1) {
+  const placeholders = Array.from({ length: SKELETON_CARDS }, (_, index) => ({
+    id: `skeleton-${index}`,
+    type: index === 2 || index === 9 ? TYPE_DAILY : TYPE_LETTERING,
+  }));
+  for (const { item, span } of planExperiment2(placeholders, layout)) {
     const card = document.createElement("div");
     card.className = "work-card is-skeleton";
+    card.dataset.span = String(span);
+    card.style.setProperty("--card-span", String(span));
     card.setAttribute("aria-hidden", "true");
     const art = document.createElement("span");
     art.className = "work-card__art skeleton";
@@ -216,9 +188,32 @@ function renderSkeletons() {
     fragment.append(card);
   }
   grid.replaceChildren(fragment);
-  grid.dataset.tab = activeTab;
   grid.setAttribute("aria-busy", "true");
   empty.hidden = true;
+}
+
+function setupGridGeometry() {
+  const measure = () => {
+    const styles = getComputedStyle(grid);
+    const gap = Number.parseFloat(styles.columnGap) || 0;
+    const track = Math.max(1, (grid.clientWidth - gap * 5) / 6);
+    grid.style.setProperty("--grid-row-h", `${(track * 277) / 228}px`);
+  };
+  new ResizeObserver(measure).observe(grid);
+  measure();
+}
+
+function setupFilters() {
+  filters.forEach((button) => {
+    button.addEventListener("click", () => {
+      const type = button.dataset.filter;
+      if (!VISUAL_TYPES.includes(type)) return;
+      if (enabledTypes.has(type)) enabledTypes.delete(type);
+      else enabledTypes.add(type);
+      button.setAttribute("aria-checked", enabledTypes.has(type) ? "true" : "false");
+      renderGrid();
+    });
+  });
 }
 
 /** Fade the image in once it has pixels; until then the frame keeps its skeleton plate. */
@@ -1075,24 +1070,16 @@ function createViewer(root) {
 async function boot() {
   initEmbed();
   setupHero();
+  setupGridGeometry();
+  setupFilters();
   viewer = createViewer(document.querySelector("[data-viewer]"));
 
-  tabs.forEach((tab) => tab.addEventListener("click", () => setTab(tab.dataset.tab)));
-  document.querySelector(".works-tabs")?.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    const i = tabs.findIndex((tab) => tab.classList.contains("is-on"));
-    const next = tabs[(i + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
-    setTab(next.dataset.tab);
-    next.focus();
-  });
   action.addEventListener("click", nextHero);
-  reviewPlay.addEventListener("click", playReview);
 
   /* Skeleton hero + grid while the catalog is in flight. */
   letteringImage.addEventListener("load", () => hero.classList.add("is-loaded"), { once: true });
   letteringImage.addEventListener("error", () => hero.classList.add("is-loaded"), { once: true });
-  setTab(TAB_WORKSHOPS);
+  renderSkeletons();
 
   let data;
   try {
@@ -1102,9 +1089,10 @@ async function boot() {
     data = { items: [] };
   }
   catalog = data.items || [];
+  layout = data.layout;
   catalogReady = true;
   grid.removeAttribute("aria-busy");
-  workshopWorks = catalog.filter((item) => item.type === TAB_WORKSHOPS && svgFile(item));
+  workshopWorks = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
   renderGrid();
   const first = shufflePick(workshopWorks);
   if (first) setHero(first);

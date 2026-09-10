@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 import { sanitizeSvg } from "../letters/svg.js";
 import {
   hydrateWorksCatalog,
+  normalizeGridSpan,
+  normalizeExperiment2Layout,
   normalizeName,
   normalizeNick,
   normalizeSample,
@@ -87,12 +89,17 @@ export function fieldsFromBody(item, previous = {}) {
   const type = normalizeWorkType(item.type ?? previous.type);
   const author = normalizeName(item.author !== undefined ? item.author : previous.author);
   const nick = normalizeNick(item.nick !== undefined ? item.nick : previous.nick);
+  // Author, nick and stream are optional; an empty value is stored as "".
   const stream = String(item.stream !== undefined ? item.stream : previous.stream || "").trim();
-  if (!stream) throw new Error("Each work needs a stream");
   const sample = normalizeSample(item.sample !== undefined ? item.sample : previous.sample) || undefined;
   const width = Number(item.width ?? previous.width) || 0;
   const height = Number(item.height ?? previous.height) || 0;
-  return { type, author, nick, stream, sample, width, height };
+  const gridSpan = normalizeGridSpan(item.gridSpan !== undefined ? item.gridSpan : previous.gridSpan);
+  return { type, author, nick, stream, sample, width, height, gridSpan };
+}
+
+export function layoutFromBody(value) {
+  return normalizeExperiment2Layout(value);
 }
 
 // `uploads` may mix new files (data/sha) with `{ keep: "<existing name>" }`

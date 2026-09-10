@@ -1,5 +1,5 @@
-import { fieldsFromBody, shortId, uploadsToFiles } from "./admin-core.js";
-import { normalizeWorkType } from "./taxonomy.js";
+import { fieldsFromBody, layoutFromBody, shortId, uploadsToFiles } from "./admin-core.js";
+import { normalizeGridSpan, normalizeWorkType } from "./taxonomy.js";
 
 const RETRY_DELAYS_MS = [600, 1500, 3000];
 
@@ -46,6 +46,14 @@ export function bulkPatchWorks(readCatalog, commit, body) {
 
 export function bulkDeleteWorks(readCatalog, commit, body) {
   return withRetry(() => bulkDeleteWorksOnce(readCatalog, commit, body));
+}
+
+export function patchWorksLayout(readCatalog, commit, body) {
+  return withRetry(async () => {
+    const current = await readCatalog();
+    current.layout = layoutFromBody(body?.layout ?? body);
+    return commit({ catalog: current, upserts: [], removes: [] });
+  });
 }
 
 async function bulkDeleteWorksOnce(readCatalog, commit, body) {
@@ -154,10 +162,14 @@ async function bulkPatchWorksOnce(readCatalog, commit, body) {
   current.items = current.items.map((entry) => {
     if (!wanted.has(entry.id)) return entry;
     found += 1;
+    let next = entry;
     if (patch.type !== undefined) {
-      return { ...entry, type: normalizeWorkType(patch.type) };
+      next = { ...next, type: normalizeWorkType(patch.type) };
     }
-    return entry;
+    if (patch.gridSpan !== undefined) {
+      next = { ...next, gridSpan: normalizeGridSpan(patch.gridSpan) };
+    }
+    return next;
   });
   if (!found) {
     const error = new Error("Not found");

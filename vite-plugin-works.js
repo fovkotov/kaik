@@ -6,6 +6,7 @@ import {
   bulkPatchWorks,
   createWorks,
   deleteWork,
+  patchWorksLayout,
   patchWork,
 } from "./src/works/admin-routes.js";
 import { emptyWorksCatalog, hydrateWorksCatalog, WORKS_CATALOG_EVENT } from "./src/works/taxonomy.js";
@@ -172,6 +173,12 @@ export function worksAdminPlugin() {
           if (req.method === "PATCH" && url === "/api/works/bulk") {
             const body = await readBody(req);
             json(res, 200, envelope(await serial(() => bulkPatchWorks(readCatalog, commit, body))));
+            return;
+          }
+
+          if (req.method === "PATCH" && url === "/api/works/layout") {
+            const body = await readBody(req);
+            json(res, 200, envelope(await serial(() => patchWorksLayout(readCatalog, commit, body))));
             return;
           }
 
