@@ -2,6 +2,7 @@ import Lenis from "lenis";
 import { initEmbed, safeStorage } from "./embed.js";
 import { playUISound } from "./lib/ui-sounds.js";
 import { playTickClick } from "./tick-clicks.js";
+import { applyTranslations, getLocale, setLocale, t } from "./scriptik.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
@@ -109,13 +110,13 @@ function metaNodes(item) {
   if (item.stream) {
     const stream = document.createElement("span");
     stream.className = "is-muted";
-    stream.textContent = `${item.stream} поток`;
+    stream.textContent = t("exp2.stream").replace("{n}", String(item.stream));
     nodes.push(stream);
   }
   if (!nodes.length) {
     const anon = document.createElement("span");
     anon.className = "is-muted";
-    anon.textContent = "автор не указан";
+    anon.textContent = t("exp2.anon");
     nodes.push(anon);
   }
   return nodes;
@@ -124,13 +125,47 @@ function metaNodes(item) {
 function altFor(item) {
   const kind =
     item.type === TYPE_FINAL
-      ? "Финальный проект"
+      ? t("exp2.kind.final")
       : item.type === TYPE_DAILY
-        ? "Daily Practice"
+        ? t("exp2.kind.daily")
         : item.type === TYPE_FONT
-          ? "Шрифт"
-        : "Работа воркшопа";
+          ? t("exp2.kind.font")
+          : t("exp2.kind.workshop");
   return item.author ? `${kind}, ${item.author}` : kind;
+}
+
+/* ---------- language ---------- */
+
+/** Rewrites text we build in JS (captions, alt, specimen hint) after a locale change. */
+function retranslateDynamic() {
+  if (activeLettering) {
+    letteringImage.alt = altFor(activeLettering);
+    credit.replaceChildren(...metaNodes(activeLettering));
+  }
+  grid.querySelectorAll(".work-card").forEach((card) => {
+    const item = catalog.find((entry) => entry.id === card.dataset.workId);
+    if (!item) return;
+    card.querySelector(".work-card__meta")?.replaceChildren(...metaNodes(item));
+    const image = card.querySelector("img");
+    if (image) image.alt = altFor(item);
+    card.querySelector(".work-card__font-specimen")?.setAttribute("aria-label", t("works.fontTester"));
+  });
+}
+
+/** Single chip that shows the current language; a click flips en ↔ ru. */
+function setupLanguage() {
+  const toggle = document.querySelector("[data-lang-toggle]");
+  const label = toggle?.querySelector("[data-lang-label]");
+  document.addEventListener("kaik:translated", (event) => {
+    const locale = event.detail?.locale || getLocale();
+    if (label) label.textContent = locale;
+    retranslateDynamic();
+  });
+  toggle?.addEventListener("click", (event) => {
+    playTickClick(event);
+    setLocale(getLocale() === "ru" ? "en" : "ru");
+  });
+  applyTranslations(getLocale());
 }
 
 /* ---------- local grid settings ---------- */
@@ -699,7 +734,7 @@ function fontCardFor(item, span) {
   specimen.contentEditable = "true";
   specimen.spellcheck = false;
   specimen.setAttribute("role", "textbox");
-  specimen.setAttribute("aria-label", "Введите свой текст для проверки шрифта");
+  specimen.setAttribute("aria-label", t("works.fontTester"));
   art.append(specimen);
 
   const meta = document.createElement("div");
@@ -786,9 +821,10 @@ function setupFilters() {
     });
   };
   filters.forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", (event) => {
       const type = button.dataset.filter;
       if (!VISUAL_TYPES.includes(type)) return;
+      playTickClick(event);
       enabledTypes.clear();
       if (exclusiveType === type) {
         exclusiveType = null;
@@ -1928,12 +1964,13 @@ function pinPageScroll(top) {
   if (root) root.scrollTop = top;
 }
 
+/** The sticky row floats over the grid: its measured height feeds the negative margin. */
 function syncIslandSticky() {
-  const island = document.querySelector("[data-filter-island]");
-  if (!island) return;
-  const height = island.getBoundingClientRect().height;
+  const bar = document.querySelector("[data-filter-bar]");
+  if (!bar) return;
+  const height = bar.getBoundingClientRect().height;
   if (!(height > 0)) return;
-  island.style.setProperty("--island-h", `${height}px`);
+  (bar.closest(".works-page") || bar.parentElement).style.setProperty("--island-h", `${height}px`);
 }
 
 function initSmoothScroll() {
@@ -1961,12 +1998,14 @@ function initSmoothScroll() {
 
 async function boot() {
   initEmbed();
+  setupLanguage();
   initSmoothScroll();
   setupHero();
   setupGridGeometry();
   setupFilters();
+  document.querySelector("[data-enroll]")?.addEventListener("click", (event) => playTickClick(event));
   syncIslandSticky();
-  new ResizeObserver(syncIslandSticky).observe(document.querySelector("[data-filter-island]") || grid);
+  new ResizeObserver(syncIslandSticky).observe(document.querySelector("[data-filter-bar]") || grid);
   viewer = createViewer(document.querySelector("[data-viewer]"));
   setupGridSettings();
 

@@ -1,9 +1,39 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Эксперимент 2 — Käik</title>
+    <script>
+      /* Scriptik boot: lock html lang to the browser (or saved choice) before paint. */
+      (function () {
+        var KEY = "kaik-course-locale";
+        var SUPPORTED = { en: 1, ru: 1 };
+        function pick(value) {
+          if (!value) return null;
+          var base = String(value).toLowerCase().split("-")[0];
+          return SUPPORTED[base] ? base : null;
+        }
+        var locale = null;
+        try {
+          locale = pick(localStorage.getItem(KEY));
+        } catch (e) {}
+        if (!locale) {
+          var list = navigator.languages || [];
+          for (var i = 0; i < list.length; i++) {
+            locale = pick(list[i]);
+            if (locale) break;
+          }
+          if (!locale) {
+            locale = pick(navigator.language) || pick(navigator.userLanguage);
+          }
+        }
+        locale = locale || "en";
+        document.documentElement.lang = locale;
+        document.documentElement.setAttribute("data-locale", locale);
+        document.documentElement.classList.toggle("lang-ru", locale === "ru");
+      })();
+    </script>
     <link
       rel="icon"
       href="https://freight.cargo.site/t/original/i/H2765952418214795329571591071100/kaik_favicon.ico"
@@ -15,43 +45,59 @@
       <div class="experiment-two__content" data-scroll-content>
       <main class="works-page">
         <section class="lettering-hero" data-lettering-hero aria-label="Интерактивный леттеринг">
-          <img
-            class="lettering-hero__loader"
-            src="/assets/experiment-2/loadGroup.svg"
-            alt=""
-            width="198"
-            height="200"
-            draggable="false"
-            aria-hidden="true"
-          />
+          <p class="lettering-hero__loader" aria-hidden="true">letterfolio<br />by letter course students</p>
           <img class="lettering-hero__image" data-lettering-image alt="" draggable="false" />
           <button
             class="lettering-hero__action"
             data-lettering-action
             type="button"
             aria-label="Показать следующий леттеринг"
+            data-i18n-aria="exp2.nextHero"
           ></button>
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <div class="filter-island" data-filter-island aria-label="Фильтры работ">
-          <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
-            <span class="filter-chip__plate">daily practice</span>
+        <!-- One sticky row: language chip | filter island | signup chip. -->
+        <div class="filter-bar" data-filter-bar>
+          <button
+            class="filter-chip filter-chip--lang filter-bar__side filter-bar__side--start"
+            type="button"
+            data-lang-toggle
+            aria-label="Переключить язык"
+            data-i18n-aria="exp2.lang"
+          >
+            <span class="filter-chip__plate" data-lang-label>en</span>
           </button>
-          <button class="filter-chip filter-chip--lettering" type="button" role="checkbox" aria-checked="true" data-filter="lettering">
-            <span class="filter-chip__plate">воркшопы</span>
-          </button>
-          <button class="filter-chip filter-chip--final" type="button" role="checkbox" aria-checked="true" data-filter="final">
-            <span class="filter-chip__plate">финальные проекты</span>
-          </button>
-          <button class="filter-chip filter-chip--font" type="button" role="checkbox" aria-checked="true" data-filter="font">
-            <span class="filter-chip__plate">шрифты</span>
-          </button>
+
+          <div class="filter-island" data-filter-island role="group" aria-label="Фильтры работ" data-i18n-aria="exp2.filters">
+            <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
+              <span class="filter-chip__plate" data-i18n="exp2.filter.daily">daily practice</span>
+            </button>
+            <button class="filter-chip filter-chip--lettering" type="button" role="checkbox" aria-checked="true" data-filter="lettering">
+              <span class="filter-chip__plate" data-i18n="exp2.filter.workshop">воркшопы</span>
+            </button>
+            <button class="filter-chip filter-chip--final" type="button" role="checkbox" aria-checked="true" data-filter="final">
+              <span class="filter-chip__plate" data-i18n="exp2.filter.final">финальные проекты</span>
+            </button>
+            <button class="filter-chip filter-chip--font" type="button" role="checkbox" aria-checked="true" data-filter="font">
+              <span class="filter-chip__plate" data-i18n="exp2.filter.font">шрифты</span>
+            </button>
+          </div>
+
+          <a
+            class="filter-chip filter-chip--enroll filter-bar__side filter-bar__side--end"
+            href="https://web.tribute.tg/p/AOo"
+            target="_top"
+            rel="noopener"
+            data-enroll
+          >
+            <span class="filter-chip__plate" data-i18n="exp2.enroll">записаться на курс</span>
+          </a>
         </div>
 
         <section class="works-panel" aria-label="Работы студентов">
           <div class="works-grid" data-works-grid></div>
-          <p class="works-empty" data-works-empty hidden>ничего нет</p>
+          <p class="works-empty" data-works-empty hidden data-i18n="exp2.empty">ничего нет</p>
         </section>
       </main>
       </div>
