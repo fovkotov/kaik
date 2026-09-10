@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T02:54:58.305Z",
+  "updatedAt": "2026-09-10T03:29:31.598Z",
   "layout": {
     "columns": 12,
     "cellRatio": 1,
@@ -588,23 +588,6 @@
       "height": 900,
       "createdAt": "2026-09-09T21:35:09.870Z",
       "originalName": "1.webp",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_72ab01e6",
-      "type": "font",
-      "author": "Артем",
-      "nick": "svrdee",
-      "stream": "1",
-      "sample": "Solanum",
-      "files": [
-        "wrk_72ab01e6_0.otf",
-        "wrk_72ab01e6_1.otf"
-      ],
-      "width": 0,
-      "height": 0,
-      "createdAt": "2026-09-09T21:35:50.187Z",
-      "originalName": "Solanum-Regular (1).otf",
       "gridSpan": "auto"
     },
     {
