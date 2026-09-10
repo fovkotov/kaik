@@ -1524,7 +1524,7 @@ export function WorksPanel({
         {visible.length ? (
           <div
             ref={gridRef}
-            className="relative grid grid-cols-2 gap-2 select-none sm:grid-cols-3 md:grid-cols-4"
+            className="relative grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2 select-none"
           >
             {visible.map((item) => (
               <div
@@ -1600,9 +1600,9 @@ export function WorksPanel({
       {selected.length > 0 ? (
         <div
           data-no-lasso
-          className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur"
+          className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur sm:px-6"
         >
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+          <div className="flex w-full flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground">
                 {copy("admin.selected").replace("{n}", String(selected.length))}

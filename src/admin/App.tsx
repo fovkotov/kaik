@@ -24,7 +24,7 @@ export function AdminApp() {
 
   return (
     <div className="min-h-[var(--frame-h)] bg-background">
-      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 pb-24">
+      <main className="flex w-full flex-col gap-8 px-4 py-8 pb-24 sm:px-6">
         <WorksPanel copy={copy} writable={writable} />
       </main>
     </div>
