@@ -657,13 +657,6 @@ html.is-viewer-open .experiment-two__scroll {
   border: 0;
   background: transparent;
   appearance: none;
-  -webkit-appearance: none;
-}
-
-/* The chevron rides the pointer, so the pointer itself hides — same as the site lightbox. */
-.viewer__hit--prev,
-.viewer__hit--next {
-  cursor: none;
 }
 
 .viewer__hit--prev {
@@ -696,7 +689,6 @@ html.is-viewer-open .experiment-two__scroll {
   width: 36px;
   height: 36px;
   padding: 8px;
-  border: 0;
   border-radius: 120px;
   background: var(--lb-btn);
   transform: translate(-50%, -50%);
@@ -723,14 +715,15 @@ html.is-viewer-open .experiment-two__scroll {
   transform: translate(-50%, -50%) scale(0.97);
 }
 
-.viewer.is-mobile .viewer__arrow,
-.viewer.is-mobile .viewer__hit.is-aiming .viewer__arrow {
+.viewer.is-mobile .viewer__arrow {
   display: none;
 }
 
-.viewer.is-mobile .viewer__hit--prev,
-.viewer.is-mobile .viewer__hit--next {
-  cursor: default;
+@media (hover: hover) and (pointer: fine) {
+  .viewer:not(.is-mobile) .viewer__hit--prev,
+  .viewer:not(.is-mobile) .viewer__hit--next {
+    cursor: none;
+  }
 }
 
 .viewer__close {
@@ -743,17 +736,11 @@ html.is-viewer-open .experiment-two__scroll {
   justify-content: center;
   width: 44px;
   height: 44px;
-  margin: 0;
   padding: 10px;
   border: 0;
   border-radius: 173px;
   background: var(--lb-btn);
-  line-height: 0;
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -webkit-tap-highlight-color: transparent;
-  transform: scale(1);
   transition: transform 120ms var(--ease-out);
 }
 
