@@ -4,7 +4,7 @@
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
-    "heroVh": 100,
+    "heroVh": 90,
     "heroVhMobile": 78,
     "cellRatio": 1,
     "gapX": 16,

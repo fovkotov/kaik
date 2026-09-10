@@ -102,11 +102,11 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 /* First screen: 16px gutter + hero of --hero-vh (G-panel "hero height (vh)"), filters just after.
-   vh is the iframe's own viewport here, so 100 fills the frame exactly like before. */
+   vh is the iframe's own viewport here; 90 leaves the filter row peeking in on desktop. */
 .works-page {
   /* Measured height of the sticky filter row (see syncIslandSticky). */
   --island-h: 32px;
-  --hero-vh: 100;
+  --hero-vh: 90;
   padding: var(--edge) var(--gutter) 48px;
   --hero-frame: calc(var(--hero-vh) * 1vh - var(--frame-clip-top) - var(--frame-clip-bottom));
   --hero-h: calc(var(--hero-frame) - var(--edge));
@@ -1144,7 +1144,8 @@ html.is-viewer-open .experiment-two__scroll {
     position: fixed;
     left: var(--edge);
     right: var(--edge);
-    bottom: calc(var(--edge) + var(--frame-clip-bottom));
+    /* Lifted 100px above the gutter so it clears the host's mobile browser chrome. */
+    bottom: calc(var(--edge) + var(--frame-clip-bottom) + 100px);
     z-index: 40;
     display: flex;
     align-items: center;
