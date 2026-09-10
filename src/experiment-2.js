@@ -1,4 +1,5 @@
 import { initEmbed, safeStorage } from "./embed.js";
+import { playUISound } from "./lib/ui-sounds.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
@@ -471,6 +472,7 @@ function slideFor(item, file) {
  */
 function openViewerFor(item, card) {
   if (!viewer) return;
+  playUISound("tap");
   if (item.type === TYPE_FINAL) {
     viewer.open(imageFiles(item).map((file) => slideFor(item, file)), 0, card);
     return;
@@ -777,6 +779,9 @@ function createViewer(root) {
   let pinch = null;
   let pan = null;
   let lastTap = 0;
+  let wheelAcc = 0;
+  let wheelLockUntil = 0;
+  let wheelResetTimer = 0;
 
   const count = () => items.length || 1;
   const wrap = (i) => ((i % count()) + count()) % count();
@@ -1134,6 +1139,7 @@ function createViewer(root) {
       dot.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        playUISound("click");
         goTo(i);
       });
       dotsTrack.append(dot);
@@ -1152,6 +1158,9 @@ function createViewer(root) {
 
   function close() {
     if (!open) return;
+    wheelAcc = 0;
+    wheelLockUntil = 0;
+    window.clearTimeout(wheelResetTimer);
     const top = savedScroll;
     const shot = lastShot;
     cancelSpring();
@@ -1193,6 +1202,9 @@ function createViewer(root) {
     shift = 0;
     velocity = 0;
     setOpen(true);
+    wheelAcc = 0;
+    wheelLockUntil = 0;
+    window.clearTimeout(wheelResetTimer);
     cancelZoomSession();
     resetZoom();
     finishIndex(start);
@@ -1204,6 +1216,7 @@ function createViewer(root) {
   root.querySelector("[data-viewer-close]")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    playUISound("click");
     close();
   });
 
@@ -1212,6 +1225,7 @@ function createViewer(root) {
       event.preventDefault();
       event.stopPropagation();
       if (performance.now() < ignoreClickUntil) return;
+      playUISound("click");
       go(step);
     });
   };
@@ -1375,9 +1389,17 @@ function createViewer(root) {
 
     if (!swipe || event.pointerId !== swipe.id) return;
     const axis = swipe.axis;
+    const startY = swipe.y;
     swipe = null;
     root.classList.remove("is-dragging");
     if (axis !== "x") {
+      if (axis === "y" && count() > 1 && z <= 1.001) {
+        const dy = event.clientY - startY;
+        if (Math.abs(dy) > 56) {
+          playUISound("tick");
+          go(dy > 0 ? -1 : 1);
+        }
+      }
       if (Math.abs(shift) > 0.5) settleShift(0, 0, index);
       return;
     }
@@ -1402,20 +1424,40 @@ function createViewer(root) {
     { passive: false },
   );
 
-  root.addEventListener(
-    "wheel",
-    (event) => {
-      if (!open) return;
-      event.preventDefault();
-      lockScroll();
-      if (event.ctrlKey || event.metaKey) {
-        if (zoomAbsorbed() || gestureGen === zoomGen) return;
-        const factor = Math.exp(-event.deltaY * 0.012);
-        zoomAround(event.clientX, event.clientY, z * factor);
-      }
-    },
-    { passive: false },
-  );
+  const WHEEL_STEP = 48;
+  const WHEEL_LOCK = 380;
+
+  function onViewerWheel(event) {
+    if (!open) return;
+    if (event.cancelable) event.preventDefault();
+    event.stopPropagation();
+    lockScroll();
+    if (event.ctrlKey || event.metaKey) {
+      if (zoomAbsorbed() || gestureGen === zoomGen) return;
+      const factor = Math.exp(-event.deltaY * 0.012);
+      zoomAround(event.clientX, event.clientY, z * factor);
+      return;
+    }
+    if (z > 1.001 || count() < 2) return;
+    let dy = event.deltaY;
+    if (event.deltaMode === 1) dy *= 16;
+    if (event.deltaMode === 2) dy *= window.innerHeight || 800;
+    const now = performance.now();
+    if (now < wheelLockUntil) return;
+    wheelAcc += dy;
+    window.clearTimeout(wheelResetTimer);
+    wheelResetTimer = window.setTimeout(() => {
+      wheelAcc = 0;
+    }, 160);
+    if (Math.abs(wheelAcc) < WHEEL_STEP) return;
+    const step = wheelAcc > 0 ? 1 : -1;
+    wheelAcc = 0;
+    wheelLockUntil = now + WHEEL_LOCK;
+    playUISound("tick");
+    go(step);
+  }
+
+  document.addEventListener("wheel", onViewerWheel, { capture: true, passive: false });
 
   /* Safari trackpad pinch. */
   root.addEventListener(
