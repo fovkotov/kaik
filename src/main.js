@@ -479,8 +479,9 @@ function initDeck() {
   );
 
   // —— Mobile: free vertical drag + inertia (no snap) ——
+  // `a:not(.link-card)`: the letterfolio face is a full-card link that must still swipe.
   const DRAG_IGNORE =
-    "a, button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-preview-media]";
+    "a:not(.link-card), button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-preview-media]";
 
   function onDeckPointerDown(event) {
     if (!isMobile()) return;
@@ -501,6 +502,9 @@ function initDeck() {
     };
     deck.classList.add("is-dragging");
     scheduleRender();
+    // Touch pointers are implicitly captured by their target; re-capturing on the
+    // deck would retarget the follow-up `click` away from the link card's <a>.
+    if (event.target.closest?.("[data-link-card]")) return;
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -861,7 +865,10 @@ function initDeck() {
         return clamp(1 + slot * 1.25, 0, 1);
       })();
 
-      const worksCard = item.el.hasAttribute("data-works-card");
+      // Square cards (old works board, letterfolio link card) share the works shift
+      // so the wider face stays balanced against the right-pinned A4 stack.
+      const worksCard =
+        item.el.hasAttribute("data-works-card") || item.el.hasAttribute("data-link-card");
       const worksX = worksCard ? Number(params.worksShiftX) || 0 : 0;
       const worksY = worksCard ? Number(params.worksShiftY) || 0 : 0;
       const worksR = worksCard ? Number(params.worksRotate) || 0 : 0;
@@ -1043,6 +1050,9 @@ function bindProgramNav(programApi) {
 }
 
 function bindWorkNav(programApi) {
+  // No works board in the deck (letterfolio link card took its slot): the nav
+  // link keeps its own href/target and navigates instead of focusing a card.
+  if (!document.querySelector("[data-works-card]")) return;
   bindNavOpen(
     WORK_NAV,
     programApi,

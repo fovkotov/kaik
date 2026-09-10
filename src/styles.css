@@ -2107,6 +2107,139 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
   pointer-events: none;
 }
 
+/*
+  Figma 238:95933 — letterfolio link card. Square like the old works board
+  (same slot, same --works-side fit and desktop worksShiftX), but it never
+  focuses: the whole face is an external <a target="_top">. The face blinks
+  1 Hz as a hard on/off cut; the <a> itself stays opaque so the hit area is
+  live during the "off" half. main.js writes transform/opacity on .card, so
+  the animation lives on the child face, never on .card.
+*/
+.card[data-link-card] {
+  --works-side: min(var(--stack-card-h), calc(var(--frame-w) / var(--deck-scale) - 48px));
+  --card-w: var(--works-side);
+  --card-h: var(--works-side);
+  width: var(--works-side);
+  height: var(--works-side);
+  margin-top: calc(var(--works-side) / -2);
+  overflow: clip;
+  isolation: isolate;
+  cursor: pointer;
+  /* The face paints the grey; the shell stays clear so "off" is truly off
+     (cards behind show through) while the <a> keeps taking hits. */
+  background: transparent;
+}
+
+.link-card {
+  display: block;
+  position: absolute;
+  inset: 0;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.link-card__face {
+  /* --u = one Figma frame px (842-wide face). */
+  --u: calc(100cqw / 842);
+  container-type: inline-size;
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: #9d9d9d;
+  animation: link-card-blink 1s steps(1, end) infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+.link-card__bg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Figma 244:96471 — centred column: struck title + "letterfolio" (y 214),
+   scooter 247.5×250 (y 294), "by letter course / students" (y 562).
+   32.53px Helvetica Rounded Bold, line-height 1, #fed301. */
+.link-card__text {
+  position: absolute;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-en);
+  font-weight: 700;
+  font-size: calc(32.53 * var(--u));
+  line-height: 1;
+  letter-spacing: normal;
+  color: #fed301;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.link-card__title {
+  top: calc(214 * var(--u));
+}
+
+.link-card__sub {
+  top: calc(562 * var(--u));
+}
+
+.link-card__line {
+  display: block;
+}
+
+.link-card__line--strike {
+  text-decoration: line-through;
+  text-decoration-thickness: from-font;
+}
+
+.link-card__art {
+  position: absolute;
+  top: calc(294 * var(--u));
+  left: 50%;
+  z-index: 1;
+  display: block;
+  width: calc(247.5 * var(--u));
+  height: calc(250 * var(--u));
+  transform: translateX(-50%);
+}
+
+.link-card__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes link-card-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-card__face {
+    animation: none;
+  }
+}
+
 .card[data-works-card] {
   --works-shift-x: 110px;
   --works-shift-y: 0px;
@@ -2532,6 +2665,13 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
 }
 
 @media (max-width: 900px) {
+  /* Mobile stack slot is the 320×450 portrait box; the square Figma face
+     keeps its aspect at slot width and sits centred in that slot. */
+  .card[data-link-card] {
+    --works-side: var(--stack-card-w);
+    margin-top: calc((var(--stack-card-h) - var(--stack-card-w)) / 2);
+  }
+
   .card[data-works-card] {
     --works-shift-x: 0px;
     --focus-open-w: var(--frame-w);

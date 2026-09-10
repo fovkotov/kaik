@@ -14,7 +14,7 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-article-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-preview-media]";
+  "a, [data-link-card], button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-article-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-preview-media]";
   const SIDE_CHROME =
   "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-article-close], [data-fly-illust-close], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select, [data-author-lightbox]";
 const DRAG_CLICK_PX = 6;
@@ -1418,7 +1418,7 @@ export function initProgramModal() {
   }
 
   function focusCard(target) {
-    if (!target) return;
+    if (!target || isLinkCard(target)) return;
     if (target === card && (phase === "open" || phase === "opening")) return;
     if (phase === "closing") {
       closeAfter = () => openFocus(target);
@@ -1431,9 +1431,14 @@ export function initProgramModal() {
     openFocus(target);
   }
 
+  /** Link cards (letterfolio) ride the stack but never focus. */
+  function isLinkCard(el) {
+    return Boolean(el?.hasAttribute?.("data-link-card"));
+  }
+
   function neighborCard(dir) {
     if (!card) return null;
-    const flow = cards.filter((el) => inDeckFlow(el));
+    const flow = cards.filter((el) => inDeckFlow(el) && !isLinkCard(el));
     const idx = flow.indexOf(card);
     if (idx < 0) return null;
     const next = idx + dir;
@@ -1495,6 +1500,7 @@ export function initProgramModal() {
       ? topVisibleCard(event.clientX, event.clientY)
       : fallbackEl || raw?.closest?.(FOCUS_SEL);
     if (!cardEl || !cards.includes(cardEl) || !inDeckFlow(cardEl)) return null;
+    if (isLinkCard(cardEl)) return null;
     if (mobile && cardEl !== topVisibleCard(event.clientX, event.clientY)) return null;
     const workSheet = cardEl.hasAttribute("data-work-card") ? sheet : null;
     if (mobile && !canOpenOnMobile(cardEl, workSheet)) return null;
@@ -1601,6 +1607,7 @@ export function initProgramModal() {
   function syncAria() {
     const expanded = phase === "open" || phase === "opening";
     cards.forEach((el) => {
+      if (isLinkCard(el)) return;
       const isThis = expanded && el === card;
       el.setAttribute("aria-expanded", isThis ? "true" : "false");
       el.setAttribute("aria-label", t(labelKey(el, isThis)));
@@ -1614,6 +1621,8 @@ export function initProgramModal() {
   cards.forEach((el) => {
     el.addEventListener("pointerdown", (event) => {
       start = { x: event.clientX, y: event.clientY };
+      // Link card: whole face is an <a>, but the deck must still get the swipe.
+      if (isLinkCard(el)) return;
       // Let the deck capture a vertical swipe. Only real controls keep the event.
       if (
         (event.target.closest?.(FOCUS_IGNORE) && !isMobilePeekIllust(event.target)) ||
@@ -1624,6 +1633,14 @@ export function initProgramModal() {
     });
 
     el.addEventListener("click", (event) => {
+      if (isLinkCard(el)) {
+        // Never focus. A swipe that ends on the face is not a tap — drop the navigation.
+        const swiped =
+          start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > DRAG_CLICK_PX;
+        if (swiped) event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (event.target.closest?.(WORK_IG)) {
         event.stopPropagation();
         return;
