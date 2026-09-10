@@ -1180,9 +1180,14 @@ html.is-viewer-open .experiment-two__scroll {
     pointer-events: auto;
   }
 
-  /* Mobile: the artwork keeps the page's 16px side gutter so it never kisses the screen edge. */
+  /* Clip window is full-bleed so swipe neighbors enter/leave at the iframe edges.
+     The resting slide still contains with a 16px side gutter so glyphs don't kiss the screen. */
   .viewer__stage {
-    inset: calc(56px + var(--frame-clip-top)) var(--edge) calc(84px + var(--frame-clip-bottom));
+    inset: calc(56px + var(--frame-clip-top)) 0 calc(84px + var(--frame-clip-bottom));
+  }
+
+  .viewer.is-mobile .viewer__slide.is-active img {
+    width: calc(100% - 2 * var(--edge));
   }
 
   /* Mobile: dots sit 12px from the iframe bottom; caption stays the same
