@@ -168,7 +168,9 @@ export function normalizeWorkItem(item) {
     sample: normalizeSample(item.sample) || undefined,
     glyph: normalizeGlyph(item.glyph) || undefined,
     caps: type === TYPE_FONT && normalizeFlag(item.caps) ? true : undefined,
-    latin: type === TYPE_FONT && normalizeFlag(item.latin) ? true : undefined,
+    cyrillic: type === TYPE_FONT && normalizeFlag(item.cyrillic) ? true : undefined,
+    latin:
+      type === TYPE_FONT && !normalizeFlag(item.cyrillic) && normalizeFlag(item.latin) ? true : undefined,
     hidden: normalizeFlag(item.hidden) ? true : undefined,
     files,
     width: Number(item.width) > 0 ? Number(item.width) : 0,

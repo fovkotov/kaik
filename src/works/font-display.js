@@ -35,26 +35,34 @@ const RU_LAYOUT_TO_EN = {
   ю: ".",
 };
 
+const EN_LAYOUT_TO_RU = Object.fromEntries(
+  Object.entries(RU_LAYOUT_TO_EN).map(([ru, en]) => [en, ru]),
+);
+
+function remapLayout(value, table) {
+  return Array.from(value)
+    .map((ch) => {
+      const lower = ch.toLowerCase();
+      const mapped = table[lower];
+      if (!mapped) return ch;
+      return ch === lower ? mapped : mapped.toUpperCase();
+    })
+    .join("");
+}
+
 export function fontFlags(item) {
   return {
     caps: Boolean(item?.caps),
     latin: Boolean(item?.latin),
+    cyrillic: Boolean(item?.cyrillic),
   };
 }
 
-/** Shape typed specimen text: remap a Russian keyboard, then force caps. */
+/** Shape typed specimen text: remap keyboard layout, then force caps. */
 export function shapeFontText(value, flags = {}) {
   let out = String(value ?? "");
-  if (flags.latin) {
-    out = Array.from(out)
-      .map((ch) => {
-        const lower = ch.toLowerCase();
-        const mapped = RU_LAYOUT_TO_EN[lower];
-        if (!mapped) return ch;
-        return ch === lower ? mapped : mapped.toUpperCase();
-      })
-      .join("");
-  }
-  if (flags.caps) out = out.toLocaleUpperCase("en-US");
+  if (flags.cyrillic) out = remapLayout(out, EN_LAYOUT_TO_RU);
+  else if (flags.latin) out = remapLayout(out, RU_LAYOUT_TO_EN);
+  if (flags.caps) out = out.toLocaleUpperCase(flags.cyrillic ? "ru-RU" : "en-US");
   return out;
 }

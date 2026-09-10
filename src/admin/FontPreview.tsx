@@ -22,6 +22,7 @@ export function FontPreview({
   text,
   caps,
   latin,
+  cyrillic,
   className,
 }: {
   url: string;
@@ -30,11 +31,12 @@ export function FontPreview({
   text?: string;
   caps?: boolean;
   latin?: boolean;
+  cyrillic?: boolean;
   className?: string;
 }) {
   const [word, setWord] = useState("");
   const family = familyName(id);
-  const flags = { caps: Boolean(caps), latin: Boolean(latin) };
+  const flags = { caps: Boolean(caps), latin: Boolean(latin), cyrillic: Boolean(cyrillic) };
   const custom = shapeFontText((text || "").trim(), flags);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function FontPreview({
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          if (!gone) setWord(shapeFontText(pickWord(id, "en"), flags));
+          if (!gone) setWord(shapeFontText(pickWord(id, flags.cyrillic ? "ru" : "en"), flags));
           return;
         }
         ctx.font = `48px "${family}", serif`;
@@ -60,20 +62,20 @@ export function FontPreview({
         ctx.font = "48px serif";
         const hasLatin = Math.abs(w - ctx.measureText("W").width) > 0.8;
         const cyr = Math.abs(zh - ctx.measureText("Ж").width) > 0.8;
-        let lang: "en" | "ru" = "en";
-        if (!flags.latin) {
+        let lang: "en" | "ru" = flags.cyrillic ? "ru" : "en";
+        if (!flags.latin && !flags.cyrillic) {
           if (hasLatin && cyr) lang = id.charCodeAt(0) % 2 ? "ru" : "en";
           else if (cyr && !hasLatin) lang = "ru";
         }
         if (!gone) setWord(shapeFontText(pickWord(id, lang), flags));
       })
       .catch(() => {
-        if (!gone) setWord(custom || shapeFontText(pickWord(id, "en"), flags));
+        if (!gone) setWord(custom || shapeFontText(pickWord(id, flags.cyrillic ? "ru" : "en"), flags));
       });
     return () => {
       gone = true;
     };
-  }, [url, id, family, custom, flags.caps, flags.latin]);
+  }, [url, id, family, custom, flags.caps, flags.latin, flags.cyrillic]);
 
   return (
     <p

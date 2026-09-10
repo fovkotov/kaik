@@ -107,7 +107,7 @@ function fontMarkup(item, fontFile, opts) {
     workFileUrl(fontFile),
   )}" data-work-id="${esc(item.id)}"${item.sample ? ` data-font-sample="${esc(item.sample)}"` : ""}${
     flags.caps ? " data-font-caps" : ""
-  }${flags.latin ? " data-font-latin" : ""}${tester}></div>`;
+  }${flags.latin ? " data-font-latin" : ""}${flags.cyrillic ? " data-font-cyrillic" : ""}${tester}></div>`;
 }
 
 /** Same caption as the main-domain collage: name, then @nick. */
@@ -178,7 +178,11 @@ function selectAll(el) {
 
 /** Click the specimen, type your own word; empty → back to the stored sample. */
 function flagsFromEl(el) {
-  return { caps: el.hasAttribute("data-font-caps"), latin: el.hasAttribute("data-font-latin") };
+  return {
+    caps: el.hasAttribute("data-font-caps"),
+    latin: el.hasAttribute("data-font-latin"),
+    cyrillic: el.hasAttribute("data-font-cyrillic"),
+  };
 }
 
 function bindFontTester(el, fallback) {
@@ -251,8 +255,8 @@ async function paintFontCell(el) {
     }
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    let lang = "en";
-    if (ctx && !flags.latin) {
+    let lang = flags.cyrillic ? "ru" : "en";
+    if (ctx && !flags.latin && !flags.cyrillic) {
       ctx.font = `48px "${family}", serif`;
       const w = ctx.measureText("W").width;
       const zh = ctx.measureText("Ж").width;

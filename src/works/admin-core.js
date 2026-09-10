@@ -109,8 +109,14 @@ export function fieldsFromBody(item, previous = {}) {
     type === TYPE_FONT && normalizeFlag(item.caps !== undefined ? item.caps : previous.caps)
       ? true
       : undefined;
+  const cyrillic =
+    type === TYPE_FONT && normalizeFlag(item.cyrillic !== undefined ? item.cyrillic : previous.cyrillic)
+      ? true
+      : undefined;
   const latin =
-    type === TYPE_FONT && normalizeFlag(item.latin !== undefined ? item.latin : previous.latin)
+    type === TYPE_FONT &&
+    !cyrillic &&
+    normalizeFlag(item.latin !== undefined ? item.latin : previous.latin)
       ? true
       : undefined;
   const hidden = normalizeFlag(item.hidden !== undefined ? item.hidden : previous.hidden)
@@ -119,7 +125,7 @@ export function fieldsFromBody(item, previous = {}) {
   const width = Number(item.width ?? previous.width) || 0;
   const height = Number(item.height ?? previous.height) || 0;
   const gridSpan = normalizeGridSpan(item.gridSpan !== undefined ? item.gridSpan : previous.gridSpan);
-  return { type, author, nick, stream, sample, glyph, caps, latin, hidden, width, height, gridSpan };
+  return { type, author, nick, stream, sample, glyph, caps, latin, cyrillic, hidden, width, height, gridSpan };
 }
 
 export function layoutFromBody(value) {

@@ -71,6 +71,7 @@ type WorkItem = {
   glyph?: string;
   caps?: boolean;
   latin?: boolean;
+  cyrillic?: boolean;
   hidden?: boolean;
   files: string[];
   width?: number;
@@ -671,6 +672,7 @@ export function WorksPanel({
     glyph: "",
     caps: false,
     latin: false,
+    cyrillic: false,
     hidden: false,
     gridSpan: "auto" as GridSpan,
   });
@@ -1057,6 +1059,7 @@ export function WorksPanel({
       glyph: item.glyph || "",
       caps: Boolean(item.caps),
       latin: Boolean(item.latin),
+      cyrillic: Boolean(item.cyrillic),
       hidden: Boolean(item.hidden),
       gridSpan: normalizeGridSpan(item.gridSpan) as GridSpan,
     });
@@ -1207,6 +1210,7 @@ export function WorksPanel({
           glyph: editDraft.glyph,
           caps: editDraft.caps,
           latin: editDraft.latin,
+          cyrillic: editDraft.cyrillic,
           hidden: editDraft.hidden,
           gridSpan: editDraft.gridSpan,
           ...filesPatch,
@@ -1691,6 +1695,7 @@ export function WorksPanel({
                       text={item.sample}
                       caps={item.caps}
                       latin={item.latin}
+                      cyrillic={item.cyrillic}
                     />
                   ) : thumbSrc(item) ? (
                     <img src={thumbSrc(item)} alt="" className="pointer-events-none size-full object-contain" />
@@ -1939,6 +1944,7 @@ export function WorksPanel({
                               text={editDraft.sample}
                               caps={editDraft.caps}
                               latin={editDraft.latin}
+                              cyrillic={editDraft.cyrillic}
                               className="min-h-24 w-full overflow-visible text-clip whitespace-normal text-[clamp(2.5rem,9vw,10rem)] leading-none"
                             />
                             <span className="text-center text-xs text-muted-foreground">{face.name}</span>
@@ -2090,10 +2096,28 @@ export function WorksPanel({
                         type="checkbox"
                         checked={editDraft.latin}
                         onChange={(event) =>
-                          setEditDraft((current) => ({ ...current, latin: event.target.checked }))
+                          setEditDraft((current) => ({
+                            ...current,
+                            latin: event.target.checked,
+                            cyrillic: event.target.checked ? false : current.cyrillic,
+                          }))
                         }
                       />
                       {copy("admin.fontLatin")}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={editDraft.cyrillic}
+                        onChange={(event) =>
+                          setEditDraft((current) => ({
+                            ...current,
+                            cyrillic: event.target.checked,
+                            latin: event.target.checked ? false : current.latin,
+                          }))
+                        }
+                      />
+                      {copy("admin.fontCyrillic")}
                     </label>
                   </div>
                 ) : null}
