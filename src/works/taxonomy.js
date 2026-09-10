@@ -154,11 +154,12 @@ export function normalizeWorkItem(item) {
     : item.file
       ? [String(item.file)]
       : [];
+  const type = normalizeWorkType(item.type);
   return {
     id,
-    type: normalizeWorkType(item.type),
-    author: normalizeName(item.author),
-    nick: normalizeNick(item.nick),
+    type,
+    author: type === TYPE_DAILY ? "" : normalizeName(item.author),
+    nick: type === TYPE_DAILY ? "" : normalizeNick(item.nick),
     stream: String(item.stream || "").trim(),
     sample: normalizeSample(item.sample) || undefined,
     glyph: normalizeGlyph(item.glyph) || undefined,

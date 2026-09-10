@@ -1,5 +1,5 @@
 import { fieldsFromBody, layoutFromBody, shortId, uploadsToFiles } from "./admin-core.js";
-import { normalizeGridSpan, normalizeWorkType } from "./taxonomy.js";
+import { normalizeGridSpan, normalizeWorkType, TYPE_DAILY } from "./taxonomy.js";
 
 const RETRY_DELAYS_MS = [600, 1500, 3000];
 
@@ -164,7 +164,9 @@ async function bulkPatchWorksOnce(readCatalog, commit, body) {
     found += 1;
     let next = entry;
     if (patch.type !== undefined) {
-      next = { ...next, type: normalizeWorkType(patch.type) };
+      const type = normalizeWorkType(patch.type);
+      next = { ...next, type };
+      if (type === TYPE_DAILY) next = { ...next, author: "", nick: "" };
     }
     if (patch.gridSpan !== undefined) {
       next = { ...next, gridSpan: normalizeGridSpan(patch.gridSpan) };

@@ -851,8 +851,8 @@ export function WorksPanel({
         next.push({
           key: `${file.name}-${Math.random()}`,
           type: singleType,
-          author: bulkAuthor,
-          nick: normalizeNick(bulkNick),
+          author: dailyMode ? "" : bulkAuthor,
+          nick: dailyMode ? "" : normalizeNick(bulkNick),
           stream: bulkStream,
           files: [await fileToUpload(file, dailyMode)],
         });
@@ -1439,19 +1439,21 @@ export function WorksPanel({
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="works-bulk-author">{copy("admin.author")}</Label>
-                <AuthorNickInput
-                  id="works-bulk-author"
-                  placeholder={copy("admin.authorNick")}
-                  author={bulkAuthor}
-                  nick={bulkNick}
-                  onChange={({ author, nick }) => {
-                    setBulkAuthor(author);
-                    setBulkNick(nick);
-                  }}
-                />
-              </div>
+              {inbox.some((item) => item.type !== TYPE_DAILY) ? (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="works-bulk-author">{copy("admin.author")}</Label>
+                  <AuthorNickInput
+                    id="works-bulk-author"
+                    placeholder={copy("admin.authorNick")}
+                    author={bulkAuthor}
+                    nick={bulkNick}
+                    onChange={({ author, nick }) => {
+                      setBulkAuthor(author);
+                      setBulkNick(nick);
+                    }}
+                  />
+                </div>
+              ) : null}
               <div className="grid gap-1.5">
                 <Label htmlFor="works-bulk-stream">{copy("admin.stream")}</Label>
                 <Input
@@ -1466,12 +1468,16 @@ export function WorksPanel({
                 variant="outline"
                 onClick={() => {
                   setInbox((current) =>
-                    current.map((item) => ({
-                      ...item,
-                      author: bulkAuthor.trim() || item.author,
-                      nick: normalizeNick(bulkNick) || item.nick,
-                      stream: bulkStream.trim() || item.stream,
-                    })),
+                    current.map((item) =>
+                      item.type === TYPE_DAILY
+                        ? { ...item, stream: bulkStream.trim() || item.stream }
+                        : {
+                            ...item,
+                            author: bulkAuthor.trim() || item.author,
+                            nick: normalizeNick(bulkNick) || item.nick,
+                            stream: bulkStream.trim() || item.stream,
+                          },
+                    ),
                   );
                 }}
               >
@@ -1485,7 +1491,7 @@ export function WorksPanel({
                   className={cn(
                     "grid items-center gap-3 rounded-xl border p-2",
                     item.type === TYPE_DAILY
-                      ? "sm:grid-cols-[72px_auto_5rem_1fr_1fr_auto]"
+                      ? "sm:grid-cols-[72px_auto_5rem_1fr_auto]"
                       : "sm:grid-cols-[72px_auto_1fr_1fr_auto]",
                   )}
                 >
@@ -1505,7 +1511,15 @@ export function WorksPanel({
                     value={item.type}
                     onChange={(type) => {
                       setInbox((current) =>
-                        current.map((entry) => (entry.key === item.key ? { ...entry, type } : entry)),
+                        current.map((entry) =>
+                          entry.key === item.key
+                            ? {
+                                ...entry,
+                                type,
+                                ...(type === TYPE_DAILY ? { author: "", nick: "" } : {}),
+                              }
+                            : entry,
+                        ),
                       );
                     }}
                     copy={copy}
@@ -1524,18 +1538,19 @@ export function WorksPanel({
                         );
                       }}
                     />
-                  ) : null}
-                  <AuthorNickInput
-                    placeholder={copy("admin.authorNick")}
-                    aria-label={copy("admin.author")}
-                    author={item.author}
-                    nick={item.nick}
-                    onChange={({ author, nick }) => {
-                      setInbox((current) =>
-                        current.map((entry) => (entry.key === item.key ? { ...entry, author, nick } : entry)),
-                      );
-                    }}
-                  />
+                  ) : (
+                    <AuthorNickInput
+                      placeholder={copy("admin.authorNick")}
+                      aria-label={copy("admin.author")}
+                      author={item.author}
+                      nick={item.nick}
+                      onChange={({ author, nick }) => {
+                        setInbox((current) =>
+                          current.map((entry) => (entry.key === item.key ? { ...entry, author, nick } : entry)),
+                        );
+                      }}
+                    />
+                  )}
                   <Input
                     placeholder={copy("admin.stream")}
                     list="works-stream-list"
@@ -1624,7 +1639,11 @@ export function WorksPanel({
                 role="button"
                 tabIndex={0}
                 data-work-id={item.id}
-                title={[item.author, item.nick && `@${item.nick}`, item.stream].filter(Boolean).join(" · ")}
+                title={
+                  item.type === TYPE_DAILY
+                    ? [item.glyph, item.stream].filter(Boolean).join(" · ")
+                    : [item.author, item.nick && `@${item.nick}`, item.stream].filter(Boolean).join(" · ")
+                }
                 className={cn(
                   "grid cursor-pointer gap-2 overflow-hidden rounded-xl bg-card p-2 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/40",
                   selected.includes(item.id) && "ring-2 ring-primary",
@@ -1648,12 +1667,15 @@ export function WorksPanel({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {item.author || "—"}
-                    {item.nick ? ` @${item.nick}` : ""}
-                  </p>
+                  {item.type === TYPE_DAILY ? (
+                    <p className="truncate text-sm font-medium">{item.glyph || copy(typeKey(item.type))}</p>
+                  ) : (
+                    <p className="truncate text-sm font-medium">
+                      {item.author || "—"}
+                      {item.nick ? ` @${item.nick}` : ""}
+                    </p>
+                  )}
                   <p className="truncate text-xs text-muted-foreground">
-                    {item.glyph ? `${item.glyph} · ` : ""}
                     {copy(typeKey(item.type))}
                     {item.stream ? ` · ${item.stream}` : ""}
                   </p>
@@ -1744,7 +1766,11 @@ export function WorksPanel({
           showCloseButton={false}
           className="top-0 left-0 flex h-[var(--frame-h)] w-[var(--frame-w)] max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto overscroll-contain rounded-none p-0 sm:max-w-none"
         >
-          <DialogTitle className="sr-only">{editDraft.author || copy("admin.works")}</DialogTitle>
+          <DialogTitle className="sr-only">
+            {editDraft.type === TYPE_DAILY
+              ? editDraft.glyph || copy("admin.type.daily")
+              : editDraft.author || copy("admin.works")}
+          </DialogTitle>
           <form onSubmit={saveEdit} className="flex min-h-full flex-col">
             <div className="grid w-full flex-1 gap-6 p-6 sm:grid-cols-[minmax(0,1fr)_20rem]">
               <div
@@ -1918,9 +1944,16 @@ export function WorksPanel({
                 </div>
                 <TypeTabs
                   value={editDraft.type}
-                  onChange={(type) => setEditDraft((current) => ({ ...current, type }))}
+                  onChange={(type) =>
+                    setEditDraft((current) => ({
+                      ...current,
+                      type,
+                      ...(type === TYPE_DAILY ? { author: "", nick: "" } : {}),
+                    }))
+                  }
                   copy={copy}
                 />
+                {editDraft.type === TYPE_DAILY ? null : (
                 <div className="grid gap-1.5">
                   <Label htmlFor="work-edit-author">{copy("admin.author")}</Label>
                   <AuthorNickInput
@@ -1933,6 +1966,7 @@ export function WorksPanel({
                     }
                   />
                 </div>
+                )}
                 <div className="grid gap-1.5">
                   <Label htmlFor="work-edit-stream">{copy("admin.stream")}</Label>
                   <Input

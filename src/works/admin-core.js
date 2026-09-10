@@ -89,8 +89,12 @@ export function sizeFromSvg(svg) {
 
 export function fieldsFromBody(item, previous = {}) {
   const type = normalizeWorkType(item.type ?? previous.type);
-  const author = normalizeName(item.author !== undefined ? item.author : previous.author);
-  const nick = normalizeNick(item.nick !== undefined ? item.nick : previous.nick);
+  // Daily-practice letters are anonymous: author/nick never stick, even if the
+  // client still sends them from an older inbox row or a type switch.
+  const author =
+    type === TYPE_DAILY ? "" : normalizeName(item.author !== undefined ? item.author : previous.author);
+  const nick =
+    type === TYPE_DAILY ? "" : normalizeNick(item.nick !== undefined ? item.nick : previous.nick);
   // Author, nick and stream are optional; an empty value is stored as "".
   const stream = String(item.stream !== undefined ? item.stream : previous.stream || "").trim();
   const sample = normalizeSample(item.sample !== undefined ? item.sample : previous.sample) || undefined;
