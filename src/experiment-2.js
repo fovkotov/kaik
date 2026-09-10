@@ -2,7 +2,7 @@ import Lenis from "lenis";
 import { initEmbed, safeStorage } from "./embed.js";
 import { playUISound } from "./lib/ui-sounds.js";
 import { playTickClick } from "./tick-clicks.js";
-import { applyTranslations, getLocale, setLocale, t } from "./scriptik.js";
+import { applyTranslations, ENROLL_HREF, getLocale, setLocale, t } from "./scriptik.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
@@ -2062,7 +2062,20 @@ async function boot() {
   setupGridGeometry();
   setupFilters();
   document.querySelectorAll("[data-enroll]").forEach((link) => {
-    link.addEventListener("click", (event) => playTickClick(event));
+    link.addEventListener("click", (event) => {
+      playTickClick(event);
+      if (getLocale() === "ru") return;
+      event.preventDefault();
+      const url = ENROLL_HREF.en;
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        try {
+          window.top.location.href = url;
+        } catch {
+          window.location.href = url;
+        }
+      }
+    });
   });
   syncIslandSticky();
   new ResizeObserver(syncIslandSticky).observe(document.querySelector("[data-filter-bar]") || grid);
