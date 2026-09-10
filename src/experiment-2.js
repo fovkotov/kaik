@@ -1007,12 +1007,18 @@ function createViewer(root) {
   let wheelCoastAt = 0;
   let wheelTickAt = 0;
 
-  const count = () => items.length || 1;
-  const wrap = (i) => ((i % count()) + count()) % count();
+  const MEDIA_WINDOW = 2;
+  const count = () => items.length;
+  const wrap = (i) => {
+    const n = count();
+    if (n <= 0) return 0;
+    return ((Math.trunc(i) % n) + n) % n;
+  };
   const widthOf = () => track?.clientWidth || root.clientWidth || window.innerWidth || 1;
 
   /* Same wrap as the site slider — nearest copy, even-count tie break. */
   function wrapDelta(i, current, n, offset) {
+    if (n <= 0) return 0;
     let d = i - current;
     d -= n * Math.round(d / n);
     if (n % 2 === 0 && Math.abs(d) === n / 2) d = offset > 0 ? -n / 2 : n / 2;
@@ -1031,24 +1037,84 @@ function createViewer(root) {
   function shortestSteps(from, to) {
     let delta = to - from;
     const n = count();
+    if (n <= 0) return 0;
     if (delta > n / 2) delta -= n;
     if (delta < -n / 2) delta += n;
     return delta;
   }
 
-  function preload(i) {
-    const src = items[wrap(i)]?.src;
-    if (!src) return;
-    const warm = new Image();
-    warm.decoding = "async";
-    warm.src = src;
+  function cancelNodeAnimations(node) {
+    if (!node?.getAnimations) return;
+    for (const anim of node.getAnimations({ subtree: true })) anim.cancel();
   }
 
-  const activeMedia = () => slides[index]?.querySelector("img") ?? null;
+  function ensureMedia(i) {
+    const at = wrap(i);
+    const slide = slides[at];
+    const entry = items[at];
+    if (!slide || !entry?.src) return null;
+    let image = slide.querySelector("img");
+    if (!image) {
+      image = document.createElement("img");
+      image.draggable = false;
+      image.setAttribute("draggable", "false");
+      image.decoding = "async";
+      slide.append(image);
+    }
+    if (image.getAttribute("src") !== entry.src) {
+      image.alt = entry.alt || "";
+      image.src = entry.src;
+    }
+    return image;
+  }
+
+  function hydrateAround(active) {
+    const current = wrap(active);
+    const n = count();
+    const keep = new Set();
+    if (n > 0) {
+      for (let delta = -MEDIA_WINDOW; delta <= MEDIA_WINDOW; delta += 1) {
+        keep.add(wrap(current + delta));
+      }
+    }
+    slides.forEach((slide, i) => {
+      if (keep.has(i)) ensureMedia(i);
+      else slide.replaceChildren();
+    });
+    return ensureMedia(current);
+  }
+
+  const activeMedia = () => ensureMedia(index);
 
   function syncSlides(active = index) {
     const current = wrap(active);
     slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
+  }
+
+  function settleSlideVisuals(active = index) {
+    const current = wrap(active);
+    cancelNodeAnimations(track);
+    slides.forEach((slide, i) => {
+      const on = i === current;
+      slide.classList.toggle("is-active", on);
+      slide.style.transition = "none";
+      if (!isMobile()) {
+        slide.style.opacity = on ? "1" : "0";
+        slide.style.visibility = on ? "visible" : "hidden";
+        slide.style.transform = "none";
+        slide.style.zIndex = on ? "1" : "0";
+      } else {
+        slide.style.opacity = "";
+        slide.style.visibility = "";
+        slide.style.zIndex = "";
+      }
+    });
+    const media = slides[current]?.querySelector("img");
+    if (!media) return;
+    cancelNodeAnimations(media);
+    media.style.opacity = "1";
+    media.style.visibility = "visible";
+    if (z <= 1.001) media.style.transform = "none";
   }
 
   let captionFor = -1;
@@ -1063,6 +1129,7 @@ function createViewer(root) {
 
   function syncDots(active = index) {
     const current = wrap(active);
+    hydrateAround(current);
     syncSlides(current);
     syncCaption(current);
     layoutDots(current);
@@ -1090,12 +1157,7 @@ function createViewer(root) {
   }
 
   function paint(offset) {
-    if (!isMobile()) {
-      slides.forEach((slide) => {
-        slide.style.transform = "translate3d(0,0,0)";
-      });
-      return;
-    }
+    if (!isMobile()) return;
     const w = widthOf();
     const n = slides.length;
     slides.forEach((slide, i) => {
@@ -1234,28 +1296,18 @@ function createViewer(root) {
   function finishIndex(next) {
     const target = wrap(next);
     const changed = target !== index;
-    index = target;
-    pending = index;
-    shift = 0;
-    velocity = 0;
-    slides.forEach((slide, i) => {
-      slide.style.transition = "none";
-      if (!isMobile()) {
-        slide.style.opacity = i === index ? "1" : "0";
-        slide.style.zIndex = i === index ? "1" : "0";
-      } else {
-        slide.style.opacity = "";
-        slide.style.zIndex = "";
-      }
-    });
     if (changed) {
       cancelZoomSession();
       resetZoom();
     }
+    index = target;
+    pending = index;
+    shift = 0;
+    velocity = 0;
+    hydrateAround(target);
+    settleSlideVisuals(target);
     paint(0);
     syncDots();
-    preload(index + 1);
-    preload(index - 1);
   }
 
   /** Keep the painted offset when adopting `pending` as the live index. */
@@ -1290,7 +1342,7 @@ function createViewer(root) {
   }
 
   function goTo(next, vel = 0) {
-    if (!open) return;
+    if (!open || count() < 1) return;
     const target = wrap(next);
     pending = target;
     if (!isMobile()) {
@@ -1331,20 +1383,14 @@ function createViewer(root) {
 
   function buildSlides(start) {
     track.replaceChildren();
-    slides = items.map((entry, i) => {
+    slides = items.map((_, i) => {
       const slide = document.createElement("div");
       slide.className = "viewer__slide";
       if (i === start) slide.classList.add("is-active");
-      const image = document.createElement("img");
-      image.alt = entry.alt || "";
-      image.draggable = false;
-      image.setAttribute("draggable", "false");
-      image.decoding = "async";
-      image.src = entry.src;
-      slide.append(image);
       track.append(slide);
       return slide;
     });
+    hydrateAround(start);
   }
 
   function buildDots() {
@@ -1840,6 +1886,7 @@ function createViewer(root) {
   new ResizeObserver(() => {
     if (!slides.length) return;
     root.classList.toggle("is-mobile", isMobile());
+    if (!isMobile()) settleSlideVisuals(index);
     paint(shift);
   }).observe(root);
 

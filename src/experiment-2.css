@@ -767,7 +767,10 @@ html.is-viewer-open .experiment-two__scroll {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  will-change: transform, opacity;
+}
+
+.viewer.is-mobile .viewer__slide.is-active {
+  will-change: transform;
 }
 
 .viewer__slide img {
@@ -784,6 +787,7 @@ html.is-viewer-open .experiment-two__scroll {
 
 .viewer:not(.is-mobile) .viewer__slide:not(.is-active) {
   opacity: 0;
+  visibility: hidden;
 }
 
 .viewer__hit {
