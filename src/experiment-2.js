@@ -63,9 +63,6 @@ const pendingHydration = new Map();
    where a thumb-flick covers more screens per second and the link is slower. */
 const MEDIA_ROOT_MARGIN = "150% 0px";
 const MEDIA_ROOT_MARGIN_MOBILE = "225% 0px";
-/* Cards fade in while still this many screens below the fold on mobile, so they
-   are already opaque by the time they scroll in (desktop keeps the in-view reveal). */
-const ENTER_LOOKAHEAD_MOBILE = 0.5;
 /* How many hero letterings block the first reveal; the rest warm up in idle time. */
 const HERO_EAGER = 1;
 const HERO_WARM_CONCURRENCY = 2;
@@ -606,10 +603,6 @@ function observeCardMedia() {
   pendingHydration.forEach((_, card) => mediaObserver.observe(card));
 }
 
-function enterLookahead() {
-  return isMobile() ? ENTER_LOOKAHEAD_MOBILE : 0;
-}
-
 function hydrateCard(card) {
   const run = pendingHydration.get(card);
   if (!run) return;
@@ -626,10 +619,10 @@ function cardInScrollView(card) {
   const root = document.querySelector("[data-scroll-root]");
   const box = card.getBoundingClientRect();
   if (!(box.width || box.height)) return false;
-  const ahead = enterLookahead();
-  if (!root) return box.bottom > 0 && box.top < window.innerHeight * (1 + ahead);
+  /* Edge rule: the card counts as in view the moment its top touches the fold. */
+  if (!root) return box.bottom > 0 && box.top <= window.innerHeight;
   const view = root.getBoundingClientRect();
-  return box.bottom > view.top && box.top < view.bottom + view.height * ahead;
+  return box.bottom > view.top && box.top <= view.bottom;
 }
 
 function playCardEnter(card) {
@@ -678,7 +671,10 @@ function observeCardEnters() {
         if (entry.isIntersecting) requestCardEnter(entry.target);
       });
     },
-    { root, rootMargin: `0px 0px ${Math.round(enterLookahead() * 100)}% 0px`, threshold: 0.08 },
+    /* The scale-down fade starts the moment the card's top edge crosses the fold
+       (threshold 0, no margin), so the enter is visible on screen. The file itself
+       was fetched screens earlier by the media observer. */
+    { root, threshold: 0 },
   );
   grid.querySelectorAll(".work-card").forEach((card) => enterObserver.observe(card));
 }
