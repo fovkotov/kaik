@@ -29,8 +29,8 @@
   /* Implicit row step. Cards span ceil(height / step) rows, so heights snap
      within a few px and dense flow can slide small cards into every gap. */
   --grid-row-unit: 4px;
-  --grid-gap-x: 4px;
-  --grid-gap-y: 4px;
+  --grid-gap-x: 16px;
+  --grid-gap-y: 16px;
   --cell-align-x: center;
   --cell-align-y: top;
   --cell-pack-x: center;
@@ -76,6 +76,10 @@ a {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
+}
+
+.experiment-two__content {
+  min-height: 100%;
 }
 
 .experiment-two__scroll::-webkit-scrollbar {
@@ -125,7 +129,7 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .works-page {
-  padding: 24px var(--gutter) max(104px, calc(72px + var(--frame-clip-bottom)));
+  padding: 24px var(--gutter) 48px;
 }
 
 /* Both first blocks share one height so the tabs and grid never jump on switch. */
@@ -249,6 +253,18 @@ html.is-viewer-open .experiment-two__scroll {
   grid-auto-flow: row;
 }
 
+.work-card.is-enter {
+  opacity: 0;
+  transform: translate3d(0, 8px, 0) scale(1.04);
+  transform-origin: 50% 55%;
+  pointer-events: none;
+}
+
+.work-card.is-entered {
+  opacity: 1;
+  transform: none;
+}
+
 .work-card {
   display: grid;
   grid-column: span var(--card-span, 1);
@@ -321,6 +337,12 @@ html.is-viewer-open .experiment-two__scroll {
 
 .work-card__preview.is-loaded img {
   opacity: 1;
+}
+
+.work-card:not([data-type="final"]) .work-card__preview::before,
+.work-card:not([data-type="final"]) .work-card__preview:not(.is-loaded)::after {
+  content: none;
+  display: none;
 }
 
 /* Image cards size to the media. JS reserves enough implicit rows for the
@@ -492,16 +514,18 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .filter-island {
-  position: fixed;
-  left: 50%;
-  bottom: calc(1px + var(--frame-clip-bottom));
+  --island-h: 32px;
+  --island-sticky-top: calc(50% - (var(--island-h) / 2));
+  position: sticky;
+  top: var(--island-sticky-top);
   z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
+  width: max-content;
   max-width: calc(100% - 24px);
-  transform: translateX(-50%);
+  margin: 0 auto calc(-1 * var(--island-h));
 }
 
 .filter-chip {
@@ -1015,7 +1039,7 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .filter-island {
-    bottom: max(-3px, calc(env(safe-area-inset-bottom) + var(--frame-clip-bottom) - 15px));
+    max-width: calc(100% - 16px);
   }
 
   .filter-chip__plate {

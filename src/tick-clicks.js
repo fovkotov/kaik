@@ -64,7 +64,8 @@ function reduced() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function playAction(event) {
+/** Same pop the flying deck plays on click/tap. */
+export function playTickClick(event) {
   if (reduced()) return;
   const volume = getActionVolume();
   if (volume <= 0) return;
@@ -108,7 +109,7 @@ export function initTickClicks() {
 
   function playOnce(event) {
     if (playedGesture) return false;
-    playAction(event);
+    playTickClick(event);
     // Desktop: consume this pointerdown/key even if resume() has not settled.
     // Waiting for `running` deferred the pop to click/mouseup.
     playedGesture = true;

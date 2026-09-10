@@ -12,6 +12,7 @@
   </head>
   <body class="experiment-two">
     <div class="experiment-two__scroll" data-scroll-root>
+      <div class="experiment-two__content" data-scroll-content>
       <header class="site-nav">
         <a class="site-nav__brand" href="https://kaik.pictures/main" target="_top" rel="noreferrer">
           Käik: we make cool stuff <span aria-hidden="true">→</span>
@@ -38,11 +39,27 @@
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
+        <div class="filter-island" data-filter-island aria-label="Фильтры работ">
+          <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
+            <span class="filter-chip__plate">daily practice</span>
+          </button>
+          <button class="filter-chip filter-chip--lettering" type="button" role="checkbox" aria-checked="true" data-filter="lettering">
+            <span class="filter-chip__plate">воркшопы</span>
+          </button>
+          <button class="filter-chip filter-chip--final" type="button" role="checkbox" aria-checked="true" data-filter="final">
+            <span class="filter-chip__plate">финальные проекты</span>
+          </button>
+          <button class="filter-chip filter-chip--font" type="button" role="checkbox" aria-checked="true" data-filter="font">
+            <span class="filter-chip__plate">шрифты</span>
+          </button>
+        </div>
+
         <section class="works-panel" aria-label="Работы студентов">
           <div class="works-grid" data-works-grid></div>
           <p class="works-empty" data-works-empty hidden>ничего нет</p>
         </section>
       </main>
+      </div>
     </div>
 
     <aside class="grid-settings" data-grid-settings hidden aria-label="Настройки сетки">
@@ -100,21 +117,6 @@
       </label>
       <button class="grid-settings__reset" type="button" data-grid-settings-reset>Reset to catalog defaults</button>
     </aside>
-
-    <div class="filter-island" aria-label="Фильтры работ">
-      <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
-        <span class="filter-chip__plate">daily practice</span>
-      </button>
-      <button class="filter-chip filter-chip--lettering" type="button" role="checkbox" aria-checked="true" data-filter="lettering">
-        <span class="filter-chip__plate">воркшопы</span>
-      </button>
-      <button class="filter-chip filter-chip--final" type="button" role="checkbox" aria-checked="true" data-filter="final">
-        <span class="filter-chip__plate">финальные проекты</span>
-      </button>
-      <button class="filter-chip filter-chip--font" type="button" role="checkbox" aria-checked="true" data-filter="font">
-        <span class="filter-chip__plate">шрифты</span>
-      </button>
-    </div>
 
     <div
       class="viewer"

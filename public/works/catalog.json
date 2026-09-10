@@ -3,22 +3,22 @@
   "updatedAt": "2026-09-10T02:54:58.305Z",
   "layout": {
     "columns": 12,
-    "cellRatio": 0.823,
-    "gapX": 4,
-    "gapY": 4,
+    "cellRatio": 1,
+    "gapX": 16,
+    "gapY": 16,
     "alignX": "center",
     "alignY": "start",
     "dense": true,
     "typePatterns": {
       "daily": {
         "baseSpan": 1,
-        "interval": 1,
-        "span": 1
+        "interval": 6,
+        "span": 3
       },
       "lettering": {
-        "baseSpan": 4,
+        "baseSpan": 5,
         "interval": 4,
-        "span": 8
+        "span": 10
       },
       "final": {
         "baseSpan": 3,

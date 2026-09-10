@@ -6,16 +6,16 @@ export const TYPE_DAILY = "daily";
 export const WORK_TYPES = [TYPE_LETTERING, TYPE_DAILY, TYPE_FINAL, TYPE_FONT];
 export const WORKS_CATALOG_EVENT = "works-catalog";
 const DEFAULT_TYPE_PATTERNS = Object.freeze({
-  [TYPE_DAILY]: Object.freeze({ baseSpan: 1, interval: 1, span: 1 }),
-  [TYPE_LETTERING]: Object.freeze({ baseSpan: 4, interval: 4, span: 8 }),
+  [TYPE_DAILY]: Object.freeze({ baseSpan: 1, interval: 6, span: 3 }),
+  [TYPE_LETTERING]: Object.freeze({ baseSpan: 5, interval: 4, span: 10 }),
   [TYPE_FINAL]: Object.freeze({ baseSpan: 3, interval: 6, span: 5 }),
   [TYPE_FONT]: Object.freeze({ baseSpan: 10 }),
 });
 export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   columns: 12,
-  cellRatio: 0.823,
-  gapX: 4,
-  gapY: 4,
+  cellRatio: 1,
+  gapX: 16,
+  gapY: 16,
   alignX: "center",
   alignY: "start",
   /** Dense auto-placement: later cards backfill holes left beside large ones. */

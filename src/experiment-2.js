@@ -1,5 +1,7 @@
+import Lenis from "lenis";
 import { initEmbed, safeStorage } from "./embed.js";
 import { playUISound } from "./lib/ui-sounds.js";
+import { playTickClick } from "./tick-clicks.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
@@ -23,7 +25,10 @@ const empty = document.querySelector("[data-works-empty]");
 const filters = [...document.querySelectorAll("[data-filter]")];
 const settingsPanel = document.querySelector("[data-grid-settings]");
 const storage = safeStorage();
-const SETTINGS_KEY = "kaik:experiment-2:grid";
+const SETTINGS_KEY = "kaik:experiment-2:grid-v2";
+const ENTER_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const ENTER_MS = 520;
+const ENTER_STAGGER_MS = 40;
 
 const COARSE = window.matchMedia("(pointer: coarse)");
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -45,6 +50,9 @@ let measureGridGeometry = () => {};
 let cardGeometryObserver = null;
 let cardMeasureFrame = 0;
 let cardGuardPasses = 0;
+let pageLenis = null;
+let enterObserver = null;
+let enterIndex = 0;
 
 /* ---------- helpers ---------- */
 
@@ -315,6 +323,7 @@ async function hydrateFontSpecimen(specimen, item, file) {
   }
   fitFontSpecimen(specimen);
   scheduleCardMeasure();
+  markCardEnterReady(specimen.closest(".work-card"));
 }
 
 function setArtworkDimensions(card, preview, width, height) {
@@ -479,6 +488,66 @@ function observeCardGeometry() {
   });
 }
 
+function cardInScrollView(card) {
+  const root = document.querySelector("[data-scroll-root]");
+  const box = card.getBoundingClientRect();
+  if (!(box.width || box.height)) return false;
+  if (!root) return box.bottom > 0 && box.top < window.innerHeight;
+  const view = root.getBoundingClientRect();
+  return box.bottom > view.top && box.top < view.bottom;
+}
+
+function playCardEnter(card) {
+  if (!card || card.dataset.entered === "1") return;
+  card.dataset.entered = "1";
+  const delay = (enterIndex % 12) * ENTER_STAGGER_MS;
+  enterIndex += 1;
+  const from = REDUCE.matches
+    ? { opacity: 0 }
+    : { opacity: 0, transform: "translate3d(0px, 8px, 0) scale(1.04)" };
+  const to = REDUCE.matches
+    ? { opacity: 1 }
+    : { opacity: 1, transform: "translate3d(0px, 0px, 0) scale(1)" };
+  const anim = card.animate([from, to], {
+    duration: REDUCE.matches ? 200 : ENTER_MS,
+    delay,
+    easing: REDUCE.matches ? "ease" : ENTER_EASE,
+    fill: "forwards",
+  });
+  const settle = () => {
+    anim.cancel();
+    card.classList.remove("is-enter");
+    card.classList.add("is-entered");
+  };
+  anim.finished.then(settle).catch(settle);
+}
+
+function requestCardEnter(card) {
+  if (!card || card.dataset.entered === "1" || card.dataset.enterReady !== "1") return;
+  if (cardInScrollView(card)) playCardEnter(card);
+}
+
+function markCardEnterReady(card) {
+  if (!card) return;
+  card.dataset.enterReady = "1";
+  requestCardEnter(card);
+}
+
+function observeCardEnters() {
+  enterObserver?.disconnect();
+  enterIndex = 0;
+  const root = document.querySelector("[data-scroll-root]");
+  enterObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) requestCardEnter(entry.target);
+      });
+    },
+    { root, threshold: 0.08 },
+  );
+  grid.querySelectorAll(".work-card").forEach((card) => enterObserver.observe(card));
+}
+
 function bindArtworkMetrics(card, preview, image) {
   const applyNatural = () => {
     if (!setArtworkDimensions(card, preview, image.naturalWidth, image.naturalHeight)) return;
@@ -495,7 +564,7 @@ function cardFor(item, span) {
   const cover = imageFiles(item)[0];
   const card = document.createElement("button");
   card.type = "button";
-  card.className = "work-card";
+  card.className = "work-card is-enter";
   card.dataset.workId = item.id;
   card.dataset.type = item.type;
   card.dataset.span = String(span);
@@ -512,14 +581,18 @@ function cardFor(item, span) {
   image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
-  revealOnLoad(image, preview);
+  revealOnLoad(image, preview, { skeleton: item.type === TYPE_FINAL });
   image.src = workFileUrl(cover);
+  const ready = () => markCardEnterReady(card);
+  image.addEventListener("load", ready, { once: true });
+  image.addEventListener("error", ready, { once: true });
   if (item.type === TYPE_FINAL) {
     image.addEventListener("load", () => scheduleCardMeasure());
     image.decode?.().then(() => scheduleCardMeasure()).catch(() => {});
   } else {
     bindArtworkMetrics(card, preview, image);
   }
+  if (image.complete && image.naturalWidth) queueMicrotask(ready);
   preview.append(image);
   art.append(preview);
 
@@ -528,14 +601,14 @@ function cardFor(item, span) {
   meta.append(...metaNodes(item));
 
   card.append(art, meta);
-  card.addEventListener("click", () => openViewerFor(item, card));
+  card.addEventListener("click", (event) => openViewerFor(item, card, event));
   return card;
 }
 
 function fontCardFor(item, span) {
   const file = fontFile(item);
   const card = document.createElement("article");
-  card.className = "work-card work-card--font";
+  card.className = "work-card work-card--font is-enter";
   card.dataset.workId = item.id;
   card.dataset.type = item.type;
   card.dataset.span = String(span);
@@ -576,9 +649,9 @@ function slideFor(item, file) {
  * A final project pages through its own files. Daily and workshop cards share
  * one non-final browsing sequence in the currently visible filtered order.
  */
-function openViewerFor(item, card) {
+function openViewerFor(item, card, event) {
   if (!viewer) return;
-  playUISound("tap");
+  playTickClick(event);
   if (item.type === TYPE_FINAL) {
     viewer.open(imageFiles(item).map((file) => slideFor(item, file)), 0, card);
     return;
@@ -591,7 +664,9 @@ function openViewerFor(item, card) {
 
 function renderGrid() {
   if (!catalogReady) {
-    renderSkeletons();
+    grid.replaceChildren();
+    grid.setAttribute("aria-busy", "true");
+    empty.hidden = true;
     return;
   }
   const works = visibleWorks();
@@ -601,55 +676,9 @@ function renderGrid() {
   grid.replaceChildren(fragment);
   measureCardRows();
   observeCardGeometry();
+  observeCardEnters();
   scheduleCardMeasure();
   empty.hidden = works.length > 0;
-}
-
-/* ---------- skeletons ---------- */
-
-const SKELETON_CARDS = 18;
-
-/** Shimmer plates in the exact card geometry so the real grid drops in without a shift. */
-function renderSkeletons() {
-  const fragment = document.createDocumentFragment();
-  const placeholders = Array.from({ length: SKELETON_CARDS }, (_, index) => ({
-    id: `skeleton-${index}`,
-    type:
-      index === 4 || index === 11
-        ? TYPE_FINAL
-        : index === 2 || index === 9
-          ? TYPE_DAILY
-          : TYPE_LETTERING,
-  }));
-  for (const { item, span } of planExperiment2(placeholders, layout)) {
-    const card = document.createElement("div");
-    card.className = "work-card is-skeleton";
-    card.dataset.type = item.type;
-    card.dataset.span = String(span);
-    card.style.setProperty("--card-span", String(span));
-    card.setAttribute("aria-hidden", "true");
-    const art = document.createElement("span");
-    art.className = "work-card__art";
-    const preview = document.createElement("span");
-    preview.className = "work-card__preview skeleton";
-    if (item.type === TYPE_FINAL) setArtworkDimensions(card, preview, 16, 9);
-    art.append(preview);
-    const meta = document.createElement("span");
-    meta.className = "work-card__meta";
-    const lineA = document.createElement("span");
-    lineA.className = "skeleton skeleton-line";
-    const lineB = document.createElement("span");
-    lineB.className = "skeleton skeleton-line skeleton-line--short";
-    meta.append(lineA, lineB);
-    card.append(art, meta);
-    fragment.append(card);
-  }
-  grid.replaceChildren(fragment);
-  measureCardRows();
-  observeCardGeometry();
-  scheduleCardMeasure();
-  grid.setAttribute("aria-busy", "true");
-  empty.hidden = true;
 }
 
 function setupGridGeometry() {
@@ -697,8 +726,12 @@ function setupFilters() {
   syncFilters();
 }
 
-/** Fade the image in once it has pixels; until then the frame keeps its skeleton plate. */
-function revealOnLoad(image, frame) {
+/** Finals keep a 16:9 plate until pixels arrive. Lettering enters as a whole card. */
+function revealOnLoad(image, frame, { skeleton = true } = {}) {
+  if (!skeleton) {
+    frame.classList.add("is-loaded");
+    return;
+  }
   const done = () => frame.classList.add("is-loaded");
   image.addEventListener("load", done, { once: true });
   image.addEventListener("error", done, { once: true });
@@ -1232,7 +1265,7 @@ function createViewer(root) {
   /* ---- scroll pinning: the page under the viewer must not move ---- */
 
   function lockScroll() {
-    if (scrollRoot && scrollRoot.scrollTop !== savedScroll) scrollRoot.scrollTop = savedScroll;
+    pinPageScroll(savedScroll);
   }
 
   /* ---- build ---- */
@@ -1271,7 +1304,7 @@ function createViewer(root) {
       dot.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        playUISound("click");
+        playTickClick(event);
         goTo(i);
       });
       dotsTrack.append(dot);
@@ -1284,8 +1317,13 @@ function createViewer(root) {
     document.documentElement.classList.toggle("is-viewer-open", next);
     root.hidden = !next;
     root.setAttribute("aria-hidden", next ? "false" : "true");
-    if (next) root.removeAttribute("inert");
-    else root.setAttribute("inert", "");
+    if (next) {
+      root.removeAttribute("inert");
+      pageLenis?.stop();
+    } else {
+      root.setAttribute("inert", "");
+      pageLenis?.start();
+    }
   }
 
   function close() {
@@ -1303,7 +1341,7 @@ function createViewer(root) {
     root.classList.remove("is-dragging");
     root.querySelectorAll(".viewer__hit.is-aiming").forEach((hit) => hit.classList.remove("is-aiming"));
     const pin = () => {
-      if (scrollRoot) scrollRoot.scrollTop = top;
+      pinPageScroll(top);
     };
     pin();
     requestAnimationFrame(() => {
@@ -1323,7 +1361,7 @@ function createViewer(root) {
     if (!items.length) return;
     const start = wrap(startIndex);
     lastShot = shot instanceof HTMLElement ? shot : null;
-    savedScroll = scrollRoot?.scrollTop ?? 0;
+    savedScroll = pageLenis?.scroll ?? scrollRoot?.scrollTop ?? 0;
     captionFor = -1;
     buildSlides(start);
     buildDots();
@@ -1350,7 +1388,7 @@ function createViewer(root) {
   root.querySelector("[data-viewer-close]")?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    playUISound("click");
+    playTickClick(event);
     close();
   });
 
@@ -1359,7 +1397,7 @@ function createViewer(root) {
       event.preventDefault();
       event.stopPropagation();
       if (performance.now() < ignoreClickUntil) return;
-      playUISound("click");
+      playTickClick(event);
       go(step);
     });
   };
@@ -1693,23 +1731,66 @@ function createViewer(root) {
   };
 }
 
+function pinPageScroll(top) {
+  if (pageLenis) {
+    pageLenis.scrollTo(top, { immediate: true });
+    return;
+  }
+  const root = document.querySelector("[data-scroll-root]");
+  if (root) root.scrollTop = top;
+}
+
+function syncIslandSticky() {
+  const island = document.querySelector("[data-filter-island]");
+  if (!island) return;
+  const height = island.getBoundingClientRect().height;
+  if (!(height > 0)) return;
+  island.style.setProperty("--island-h", `${height}px`);
+  island.style.setProperty("--island-sticky-top", `calc(50% - ${height / 2}px)`);
+}
+
+function initSmoothScroll() {
+  const wrapper = document.querySelector("[data-scroll-root]");
+  const content = document.querySelector("[data-scroll-content]");
+  if (!wrapper || !content || REDUCE.matches || pageLenis) return;
+  pageLenis = new Lenis({
+    wrapper,
+    content,
+    eventsTarget: wrapper,
+    orientation: "vertical",
+    gestureOrientation: "vertical",
+    smoothWheel: true,
+    overscroll: false,
+    autoRaf: false,
+  });
+  const tick = (time) => {
+    pageLenis?.raf(time);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 /* ---------- boot ---------- */
 
 async function boot() {
   initEmbed();
+  initSmoothScroll();
   setupHero();
   setupGridGeometry();
   setupFilters();
+  syncIslandSticky();
+  new ResizeObserver(syncIslandSticky).observe(document.querySelector("[data-filter-island]") || grid);
   viewer = createViewer(document.querySelector("[data-viewer]"));
   setupGridSettings();
 
-  action.addEventListener("click", () => {
-    playUISound("tap");
+  action.addEventListener("click", (event) => {
+    playTickClick(event);
     nextHero();
   });
 
-  /* Skeleton hero + grid while the catalog and hero image cache are in flight. */
-  renderSkeletons();
+  grid.replaceChildren();
+  grid.setAttribute("aria-busy", "true");
+  empty.hidden = true;
 
   let data;
   try {
