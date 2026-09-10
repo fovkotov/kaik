@@ -22,6 +22,12 @@ function enrollHref(locale) {
   return ENROLL_HREF[locale] || ENROLL_HREF[DEFAULT_LOCALE];
 }
 
+function applyEnrollLink(node, locale) {
+  node.setAttribute("href", enrollHref(locale));
+  node.setAttribute("target", "_blank");
+  node.setAttribute("rel", "noopener noreferrer");
+}
+
 const dictionaries = {
   en: {
     title: "ETTER II",
@@ -147,7 +153,7 @@ const dictionaries = {
     "exp2.filter.final": "final projects",
     "exp2.filter.font": "fonts",
     "exp2.empty": "nothing here",
-    "exp2.enroll": "enroll in the course",
+    "exp2.enroll": "join waitlist",
     "exp2.lang": "Switch language",
     "exp2.nextHero": "Show the next lettering",
     "exp2.stream": "stream {n}",
@@ -775,10 +781,12 @@ export function applyTranslations(locale = getLocale()) {
     if (!key) return;
     node.textContent = t(key, locale);
     if (key === "nav.enroll" && node instanceof HTMLAnchorElement) {
-      node.setAttribute("href", enrollHref(locale));
-      node.setAttribute("target", "_blank");
-      node.setAttribute("rel", "noopener noreferrer");
+      applyEnrollLink(node, locale);
     }
+  });
+
+  document.querySelectorAll("[data-enroll]").forEach((node) => {
+    if (node instanceof HTMLAnchorElement) applyEnrollLink(node, locale);
   });
 
   document.querySelectorAll("[data-i18n-aria]").forEach((node) => {
