@@ -44,6 +44,7 @@ let viewer = null;
 let measureGridGeometry = () => {};
 let cardGeometryObserver = null;
 let cardMeasureFrame = 0;
+let cardGuardPasses = 0;
 
 /* ---------- helpers ---------- */
 
@@ -313,10 +314,7 @@ async function hydrateFontSpecimen(specimen, item, file) {
     specimen.classList.add("is-font-error");
   }
   fitFontSpecimen(specimen);
-  requestAnimationFrame(() => {
-    const card = specimen.closest(".work-card");
-    setCardRowSpan(card, card?.getBoundingClientRect().height);
-  });
+  scheduleCardMeasure();
 }
 
 function setArtworkDimensions(card, preview, width, height) {
@@ -331,38 +329,91 @@ function setArtworkDimensions(card, preview, width, height) {
 
 /**
  * Cards are span-only grid items: `grid-column: span N` from the planner and
- * `grid-row: span M` from the rendered height. The implicit row step is a few
- * px, so M snaps to the content almost exactly and `grid-auto-flow: dense`
- * can slide the next small card into whatever gap a large one leaves.
+ * `grid-row: span M` from the intrinsic content height. The implicit row step
+ * is a few px, so M snaps to the media plus caption and dense flow can slide
+ * the next small card into whatever gap a large one leaves.
  */
+function rowUnitPx() {
+  return (
+    Number.parseFloat(grid.style.getPropertyValue("--grid-row-unit")) ||
+    Number.parseFloat(getComputedStyle(grid).getPropertyValue("--grid-row-unit")) ||
+    0
+  );
+}
+
+function allottedCardHeight(card) {
+  const rowUnit = rowUnitPx();
+  const span = Number(card.dataset.rowSpan) || 1;
+  if (!(rowUnit > 0 && span > 0)) return 0;
+  return span * rowUnit + Math.max(0, span - 1) * layout.gapY;
+}
+
 function setCardRowSpan(card, neededCardHeight) {
-  const rowUnit = Number.parseFloat(grid.style.getPropertyValue("--grid-row-unit"));
-  if (!(neededCardHeight > 0 && rowUnit > 0)) return;
+  const rowUnit = rowUnitPx();
+  if (!card || !(neededCardHeight > 0 && rowUnit > 0)) return false;
   const rowPitch = rowUnit + layout.gapY;
-  const rowSpan = Math.max(1, Math.ceil((neededCardHeight + layout.gapY) / rowPitch - 0.001));
-  if (card.dataset.rowSpan === String(rowSpan)) return;
+  const rowSpan = Math.max(1, Math.ceil((neededCardHeight + layout.gapY) / rowPitch));
+  if (card.dataset.rowSpan === String(rowSpan)) return false;
   card.dataset.rowSpan = String(rowSpan);
   card.style.setProperty("--card-row-span", String(rowSpan));
+  return true;
+}
+
+function metaBlockHeight(card) {
+  const meta = card.querySelector(".work-card__meta");
+  if (!meta) return 0;
+  return Math.max(meta.scrollHeight, meta.getBoundingClientRect().height);
+}
+
+function cardStackGap(card) {
+  return Number.parseFloat(getComputedStyle(card).rowGap) || 0;
+}
+
+/** Scaled natural height of the media, never the already-clipped box. */
+function intrinsicArtHeight(card) {
+  const preview = card.querySelector(".work-card__preview");
+  const image = preview?.querySelector("img");
+  const cellHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h")) || 0;
+  const boxWidth =
+    image?.getBoundingClientRect().width ||
+    preview?.getBoundingClientRect().width ||
+    card.getBoundingClientRect().width;
+
+  if (card.dataset.type === TYPE_FINAL && boxWidth > 0) return boxWidth * (9 / 16);
+
+  if (image && image.naturalWidth > 0 && image.naturalHeight > 0 && boxWidth > 0) {
+    return boxWidth * (image.naturalHeight / image.naturalWidth);
+  }
+
+  const catalogWidth = Number(card.dataset.artWidth);
+  const catalogHeight = Number(card.dataset.artHeight);
+  if (catalogWidth > 0 && catalogHeight > 0 && boxWidth > 0) {
+    return boxWidth * (catalogHeight / catalogWidth);
+  }
+
+  if (preview) {
+    const painted = Math.max(preview.scrollHeight, image?.scrollHeight || 0);
+    if (painted > 0) return painted;
+  }
+  return cellHeight;
+}
+
+function intrinsicCardHeight(card) {
+  if (card.classList.contains("work-card--font")) {
+    const art = card.querySelector(".work-card__art");
+    const cellHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h")) || 0;
+    const artHeight = Math.max(cellHeight, art?.scrollHeight || 0);
+    return artHeight + cardStackGap(card) + metaBlockHeight(card);
+  }
+  const artHeight = intrinsicArtHeight(card);
+  if (!(artHeight > 0)) return 0;
+  return artHeight + cardStackGap(card) + metaBlockHeight(card);
 }
 
 function measureArtworkCard(card) {
   if (!card?.querySelector(".work-card__preview")) return;
-  const cardWidth = card.getBoundingClientRect().width;
-  if (!(cardWidth > 0)) return;
-  const intrinsicWidth = Number(card.dataset.artWidth);
-  const intrinsicHeight = Number(card.dataset.artHeight);
-  // Until a cover reports its size (skeletons, images without catalog
-  // dimensions) the card reserves one W/H cell of art instead of collapsing.
-  const cellHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h")) || 0;
-  const neededArtHeight =
-    intrinsicWidth > 0 && intrinsicHeight > 0 ? (cardWidth * intrinsicHeight) / intrinsicWidth : cellHeight;
-  if (!(neededArtHeight > 0)) return;
-
-  const meta = card.querySelector(".work-card__meta");
-  const metaHeight = meta?.getBoundingClientRect().height || 0;
-  const cardGap = Number.parseFloat(getComputedStyle(card).rowGap) || 0;
-  const neededCardHeight = neededArtHeight + cardGap + metaHeight;
-  setCardRowSpan(card, neededCardHeight);
+  if (!(card.getBoundingClientRect().width > 0)) return;
+  setCardRowSpan(card, intrinsicCardHeight(card));
 }
 
 function measureCardRows() {
@@ -371,31 +422,72 @@ function measureCardRows() {
       measureArtworkCard(card);
       return;
     }
-    // Font specimens retain their configured one-cell art height; their grid
-    // occupancy still grows enough to contain that art and its caption.
-    setCardRowSpan(card, card.getBoundingClientRect().height);
+    setCardRowSpan(card, intrinsicCardHeight(card));
+  });
+}
+
+function guardUnclippedCards() {
+  let bumped = false;
+  grid.querySelectorAll(".work-card").forEach((card) => {
+    const allotted = allottedCardHeight(card);
+    const needed = Math.max(
+      intrinsicCardHeight(card),
+      card.scrollHeight,
+      (card.querySelector(".work-card__art")?.scrollHeight || 0) +
+        cardStackGap(card) +
+        metaBlockHeight(card),
+    );
+    if (!(needed > 0)) return;
+    if (allotted > 0 && needed <= allotted + 0.5) return;
+    if (setCardRowSpan(card, needed)) bumped = true;
+  });
+  if (!bumped || cardGuardPasses >= 6) {
+    cardGuardPasses = 0;
+    return;
+  }
+  cardGuardPasses += 1;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      measureCardRows();
+      guardUnclippedCards();
+    });
+  });
+}
+
+function scheduleCardMeasure() {
+  cancelAnimationFrame(cardMeasureFrame);
+  cardMeasureFrame = requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      measureCardRows();
+      guardUnclippedCards();
+    });
   });
 }
 
 function observeCardGeometry() {
   cardGeometryObserver?.disconnect();
-  cardGeometryObserver = new ResizeObserver((entries) => {
-    const cards = new Set(
-      entries.map((entry) => entry.target.closest(".work-card")).filter(Boolean),
-    );
-    cancelAnimationFrame(cardMeasureFrame);
-    cardMeasureFrame = requestAnimationFrame(() => {
-      cards.forEach((card) => {
-        if (card.querySelector(".work-card__preview")) measureArtworkCard(card);
-        else setCardRowSpan(card, card.getBoundingClientRect().height);
-      });
-    });
+  cardGeometryObserver = new ResizeObserver(() => {
+    scheduleCardMeasure();
   });
   grid.querySelectorAll(".work-card").forEach((card) => {
     cardGeometryObserver.observe(card);
-    card.querySelectorAll(".work-card__preview, .work-card__meta, .work-card__font-specimen")
+    card
+      .querySelectorAll(
+        ".work-card__art, .work-card__preview, .work-card__preview img, .work-card__meta, .work-card__font-specimen",
+      )
       .forEach((node) => cardGeometryObserver.observe(node));
   });
+}
+
+function bindArtworkMetrics(card, preview, image) {
+  const applyNatural = () => {
+    if (!setArtworkDimensions(card, preview, image.naturalWidth, image.naturalHeight)) return;
+    scheduleCardMeasure();
+  };
+  image.addEventListener("load", applyNatural);
+  image.addEventListener("error", () => scheduleCardMeasure(), { once: true });
+  image.decode?.().then(applyNatural).catch(() => {});
+  if (image.complete && image.naturalWidth) queueMicrotask(applyNatural);
 }
 
 function cardFor(item, span) {
@@ -413,25 +505,21 @@ function cardFor(item, span) {
   art.className = "work-card__art";
   const preview = document.createElement("span");
   preview.className = "work-card__preview";
-  const hasCatalogDimensions =
-    item.type === TYPE_FINAL
-      ? setArtworkDimensions(card, preview, 16, 9)
-      : setArtworkDimensions(card, preview, item.width, item.height);
+  if (item.type === TYPE_FINAL) setArtworkDimensions(card, preview, 16, 9);
+  else setArtworkDimensions(card, preview, item.width, item.height);
   const image = document.createElement("img");
   image.alt = altFor(item);
   image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
   revealOnLoad(image, preview);
-  if (!hasCatalogDimensions) {
-    const useNaturalDimensions = () => {
-      if (!setArtworkDimensions(card, preview, image.naturalWidth, image.naturalHeight)) return;
-      requestAnimationFrame(() => measureArtworkCard(card));
-    };
-    image.addEventListener("load", useNaturalDimensions, { once: true });
-    if (image.complete && image.naturalWidth) queueMicrotask(useNaturalDimensions);
-  }
   image.src = workFileUrl(cover);
+  if (item.type === TYPE_FINAL) {
+    image.addEventListener("load", () => scheduleCardMeasure());
+    image.decode?.().then(() => scheduleCardMeasure()).catch(() => {});
+  } else {
+    bindArtworkMetrics(card, preview, image);
+  }
   preview.append(image);
   art.append(preview);
 
@@ -513,6 +601,7 @@ function renderGrid() {
   grid.replaceChildren(fragment);
   measureCardRows();
   observeCardGeometry();
+  scheduleCardMeasure();
   empty.hidden = works.length > 0;
 }
 
@@ -558,6 +647,7 @@ function renderSkeletons() {
   grid.replaceChildren(fragment);
   measureCardRows();
   observeCardGeometry();
+  scheduleCardMeasure();
   grid.setAttribute("aria-busy", "true");
   empty.hidden = true;
 }
@@ -571,6 +661,7 @@ function setupGridGeometry() {
     // slack stays invisible and the implicit row count stays bounded.
     grid.style.setProperty("--grid-row-unit", `${Math.max(4, Math.round(track / 24))}px`);
     measureCardRows();
+    scheduleCardMeasure();
   };
   new ResizeObserver(measureGridGeometry).observe(grid);
   measureGridGeometry();
@@ -1612,7 +1703,10 @@ async function boot() {
   viewer = createViewer(document.querySelector("[data-viewer]"));
   setupGridSettings();
 
-  action.addEventListener("click", nextHero);
+  action.addEventListener("click", () => {
+    playUISound("tap");
+    nextHero();
+  });
 
   /* Skeleton hero + grid while the catalog and hero image cache are in flight. */
   renderSkeletons();
@@ -1633,6 +1727,7 @@ async function boot() {
   workshopWorks = await preloadHeroWorks(heroCandidates);
   if (workshopWorks.length) nextHero();
   else hero.classList.add("is-loaded");
+  document.fonts.ready.then(() => scheduleCardMeasure()).catch(() => {});
 }
 
 boot();

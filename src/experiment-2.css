@@ -258,6 +258,7 @@ html.is-viewer-open .experiment-two__scroll {
   align-self: start;
   min-width: 0;
   height: auto;
+  overflow: visible;
   gap: clamp(4px, 0.65vw, 10px);
   appearance: none;
   border: 0;
@@ -274,7 +275,10 @@ html.is-viewer-open .experiment-two__scroll {
   width: 100%;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.work-card--font .work-card__art {
   container-type: size;
 }
 
@@ -285,7 +289,7 @@ html.is-viewer-open .experiment-two__scroll {
   min-width: 0;
   max-width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .work-card__preview img {
@@ -319,11 +323,11 @@ html.is-viewer-open .experiment-two__scroll {
   opacity: 1;
 }
 
-/* Every image preview consumes its complete column span. JS reserves enough
-   grid rows for the scaled media plus the caption. */
-.work-card:not(.work-card--font) {
-  grid-template-rows: minmax(0, 1fr) auto;
-  height: 100%;
+/* Image cards size to the media. JS reserves enough implicit rows for the
+   scaled artwork plus the caption — the art track must not shrink to a clip. */
+.work-card:not(.work-card--font):not(.is-skeleton) {
+  grid-template-rows: auto auto;
+  height: auto;
 }
 
 .work-card:not([data-type="final"]) .work-card__preview {
@@ -404,7 +408,7 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .work-card.is-skeleton:not([data-type="final"]) .work-card__preview {
-  height: 100%;
+  height: var(--grid-row-h);
 }
 
 .work-card.is-skeleton .work-card__meta {
@@ -428,6 +432,7 @@ html.is-viewer-open .experiment-two__scroll {
   flex: 0 0 auto;
   width: 100%;
   height: auto;
+  overflow: hidden;
   aspect-ratio: 16 / 9;
 }
 
@@ -867,11 +872,9 @@ html.is-viewer-open .experiment-two__scroll {
 
 .viewer__close img {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
   pointer-events: none;
-  filter: brightness(0);
-  opacity: 0.4;
 }
 
 @media (hover: hover) and (pointer: fine) {
