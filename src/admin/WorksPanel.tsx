@@ -47,7 +47,6 @@ import {
   TYPE_FONT,
   TYPE_LETTERING,
   WORK_TYPES,
-  normalizeExperiment2Layout,
   normalizeGridSpan,
   normalizeNick,
   normalizeWorkType,
@@ -74,23 +73,12 @@ type WorkItem = {
   gridSpan?: "auto" | 1 | 3;
 };
 
-type Experiment2Layout = {
-  columns: number;
-  cellRatio: number;
-  gapX: number;
-  gapY: number;
-  alignX: "start" | "center" | "end";
-  alignY: "start" | "center" | "end";
-  typePatterns: Record<string, { baseSpan: number; interval?: number; span?: number }>;
-};
-
 type WorksCatalog = {
   version: number;
   updatedAt: string | null;
   items: WorkItem[];
   writable?: boolean;
   fileBase?: string;
-  layout: Experiment2Layout;
 };
 
 type UploadFile = {
@@ -556,18 +544,6 @@ export function WorksPanel({
   const [bulkAuthor, setBulkAuthor] = useState("");
   const [bulkNick, setBulkNick] = useState("");
   const [bulkStream, setBulkStream] = useState("");
-  const [layoutDraft, setLayoutDraft] = useState({
-    dailyBaseSpan: "1",
-    dailyInterval: "1",
-    dailySpan: "1",
-    letteringBaseSpan: "2",
-    letteringInterval: "6",
-    letteringSpan: "4",
-    finalBaseSpan: "3",
-    finalInterval: "6",
-    finalSpan: "3",
-    fontBaseSpan: "5",
-  });
   const [catalogType, setCatalogType] = useState<WorkType>(TYPE_LETTERING);
   const [hot, setHot] = useState(false);
   const [editing, setEditing] = useState<WorkItem | null>(null);
@@ -638,22 +614,6 @@ export function WorksPanel({
     pull();
     return subscribeWorksCatalog(pull);
   }, []);
-
-  useEffect(() => {
-    const next = normalizeExperiment2Layout(catalog.layout);
-    setLayoutDraft({
-      dailyBaseSpan: String(next.typePatterns[TYPE_DAILY].baseSpan),
-      dailyInterval: String(next.typePatterns[TYPE_DAILY].interval),
-      dailySpan: String(next.typePatterns[TYPE_DAILY].span),
-      letteringBaseSpan: String(next.typePatterns[TYPE_LETTERING].baseSpan),
-      letteringInterval: String(next.typePatterns[TYPE_LETTERING].interval),
-      letteringSpan: String(next.typePatterns[TYPE_LETTERING].span),
-      finalBaseSpan: String(next.typePatterns[TYPE_FINAL].baseSpan),
-      finalInterval: String(next.typePatterns[TYPE_FINAL].interval),
-      finalSpan: String(next.typePatterns[TYPE_FINAL].span),
-      fontBaseSpan: String(next.typePatterns[TYPE_FONT].baseSpan),
-    });
-  }, [catalog.updatedAt]);
 
   const items = useMemo(() => sortWorksByDate(catalog.items) as WorkItem[], [catalog]);
   const visible = useMemo(
@@ -1082,66 +1042,6 @@ export function WorksPanel({
     }
   }
 
-  async function saveLayout() {
-    if (!canWrite) {
-      toast.error(copy("admin.devOnly"));
-      return;
-    }
-    const values = Object.fromEntries(
-      Object.entries(layoutDraft).map(([key, value]) => [key, Number(value)]),
-    ) as Record<keyof typeof layoutDraft, number>;
-    const validInterval = (value: number) => Number.isInteger(value) && value >= 1 && value <= 99;
-    const validSpan = (value: number) => Number.isInteger(value) && value >= 1 && value <= 12;
-    if (
-      !validSpan(values.dailyBaseSpan) ||
-      !validInterval(values.dailyInterval) ||
-      !validSpan(values.dailySpan) ||
-      !validSpan(values.letteringBaseSpan) ||
-      !validInterval(values.letteringInterval) ||
-      !validSpan(values.letteringSpan) ||
-      !validSpan(values.finalBaseSpan) ||
-      !validInterval(values.finalInterval) ||
-      !validSpan(values.finalSpan) ||
-      !validSpan(values.fontBaseSpan)
-    ) {
-      toast.error(copy("admin.layoutInvalid"));
-      return;
-    }
-    try {
-      const current = normalizeExperiment2Layout(catalog.layout);
-      const data = await worksApi("/layout", {
-        method: "PATCH",
-        body: JSON.stringify({
-          layout: {
-            ...current,
-            typePatterns: {
-              [TYPE_DAILY]: {
-                baseSpan: values.dailyBaseSpan,
-                interval: values.dailyInterval,
-                span: values.dailySpan,
-              },
-              [TYPE_LETTERING]: {
-                baseSpan: values.letteringBaseSpan,
-                interval: values.letteringInterval,
-                span: values.letteringSpan,
-              },
-              [TYPE_FINAL]: {
-                baseSpan: values.finalBaseSpan,
-                interval: values.finalInterval,
-                span: values.finalSpan,
-              },
-              [TYPE_FONT]: { baseSpan: values.fontBaseSpan },
-            },
-          },
-        }),
-      });
-      setCatalog(data);
-      toast.success(copy("admin.saved"));
-    } catch (error) {
-      toastApiError(error, copy);
-    }
-  }
-
   function endLasso() {
     lassoOrigin.current = null;
     dragged.current = false;
@@ -1474,60 +1374,6 @@ export function WorksPanel({
           </CardFooter>
         </Card>
       ) : null}
-
-      <Card data-no-lasso>
-        <CardHeader className="border-b">
-          <CardTitle>{copy("admin.layoutTitle")}</CardTitle>
-          <CardDescription>{copy("admin.layoutDescription")}</CardDescription>
-        </CardHeader>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            saveLayout();
-          }}
-        >
-          <CardContent className="grid gap-4 sm:grid-cols-3">
-            {[
-              [TYPE_DAILY, "dailyInterval", "dailySpan"],
-              [TYPE_LETTERING, "letteringInterval", "letteringSpan"],
-              [TYPE_FINAL, "finalInterval", "finalSpan"],
-            ].map(([type, intervalKey, spanKey]) => (
-              <fieldset key={type} className="grid grid-cols-2 gap-3 rounded-lg border p-3">
-                <legend className="px-1 text-sm font-medium">{copy(typeKey(type))}</legend>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`works-layout-${type}-interval`}>{copy("admin.layoutInterval")}</Label>
-                  <Input
-                    id={`works-layout-${type}-interval`}
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={layoutDraft[intervalKey as keyof typeof layoutDraft]}
-                    onChange={(event) =>
-                      setLayoutDraft((current) => ({ ...current, [intervalKey]: event.target.value }))
-                    }
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`works-layout-${type}-span`}>{copy("admin.layoutLargeSpan")}</Label>
-                  <Input
-                    id={`works-layout-${type}-span`}
-                    type="number"
-                    min={1}
-                    max={normalizeExperiment2Layout(catalog.layout).columns}
-                    value={layoutDraft[spanKey as keyof typeof layoutDraft]}
-                    onChange={(event) =>
-                      setLayoutDraft((current) => ({ ...current, [spanKey]: event.target.value }))
-                    }
-                  />
-                </div>
-              </fieldset>
-            ))}
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit">{copy("admin.saveLayout")}</Button>
-          </CardFooter>
-        </form>
-      </Card>
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
