@@ -15,9 +15,10 @@ export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   columns: 12,
   /** Track count at the page's mobile breakpoint (≤760px); spans clamp to it. */
   mobileColumns: 4,
-  /** Hero height in vh, desktop and mobile. Mobile keeps the filter row and first works in view. */
+  /** Desktop: interactive hero height in vh. Mobile: height of the static
+      scooter + caption illustration block that replaces the hero (≤760px). */
   heroVh: 90,
-  heroVhMobile: 78,
+  heroVhMobile: 44,
   cellRatio: 1,
   gapX: 16,
   gapY: 16,

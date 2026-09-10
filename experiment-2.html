@@ -45,7 +45,9 @@
       <div class="experiment-two__content" data-scroll-content>
       <main class="works-page">
         <section class="lettering-hero" data-lettering-hero aria-label="Интерактивный леттеринг">
-          <!-- Loader (Figma 243:95948): scooter mark above the two-line caption, gone once the first SVG is ready. -->
+          <!-- Scooter mark above the two-line caption (Figma 243:95948). Desktop: the loader, gone once
+               the first SVG is ready. Mobile (≤760px): stays as the static illustration block — no
+               interactive hero is rendered or loaded there. -->
           <div class="lettering-hero__loader" aria-hidden="true">
             <img class="lettering-hero__loader-mark" src="/assets/author/exp2-loader.svg" alt="" width="110" height="111" draggable="false" />
             <p class="lettering-hero__loader-text">letterfolio<br />by letter course students</p>
@@ -141,7 +143,7 @@
         <label>columns <input name="columns" type="number" min="2" max="12" step="1" /></label>
         <label>columns (mobile) <input name="mobileColumns" type="number" min="1" max="12" step="1" /></label>
         <label>hero height (vh) <input name="heroVh" type="number" min="20" max="200" step="1" /></label>
-        <label>hero height (vh, mobile) <input name="heroVhMobile" type="number" min="20" max="200" step="1" /></label>
+        <label>illustration height (vh, mobile) <input name="heroVhMobile" type="number" min="20" max="200" step="1" /></label>
         <label>W/H <input name="cellRatio" type="number" min="0.25" max="4" step="0.01" /></label>
         <label>gap X <input name="gapX" type="number" min="0" max="80" step="1" /></label>
         <label>gap Y <input name="gapY" type="number" min="0" max="80" step="1" /></label>

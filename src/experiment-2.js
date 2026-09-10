@@ -64,6 +64,8 @@ const HERO_WARM_CONCURRENCY = 2;
 let pageLenis = null;
 let enterObserver = null;
 let enterIndex = 0;
+/* Desktop-only: set once the interactive hero has been wired and its letterings requested. */
+let heroStarted = false;
 
 /* ---------- helpers ---------- */
 
@@ -76,6 +78,7 @@ function activeColumns() {
   return NARROW.matches ? layout.mobileColumns : layout.columns;
 }
 
+/** Desktop: interactive hero height. Mobile: height of the static illustration block. */
 function activeHeroVh() {
   return NARROW.matches ? layout.heroVhMobile : layout.heroVh;
 }
@@ -811,9 +814,11 @@ function setupGridGeometry() {
   };
   new ResizeObserver(measureGridGeometry).observe(grid);
   measureGridGeometry();
-  /* Crossing the breakpoint swaps columns and hero height: re-plan the feed with the other set. */
+  /* Crossing the breakpoint swaps columns and hero height: re-plan the feed with the other set.
+     Widening past it for the first time also brings the interactive hero to life. */
   NARROW.addEventListener("change", () => {
     if (catalogReady) applyLayout(layout);
+    startHero();
   });
 }
 
@@ -1031,6 +1036,26 @@ function setupHero() {
     return;
   }
   follower = createFollower();
+}
+
+/**
+ * Desktop only (>760px): wire the pointer follower / tap-to-swap and fetch the
+ * lettering deck. On mobile the hero block is the static scooter illustration —
+ * nothing is wired and no hero SVG is ever requested. Runs at most once, either
+ * at boot or the first time the frame widens past the breakpoint.
+ */
+async function startHero() {
+  if (heroStarted || NARROW.matches || !catalogReady) return;
+  heroStarted = true;
+  setupHero();
+  action.addEventListener("click", (event) => {
+    playTickClick(event);
+    nextHero();
+  });
+  const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
+  workshopWorks = await preloadHeroWorks(heroCandidates);
+  if (workshopWorks.length) nextHero();
+  else hero.classList.add("is-loaded");
 }
 
 /* ---------- fullscreen viewer (port of src/author-lightbox.js mechanics) ---------- */
@@ -2034,7 +2059,6 @@ async function boot() {
   layout = readStoredLayout() ?? catalogLayout;
   page?.style.setProperty("--hero-vh", String(activeHeroVh()));
   grid.style.setProperty("--grid-columns", String(activeColumns()));
-  setupHero();
   setupGridGeometry();
   setupFilters();
   document.querySelectorAll("[data-enroll]").forEach((link) => {
@@ -2044,11 +2068,6 @@ async function boot() {
   new ResizeObserver(syncIslandSticky).observe(document.querySelector("[data-filter-bar]") || grid);
   viewer = createViewer(document.querySelector("[data-viewer]"));
   setupGridSettings();
-
-  action.addEventListener("click", (event) => {
-    playTickClick(event);
-    nextHero();
-  });
 
   grid.replaceChildren();
   grid.setAttribute("aria-busy", "true");
@@ -2065,13 +2084,11 @@ async function boot() {
   catalogLayout = normalizeExperiment2Layout(data.layout);
   catalogReady = true;
   grid.removeAttribute("aria-busy");
-  const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
-  /* Hero request goes out before the grid's so it wins the network queue. */
-  const heroReady = preloadHeroWorks(heroCandidates);
+  /* Desktop: the hero request goes out before the grid's so it wins the network queue.
+     Mobile: no-op — the grid is the only thing that loads. */
+  const heroReady = startHero();
   applyLayout(readStoredLayout() ?? catalogLayout);
-  workshopWorks = await heroReady;
-  if (workshopWorks.length) nextHero();
-  else hero.classList.add("is-loaded");
+  await heroReady;
   document.fonts.ready.then(() => scheduleCardMeasure()).catch(() => {});
   document.fonts.addEventListener("loadingdone", () => scheduleCardMeasure());
   document.fonts.addEventListener("loadingerror", () => scheduleCardMeasure());

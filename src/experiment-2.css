@@ -105,7 +105,8 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 /* First screen: 16px gutter + hero of --hero-vh (G-panel "hero height (vh)"), filters just after.
-   vh is the iframe's own viewport here; 90 leaves the filter row peeking in on desktop. */
+   vh is the iframe's own viewport here; 90 leaves the filter row peeking in on desktop.
+   ≤760px the same box holds the static scooter illustration instead (heroVhMobile). */
 .works-page {
   /* Measured height of the sticky filter row (see syncIslandSticky). */
   --island-h: 32px;
@@ -1080,14 +1081,32 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 @media (max-width: 760px) {
-  /* Pre-JS fallback; JS writes the catalog / stored heroVhMobile inline. */
+  /* Pre-JS fallback; JS writes the catalog / stored heroVhMobile inline.
+     On mobile this is the height of the static illustration block, not a hero. */
   .works-page {
-    --hero-vh: 78;
+    --hero-vh: 44;
   }
 
-  .lettering-hero__image {
-    max-width: calc(100% - 40px);
-    max-height: 70%;
+  /* No interactive hero on mobile: the block keeps its --hero-h box, but the
+     lettering, the tap target and the credit are gone, and the scooter + caption
+     stay put as static content (JS never requests a hero SVG at this width). */
+  .lettering-hero {
+    touch-action: auto;
+  }
+
+  .lettering-hero__image,
+  .lettering-hero__action,
+  .lettering-hero__credit {
+    display: none;
+  }
+
+  .lettering-hero.is-loaded .lettering-hero__loader {
+    display: flex;
+  }
+
+  /* Centre the illustration in the room below the sticky island (which overlays the block's top). */
+  .lettering-hero__loader {
+    top: calc(50% + var(--island-h) / 2);
   }
 
   /* --grid-columns is mobileColumns here (JS picks it by this same breakpoint). */
@@ -1095,16 +1114,15 @@ html.is-viewer-open .experiment-two__scroll {
     grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   }
 
-  /* No captions on mobile: neither under the cards nor under the hero lettering. */
-  .work-card__meta,
-  .lettering-hero__credit {
+  /* No captions under the cards on mobile. */
+  .work-card__meta {
     display: none;
   }
 
-  /* Mobile first screen: the filter island sits up top over the hero and sticks
-     there on scroll; en/ru + signup move to the fixed bottom bar. The bar keeps
-     its DOM slot after the hero (so it paints above it) but is pulled up by the
-     hero's height, and the works panel is pushed back down by the same amount. */
+  /* Mobile first screen: the filter island sits up top over the illustration block
+     and sticks there on scroll; en/ru + signup move to the fixed bottom bar. The bar
+     keeps its DOM slot after the block (so it paints above it) but is pulled up by the
+     block's height, and the works panel is pushed back down by the same amount. */
   .works-page {
     /* Room for the fixed bottom bar so the last row of works can scroll clear of it. */
     padding-bottom: calc(48px + 40px + var(--frame-clip-bottom));
@@ -1115,7 +1133,7 @@ html.is-viewer-open .experiment-two__scroll {
     margin: calc(-1 * var(--hero-h)) calc(var(--edge) - var(--gutter)) 0;
   }
 
-  /* Hero height minus the island already counted above, plus the grid's usual 24px gap
+  /* Block height minus the island already counted above, plus the grid's usual 24px gap
      (the grid's own margin collapses into this one). */
   .works-panel {
     margin-top: calc(var(--hero-h) - var(--island-h) + 24px);
