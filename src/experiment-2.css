@@ -92,54 +92,11 @@ html.is-viewer-open .experiment-two__scroll {
   overflow: hidden;
 }
 
-/* Nav — same pill as the Käik host menu. */
-.site-nav {
-  position: relative;
-  top: auto;
-  z-index: 20;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 24px;
-  margin: 20px var(--gutter) 0;
-  padding: 13px 20px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.1);
-  color: var(--ink);
-  font-size: clamp(14px, 1.2vw, 18px);
-  line-height: 1;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-.site-nav > :last-child {
-  justify-self: end;
-}
-
-.site-nav__brand {
-  justify-self: start;
-  white-space: nowrap;
-}
-
-.site-nav__links {
-  display: flex;
-  gap: clamp(18px, 3vw, 38px);
-}
-
-.site-nav .is-muted {
-  color: var(--muted);
-}
-
+/* First screen: 16px gutter + ~100vh hero, filters just after. */
 .works-page {
-  padding: 24px var(--gutter) 48px;
-}
-
-/* First screen: lettering centered in a vh-tall field, caption at the bottom,
-   filters just after. Authored in vh; clips keep it inside the iframe frame. */
-.works-page {
+  padding: var(--edge) var(--gutter) 48px;
   --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
-  --hero-chrome: 8.5rem;
-  --hero-h: calc(var(--hero-frame) - var(--hero-chrome));
+  --hero-h: calc(var(--hero-frame) - var(--edge));
 }
 
 /* Interactive lettering stays above the mixed feed. */
@@ -1029,28 +986,6 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 @media (max-width: 760px) {
-  .site-nav {
-    position: relative;
-    top: 0;
-    grid-template-columns: 1fr auto;
-    align-items: start;
-    gap: 14px;
-    margin: 12px 12px 0;
-    padding: 15px;
-  }
-
-  .site-nav__links {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  .works-page {
-    padding-top: 16px;
-    --hero-chrome: 11rem;
-  }
-
   .lettering-hero__image {
     max-width: calc(100% - 40px);
     max-height: 70%;
@@ -1089,12 +1024,6 @@ html.is-viewer-open .experiment-two__scroll {
     left: 16px;
     right: 16px;
     bottom: calc(60px + var(--frame-clip-bottom));
-  }
-}
-
-@media (max-width: 420px) {
-  .site-nav__brand span {
-    display: none;
   }
 }
 
