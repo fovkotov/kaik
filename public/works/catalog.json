@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T01:27:48.578Z",
+  "updatedAt": "2026-09-10T01:29:08.987Z",
   "layout": {
     "columns": 6,
     "cellRatio": 0.823,
@@ -3038,14 +3038,29 @@
       "author": "Катя",
       "nick": "hurujoi",
       "stream": "1",
-      "width": 593,
-      "height": 355,
-      "gridSpan": "auto",
       "files": [
         "wrk_9842b5b9_0.svg"
       ],
+      "width": 593,
+      "height": 355,
+      "createdAt": "2026-09-10T01:27:48.577Z",
       "originalName": "Group 2136141373.svg",
-      "createdAt": "2026-09-10T01:27:48.577Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_cf85ba4c",
+      "type": "final",
+      "author": "надя",
+      "nick": "oh_narcy",
+      "stream": "1",
+      "width": 1979,
+      "height": 355,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_cf85ba4c_0.svg"
+      ],
+      "originalName": "Group 2136141397.svg",
+      "createdAt": "2026-09-10T01:29:08.987Z"
     }
   ]
 }
