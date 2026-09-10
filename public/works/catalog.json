@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T20:42:33.698Z",
+  "updatedAt": "2026-09-10T20:42:44.204Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3509,6 +3509,7 @@
       "nick": "svrdee",
       "stream": "1",
       "sample": "Solanum",
+      "latin": true,
       "files": [
         "wrk_5c4c30b8_0.otf"
       ],
