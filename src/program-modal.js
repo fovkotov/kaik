@@ -5,6 +5,7 @@ import { t } from "./scriptik.js";
 import { getFocusNudge, getFocusScale } from "./stage-settings.js";
 import { applyDeckParams, inDeckFlow, isMobile } from "./tweaks.js";
 import {
+  carryFocusScroll,
   fadeFocusScrollbar,
   mountFocusScrollbar,
   syncFocusScrollbar,
@@ -731,17 +732,39 @@ export function initProgramModal() {
     event.stopPropagation();
   }
 
-  function resetCardScroll(el) {
-    if (!el) return;
-    el.scrollTop = 0;
-    const program = el.querySelector(".program-card");
-    if (program) program.scrollTop = 0;
-    const sheet = el.querySelector(".program-card__sheet");
-    if (sheet) sheet.scrollTop = 0;
-    const works = el.querySelector(".works-card");
-    if (works) works.scrollTop = 0;
-    const worksList = el.querySelector(".works-card__list, [data-works-feed]");
-    if (worksList) worksList.scrollTop = 0;
+  /**
+   * The fading-in suitcase of a work sheet is absolute at the sheet's content
+   * top, so a kept scroll would carry it out of the card box. Pin it to the
+   * scrollport for the close flight; the sheet hides at release and it snaps
+   * back to 0 in the same frame the scroll does.
+   */
+  function offsetWorkFace(el, top) {
+    const face = el.querySelector(":scope > .work-card > .work-card__face");
+    if (!face) return;
+    const pin = top > 0 && el.hasAttribute("data-work-student");
+    face.style.top = pin ? `${top}px` : "";
+    // Scroll anchoring would drift the offset under the pin while the box shrinks.
+    face.parentElement.style.overflowAnchor = pin ? "none" : "";
+  }
+
+  /**
+   * Leave (or enter) the open layout without losing the inner scroll — the
+   * user's position must survive the close flight and stay in the stack.
+   * `is-scroll-kept` keeps the stacked face an overflowing scroll container.
+   */
+  function keepScroll(el, mutate) {
+    if (!el) {
+      mutate();
+      return 0;
+    }
+    const top = carryFocusScroll(el, () => {
+      mutate();
+      // Measure the new layout without the suitcase pin (it would fake overflow).
+      offsetWorkFace(el, 0);
+    });
+    el.classList.toggle("is-scroll-kept", top > 0);
+    offsetWorkFace(el, top);
+    return top;
   }
 
   function persistIllust(el) {
@@ -772,12 +795,15 @@ export function initProgramModal() {
     deck.removeAttribute("data-focus-settled");
     card.setAttribute("data-fly-lock", "");
     card.setAttribute("data-focus-open", "");
-    card.classList.remove("is-fly-pinned");
-    card.classList.add("is-program-open");
-    if (card.hasAttribute("data-work-student")) {
-      card.getBoundingClientRect();
-      card.classList.add("is-work-open");
-    }
+    // A stacked card keeps the scroll it was closed with; the open layout takes it over.
+    carryFocusScroll(card, () => {
+      card.classList.remove("is-fly-pinned", "is-scroll-kept");
+      card.classList.add("is-program-open");
+      if (card.hasAttribute("data-work-student")) {
+        card.getBoundingClientRect();
+        card.classList.add("is-work-open");
+      }
+    });
     deck.setAttribute("data-program-open", "");
     card.addEventListener("wheel", trapCardScroll, { passive: true });
     card.addEventListener("touchmove", trapCardScroll, { passive: true });
@@ -808,19 +834,21 @@ export function initProgramModal() {
     unmountFocusScrollbar(card);
     card.removeEventListener("wheel", trapCardScroll);
     card.removeEventListener("touchmove", trapCardScroll);
-    resetCardScroll(card);
-    unflattenLanded(card);
-    card.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
-    clearExpandHost(card);
-    card.style.transform = restTransform;
-    clearFlyBox(card);
-    setIllustOut(card, false);
+    const host = card;
+    keepScroll(host, () => {
+      unflattenLanded(host);
+      host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+      clearExpandHost(host);
+      host.style.transform = restTransform;
+      clearFlyBox(host);
+      setIllustOut(host, false);
+      host.removeAttribute("data-fly-lock");
+      host.removeAttribute("data-focus-open");
+      host.removeAttribute("data-work-student");
+    });
     restTransform = "";
     fromLocal = null;
     fromRadius = "2px";
-    card.removeAttribute("data-fly-lock");
-    card.removeAttribute("data-focus-open");
-    card.removeAttribute("data-work-student");
     card.setAttribute("data-rest-lock", "");
     applyDeckParams();
     if (!keepDeck && !closeAfter) deck.removeAttribute("data-program-open");
@@ -858,16 +886,17 @@ export function initProgramModal() {
     unmountFocusScrollbar(host);
     host.removeEventListener("wheel", trapCardScroll);
     host.removeEventListener("touchmove", trapCardScroll);
-    resetCardScroll(host);
-    unflattenLanded(host);
-    host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
-    clearExpandHost(host);
-    clearFlyBox(host);
-    setIllustOut(host, false);
-    host.style.transform = home;
-    host.removeAttribute("data-fly-lock");
-    host.removeAttribute("data-focus-open");
-    host.removeAttribute("data-work-student");
+    keepScroll(host, () => {
+      unflattenLanded(host);
+      host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+      clearExpandHost(host);
+      clearFlyBox(host);
+      setIllustOut(host, false);
+      host.style.transform = home;
+      host.removeAttribute("data-fly-lock");
+      host.removeAttribute("data-focus-open");
+      host.removeAttribute("data-work-student");
+    });
     host.setAttribute("data-rest-lock", "");
     applyDeckParams();
     host.style.transition = "";
@@ -966,17 +995,21 @@ export function initProgramModal() {
     if (phase === "opening") {
       phase = "open";
       if (card) {
-        if (card.hasAttribute("data-expand-host")) {
-          card.style.borderRadius = "0px";
-          card.setAttribute("data-expand-settled", "");
-        }
-        if (isWorksHost()) {
-          // Works board keeps its own inner scroller; a fixed flatten breaks it.
-          card.classList.add("is-program-scroll");
-          card.style.setProperty("--fly-ms", "0ms");
-        } else {
-          flattenLanded(card);
-        }
+        const host = card;
+        // Settling hands the scroller over (mobile: card → inner face); keep the offset.
+        carryFocusScroll(host, () => {
+          if (host.hasAttribute("data-expand-host")) {
+            host.style.borderRadius = "0px";
+            host.setAttribute("data-expand-settled", "");
+          }
+          if (isWorksHost()) {
+            // Works board keeps its own inner scroller; a fixed flatten breaks it.
+            host.classList.add("is-program-scroll");
+            host.style.setProperty("--fly-ms", "0ms");
+          } else {
+            flattenLanded(host);
+          }
+        });
         deck.setAttribute("data-focus-settled", "");
         syncFocusScrollbar(card);
       }
@@ -1056,23 +1089,30 @@ export function initProgramModal() {
       return;
     }
     const origin = expandClosePose();
+    const host = card;
     if (reduceMotion()) {
-      card.removeAttribute("data-expand-settled");
-      card.removeAttribute("data-body-grow");
-      card.removeAttribute("data-expand-closing");
-      applyExpandPose(card, origin, false);
-      setIllustOut(card, false);
+      keepScroll(host, () => {
+        host.removeAttribute("data-expand-settled");
+        host.removeAttribute("data-body-grow");
+        host.removeAttribute("data-expand-closing");
+        applyExpandPose(host, origin, false);
+        setIllustOut(host, false);
+      });
       onFlySettled();
       return;
     }
     card.style.setProperty("--fly-ms", `${EXPAND_MS}ms`);
     card.style.setProperty("--fly-ease", EXPAND_EASE);
     const run = () => {
-      card.setAttribute("data-expand-closing", "");
-      card.removeAttribute("data-expand-settled");
-      card.removeAttribute("data-body-grow");
-      applyExpandPose(card, origin, true);
-      setIllustOut(card, false);
+      // Closing drops the inner scroller (face → sheet / clipped face); carry the offset.
+      keepScroll(host, () => {
+        host.setAttribute("data-expand-closing", "");
+        host.removeAttribute("data-expand-settled");
+        host.removeAttribute("data-body-grow");
+        applyExpandPose(host, origin, true);
+        setIllustOut(host, false);
+      });
+      syncFocusScrollbar(host);
       afterFly(onFlySettled);
     };
     applyExpandPose(card, expandOpenPose(fromLocal || captureExpandFrom(card)), false);
@@ -1108,14 +1148,16 @@ export function initProgramModal() {
     unmountFocusScrollbar(el);
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
-    unflattenEl(el);
-    el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
-    el.classList.add("is-fly-pinned");
-    el.style.setProperty("--fly-ms", "0ms");
-    setIllustOut(el, false);
-    el.removeAttribute("data-fly-lock");
-    el.removeAttribute("data-focus-open");
-    el.removeAttribute("data-work-student");
+    keepScroll(el, () => {
+      unflattenEl(el);
+      el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
+      el.classList.add("is-fly-pinned");
+      el.style.setProperty("--fly-ms", "0ms");
+      setIllustOut(el, false);
+      el.removeAttribute("data-fly-lock");
+      el.removeAttribute("data-focus-open");
+      el.removeAttribute("data-work-student");
+    });
   }
 
   /** Home pose: exact snapshot transform, then rest-lock until the deck loop is free. */
@@ -1123,17 +1165,18 @@ export function initProgramModal() {
     unmountFocusScrollbar(el);
     el.removeEventListener("wheel", trapCardScroll);
     el.removeEventListener("touchmove", trapCardScroll);
-    resetCardScroll(el);
-    unflattenEl(el);
     landedPark.delete(el);
-    el.style.removeProperty("--fly-scale");
-    el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
-    el.style.transform = restTf;
-    clearFlyBox(el);
-    setIllustOut(el, false);
-    el.removeAttribute("data-fly-lock");
-    el.removeAttribute("data-focus-open");
-    el.removeAttribute("data-work-student");
+    keepScroll(el, () => {
+      unflattenEl(el);
+      el.style.removeProperty("--fly-scale");
+      el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
+      el.style.transform = restTf;
+      clearFlyBox(el);
+      setIllustOut(el, false);
+      el.removeAttribute("data-fly-lock");
+      el.removeAttribute("data-focus-open");
+      el.removeAttribute("data-work-student");
+    });
     el.setAttribute("data-rest-lock", "");
   }
 
@@ -1256,15 +1299,20 @@ export function initProgramModal() {
     window.clearTimeout(flyTimer);
     deck.removeAttribute("data-focus-settled");
     if (card) {
-      fadeFocusScrollbar(card, false);
-      card.classList.remove("is-work-open");
-      unflattenLanded(card);
-      if (!card.hasAttribute("data-expand-host")) {
-        pin(destBox(rest), false);
-        // Start the home flight from the dest pins, not from the flattened
-        // fixed box that was the last computed value.
-        card.getBoundingClientRect();
-      }
+      const host = card;
+      fadeFocusScrollbar(host, false);
+      // The card flies home showing what the user scrolled to — no reset.
+      keepScroll(host, () => {
+        host.classList.remove("is-work-open");
+        unflattenLanded(host);
+        if (!host.hasAttribute("data-expand-host")) {
+          pin(destBox(rest), false);
+          // Start the home flight from the dest pins, not from the flattened
+          // fixed box that was the last computed value.
+          host.getBoundingClientRect();
+        }
+      });
+      syncFocusScrollbar(host);
     }
     cards.forEach((el) => {
       if (el === card) return;
@@ -1303,16 +1351,18 @@ export function initProgramModal() {
     flyGen += 1;
     closeAfter = null;
 
-    resetCardScroll(outgoingEl);
     fadeFocusScrollbar(outgoingEl, false);
     deck.removeAttribute("data-focus-settled");
-    unflattenLanded(outgoingEl);
-    outgoingEl.classList.remove("is-work-open");
     outgoingEl.removeEventListener("wheel", trapCardScroll);
     outgoingEl.removeEventListener("touchmove", trapCardScroll);
-    outgoingEl.removeAttribute("data-focus-open");
-    outgoingEl.removeAttribute("data-work-student");
-    demoteExpand(outgoingEl);
+    // The outgoing card parks with its scroll intact, same as a close.
+    keepScroll(outgoingEl, () => {
+      unflattenLanded(outgoingEl);
+      outgoingEl.classList.remove("is-work-open");
+      outgoingEl.removeAttribute("data-focus-open");
+      outgoingEl.removeAttribute("data-work-student");
+      demoteExpand(outgoingEl);
+    });
 
     cancelRetire(target);
     const expand = useExpand();

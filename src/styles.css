@@ -4646,6 +4646,31 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
   overflow: visible;
 }
 
+/*
+  A closed card keeps the scroll it had while open (program-modal keepScroll).
+  Desktop: the face keeps its article height so the card box stays the scroll
+  container — same picture as the last frame of the home flight, no jump.
+  Mobile stays on the stacked layout (face must overflow for the dog hang);
+  there the program sheet / history face hold the offset themselves.
+*/
+html:not(.is-mobile) .card.is-scroll-kept .program-card {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+html:not(.is-mobile) .card.is-scroll-kept .program-card__sheet {
+  flex: 0 0 auto;
+  min-height: auto;
+  height: auto;
+  overflow: visible;
+}
+
+/* `clip` is not a scroll container — the stacked board must keep scrollTop. */
+.card.is-scroll-kept .works-card {
+  overflow: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card.is-program-open,
   .card.is-program-open[data-expand-host] {
@@ -6004,7 +6029,25 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   }
 
   .card.is-program-open[data-expand-host][data-expand-closing][data-program-card] .program-card {
+    height: 100%;
+    min-height: 0;
     overflow: visible;
+  }
+
+  /* The card and the program face are open for the dog, so the sheet is the
+     clip while closing; it also carries the scroll the face held (keepScroll). */
+  .card.is-program-open[data-expand-host][data-expand-closing][data-program-card] .program-card__sheet {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  /* History has no in-face dog: the face is the clip + scroller while closing. */
+  .card.is-program-open[data-expand-host][data-expand-closing] .history-card {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .card.is-program-open[data-expand-host][data-program-card]:not([data-expand-closing]) .program-card > .card-illust--program,

@@ -158,8 +158,91 @@ export function focusScrollRoot(card) {
   return card;
 }
 
+const FACE_SEL = ":scope > .program-card, :scope > .works-card, :scope > .history-card, :scope > .work-card";
+
+/**
+ * Boxes that can hold the focus scroll, outermost first: the card, its inner
+ * face, the program sheet. Which one is the real scroll container changes with
+ * the open / closing / stacked layout; the offset is carried between them.
+ */
+export function focusScrollHolders(card) {
+  if (!(card instanceof HTMLElement)) return [];
+  const out = [card];
+  const face = card.querySelector(FACE_SEL);
+  if (face) out.push(face);
+  const sheet = face?.querySelector(":scope > .program-card__sheet");
+  if (sheet) out.push(sheet);
+  return out;
+}
+
+/** Scrollable range of a box; 0 unless it is a real scroll container. */
+function scrollRange(el) {
+  const ov = getComputedStyle(el).overflowY;
+  if (ov === "visible" || ov === "clip") return 0;
+  return Math.max(0, el.scrollHeight - el.clientHeight);
+}
+
+/**
+ * The box that owns the article scroll: the one with the largest range. A
+ * hanging dog or a 0-height rail gives the card a few px of overflow too —
+ * "first box that overflows" would pick that and drop the real offset.
+ */
+function mainHolder(card) {
+  let best = null;
+  let bestRange = OVERFLOW_PX;
+  focusScrollHolders(card).forEach((el) => {
+    const range = scrollRange(el);
+    if (range > bestRange) {
+      best = el;
+      bestRange = range;
+    }
+  });
+  return best;
+}
+
+/** The box that scrolls right now: the one holding an offset, else the main scroller. */
+export function liveFocusScrollRoot(card) {
+  const holders = focusScrollHolders(card);
+  return holders.find((el) => el.scrollTop > 0) || mainHolder(card) || focusScrollRoot(card);
+}
+
+/** Inner scroll of the card in content px, whichever box holds it. */
+export function readFocusScroll(card) {
+  return focusScrollHolders(card).reduce((sum, el) => sum + el.scrollTop, 0);
+}
+
+/**
+ * Put a saved offset back after a layout change moved the scroll container
+ * (card ↔ face ↔ sheet). The collapsed box was already zeroed by the browser;
+ * the box that now owns the article takes the whole offset.
+ */
+export function applyFocusScroll(card, top) {
+  if (!(top > 0)) return 0;
+  const target = mainHolder(card);
+  if (!target) return 0;
+  focusScrollHolders(card).forEach((el) => {
+    if (el !== target && el.scrollTop) el.scrollTop = 0;
+  });
+  target.scrollTop = top;
+  return target.scrollTop;
+}
+
+/**
+ * Run a class / style change and keep the card's inner scroll across it.
+ * Returns the offset that survived (0 when nothing overflows any more).
+ */
+export function carryFocusScroll(card, mutate) {
+  if (!(card instanceof HTMLElement)) {
+    mutate();
+    return 0;
+  }
+  const top = readFocusScroll(card);
+  mutate();
+  return top > 0 ? applyFocusScroll(card, top) : 0;
+}
+
 function metrics(card) {
-  const root = focusScrollRoot(card);
+  const root = liveFocusScrollRoot(card);
   const view = card.clientHeight;
   const port = root === card ? view : root.clientHeight;
   const maxScroll = Math.max(0, root.scrollHeight - port);
