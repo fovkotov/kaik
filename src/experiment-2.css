@@ -472,7 +472,7 @@ html.is-viewer-open .experiment-two__scroll {
   border: 0;
   border-radius: 0;
   margin: 0;
-  padding: 15px 8px;
+  padding: 15px 0;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -965,10 +965,6 @@ html.is-viewer-open .experiment-two__scroll {
 
   .filter-chip__plate {
     font-size: clamp(10px, 3vw, 14px);
-  }
-
-  .filter-chip {
-    padding-inline: 4px;
   }
 
   .viewer__stage {
