@@ -389,7 +389,7 @@ html.is-viewer-open .experiment-two__scroll {
 .filter-island {
   position: fixed;
   left: 50%;
-  bottom: calc(16px + var(--frame-clip-bottom));
+  bottom: calc(1px + var(--frame-clip-bottom));
   z-index: 40;
   display: flex;
   align-items: center;
@@ -404,40 +404,55 @@ html.is-viewer-open .experiment-two__scroll {
   appearance: none;
   border: 0;
   border-radius: 0;
+  margin: 0;
+  padding: 15px 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.filter-chip__plate {
+  display: block;
+  border-radius: 0;
   padding: 1px 2px 2px;
   color: rgba(0, 0, 0, 0.75);
   font-size: 17px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
-  cursor: pointer;
   transition: transform 160ms var(--ease-out);
 }
 
-.filter-chip--daily {
+.filter-chip--daily .filter-chip__plate {
   background: #0095ff;
 }
 
-.filter-chip--lettering {
+.filter-chip--lettering .filter-chip__plate {
   background: #fed301;
 }
 
-.filter-chip--final {
+.filter-chip--final .filter-chip__plate {
   background: #ff91f8;
 }
 
-.filter-chip[aria-checked="false"] {
+.filter-chip[aria-checked="false"] .filter-chip__plate {
   color: #b0b0b0;
   background: #dcdcdc;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .filter-chip:hover {
+  .filter-chip:hover .filter-chip__plate {
     transform: translateY(-6px);
   }
 }
 
 .filter-chip:focus-visible {
+  outline: none;
+}
+
+.filter-chip:focus-visible .filter-chip__plate {
   outline: 2px solid rgba(0, 0, 0, 0.75);
   outline-offset: 3px;
 }
@@ -887,10 +902,10 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .filter-island {
-    bottom: max(12px, calc(env(safe-area-inset-bottom) + var(--frame-clip-bottom)));
+    bottom: max(-3px, calc(env(safe-area-inset-bottom) + var(--frame-clip-bottom) - 15px));
   }
 
-  .filter-chip {
+  .filter-chip__plate {
     font-size: clamp(11px, 3.7vw, 17px);
   }
 
@@ -915,7 +930,7 @@ html.is-viewer-open .experiment-two__scroll {
 @media (prefers-reduced-motion: reduce) {
   .work-card__art,
   .work-card__meta,
-  .filter-chip,
+  .filter-chip__plate,
   .viewer__arrow,
   .viewer__close,
   .viewer__dots-track,
