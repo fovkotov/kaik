@@ -403,7 +403,7 @@ html.is-viewer-open .experiment-two__scroll {
   flex: none;
   appearance: none;
   border: 0;
-  border-radius: 2px;
+  border-radius: 0;
   padding: 1px 2px 2px;
   color: rgba(0, 0, 0, 0.75);
   font-size: 17px;
