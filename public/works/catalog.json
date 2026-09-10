@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T03:29:31.598Z",
+  "updatedAt": "2026-09-10T03:29:58.033Z",
   "layout": {
     "columns": 12,
     "cellRatio": 1,
@@ -3481,6 +3481,21 @@
       "createdAt": "2026-09-10T02:04:29.962Z",
       "originalName": "kaik 2.2.svg",
       "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_77ff17d9",
+      "type": "font",
+      "author": "Артем",
+      "nick": "svrdee",
+      "stream": "1",
+      "width": 0,
+      "height": 0,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_77ff17d9_0.otf"
+      ],
+      "originalName": "Solanum-Regular (1).otf",
+      "createdAt": "2026-09-10T03:29:58.033Z"
     }
   ]
 }
