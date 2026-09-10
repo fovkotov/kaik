@@ -26,6 +26,9 @@
   --frame-clip-bottom: 0px;
   --grid-columns: 12;
   --grid-row-h: 277px;
+  /* Implicit row step. Cards span ceil(height / step) rows, so heights snap
+     within a few px and dense flow can slide small cards into every gap. */
+  --grid-row-unit: 4px;
   --grid-gap-x: 4px;
   --grid-gap-y: 4px;
   --cell-align-x: center;
@@ -233,11 +236,17 @@ html.is-viewer-open .experiment-two__scroll {
 .works-grid {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  /* Span-only placement (no explicit starts): the browser backfills holes. */
   grid-auto-flow: row dense;
-  grid-auto-rows: var(--grid-row-h);
+  grid-auto-rows: var(--grid-row-unit);
   column-gap: var(--grid-gap-x);
   row-gap: var(--grid-gap-y);
   margin-top: clamp(24px, 4vw, 56px);
+}
+
+/* G-panel "dense packing" off: keep source order, holes stay where they fall. */
+.works-grid[data-dense="false"] {
+  grid-auto-flow: row;
 }
 
 .work-card {
@@ -678,6 +687,19 @@ html.is-viewer-open .experiment-two__scroll {
 
 .grid-settings__patterns fieldset {
   grid-template-columns: 1fr;
+}
+
+.grid-settings__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.grid-settings__toggle input {
+  width: auto;
+  margin: 0;
 }
 
 .grid-settings__reset {

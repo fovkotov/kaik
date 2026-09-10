@@ -146,6 +146,7 @@ function applyLayout(next, { persist = false } = {}) {
     "--cell-pack-y",
     layout.alignY === "start" ? "flex-start" : layout.alignY === "end" ? "flex-end" : "center",
   );
+  grid.dataset.dense = layout.dense ? "true" : "false";
   if (persist) {
     try {
       storage.setItem(SETTINGS_KEY, JSON.stringify(layout));
@@ -164,6 +165,8 @@ function syncSettingsPanel() {
     const input = settingsPanel.querySelector(`[name="${name}"]`);
     if (input && document.activeElement !== input) input.value = String(Number(layout[name].toFixed?.(3) ?? layout[name]));
   }
+  const dense = settingsPanel.querySelector('[name="dense"]');
+  if (dense) dense.checked = Boolean(layout.dense);
   settingsPanel.querySelectorAll("[data-pattern]").forEach((group) => {
     const pattern = layout.typePatterns[group.dataset.pattern];
     if (!pattern) return;
@@ -185,6 +188,10 @@ function syncSettingsPanel() {
 function setupGridSettings() {
   if (!settingsPanel) return;
   const updateNumber = (input) => {
+    if (input.type === "checkbox") {
+      applyLayout({ ...layout, [input.name]: input.checked }, { persist: true });
+      return;
+    }
     const value = Number(input.value);
     if (!Number.isFinite(value)) return;
     const group = input.closest("[data-pattern]");
@@ -322,10 +329,16 @@ function setArtworkDimensions(card, preview, width, height) {
   return true;
 }
 
+/**
+ * Cards are span-only grid items: `grid-column: span N` from the planner and
+ * `grid-row: span M` from the rendered height. The implicit row step is a few
+ * px, so M snaps to the content almost exactly and `grid-auto-flow: dense`
+ * can slide the next small card into whatever gap a large one leaves.
+ */
 function setCardRowSpan(card, neededCardHeight) {
-  const rowHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h"));
-  if (!(neededCardHeight > 0 && rowHeight > 0)) return;
-  const rowPitch = rowHeight + layout.gapY;
+  const rowUnit = Number.parseFloat(grid.style.getPropertyValue("--grid-row-unit"));
+  if (!(neededCardHeight > 0 && rowUnit > 0)) return;
+  const rowPitch = rowUnit + layout.gapY;
   const rowSpan = Math.max(1, Math.ceil((neededCardHeight + layout.gapY) / rowPitch - 0.001));
   if (card.dataset.rowSpan === String(rowSpan)) return;
   card.dataset.rowSpan = String(rowSpan);
@@ -334,15 +347,20 @@ function setCardRowSpan(card, neededCardHeight) {
 
 function measureArtworkCard(card) {
   if (!card?.querySelector(".work-card__preview")) return;
+  const cardWidth = card.getBoundingClientRect().width;
+  if (!(cardWidth > 0)) return;
   const intrinsicWidth = Number(card.dataset.artWidth);
   const intrinsicHeight = Number(card.dataset.artHeight);
-  const cardWidth = card.getBoundingClientRect().width;
-  if (!(intrinsicWidth > 0 && intrinsicHeight > 0 && cardWidth > 0)) return;
+  // Until a cover reports its size (skeletons, images without catalog
+  // dimensions) the card reserves one W/H cell of art instead of collapsing.
+  const cellHeight = Number.parseFloat(grid.style.getPropertyValue("--grid-row-h")) || 0;
+  const neededArtHeight =
+    intrinsicWidth > 0 && intrinsicHeight > 0 ? (cardWidth * intrinsicHeight) / intrinsicWidth : cellHeight;
+  if (!(neededArtHeight > 0)) return;
 
   const meta = card.querySelector(".work-card__meta");
   const metaHeight = meta?.getBoundingClientRect().height || 0;
   const cardGap = Number.parseFloat(getComputedStyle(card).rowGap) || 0;
-  const neededArtHeight = cardWidth * intrinsicHeight / intrinsicWidth;
   const neededCardHeight = neededArtHeight + cardGap + metaHeight;
   setCardRowSpan(card, neededCardHeight);
 }
@@ -549,23 +567,43 @@ function setupGridGeometry() {
     const gaps = Math.max(0, layout.columns - 1) * layout.gapX;
     const track = Math.max(1, (grid.clientWidth - gaps) / layout.columns);
     grid.style.setProperty("--grid-row-h", `${track / layout.cellRatio}px`);
+    // Row step scales with the column: ~4% of a track (min 4px), so the snap
+    // slack stays invisible and the implicit row count stays bounded.
+    grid.style.setProperty("--grid-row-unit", `${Math.max(4, Math.round(track / 24))}px`);
     measureCardRows();
   };
   new ResizeObserver(measureGridGeometry).observe(grid);
   measureGridGeometry();
 }
 
+/**
+ * Exclusive chips: a tap on an inactive chip shows only that type, a tap on
+ * another chip switches to it, a tap on the active chip returns to everything.
+ */
 function setupFilters() {
+  let exclusiveType = null;
+  const syncFilters = () => {
+    filters.forEach((button) => {
+      button.setAttribute("aria-checked", enabledTypes.has(button.dataset.filter) ? "true" : "false");
+    });
+  };
   filters.forEach((button) => {
     button.addEventListener("click", () => {
       const type = button.dataset.filter;
       if (!VISUAL_TYPES.includes(type)) return;
-      if (enabledTypes.has(type)) enabledTypes.delete(type);
-      else enabledTypes.add(type);
-      button.setAttribute("aria-checked", enabledTypes.has(type) ? "true" : "false");
+      enabledTypes.clear();
+      if (exclusiveType === type) {
+        exclusiveType = null;
+        VISUAL_TYPES.forEach((visual) => enabledTypes.add(visual));
+      } else {
+        exclusiveType = type;
+        enabledTypes.add(type);
+      }
+      syncFilters();
       renderGrid();
     });
   });
+  syncFilters();
 }
 
 /** Fade the image in once it has pixels; until then the frame keeps its skeleton plate. */
@@ -781,6 +819,9 @@ function createViewer(root) {
   let lastTap = 0;
   let wheelAcc = 0;
   let wheelLockUntil = 0;
+  let wheelArmed = true;
+  let wheelLastAt = 0;
+  let wheelLastAbs = 0;
   let wheelResetTimer = 0;
 
   const count = () => items.length || 1;
@@ -1160,6 +1201,7 @@ function createViewer(root) {
     if (!open) return;
     wheelAcc = 0;
     wheelLockUntil = 0;
+    wheelArmed = true;
     window.clearTimeout(wheelResetTimer);
     const top = savedScroll;
     const shot = lastShot;
@@ -1204,6 +1246,7 @@ function createViewer(root) {
     setOpen(true);
     wheelAcc = 0;
     wheelLockUntil = 0;
+    wheelArmed = true;
     window.clearTimeout(wheelResetTimer);
     cancelZoomSession();
     resetZoom();
@@ -1425,8 +1468,17 @@ function createViewer(root) {
   );
 
   const WHEEL_STEP = 48;
-  const WHEEL_LOCK = 380;
+  /* Minimum pause between pages — a third of the old 380ms, so successive gestures page 3× sooner. */
+  const WHEEL_LOCK = 127;
+  /* Silence this long between wheel events means the trackpad gesture (and its inertia) is over. */
+  const WHEEL_GESTURE_GAP = 50;
 
+  /**
+   * One gesture = one slide. After paging, the rest of the burst is swallowed:
+   * inertia deltas arrive back-to-back and only decay. The viewer re-arms once
+   * the lock has passed and either the stream paused or a clearly stronger push
+   * begins (a fresh swipe started mid-tail).
+   */
   function onViewerWheel(event) {
     if (!open) return;
     if (event.cancelable) event.preventDefault();
@@ -1443,7 +1495,17 @@ function createViewer(root) {
     if (event.deltaMode === 1) dy *= 16;
     if (event.deltaMode === 2) dy *= window.innerHeight || 800;
     const now = performance.now();
-    if (now < wheelLockUntil) return;
+    const gap = now - wheelLastAt;
+    const abs = Math.abs(dy);
+    const prevAbs = wheelLastAbs;
+    wheelLastAt = now;
+    wheelLastAbs = abs;
+    if (!wheelArmed) {
+      const gestureEnded = gap > WHEEL_GESTURE_GAP;
+      const freshPush = abs > prevAbs * 1.5 + 2;
+      if (now < wheelLockUntil || !(gestureEnded || freshPush)) return;
+      wheelArmed = true;
+    }
     wheelAcc += dy;
     window.clearTimeout(wheelResetTimer);
     wheelResetTimer = window.setTimeout(() => {
@@ -1452,6 +1514,7 @@ function createViewer(root) {
     if (Math.abs(wheelAcc) < WHEEL_STEP) return;
     const step = wheelAcc > 0 ? 1 : -1;
     wheelAcc = 0;
+    wheelArmed = false;
     wheelLockUntil = now + WHEEL_LOCK;
     playUISound("tick");
     go(step);

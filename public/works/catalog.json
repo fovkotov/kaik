@@ -8,6 +8,7 @@
     "gapY": 4,
     "alignX": "center",
     "alignY": "start",
+    "dense": true,
     "typePatterns": {
       "daily": {
         "baseSpan": 1,

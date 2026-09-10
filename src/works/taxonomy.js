@@ -18,6 +18,8 @@ export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   gapY: 4,
   alignX: "center",
   alignY: "start",
+  /** Dense auto-placement: later cards backfill holes left beside large ones. */
+  dense: true,
   typePatterns: DEFAULT_TYPE_PATTERNS,
 });
 
@@ -78,6 +80,14 @@ export function normalizeExperiment2Layout(value) {
     gapY: finite(raw.gapY, EXPERIMENT_2_LAYOUT_DEFAULTS.gapY, 0, 80),
     alignX: axis(raw.alignX, EXPERIMENT_2_LAYOUT_DEFAULTS.alignX),
     alignY: axis(raw.alignY, EXPERIMENT_2_LAYOUT_DEFAULTS.alignY),
+    dense:
+      typeof raw.dense === "boolean"
+        ? raw.dense
+        : raw.dense === "false"
+          ? false
+          : raw.dense === "true"
+            ? true
+            : EXPERIMENT_2_LAYOUT_DEFAULTS.dense,
     typePatterns,
   };
 }
@@ -109,6 +119,13 @@ export function normalizeSample(value) {
     .slice(0, 120);
 }
 
+/** Which letter a daily-practice piece shows ("А", "Ж", "&"…). Short, no inner spaces. */
+export function normalizeGlyph(value) {
+  return Array.from(String(value ?? "").replace(/\s+/g, "").trim())
+    .slice(0, 8)
+    .join("");
+}
+
 export function emptyWorksCatalog() {
   return {
     version: 1,
@@ -134,6 +151,7 @@ export function normalizeWorkItem(item) {
     nick: normalizeNick(item.nick),
     stream: String(item.stream || "").trim(),
     sample: normalizeSample(item.sample) || undefined,
+    glyph: normalizeGlyph(item.glyph) || undefined,
     files,
     width: Number(item.width) > 0 ? Number(item.width) : 0,
     height: Number(item.height) > 0 ? Number(item.height) : 0,
