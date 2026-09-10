@@ -1084,7 +1084,7 @@ html.is-viewer-open .experiment-two__scroll {
   /* Pre-JS fallback; JS writes the catalog / stored heroVhMobile inline.
      On mobile this is the height of the static illustration block, not a hero. */
   .works-page {
-    --hero-vh: 44;
+    --hero-vh: 78;
   }
 
   /* No interactive hero on mobile: the block keeps its --hero-h box, but the

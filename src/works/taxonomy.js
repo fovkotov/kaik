@@ -18,7 +18,7 @@ export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   /** Desktop: interactive hero height in vh. Mobile: height of the static
       scooter + caption illustration block that replaces the hero (≤760px). */
   heroVh: 90,
-  heroVhMobile: 44,
+  heroVhMobile: 78,
   cellRatio: 1,
   gapX: 16,
   gapY: 16,
