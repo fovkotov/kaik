@@ -25,6 +25,8 @@
   --grid-gap-y: 20px;
   --cell-align-x: center;
   --cell-align-y: center;
+  --cell-pack-x: center;
+  --cell-pack-y: center;
 }
 
 * {
@@ -218,7 +220,7 @@ html.is-viewer-open .experiment-two__scroll {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
   grid-auto-flow: row dense;
-  grid-auto-rows: var(--grid-row-h);
+  grid-auto-rows: auto;
   column-gap: var(--grid-gap-x);
   row-gap: var(--grid-gap-y);
   margin-top: clamp(24px, 4vw, 56px);
@@ -227,9 +229,11 @@ html.is-viewer-open .experiment-two__scroll {
 .work-card {
   display: grid;
   grid-column: span var(--card-span, 1);
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--grid-row-h) auto;
+  align-self: start;
   min-width: 0;
-  height: 100%;
+  height: auto;
   gap: clamp(4px, 0.65vw, 10px);
   appearance: none;
   border: 0;
@@ -241,14 +245,26 @@ html.is-viewer-open .experiment-two__scroll {
 
 .work-card__art {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: var(--cell-pack-y);
+  justify-content: var(--cell-pack-x);
   width: 100%;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  container-type: size;
+}
+
+.work-card__preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
-.work-card__art img {
+.work-card__preview img {
   display: block;
   position: relative;
   z-index: 1;
@@ -263,11 +279,7 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 /* Until the cover has pixels, the frame shows the same shimmer plate as the skeleton grid. */
-.work-card__art {
-  position: relative;
-}
-
-.work-card__art::before {
+.work-card__preview::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -275,12 +287,27 @@ html.is-viewer-open .experiment-two__scroll {
   overflow: hidden;
 }
 
-.work-card__art.is-loaded::before {
+.work-card__preview.is-loaded::before {
   display: none;
 }
 
-.work-card__art.is-loaded img {
+.work-card__preview.is-loaded img {
   opacity: 1;
+}
+
+/* Daily and workshop glyphs always consume their complete column span.
+   Their intrinsic ratio determines height; the equal-height art row clips only
+   when that full-width result is taller than the row. */
+.work-card:not([data-type="final"]) .work-card__preview {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+}
+
+.work-card:not([data-type="final"]) .work-card__preview img {
+  width: 100%;
+  height: auto;
+  object-fit: initial;
 }
 
 /* ---------- skeletons ---------- */
@@ -293,7 +320,7 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .skeleton::after,
-.work-card__art:not(.is-loaded)::after {
+.work-card__preview:not(.is-loaded)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -319,6 +346,10 @@ html.is-viewer-open .experiment-two__scroll {
   pointer-events: none;
 }
 
+.work-card.is-skeleton:not([data-type="final"]) .work-card__preview {
+  height: 100%;
+}
+
 .work-card.is-skeleton .work-card__meta {
   display: grid;
   gap: 6px;
@@ -335,7 +366,14 @@ html.is-viewer-open .experiment-two__scroll {
   width: 38%;
 }
 
-.work-card[data-type="final"] .work-card__art img {
+.work-card[data-type="final"] .work-card__preview {
+  flex: 0 0 auto;
+  width: min(100cqw, calc(100cqh * 1.7777777778));
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.work-card[data-type="final"] .work-card__preview img {
   object-fit: cover;
 }
 

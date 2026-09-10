@@ -126,6 +126,14 @@ function applyLayout(next, { persist = false } = {}) {
     "--cell-align-y",
     layout.alignY === "start" ? "top" : layout.alignY === "end" ? "bottom" : "center",
   );
+  grid.style.setProperty(
+    "--cell-pack-x",
+    layout.alignX === "start" ? "flex-start" : layout.alignX === "end" ? "flex-end" : "center",
+  );
+  grid.style.setProperty(
+    "--cell-pack-y",
+    layout.alignY === "start" ? "flex-start" : layout.alignY === "end" ? "flex-end" : "center",
+  );
   if (persist) {
     try {
       storage.setItem(SETTINGS_KEY, JSON.stringify(layout));
@@ -233,14 +241,17 @@ function cardFor(item, span) {
 
   const art = document.createElement("span");
   art.className = "work-card__art";
+  const preview = document.createElement("span");
+  preview.className = "work-card__preview";
   const image = document.createElement("img");
   image.alt = altFor(item);
   image.loading = "lazy";
   image.decoding = "async";
   image.draggable = false;
-  revealOnLoad(image, art);
+  revealOnLoad(image, preview);
   image.src = workFileUrl(cover);
-  art.append(image);
+  preview.append(image);
+  art.append(preview);
 
   const meta = document.createElement("span");
   meta.className = "work-card__meta";
@@ -299,16 +310,25 @@ function renderSkeletons() {
   const fragment = document.createDocumentFragment();
   const placeholders = Array.from({ length: SKELETON_CARDS }, (_, index) => ({
     id: `skeleton-${index}`,
-    type: index === 2 || index === 9 ? TYPE_DAILY : TYPE_LETTERING,
+    type:
+      index === 4 || index === 11
+        ? TYPE_FINAL
+        : index === 2 || index === 9
+          ? TYPE_DAILY
+          : TYPE_LETTERING,
   }));
   for (const { item, span } of planExperiment2(placeholders, layout)) {
     const card = document.createElement("div");
     card.className = "work-card is-skeleton";
+    card.dataset.type = item.type;
     card.dataset.span = String(span);
     card.style.setProperty("--card-span", String(span));
     card.setAttribute("aria-hidden", "true");
     const art = document.createElement("span");
-    art.className = "work-card__art skeleton";
+    art.className = "work-card__art";
+    const preview = document.createElement("span");
+    preview.className = "work-card__preview skeleton";
+    art.append(preview);
     const meta = document.createElement("span");
     meta.className = "work-card__meta";
     const lineA = document.createElement("span");
