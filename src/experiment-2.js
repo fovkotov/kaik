@@ -15,6 +15,7 @@ import {
 const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
 const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
 const FONT_TESTER_MAX_CHARS = 60;
+const FONT_TESTER_PX = 365;
 
 const hero = document.querySelector("[data-lettering-hero]");
 const letteringImage = document.querySelector("[data-lettering-image]");
@@ -267,17 +268,22 @@ function plainSpecimenText(value) {
 
 function fitFontSpecimen(specimen) {
   const width = specimen.clientWidth;
+  const height = specimen.clientHeight || FONT_TESTER_PX;
   if (!width || !specimen.firstChild) return;
   const current = Number.parseFloat(specimen.style.getPropertyValue("--font-fit")) || 1;
   const range = document.createRange();
   range.selectNodeContents(specimen);
-  const needed = range.getBoundingClientRect().width;
+  const ink = range.getBoundingClientRect();
+  const needed = ink.width;
   if (!(needed > 0)) return;
   let next = current;
   if (needed > width + 0.5) {
     next = Math.max(0.12, current * (width / needed) * 0.96);
   } else if (current < 1 && needed < width * 0.92) {
     next = Math.min(1, current * (width / needed) * 0.96);
+  }
+  if (ink.height > height + 0.5) {
+    next = Math.max(0.12, Math.min(next, current * (height / ink.height) * 0.9));
   }
   const rounded = Math.round(next * 1000) / 1000;
   const prev = specimen.style.getPropertyValue("--font-fit");
@@ -435,12 +441,11 @@ function intrinsicArtHeight(card) {
   return 0;
 }
 
-/** Rendered specimen ink + padding after the webfont is in, never --grid-row-h. */
+/** Tester box is 365px; ink may overflow, so the card spans the painted glyphs. */
 function intrinsicSpecimenHeight(card) {
   const specimen = card.querySelector(".work-card__font-specimen");
   const art = card.querySelector(".work-card__art");
-  if (!specimen) return art?.scrollHeight || 0;
-  const fontSize = Number.parseFloat(getComputedStyle(specimen).fontSize) || 0;
+  if (!specimen) return art?.scrollHeight || FONT_TESTER_PX;
   let textHeight = 0;
   if (specimen.firstChild) {
     const range = document.createRange();
@@ -448,11 +453,11 @@ function intrinsicSpecimenHeight(card) {
     textHeight = range.getBoundingClientRect().height;
   }
   return Math.max(
+    FONT_TESTER_PX,
     specimen.scrollHeight,
     specimen.offsetHeight,
     art?.scrollHeight || 0,
     textHeight,
-    fontSize * 2.4,
   );
 }
 
@@ -833,7 +838,7 @@ function setHero(item) {
   letteringImage.alt = altFor(item);
   credit.replaceChildren(...metaNodes(item));
 
-  /* Skeleton/fade belongs only to startup. Ignore superseded load events. */
+  /* Loader/fade belongs only to startup. Ignore superseded load events. */
   if (!hero.classList.contains("is-loaded")) {
     const reveal = () => {
       letteringImage.removeEventListener("load", reveal);
@@ -994,12 +999,13 @@ function createViewer(root) {
   let pinch = null;
   let pan = null;
   let lastTap = 0;
-  let wheelAcc = 0;
-  let wheelLockUntil = 0;
-  let wheelArmed = true;
+  let wheelPos = 0;
+  let wheelVel = 0;
   let wheelLastAt = 0;
-  let wheelLastAbs = 0;
-  let wheelResetTimer = 0;
+  let wheelLastPageAt = 0;
+  let wheelRaf = 0;
+  let wheelCoastAt = 0;
+  let wheelTickAt = 0;
 
   const count = () => items.length || 1;
   const wrap = (i) => ((i % count()) + count()) % count();
@@ -1381,10 +1387,7 @@ function createViewer(root) {
 
   function close() {
     if (!open) return;
-    wheelAcc = 0;
-    wheelLockUntil = 0;
-    wheelArmed = true;
-    window.clearTimeout(wheelResetTimer);
+    resetWheel();
     const top = savedScroll;
     const shot = lastShot;
     cancelSpring();
@@ -1426,10 +1429,7 @@ function createViewer(root) {
     shift = 0;
     velocity = 0;
     setOpen(true);
-    wheelAcc = 0;
-    wheelLockUntil = 0;
-    wheelArmed = true;
-    window.clearTimeout(wheelResetTimer);
+    resetWheel();
     cancelZoomSession();
     resetZoom();
     finishIndex(start);
@@ -1650,16 +1650,85 @@ function createViewer(root) {
   );
 
   const WHEEL_STEP = 48;
-  /* Minimum pause between pages — a third of the old 380ms, so successive gestures page 3× sooner. */
-  const WHEEL_LOCK = 127;
-  /* Silence this long between wheel events means the trackpad gesture (and its inertia) is over. */
-  const WHEEL_GESTURE_GAP = 50;
+  /* Min time between successive pages — 127ms / 3. Leftover motion is kept, not locked out. */
+  const WHEEL_PAGE_MS = 42;
+  const WHEEL_COAST_IDLE = 24;
+  const WHEEL_FRICTION = 0.0046;
+  const WHEEL_MIN_VEL = 0.035;
+  const WHEEL_MAX_VEL = 10;
+  const WHEEL_MAX_QUEUE = WHEEL_STEP * 10;
+  const WHEEL_NOTCH_GAP = 80;
+  const WHEEL_TICK_MS = 42;
+
+  function resetWheel() {
+    wheelPos = 0;
+    wheelVel = 0;
+    wheelLastAt = 0;
+    wheelLastPageAt = 0;
+    wheelCoastAt = 0;
+    if (wheelRaf) {
+      cancelAnimationFrame(wheelRaf);
+      wheelRaf = 0;
+    }
+  }
+
+  function tickWheelPage() {
+    const now = performance.now();
+    if (now - wheelTickAt < WHEEL_TICK_MS) return;
+    wheelTickAt = now;
+    playUISound("tick");
+  }
+
+  function pageFromWheel(dir) {
+    tickWheelPage();
+    go(dir);
+  }
+
+  function consumeWheelPages(now) {
+    if (!open || count() < 2) return;
+    if (Math.abs(wheelPos) < WHEEL_STEP) return;
+    if (now - wheelLastPageAt < WHEEL_PAGE_MS) return;
+    const dir = wheelPos > 0 ? 1 : -1;
+    wheelPos -= dir * WHEEL_STEP;
+    wheelLastPageAt = now;
+    pageFromWheel(dir);
+  }
+
+  function coastWheel(now) {
+    if (!open) {
+      resetWheel();
+      return;
+    }
+    const prev = wheelCoastAt || now;
+    const dt = Math.min(32, now - prev);
+    wheelCoastAt = now;
+    const idle = now - wheelLastAt;
+    if (idle > WHEEL_COAST_IDLE && Math.abs(wheelVel) > WHEEL_MIN_VEL) {
+      wheelPos += wheelVel * dt;
+      wheelPos = Math.max(-WHEEL_MAX_QUEUE, Math.min(WHEEL_MAX_QUEUE, wheelPos));
+      wheelVel *= Math.exp(-WHEEL_FRICTION * dt);
+      if (Math.abs(wheelVel) < WHEEL_MIN_VEL) wheelVel = 0;
+    }
+    consumeWheelPages(now);
+    if (Math.abs(wheelVel) > WHEEL_MIN_VEL || Math.abs(wheelPos) >= WHEEL_STEP) {
+      wheelRaf = requestAnimationFrame(coastWheel);
+      return;
+    }
+    wheelRaf = 0;
+    wheelVel = 0;
+  }
+
+  function startWheelCoast() {
+    if (wheelRaf) return;
+    wheelCoastAt = performance.now();
+    wheelRaf = requestAnimationFrame(coastWheel);
+  }
 
   /**
-   * One gesture = one slide. After paging, the rest of the burst is swallowed:
-   * inertia deltas arrive back-to-back and only decay. The viewer re-arms once
-   * the lock has passed and either the stream paused or a clearly stronger push
-   * begins (a fresh swipe started mid-tail).
+   * Wheel / trackpad is a velocity stream, like native or Lenis scroll.
+   * Deltas accumulate into virtual position; leftover velocity coasts with
+   * friction and keeps paging until it decays. Discrete mouse notches still
+   * advance one slide. preventDefault keeps Lenis and the page pinned.
    */
   function onViewerWheel(event) {
     if (!open) return;
@@ -1677,29 +1746,28 @@ function createViewer(root) {
     if (event.deltaMode === 1) dy *= 16;
     if (event.deltaMode === 2) dy *= window.innerHeight || 800;
     const now = performance.now();
-    const gap = now - wheelLastAt;
+    const gap = wheelLastAt ? now - wheelLastAt : 16;
+    const dt = Math.max(8, Math.min(48, gap));
     const abs = Math.abs(dy);
-    const prevAbs = wheelLastAbs;
     wheelLastAt = now;
-    wheelLastAbs = abs;
-    if (!wheelArmed) {
-      const gestureEnded = gap > WHEEL_GESTURE_GAP;
-      const freshPush = abs > prevAbs * 1.5 + 2;
-      if (now < wheelLockUntil || !(gestureEnded || freshPush)) return;
-      wheelArmed = true;
+
+    const notch = event.deltaMode !== 0 || (abs >= 80 && gap > WHEEL_NOTCH_GAP);
+    if (notch) {
+      wheelPos = 0;
+      wheelVel = 0;
+      if (now - wheelLastPageAt >= WHEEL_PAGE_MS) {
+        wheelLastPageAt = now;
+        pageFromWheel(dy > 0 ? 1 : -1);
+      }
+      return;
     }
-    wheelAcc += dy;
-    window.clearTimeout(wheelResetTimer);
-    wheelResetTimer = window.setTimeout(() => {
-      wheelAcc = 0;
-    }, 160);
-    if (Math.abs(wheelAcc) < WHEEL_STEP) return;
-    const step = wheelAcc > 0 ? 1 : -1;
-    wheelAcc = 0;
-    wheelArmed = false;
-    wheelLockUntil = now + WHEEL_LOCK;
-    playUISound("tick");
-    go(step);
+
+    wheelPos += dy;
+    wheelPos = Math.max(-WHEEL_MAX_QUEUE, Math.min(WHEEL_MAX_QUEUE, wheelPos));
+    const instant = dy / dt;
+    wheelVel = Math.max(-WHEEL_MAX_VEL, Math.min(WHEEL_MAX_VEL, wheelVel * 0.35 + instant * 0.65));
+    consumeWheelPages(now);
+    startWheelCoast();
   }
 
   document.addEventListener("wheel", onViewerWheel, { capture: true, passive: false });
@@ -1799,7 +1867,6 @@ function syncIslandSticky() {
   const height = island.getBoundingClientRect().height;
   if (!(height > 0)) return;
   island.style.setProperty("--island-h", `${height}px`);
-  island.style.setProperty("--island-sticky-top", `calc(50% - ${height / 2}px)`);
 }
 
 function initSmoothScroll() {

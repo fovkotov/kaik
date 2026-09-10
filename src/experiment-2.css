@@ -19,6 +19,8 @@
   --dot-on: rgba(0, 0, 0, 0.64);
   --skeleton: rgba(0, 0, 0, 0.06);
   --gutter: clamp(18px, 4.4vw, 72px);
+  --edge: 16px;
+  --font-tester-h: 365px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --frame-w: 100vw;
   --frame-h: 100%;
@@ -92,8 +94,8 @@ html.is-viewer-open .experiment-two__scroll {
 
 /* Nav — same pill as the Käik host menu. */
 .site-nav {
-  position: sticky;
-  top: var(--frame-clip-top);
+  position: relative;
+  top: auto;
   z-index: 20;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -132,11 +134,12 @@ html.is-viewer-open .experiment-two__scroll {
   padding: 24px var(--gutter) 48px;
 }
 
-/* Both first blocks share one height so the tabs and grid never jump on switch. */
+/* First screen: lettering centered in a vh-tall field, caption at the bottom,
+   filters just after. Authored in vh; clips keep it inside the iframe frame. */
 .works-page {
-  /* Percent heights die on the auto-height page; inside the iframe 100vh is the frame itself. */
   --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
-  --hero-h: max(420px, calc(var(--hero-frame) * 0.7));
+  --hero-chrome: 8.5rem;
+  --hero-h: calc(var(--hero-frame) - var(--hero-chrome));
 }
 
 /* Interactive lettering stays above the mixed feed. */
@@ -182,17 +185,23 @@ html.is-viewer-open .experiment-two__scroll {
   mix-blend-mode: multiply;
 }
 
-/* Placeholder plate where the lettering will sit; gone once the first SVG has loaded. */
-.lettering-hero__skeleton {
+/* Loader mark while the first lettering SVG hydrates; gone once ready. */
+.lettering-hero__loader {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 52%;
-  height: 34%;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 68%;
+  max-height: 62%;
   transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.lettering-hero.is-loaded .lettering-hero__skeleton {
+.lettering-hero.is-loaded .lettering-hero__loader {
   display: none;
 }
 
@@ -231,10 +240,10 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .works-panel {
-  /* Bleed past page gutters so only the works grid sits 4px from the iframe. */
-  width: calc(100% + 2 * var(--gutter) - 8px);
+  /* Bleed past page gutters so only the works grid sits --edge from the iframe. */
+  width: calc(100% + 2 * var(--gutter) - 2 * var(--edge));
   max-width: none;
-  margin-inline: calc(4px - var(--gutter));
+  margin-inline: calc(var(--edge) - var(--gutter));
 }
 
 .works-grid {
@@ -273,7 +282,7 @@ html.is-viewer-open .experiment-two__scroll {
   max-width: 100%;
   height: auto;
   overflow: visible;
-  gap: clamp(4px, 0.65vw, 10px);
+  gap: 0;
   appearance: none;
   border: 0;
   background: transparent;
@@ -295,6 +304,9 @@ html.is-viewer-open .experiment-two__scroll {
 
 .work-card--font .work-card__art {
   container-type: inline-size;
+  height: var(--font-tester-h);
+  min-height: var(--font-tester-h);
+  overflow: visible;
 }
 
 .work-card__preview {
@@ -364,19 +376,21 @@ html.is-viewer-open .experiment-two__scroll {
 }
 
 .work-card__font-specimen {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: auto;
-  min-height: 2.4em;
+  height: var(--font-tester-h);
+  min-height: var(--font-tester-h);
   overflow: visible;
-  box-sizing: content-box;
-  padding: 0.4em 0;
+  box-sizing: border-box;
+  padding: 0;
   color: #000;
-  font-size: calc(32cqw * var(--font-fit, 1));
+  font-size: calc(min(32cqw, 220px) * var(--font-fit, 1));
   font-weight: 400;
-  line-height: 1.35;
+  line-height: 1.15;
   white-space: nowrap;
   text-align: center;
   outline: none;
@@ -384,6 +398,29 @@ html.is-viewer-open .experiment-two__scroll {
   cursor: text;
   user-select: text;
   -webkit-user-select: text;
+}
+
+/* Fake caret so the tester looks focused before the first click. */
+.work-card__font-specimen:not(:focus)::after {
+  content: "";
+  display: inline-block;
+  width: 1.5px;
+  height: 0.82em;
+  margin-left: 0.06em;
+  background: currentColor;
+  animation: specimen-caret 1.05s step-end infinite;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.work-card__font-specimen:focus::after {
+  display: none;
+}
+
+@keyframes specimen-caret {
+  50% {
+    opacity: 0;
+  }
 }
 
 .work-card__font-specimen::selection {
@@ -516,9 +553,8 @@ html.is-viewer-open .experiment-two__scroll {
 
 .filter-island {
   --island-h: 32px;
-  --island-sticky-top: calc(50% - (var(--island-h) / 2));
   position: sticky;
-  top: var(--island-sticky-top);
+  top: calc(var(--edge) + var(--frame-clip-top));
   z-index: 40;
   display: flex;
   align-items: center;
@@ -1012,10 +1048,7 @@ html.is-viewer-open .experiment-two__scroll {
 
   .works-page {
     padding-top: 16px;
-  }
-
-  .works-page {
-    --hero-h: max(320px, calc(var(--hero-frame) * 0.55));
+    --hero-chrome: 11rem;
   }
 
   .lettering-hero__image {
@@ -1078,7 +1111,8 @@ html.is-viewer-open .experiment-two__scroll {
     transition: none;
   }
 
-  .skeleton::after {
+  .skeleton::after,
+  .work-card__font-specimen:not(:focus)::after {
     animation: none;
   }
 
