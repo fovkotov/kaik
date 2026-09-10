@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-10T20:42:44.204Z",
+  "updatedAt": "2026-09-10T20:43:01.933Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3526,6 +3526,7 @@
       "nick": "hurujoi",
       "stream": "1",
       "sample": "ПЕТРОГЛИФ",
+      "caps": true,
       "files": [
         "wrk_bac9146b_0.otf"
       ],
