@@ -4,11 +4,14 @@ import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
   TYPE_DAILY,
   TYPE_FINAL,
+  TYPE_FONT,
   TYPE_LETTERING,
   normalizeExperiment2Layout,
 } from "./works/taxonomy.js";
 
-const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL];
+const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
+const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
+const FONT_TESTER_MAX_CHARS = 60;
 
 const hero = document.querySelector("[data-lettering-hero]");
 const letteringImage = document.querySelector("[data-lettering-image]");
@@ -46,7 +49,11 @@ function isMobile() {
 }
 
 function imageFiles(item) {
-  return (item?.files || []).filter((file) => !/\.(?:ttf|otf|woff2?)$/i.test(file));
+  return (item?.files || []).filter((file) => !FONT_RE.test(file));
+}
+
+function fontFile(item) {
+  return (item?.files || []).find((file) => FONT_RE.test(file)) || null;
 }
 
 /** The hero draws vector only: the first .svg of a work, or nothing. */
@@ -98,6 +105,8 @@ function altFor(item) {
       ? "Финальный проект"
       : item.type === TYPE_DAILY
         ? "Daily Practice"
+        : item.type === TYPE_FONT
+          ? "Шрифт"
         : "Работа воркшопа";
   return item.author ? `${kind}, ${item.author}` : kind;
 }
@@ -155,10 +164,11 @@ function syncSettingsPanel() {
   settingsPanel.querySelectorAll("[data-pattern]").forEach((group) => {
     const pattern = layout.typePatterns[group.dataset.pattern];
     if (!pattern) return;
-    for (const name of ["interval", "span"]) {
+    for (const name of ["baseSpan", "interval", "span"]) {
       const input = group.querySelector(`[name="${name}"]`);
-      if (input && document.activeElement !== input) input.value = String(pattern[name]);
-      if (name === "span" && input) input.max = String(layout.columns);
+      if (input && document.activeElement !== input && pattern[name] != null) {
+        input.value = String(pattern[name]);
+      }
     }
   });
   settingsPanel.querySelectorAll("[data-align]").forEach((button) => {
@@ -229,7 +239,74 @@ function setupGridSettings() {
 
 /* ---------- mixed grid ---------- */
 
+function plainSpecimenText(value) {
+  return String(value || "")
+    .replace(/[\r\n\u2028\u2029]+/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, FONT_TESTER_MAX_CHARS);
+}
+
+function fitFontSpecimen(specimen) {
+  specimen.style.removeProperty("--font-fit");
+  if (!specimen.clientWidth || !specimen.firstChild) return;
+  const range = document.createRange();
+  range.selectNodeContents(specimen);
+  const needed = range.getBoundingClientRect().width;
+  if (needed > specimen.clientWidth) {
+    specimen.style.setProperty("--font-fit", String(Math.max(0.12, (specimen.clientWidth / needed) * 0.96)));
+  }
+}
+
+function bindFontSpecimen(specimen, fallback) {
+  const settle = () => {
+    const next = plainSpecimenText(specimen.textContent);
+    if (next !== specimen.textContent) specimen.textContent = next;
+    fitFontSpecimen(specimen);
+  };
+  specimen.addEventListener("focus", () => {
+    const range = document.createRange();
+    range.selectNodeContents(specimen);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  });
+  specimen.addEventListener("blur", () => {
+    if (!specimen.textContent.trim()) specimen.textContent = fallback;
+    settle();
+  });
+  specimen.addEventListener("input", settle);
+  specimen.addEventListener("paste", (event) => {
+    event.preventDefault();
+    document.execCommand("insertText", false, plainSpecimenText(event.clipboardData?.getData("text/plain")));
+    settle();
+  });
+  specimen.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === "Escape") {
+      event.preventDefault();
+      specimen.blur();
+    }
+    event.stopPropagation();
+  });
+  new ResizeObserver(() => fitFontSpecimen(specimen)).observe(specimen);
+}
+
+async function hydrateFontSpecimen(specimen, item, file) {
+  const fallback = item.sample || "Käik";
+  const family = `exp2-${String(item.id).replace(/[^a-z0-9]/gi, "") || "font"}`;
+  specimen.textContent = fallback;
+  bindFontSpecimen(specimen, fallback);
+  try {
+    const face = new FontFace(family, `url(${JSON.stringify(workFileUrl(file))})`);
+    document.fonts.add(await face.load());
+    specimen.style.fontFamily = `"${family}", sans-serif`;
+  } catch {
+    specimen.classList.add("is-font-error");
+  }
+  fitFontSpecimen(specimen);
+}
+
 function cardFor(item, span) {
+  if (item.type === TYPE_FONT) return fontCardFor(item, span);
   const cover = imageFiles(item)[0];
   const card = document.createElement("button");
   card.type = "button";
@@ -262,9 +339,39 @@ function cardFor(item, span) {
   return card;
 }
 
+function fontCardFor(item, span) {
+  const file = fontFile(item);
+  const card = document.createElement("article");
+  card.className = "work-card work-card--font";
+  card.dataset.workId = item.id;
+  card.dataset.type = item.type;
+  card.dataset.span = String(span);
+  card.style.setProperty("--card-span", String(span));
+
+  const art = document.createElement("div");
+  art.className = "work-card__art";
+  const specimen = document.createElement("div");
+  specimen.className = "work-card__font-specimen";
+  specimen.contentEditable = "true";
+  specimen.spellcheck = false;
+  specimen.setAttribute("role", "textbox");
+  specimen.setAttribute("aria-label", "Введите свой текст для проверки шрифта");
+  art.append(specimen);
+
+  const meta = document.createElement("div");
+  meta.className = "work-card__meta";
+  meta.append(...metaNodes(item));
+  card.append(art, meta);
+  hydrateFontSpecimen(specimen, item, file);
+  return card;
+}
+
 function visibleWorks() {
   return catalog.filter(
-    (item) => enabledTypes.has(item.type) && VISUAL_TYPES.includes(item.type) && imageFiles(item).length,
+    (item) =>
+      enabledTypes.has(item.type) &&
+      VISUAL_TYPES.includes(item.type) &&
+      (item.type === TYPE_FONT ? Boolean(fontFile(item)) : imageFiles(item).length > 0),
   );
 }
 

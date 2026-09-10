@@ -6,9 +6,10 @@ export const TYPE_DAILY = "daily";
 export const WORK_TYPES = [TYPE_LETTERING, TYPE_DAILY, TYPE_FINAL, TYPE_FONT];
 export const WORKS_CATALOG_EVENT = "works-catalog";
 const DEFAULT_TYPE_PATTERNS = Object.freeze({
-  [TYPE_DAILY]: Object.freeze({ interval: 1, span: 1 }),
-  [TYPE_LETTERING]: Object.freeze({ interval: 6, span: 4 }),
-  [TYPE_FINAL]: Object.freeze({ interval: 6, span: 3 }),
+  [TYPE_DAILY]: Object.freeze({ baseSpan: 1, interval: 1, span: 1 }),
+  [TYPE_LETTERING]: Object.freeze({ baseSpan: 2, interval: 6, span: 4 }),
+  [TYPE_FINAL]: Object.freeze({ baseSpan: 3, interval: 6, span: 3 }),
+  [TYPE_FONT]: Object.freeze({ baseSpan: 5 }),
 });
 export const EXPERIMENT_2_LAYOUT_DEFAULTS = Object.freeze({
   columns: 6,
@@ -47,21 +48,28 @@ export function normalizeExperiment2Layout(value) {
     Array.isArray(raw.dailySpans) ? raw.dailySpans.find((entry) => Number(entry) > 1) : undefined;
   const rawPatterns = raw.typePatterns && typeof raw.typePatterns === "object" ? raw.typePatterns : {};
   const typePatterns = {};
-  for (const type of [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL]) {
+  for (const type of [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT]) {
     const fallback = DEFAULT_TYPE_PATTERNS[type];
     const candidate = rawPatterns[type] && typeof rawPatterns[type] === "object" ? rawPatterns[type] : {};
-    typePatterns[type] = {
-      interval: boundedInteger(
-        candidate.interval ?? (type === TYPE_DAILY ? oldDailyInterval : oldInterval),
-        fallback.interval,
-        99,
-      ),
-      span: boundedInteger(
-        candidate.span ?? (type === TYPE_DAILY ? oldDailySpan : raw.largeSpan),
-        fallback.span,
-        columns,
-      ),
+    const pattern = {
+      // Old `{ interval, span }` patterns intentionally gain the type default.
+      baseSpan: boundedInteger(candidate.baseSpan, fallback.baseSpan, 12),
     };
+    if (type !== TYPE_FONT) {
+      Object.assign(pattern, {
+        interval: boundedInteger(
+          candidate.interval ?? (type === TYPE_DAILY ? oldDailyInterval : oldInterval),
+          fallback.interval,
+          99,
+        ),
+        span: boundedInteger(
+          candidate.span ?? (type === TYPE_DAILY ? oldDailySpan : raw.largeSpan),
+          fallback.span,
+          12,
+        ),
+      });
+    }
+    typePatterns[type] = pattern;
   }
   return {
     columns,

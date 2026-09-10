@@ -310,6 +310,35 @@ html.is-viewer-open .experiment-two__scroll {
   object-fit: initial;
 }
 
+.work-card__font-specimen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  color: #000;
+  font-size: calc(32cqw * var(--font-fit, 1));
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  outline: none;
+  caret-color: #000;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.work-card__font-specimen::selection {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.work-card__font-specimen.is-font-error {
+  color: var(--muted);
+}
+
 /* ---------- skeletons ---------- */
 
 .skeleton {
@@ -475,6 +504,10 @@ html.is-viewer-open .experiment-two__scroll {
   background: #ff91f8;
 }
 
+.filter-chip--font .filter-chip__plate {
+  background: #a8e6b0;
+}
+
 .filter-chip[aria-checked="false"] .filter-chip__plate {
   color: #b0b0b0;
   background: #dcdcdc;
@@ -615,7 +648,7 @@ html.is-viewer-open .experiment-two__scroll {
 
 .grid-settings__patterns {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 4px;
 }
 
@@ -931,7 +964,11 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .filter-chip__plate {
-    font-size: clamp(11px, 3.7vw, 17px);
+    font-size: clamp(10px, 3vw, 14px);
+  }
+
+  .filter-chip {
+    padding-inline: 4px;
   }
 
   .viewer__stage {

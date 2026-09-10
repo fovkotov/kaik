@@ -81,7 +81,7 @@ type Experiment2Layout = {
   gapY: number;
   alignX: "start" | "center" | "end";
   alignY: "start" | "center" | "end";
-  typePatterns: Record<string, { interval: number; span: number }>;
+  typePatterns: Record<string, { baseSpan: number; interval?: number; span?: number }>;
 };
 
 type WorksCatalog = {
@@ -557,12 +557,16 @@ export function WorksPanel({
   const [bulkNick, setBulkNick] = useState("");
   const [bulkStream, setBulkStream] = useState("");
   const [layoutDraft, setLayoutDraft] = useState({
+    dailyBaseSpan: "1",
     dailyInterval: "1",
     dailySpan: "1",
+    letteringBaseSpan: "2",
     letteringInterval: "6",
     letteringSpan: "4",
+    finalBaseSpan: "3",
     finalInterval: "6",
     finalSpan: "3",
+    fontBaseSpan: "5",
   });
   const [catalogType, setCatalogType] = useState<WorkType>(TYPE_LETTERING);
   const [hot, setHot] = useState(false);
@@ -638,12 +642,16 @@ export function WorksPanel({
   useEffect(() => {
     const next = normalizeExperiment2Layout(catalog.layout);
     setLayoutDraft({
+      dailyBaseSpan: String(next.typePatterns[TYPE_DAILY].baseSpan),
       dailyInterval: String(next.typePatterns[TYPE_DAILY].interval),
       dailySpan: String(next.typePatterns[TYPE_DAILY].span),
+      letteringBaseSpan: String(next.typePatterns[TYPE_LETTERING].baseSpan),
       letteringInterval: String(next.typePatterns[TYPE_LETTERING].interval),
       letteringSpan: String(next.typePatterns[TYPE_LETTERING].span),
+      finalBaseSpan: String(next.typePatterns[TYPE_FINAL].baseSpan),
       finalInterval: String(next.typePatterns[TYPE_FINAL].interval),
       finalSpan: String(next.typePatterns[TYPE_FINAL].span),
+      fontBaseSpan: String(next.typePatterns[TYPE_FONT].baseSpan),
     });
   }, [catalog.updatedAt]);
 
@@ -1083,15 +1091,18 @@ export function WorksPanel({
       Object.entries(layoutDraft).map(([key, value]) => [key, Number(value)]),
     ) as Record<keyof typeof layoutDraft, number>;
     const validInterval = (value: number) => Number.isInteger(value) && value >= 1 && value <= 99;
-    const validSpan = (value: number) =>
-      Number.isInteger(value) && value >= 1 && value <= normalizeExperiment2Layout(catalog.layout).columns;
+    const validSpan = (value: number) => Number.isInteger(value) && value >= 1 && value <= 12;
     if (
+      !validSpan(values.dailyBaseSpan) ||
       !validInterval(values.dailyInterval) ||
       !validSpan(values.dailySpan) ||
+      !validSpan(values.letteringBaseSpan) ||
       !validInterval(values.letteringInterval) ||
       !validSpan(values.letteringSpan) ||
+      !validSpan(values.finalBaseSpan) ||
       !validInterval(values.finalInterval) ||
-      !validSpan(values.finalSpan)
+      !validSpan(values.finalSpan) ||
+      !validSpan(values.fontBaseSpan)
     ) {
       toast.error(copy("admin.layoutInvalid"));
       return;
@@ -1104,9 +1115,22 @@ export function WorksPanel({
           layout: {
             ...current,
             typePatterns: {
-              [TYPE_DAILY]: { interval: values.dailyInterval, span: values.dailySpan },
-              [TYPE_LETTERING]: { interval: values.letteringInterval, span: values.letteringSpan },
-              [TYPE_FINAL]: { interval: values.finalInterval, span: values.finalSpan },
+              [TYPE_DAILY]: {
+                baseSpan: values.dailyBaseSpan,
+                interval: values.dailyInterval,
+                span: values.dailySpan,
+              },
+              [TYPE_LETTERING]: {
+                baseSpan: values.letteringBaseSpan,
+                interval: values.letteringInterval,
+                span: values.letteringSpan,
+              },
+              [TYPE_FINAL]: {
+                baseSpan: values.finalBaseSpan,
+                interval: values.finalInterval,
+                span: values.finalSpan,
+              },
+              [TYPE_FONT]: { baseSpan: values.fontBaseSpan },
             },
           },
         }),

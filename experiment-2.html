@@ -73,18 +73,25 @@
       <div class="grid-settings__patterns">
         <fieldset data-pattern="daily">
           <legend>daily</legend>
+          <label>base span <input name="baseSpan" type="number" min="1" max="12" step="1" /></label>
           <label>every <input name="interval" type="number" min="1" max="99" step="1" /></label>
-          <label>span <input name="span" type="number" min="1" max="12" step="1" /></label>
+          <label>large span <input name="span" type="number" min="1" max="12" step="1" /></label>
         </fieldset>
         <fieldset data-pattern="lettering">
           <legend>workshop</legend>
+          <label>base span <input name="baseSpan" type="number" min="1" max="12" step="1" /></label>
           <label>every <input name="interval" type="number" min="1" max="99" step="1" /></label>
-          <label>span <input name="span" type="number" min="1" max="12" step="1" /></label>
+          <label>large span <input name="span" type="number" min="1" max="12" step="1" /></label>
         </fieldset>
         <fieldset data-pattern="final">
           <legend>final</legend>
+          <label>base span <input name="baseSpan" type="number" min="1" max="12" step="1" /></label>
           <label>every <input name="interval" type="number" min="1" max="99" step="1" /></label>
-          <label>span <input name="span" type="number" min="1" max="12" step="1" /></label>
+          <label>large span <input name="span" type="number" min="1" max="12" step="1" /></label>
+        </fieldset>
+        <fieldset data-pattern="font">
+          <legend>font · fixed</legend>
+          <label>base span <input name="baseSpan" type="number" min="1" max="12" step="1" /></label>
         </fieldset>
       </div>
       <button class="grid-settings__reset" type="button" data-grid-settings-reset>Reset to catalog defaults</button>
@@ -99,6 +106,9 @@
       </button>
       <button class="filter-chip filter-chip--final" type="button" role="checkbox" aria-checked="true" data-filter="final">
         <span class="filter-chip__plate">финальные проекты</span>
+      </button>
+      <button class="filter-chip filter-chip--font" type="button" role="checkbox" aria-checked="true" data-filter="font">
+        <span class="filter-chip__plate">шрифты</span>
       </button>
     </div>
 
