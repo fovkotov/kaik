@@ -885,7 +885,8 @@ function renderGrid() {
   const planned = planExperiment2(works, layout, activeColumns());
   const fragment = document.createDocumentFragment();
   pendingHydration.clear();
-  planned.forEach(({ item, span }) => fragment.append(cardFor(item, span)));
+  const finalsOnly = finalsTabOnly();
+  planned.forEach(({ item, span }) => fragment.append(cardFor(item, finalsOnly ? 4 : span)));
   grid.replaceChildren(fragment);
   /* One synchronous pass so the first paint already has spans from catalog dims. */
   measureCards();
@@ -932,8 +933,8 @@ function setupFilters() {
     /* Same idea for the workshop tab: the planned 4-then-1 cadence widened to fill
        the row. A state class, so the mixed feed keeps the planned spans. */
     grid.classList.toggle("is-workshops-only", exclusiveType === TYPE_LETTERING);
-    /* Finals tab: one even span for every card, so the catalog's 3/5 mix does
-       not leave a ragged right edge. Mixed feed keeps the planned spans. */
+    /* Finals tab: every project is 4 tracks (three per desktop row, one full
+       mobile row). Mixed feed keeps the planned spans. */
     grid.classList.toggle("is-finals-only", exclusiveType === TYPE_FINAL);
   };
   filters.forEach((button) => {
