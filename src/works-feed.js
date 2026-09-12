@@ -12,7 +12,7 @@ import {
   placeWork,
   sortWorksByDate,
 } from "./works/taxonomy.js";
-import { fontFlags, shapeFontText } from "./works/font-display.js";
+import { fontFlags, settleFontText, shapeFontText } from "./works/font-display.js";
 
 const EN_WORDS = ["kaik", "letter", "type", "form", "serif", "stroke"];
 const RU_WORDS = ["каик", "буква", "набор", "слово", "шрифт", "форма"];
@@ -190,8 +190,7 @@ function bindFontTester(el, fallback) {
   el.dataset.testerBound = "1";
   const flags = flagsFromEl(el);
   const settle = () => {
-    const next = shapeFontText(plainText(el.textContent), flags);
-    if (next !== el.textContent) el.textContent = next;
+    settleFontText(el, plainText, flags);
     fitFontCell(el);
   };
   el.addEventListener("focus", () => {

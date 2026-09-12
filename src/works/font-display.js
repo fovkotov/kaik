@@ -66,3 +66,53 @@ export function shapeFontText(value, flags = {}) {
   if (flags.caps) out = out.toLocaleUpperCase(flags.cyrillic ? "ru-RU" : "en-US");
   return out;
 }
+
+/** Caret position inside a tester as a plain-text offset, or null when it is elsewhere. */
+function caretOffset(el) {
+  const selection = window.getSelection?.();
+  const focusNode = selection?.focusNode;
+  if (!focusNode || !el.contains(focusNode)) return null;
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  try {
+    range.setEnd(focusNode, selection.focusOffset);
+  } catch {
+    return null;
+  }
+  return range.toString().length;
+}
+
+function placeCaret(el, offset) {
+  const selection = window.getSelection?.();
+  if (!selection) return;
+  const node = el.firstChild;
+  const range = document.createRange();
+  if (node?.nodeType === Node.TEXT_NODE) {
+    range.setStart(node, Math.max(0, Math.min(offset, node.length)));
+    range.collapse(true);
+  } else {
+    range.selectNodeContents(el);
+    range.collapse(false);
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+/**
+ * Normalise what the visitor typed in a contenteditable tester, in place.
+ *
+ * Assigning `textContent` swaps the text node out, which drops the caret to the
+ * start of the element — with a caps or layout-remapping font every next
+ * keystroke would land in front of the previous one and the word would come out
+ * reversed ("ПРИВЕТ" → "ТЕВИРП"). So the caret has to be carried over, mapped
+ * through the same shaping as the text before it.
+ */
+export function settleFontText(el, plain, flags = {}) {
+  const raw = el.textContent;
+  const next = shapeFontText(plain(raw), flags);
+  if (next === raw) return next;
+  const caret = caretOffset(el);
+  el.textContent = next;
+  if (caret !== null) placeCaret(el, shapeFontText(plain(raw.slice(0, caret)), flags).length);
+  return next;
+}

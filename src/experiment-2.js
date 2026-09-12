@@ -12,7 +12,7 @@ import {
   TYPE_LETTERING,
   normalizeExperiment2Layout,
 } from "./works/taxonomy.js";
-import { fontFlags, shapeFontText } from "./works/font-display.js";
+import { fontFlags, settleFontText, shapeFontText } from "./works/font-display.js";
 
 const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
 const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
@@ -419,8 +419,7 @@ function fitFontSpecimen(specimen) {
 
 function bindFontSpecimen(specimen, fallback, flags = {}) {
   const settle = () => {
-    const next = shapeFontText(plainSpecimenText(specimen.textContent), flags);
-    if (next !== specimen.textContent) specimen.textContent = next;
+    settleFontText(specimen, plainSpecimenText, flags);
     fitFontSpecimen(specimen);
   };
   specimen.addEventListener("focus", () => {
