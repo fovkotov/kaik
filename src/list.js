@@ -1,3 +1,4 @@
+import "./work-nav-arrow.css";
 import { initEmbed } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
 import { initPreviewMedia } from "./preview-media.js";

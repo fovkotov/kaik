@@ -1,3 +1,4 @@
+import "./work-nav-arrow.css";
 import { getScrollRoot, getViewportSize, initEmbed, isFocusFrozen, onFrameMetrics } from "./embed.js";
 import { initFormatVideo } from "./format-video.js";
 import { initPreviewMedia } from "./preview-media.js";

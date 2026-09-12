@@ -1,0 +1,30 @@
+/* Figma 251:1342 — 16px type / 19px arrow / 4px gap. em so landing-card type scales. */
+.panel__nav a[data-work-nav],
+.landing-card__nav a[data-work-nav] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  text-decoration: none;
+}
+
+.panel__nav a[data-work-nav] .work-nav__label,
+.landing-card__nav a[data-work-nav] .work-nav__label {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  text-decoration-color: currentColor;
+}
+
+.panel__nav a[data-work-nav] .work-nav__arrow,
+.landing-card__nav a[data-work-nav] .work-nav__arrow {
+  display: block;
+  width: 0.674em;
+  height: 1.1875em;
+  flex: 0 0 auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* SVG ink is 75%; landing type is 48% — keep the glyph with the words. */
+.landing-card__nav a[data-work-nav] .work-nav__arrow {
+  opacity: 0.64;
+}
