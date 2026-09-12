@@ -1,4 +1,5 @@
 import { openLightboxGallery } from "./author-lightbox.js";
+import { openProjectViewer, projectViewerKey } from "./project-viewer.js";
 
 const STRIP = "[data-program-strip]";
 const TRACK = "[data-program-track]";
@@ -376,14 +377,26 @@ function bindStrip(root) {
     if (!media) return;
     const items = collectMedia(track);
     const index = items.findIndex((item) => item.el === media);
-    if (!items.length || index < 0) return;
+    const project = projectViewerKey(media);
+    if (!project && (!items.length || index < 0)) return;
     event.preventDefault();
     event.stopPropagation();
-    openLightboxGallery(
-      items.map(({ src, width, height, ink }) => ({ src, width, height, ink })),
-      index,
-      media,
-    );
+    const lightbox = () => {
+      if (!items.length || index < 0) return;
+      openLightboxGallery(
+        items.map(({ src, width, height, ink }) => ({ src, width, height, ink })),
+        index,
+        media,
+      );
+    };
+    // A slide marked `data-project-viewer` opens that student's deck instead.
+    if (project) {
+      openProjectViewer(project, media).then((opened) => {
+        if (!opened) lightbox();
+      });
+      return;
+    }
+    lightbox();
   });
 
   let lastView = 0;

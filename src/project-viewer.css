@@ -1,0 +1,277 @@
+/* Student project viewer: the experiment-2 fullscreen deck on the course page.
+   Sibling of [data-scroll-root], fixed to the iframe, same pale `.viewer-btn`
+   chrome and scale-weighted pager as the author lightbox. */
+.pviewer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  background: var(--bg);
+  overscroll-behavior: contain;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pviewer:not([hidden]) {
+  display: block;
+}
+
+/* The dialog holds focus on open; its controls still show their own ring. */
+.pviewer:focus {
+  outline: none;
+}
+
+/* The focused card's own × would double the viewer's close button. */
+html.is-project-viewer-open .fly-close {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pviewer__stage {
+  position: absolute;
+  inset: 56px 24px 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+
+.pviewer__slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* The box is the stage, so a slide holds its space before the file decodes
+   and the overlay never reflows while the deck loads. */
+.pviewer__slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.pviewer__hit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 33.333%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.pviewer__hit--prev {
+  left: 0;
+}
+
+.pviewer__hit--next {
+  right: 0;
+}
+
+/* Pale 34×34 plate that follows the cursor inside its third. */
+.pviewer__arrow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.pviewer__hit.is-aiming .pviewer__arrow {
+  display: flex;
+}
+
+/* `exp2-chevron.svg` points left, so next is the mirrored one. */
+.pviewer__hit--next .pviewer__chevron {
+  transform: scaleX(-1);
+}
+
+.pviewer__hit.is-aiming:active .pviewer__arrow {
+  transform: translate(-50%, -50%) scale(0.97);
+}
+
+html.is-mobile .pviewer__arrow,
+html.is-mobile .pviewer__hit.is-aiming .pviewer__arrow {
+  display: none;
+}
+
+html.is-mobile .pviewer__hit {
+  cursor: default;
+}
+
+.pviewer.is-single .pviewer__hit--prev,
+.pviewer.is-single .pviewer__hit--next,
+.pviewer.is-single .pviewer__dots {
+  display: none;
+}
+
+.pviewer__close {
+  position: absolute;
+  top: var(--focus-close-inset);
+  right: 16px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  line-height: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  transform: scale(1);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pviewer__close:hover {
+    transform: scale(1.05);
+  }
+}
+
+.pviewer__close:active {
+  transform: scale(0.97);
+}
+
+/* Bottom-left student line: name, then muted @nick and stream. */
+.pviewer__caption {
+  position: absolute;
+  left: 24px;
+  right: 50%;
+  bottom: calc(24px + var(--frame-clip-bottom));
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 28px;
+  pointer-events: none;
+}
+
+.pviewer__caption:empty {
+  display: none;
+}
+
+.pviewer__caption .is-muted {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+/* Scale-weighted pager — same computed look as experiment-2 `.viewer__dots`. */
+.pviewer__dots {
+  --dots-visible: 1;
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + var(--frame-clip-bottom));
+  z-index: 4;
+  width: calc(var(--dots-visible) * 16px);
+  height: 28px;
+  overflow: hidden;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.pviewer__dots-track {
+  --dots-x: 0px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  transform: translate3d(var(--dots-x), 0, 0);
+  transition: transform 200ms ease;
+  will-change: transform;
+}
+
+.pviewer__dot {
+  --dot-scale: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pviewer__dot::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(var(--dot-scale));
+  transition: transform 200ms ease, background 200ms ease;
+}
+
+.pviewer__dot.is-active::after {
+  background: rgba(0, 0, 0, 0.64);
+  transition: transform 200ms ease, background 500ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pviewer__dot:not(.is-active):hover::after {
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+
+@media (max-width: 900px) {
+  .pviewer__stage {
+    inset: 56px 16px 64px;
+  }
+
+  .pviewer__caption {
+    left: 16px;
+    right: 16px;
+    bottom: calc(48px + var(--frame-clip-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pviewer__arrow,
+  .pviewer__close,
+  .pviewer__dots-track,
+  .pviewer__dot::after {
+    transition: none;
+  }
+
+  .pviewer__arrow,
+  .pviewer__hit.is-aiming:active .pviewer__arrow {
+    transform: translate(-50%, -50%);
+  }
+
+  .pviewer__close:hover,
+  .pviewer__close:active {
+    transform: none;
+  }
+}

@@ -14,9 +14,9 @@ import {
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
-  "a, [data-link-card], button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-article-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-preview-media]";
+  "a, [data-link-card], button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-open-program], [data-fly-close], [data-article-close], [data-fly-illust-close], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-project-viewer-root], [data-preview-media]";
   const SIDE_CHROME =
-  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-article-close], [data-fly-illust-close], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select, [data-author-lightbox]";
+  "[data-program-nav], [data-i18n='nav.program'], [data-work-nav], [data-i18n='nav.work'], [data-fly-close], [data-article-close], [data-fly-illust-close], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button, a, button, [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], input, textarea, select, [data-author-lightbox], [data-project-viewer-root]";
 const DRAG_CLICK_PX = 6;
 const WORK_OPEN = "[data-work-open]";
 const WORK_IG = "[data-work-ig]";
