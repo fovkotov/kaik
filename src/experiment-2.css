@@ -651,7 +651,7 @@ html.is-viewer-open .experiment-two__scroll {
 
 /* Figma 241:95943 / 241:95945: same 1px 2px 2px plate, 17px semibold, ink 75%. */
 .filter-chip--lang .filter-chip__plate {
-  background: #9d9d9d;
+  background: #ff00ae;
 }
 
 .filter-chip--enroll .filter-chip__plate {
