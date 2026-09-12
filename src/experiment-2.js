@@ -909,6 +909,9 @@ function setupFilters() {
     filters.forEach((button) => {
       button.setAttribute("aria-checked", enabledTypes.has(button.dataset.filter) ? "true" : "false");
     });
+    /* Full-width specimens while only fonts are shown. A grid state class rather than
+       a layout edit, so returning to the mixed feed restores the planned span. */
+    grid.classList.toggle("is-fonts-only", exclusiveType === TYPE_FONT);
   };
   filters.forEach((button) => {
     button.addEventListener("click", (event) => {

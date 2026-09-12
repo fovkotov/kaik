@@ -328,6 +328,13 @@ html.is-viewer-open .experiment-two__scroll {
   overflow: visible;
 }
 
+/* Fonts-only feed: nothing of another type to sit beside, so every specimen takes
+   the whole row. Set from the active filter, not from the stored layout, so the
+   mixed feed keeps its own font span. */
+.works-grid.is-fonts-only .work-card--font {
+  grid-column: span var(--grid-columns);
+}
+
 .work-card--font .work-card__art {
   container-type: inline-size;
   height: var(--font-tester-h);
