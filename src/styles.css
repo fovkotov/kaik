@@ -1838,6 +1838,11 @@ html.is-mobile .author-lb__hit--next {
   will-change: transform;
 }
 
+/* Same tile-to-tile gap as `.program-card__mouth` (week-2 workshop / Mouth). */
+.program-card__track--projects {
+  gap: calc(6 * var(--u));
+}
+
 .program-card__cluster {
   display: flex;
   flex-direction: column;
@@ -6493,6 +6498,10 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
 
   .program-card__track {
     gap: 24px;
+  }
+
+  .program-card__track--projects {
+    gap: 6px;
   }
 
   /* Figma 76:985 — 318×450: 4px top, 16px title, staggered sheets, 12px who/@ig. */
