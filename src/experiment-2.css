@@ -374,6 +374,17 @@ button.work-card__art {
   }
 }
 
+/* Finals-only feed: every card takes the same half-row so two sit side by side
+   (6 of 12 desktop, 2 of 4 mobile). The planner's 3/5 mix would leave a strip
+   and a leftover hole; equal half-spans tile the row, so dense is off. */
+.works-grid.is-finals-only {
+  grid-auto-flow: row;
+}
+
+.works-grid.is-finals-only .work-card {
+  grid-column: span var(--grid-half-columns);
+}
+
 .work-card--font .work-card__art {
   container-type: inline-size;
   height: var(--font-tester-h);
