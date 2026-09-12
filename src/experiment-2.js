@@ -2145,6 +2145,9 @@ function initSmoothScroll() {
 
 async function boot() {
   initEmbed();
+  /* iOS Safari only paints :active once the document listens for touch, and the
+     press state on cards and chips is pure CSS :active. */
+  document.addEventListener("touchstart", () => {}, { passive: true });
   setupLanguage();
   initSmoothScroll();
   /* Hero height and track count before the catalog arrives, so the first paint does not jump. */

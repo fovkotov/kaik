@@ -27,6 +27,7 @@
   --viewer-btn-blur: 46px;
   --viewer-btn-size: 34px;
   --hover-lift: 6px;
+  --press-drop: 2px;
   --dot: rgba(0, 0, 0, 0.2);
   --dot-on: rgba(0, 0, 0, 0.64);
   --skeleton: rgba(0, 0, 0, 0.06);
@@ -315,6 +316,8 @@ html.is-viewer-open .experiment-two__scroll {
   padding: 0;
   text-align: left;
   cursor: pointer;
+  /* No double-tap-zoom wait, so the press state lands with the finger. */
+  touch-action: manipulation;
 }
 
 .work-card__art {
@@ -557,8 +560,14 @@ html.is-viewer-open .experiment-two__scroll {
   object-fit: cover;
 }
 
-/* Hover: the art lifts a little and the caption fades in underneath. */
+/* Hover: the art lifts a little and the caption fades in underneath. Press pushes it
+   back down from wherever the lift left it — `--lift-base` is the resting/hover offset,
+   `--lift` the one actually rendered — so hover and :active compose instead of fighting.
+   The enter animation drives `.work-card` itself, so it never meets this transform. */
 .work-card__art {
+  --lift-base: 0px;
+  --lift: var(--lift-base);
+  transform: translateY(var(--lift));
   transition: transform 200ms var(--ease-out);
 }
 
@@ -597,13 +606,20 @@ html.is-viewer-open .experiment-two__scroll {
 
   .work-card:hover .work-card__art,
   .work-card:focus-visible .work-card__art {
-    transform: translateY(calc(-1 * var(--hover-lift)));
+    --lift-base: calc(-1 * var(--hover-lift));
   }
 
   .work-card:hover .work-card__meta,
   .work-card:focus-visible .work-card__meta {
     opacity: 1;
   }
+}
+
+/* Only cards that open the viewer press. Those are the <button> cards built in
+   cardFor(); the font tester is an <article> with no click handler. */
+button.work-card:active .work-card__art {
+  --lift: calc(var(--lift-base) + var(--press-drop));
+  transition-duration: 100ms;
 }
 
 .works-empty {
@@ -669,6 +685,9 @@ html.is-viewer-open .experiment-two__scroll {
   line-height: inherit;
   cursor: pointer;
   text-decoration: none;
+  /* The <a> chips (lang, enroll) miss the button reset above. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .filter-chip__plate {
@@ -680,6 +699,9 @@ html.is-viewer-open .experiment-two__scroll {
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
+  --lift-base: 0px;
+  --lift: var(--lift-base);
+  transform: translateY(var(--lift));
   transition: transform 160ms var(--ease-out);
 }
 
@@ -720,8 +742,13 @@ html.is-viewer-open .experiment-two__scroll {
 
 @media (hover: hover) and (pointer: fine) {
   .filter-chip:hover .filter-chip__plate {
-    transform: translateY(calc(-1 * var(--hover-lift)));
+    --lift-base: calc(-1 * var(--hover-lift));
   }
+}
+
+.filter-chip:active .filter-chip__plate {
+  --lift: calc(var(--lift-base) + var(--press-drop));
+  transition-duration: 100ms;
 }
 
 .filter-chip:focus-visible {
@@ -1309,12 +1336,10 @@ html.is-viewer-open .experiment-two__scroll {
     transform: translate(-50%, -50%);
   }
 
-  .work-card:hover .work-card__art,
-  .work-card:focus-visible .work-card__art {
-    transform: none;
-  }
-
-  .filter-chip:hover .filter-chip__plate {
+  /* Element-level, so it also cancels the :active press drop, which only moves
+     `--lift` and leaves the transform declaration to these rules. */
+  .work-card__art,
+  .filter-chip__plate {
     transform: none;
   }
 
