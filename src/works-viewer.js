@@ -64,7 +64,7 @@ export function createWorksViewer(root) {
   const pager = root.querySelector("[data-viewer-dots]");
   const caption = root.querySelector("[data-viewer-caption]");
   const counter = root.querySelector("[data-viewer-counter]");
-  const chrome = "[data-viewer-close], [data-viewer-dots], [data-viewer-dot]";
+  const chrome = "[data-viewer-close], [data-viewer-dots], [data-viewer-dot], [data-viewer-caption]";
   const navSel = "[data-viewer-prev], [data-viewer-next]";
 
   /**

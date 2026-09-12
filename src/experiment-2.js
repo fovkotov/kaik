@@ -201,7 +201,7 @@ function syncCardMeta(card, item) {
     return;
   }
   if (!meta) {
-    meta = document.createElement(card.tagName === "BUTTON" ? "span" : "div");
+    meta = document.createElement("div");
     meta.className = "work-card__meta";
     card.append(meta);
   }
@@ -755,15 +755,15 @@ function bindArtworkMetrics(card, preview, image) {
 function cardFor(item, span) {
   if (item.type === TYPE_FONT) return fontCardFor(item, span);
   const cover = imageFiles(item)[0];
-  const card = document.createElement("button");
-  card.type = "button";
+  const card = document.createElement("article");
   card.className = "work-card is-enter";
   card.dataset.workId = item.id;
   card.dataset.type = item.type;
   card.dataset.span = String(span);
   card.style.setProperty("--card-span", String(span));
 
-  const art = document.createElement("span");
+  const art = document.createElement("button");
+  art.type = "button";
   art.className = "work-card__art";
   const preview = document.createElement("span");
   preview.className = "work-card__preview";
@@ -792,12 +792,12 @@ function cardFor(item, span) {
 
   card.append(art);
   if (hasAuthorIdentity(item)) {
-    const meta = document.createElement("span");
+    const meta = document.createElement("div");
     meta.className = "work-card__meta";
     meta.append(...metaNodes(item));
     card.append(meta);
   }
-  card.addEventListener("click", (event) => openViewerFor(item, card, event));
+  art.addEventListener("click", (event) => openViewerFor(item, card, event));
   /* src (and alt, so an src-less img never paints alt text) wait for the viewport. */
   queueCardMedia(card, () => {
     image.alt = altFor(item);
@@ -1177,7 +1177,7 @@ function createViewer(root) {
   const track = root.querySelector("[data-viewer-track]");
   const pager = root.querySelector("[data-viewer-dots]");
   const caption = root.querySelector("[data-viewer-caption]");
-  const CHROME = "[data-viewer-close], [data-viewer-dots], [data-viewer-dot]";
+  const CHROME = "[data-viewer-close], [data-viewer-dots], [data-viewer-dot], [data-viewer-caption]";
   const NAV = "[data-viewer-prev], [data-viewer-next]";
   const NO_ZOOM = `${CHROME}, ${NAV}`;
   const scrollRoot = document.querySelector("[data-scroll-root]");

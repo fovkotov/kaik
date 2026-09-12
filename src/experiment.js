@@ -50,7 +50,7 @@ function openCell(cell) {
 }
 
 feedRoot?.addEventListener("click", (event) => {
-  if (event.target.closest?.("button, a")) return;
+  if (event.target.closest?.("button, a, .works-feed__who")) return;
   const cell = event.target.closest?.("[data-work-open]");
   if (!cell) return;
   event.preventDefault();

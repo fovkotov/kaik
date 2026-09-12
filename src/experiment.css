@@ -272,7 +272,10 @@ html.is-viewer-open .experiment__scroll {
   padding: 4px 8px 6px;
   overflow: hidden;
   text-overflow: ellipsis;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
   opacity: 0;
   transform: translateY(6px);
   transition:
@@ -737,7 +740,10 @@ html:not(.is-mobile) .img-slider__slide:not(.is-active) {
   margin: 0;
   font-size: 14px;
   line-height: 28px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .viewer__caption {

@@ -263,7 +263,10 @@ html.is-viewer-open .experiment-two__scroll {
   font-size: clamp(10px, 1vw, 14px);
   color: var(--muted);
   text-align: center;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .works-panel {
@@ -315,7 +318,7 @@ html.is-viewer-open .experiment-two__scroll {
   background: transparent;
   padding: 0;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
   /* No double-tap-zoom wait, so the press state lands with the finger. */
   touch-action: manipulation;
 }
@@ -329,6 +332,18 @@ html.is-viewer-open .experiment-two__scroll {
   min-width: 0;
   min-height: 0;
   overflow: visible;
+}
+
+button.work-card__art {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Fonts-only feed: nothing of another type to sit beside, so every specimen takes
@@ -583,6 +598,9 @@ html.is-viewer-open .experiment-two__scroll {
   line-height: 1.25;
   text-align: center;
   overflow-wrap: anywhere;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
   transition: opacity 160ms var(--ease-out);
 }
 
@@ -594,7 +612,7 @@ html.is-viewer-open .experiment-two__scroll {
   color: var(--muted);
 }
 
-.work-card:focus-visible {
+button.work-card__art:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 6px;
 }
@@ -605,19 +623,18 @@ html.is-viewer-open .experiment-two__scroll {
   }
 
   .work-card:hover .work-card__art,
-  .work-card:focus-visible .work-card__art {
+  .work-card:focus-within .work-card__art {
     --lift-base: calc(-1 * var(--hover-lift));
   }
 
   .work-card:hover .work-card__meta,
-  .work-card:focus-visible .work-card__meta {
+  .work-card:focus-within .work-card__meta {
     opacity: 1;
   }
 }
 
-/* Only cards that open the viewer press. Those are the <button> cards built in
-   cardFor(); the font tester is an <article> with no click handler. */
-button.work-card:active .work-card__art {
+/* Only the art button opens the viewer — the caption sits outside so it can be copied. */
+button.work-card__art:active {
   --lift: calc(var(--lift-base) + var(--press-drop));
   transition-duration: 100ms;
 }
@@ -1121,7 +1138,10 @@ button.work-card:active .work-card__art {
   margin: 0;
   font-size: 14px;
   line-height: 28px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .viewer__caption:empty,

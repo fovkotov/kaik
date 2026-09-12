@@ -172,7 +172,10 @@ html.is-mobile .pviewer__hit {
   margin: 0;
   font-size: 14px;
   line-height: 28px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .pviewer__caption:empty {

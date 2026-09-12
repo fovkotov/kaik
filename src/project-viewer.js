@@ -21,7 +21,7 @@ const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 const MARK = "[data-project-viewer]";
-const CHROME = "[data-pv-close], [data-pv-dots], [data-pv-dot]";
+const CHROME = "[data-pv-close], [data-pv-dots], [data-pv-dot], [data-pv-caption]";
 const NAV = "[data-pv-prev], [data-pv-next]";
 const AXIS_PX = 8;
 const TAP_PX = AXIS_PX;

@@ -1917,6 +1917,10 @@ html.is-mobile .author-lb__hit--next {
   font-weight: 700;
   line-height: normal;
   color: #b6d9c1;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .program-card__mouth {
@@ -2680,6 +2684,9 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .works-feed__who > span + span::before {
@@ -3695,6 +3702,10 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   font-size: calc(30.596 * var(--u));
   line-height: normal;
   color: var(--work-ink);
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .card.is-work-open .work-card__who {

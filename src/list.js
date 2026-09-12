@@ -11,7 +11,7 @@ import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
 import { initWorksFeed } from "./works-feed.js";
 
 const IGNORE =
-  "a, button, [data-tweaks], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-author-work], [data-preview-media], [data-preview-hit], [data-format-mute], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-work-open], input, textarea, select";
+  "a, button, [data-tweaks], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-author-work], [data-preview-media], [data-preview-hit], [data-format-mute], [data-work-ig], .work-card__who, [data-work-student-prev], [data-work-student-next], [data-work-open], input, textarea, select";
 
 const MOVE_MS = 520;
 const MOVE_EASE = "cubic-bezier(0.22, 1, 0.32, 1)";
