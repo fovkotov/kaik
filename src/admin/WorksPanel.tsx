@@ -116,6 +116,9 @@ type GridSpan = "auto" | 1 | 3;
 // or a freshly picked upload that will replace / extend the set on save.
 type Slide = { key: string; file?: string; upload?: UploadFile };
 
+/** How a final project's slides are laid out in the editor: one under another, or as a thumbnail grid. */
+type SlideView = "stack" | "grid";
+
 type Lasso = { x0: number; y0: number; x1: number; y1: number };
 
 const DRAG_PX = 6;
@@ -201,6 +204,9 @@ const UPLOAD_CONCURRENCY = 3;
 const BATCH_ITEMS = 12;
 /** Inline SVG payload per POST (Vercel body limit is 4.5 MB). */
 const BATCH_BYTES = 2_500_000;
+// Slide reorder drags carry this type, so the file-drop handlers (which look
+// for "Files") never mistake a reorder for an upload.
+const SLIDE_DND_TYPE = "application/x-kaik-slide";
 
 function revokeUpload(file: UploadFile) {
   if (file.preview?.startsWith("blob:")) URL.revokeObjectURL(file.preview);
@@ -500,6 +506,41 @@ function TypeTabs({
   );
 }
 
+const SLIDE_VIEWS: SlideView[] = ["stack", "grid"];
+
+function SlideViewTabs({
+  value,
+  onChange,
+  copy,
+}: {
+  value: SlideView;
+  onChange: (value: SlideView) => void;
+  copy: (key: string) => string;
+}) {
+  return (
+    <div role="tablist" aria-label={copy("admin.slideView")} className="inline-flex">
+      {SLIDE_VIEWS.map((mode) => {
+        const active = value === mode;
+        return (
+          <button
+            key={mode}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className={cn(
+              "-ml-px border border-foreground px-2.5 py-1 text-sm first:ml-0 first:rounded-l-md last:rounded-r-md",
+              active ? "bg-foreground text-background" : "bg-background text-foreground",
+            )}
+            onClick={() => onChange(mode)}
+          >
+            {copy(mode === "grid" ? "admin.slideGrid" : "admin.slideStack")}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function TypeSelect({
   value,
   onChange,
@@ -680,6 +721,9 @@ export function WorksPanel({
   const [editSlides, setEditSlides] = useState<Slide[]>([]);
   const [editDrop, setEditDrop] = useState(false);
   const [editDropSlide, setEditDropSlide] = useState<number | null>(null);
+  const [slideView, setSlideView] = useState<SlideView>("stack");
+  // Slide being dragged and the slide it currently hovers, for the reorder preview.
+  const [slideDrag, setSlideDrag] = useState<{ from: number; over: number } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmBulk, setConfirmBulk] = useState(false);
   const inflight = useInflight();
@@ -1065,6 +1109,7 @@ export function WorksPanel({
     });
     setEditFiles(null);
     setEditSlides(slidesFrom(item));
+    setSlideDrag(null);
   }
 
   function closeEditor() {
@@ -1074,6 +1119,7 @@ export function WorksPanel({
     setEditSlides([]);
     setEditDrop(false);
     setEditDropSlide(null);
+    setSlideDrag(null);
   }
 
   function pickSlides(target: number | null) {
@@ -1089,6 +1135,43 @@ export function WorksPanel({
       if (gone?.upload) revokeUpload(gone.upload);
       return next;
     });
+  }
+
+  function moveSlide(from: number, to: number) {
+    setEditSlides((current) => {
+      if (from === to || from < 0 || to < 0 || from >= current.length || to >= current.length) return current;
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+
+  function isSlideDrag(event: ReactDragEvent) {
+    return Boolean(event.dataTransfer?.types?.includes(SLIDE_DND_TYPE));
+  }
+
+  function onSlideDragStart(event: ReactDragEvent<HTMLLIElement>, index: number) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(SLIDE_DND_TYPE, String(index));
+    setSlideDrag({ from: index, over: index });
+  }
+
+  function onSlideDragOver(event: ReactDragEvent<HTMLLIElement>, index: number) {
+    if (!isSlideDrag(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    setSlideDrag((current) => (!current || current.over === index ? current : { ...current, over: index }));
+  }
+
+  function onSlideDrop(event: ReactDragEvent<HTMLLIElement>, index: number) {
+    if (!isSlideDrag(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const from = Number(event.dataTransfer.getData(SLIDE_DND_TYPE));
+    setSlideDrag(null);
+    if (Number.isInteger(from)) moveSlide(from, index);
   }
 
   async function applyEditUploads(list: FileList | File[], target: number | "all" | "append" = "all") {
@@ -1434,6 +1517,7 @@ export function WorksPanel({
   const rubber = lasso && dragged.current ? lassoBox(lasso) : null;
   const showingFont = editDraft.type === TYPE_FONT;
   const showingSlides = editDraft.type === TYPE_FINAL;
+  const gridSlides = showingSlides && slideView === "grid";
   const slidesDirty =
     editSlides.some((slide) => slide.upload) ||
     editSlides.length !== (editing?.files?.length ?? 0) ||
@@ -1861,57 +1945,121 @@ export function WorksPanel({
                 {showingSlides ? (
                   <div className="grid gap-3">
                     {editSlides.length ? (
-                      <ol className="grid gap-3">
+                      <ol
+                        className={cn(
+                          "grid",
+                          gridSlides
+                            ? "grid-cols-4 content-start gap-2 sm:grid-cols-6 lg:grid-cols-8"
+                            : "gap-3",
+                        )}
+                      >
                         {editSlides.map((slide, index) => {
                           const src =
                             slide.upload?.preview || (editing && slide.file ? fileSrc(editing, slide.file) : "");
+                          const dragging = slideDrag?.from === index;
+                          const dropping =
+                            slideDrag !== null && slideDrag.from !== index && slideDrag.over === index;
                           return (
                             <li
                               key={slide.key}
                               data-edit-slide={index}
+                              draggable
+                              onDragStart={(event) => onSlideDragStart(event, index)}
+                              onDragOver={(event) => onSlideDragOver(event, index)}
+                              onDrop={(event) => onSlideDrop(event, index)}
+                              onDragEnd={() => setSlideDrag(null)}
                               className={cn(
-                                "group relative overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10 transition-[box-shadow]",
-                                editDropSlide === index ? "ring-2 ring-primary" : "",
+                                "group relative overflow-hidden rounded-xl bg-muted ring-1 ring-foreground/10 transition-[box-shadow,opacity]",
+                                gridSlides ? "aspect-[4/3] cursor-grab active:cursor-grabbing" : "",
+                                editDropSlide === index || dropping ? "ring-2 ring-primary" : "",
+                                dragging ? "opacity-40" : "",
                               )}
                             >
                               <button
                                 type="button"
                                 title={copy("admin.replaceSlide")}
-                                className="block w-full cursor-pointer"
+                                className={cn(
+                                  "cursor-pointer",
+                                  gridSlides
+                                    ? "absolute inset-0 flex items-center justify-center p-1"
+                                    : "block w-full",
+                                )}
                                 onClick={() => pickSlides(index)}
                               >
                                 {src ? (
-                                  <img src={src} alt="" className="block h-auto w-full" />
+                                  <img
+                                    src={src}
+                                    alt=""
+                                    draggable={false}
+                                    className={cn(
+                                      "block",
+                                      gridSlides ? "max-h-full max-w-full object-contain" : "h-auto w-full",
+                                    )}
+                                  />
                                 ) : (
-                                  <span className="flex aspect-[4/3] items-center justify-center text-sm text-muted-foreground">
+                                  <span
+                                    className={cn(
+                                      "flex items-center justify-center text-muted-foreground",
+                                      gridSlides ? "size-full text-xs" : "aspect-[4/3] text-sm",
+                                    )}
+                                  >
                                     {copy("admin.slide").replace("{n}", String(index + 1))}
                                   </span>
                                 )}
                               </button>
-                              <span className="pointer-events-none absolute top-2 left-2 rounded-md bg-background/85 px-1.5 py-0.5 text-xs tabular-nums backdrop-blur">
+                              <span
+                                className={cn(
+                                  "pointer-events-none absolute rounded-md bg-background/85 tabular-nums backdrop-blur",
+                                  gridSlides
+                                    ? "top-1 left-1 px-1 text-[0.6875rem]"
+                                    : "top-2 left-2 px-1.5 py-0.5 text-xs",
+                                )}
+                              >
                                 {index + 1}
                                 {slide.upload ? " •" : ""}
                               </span>
-                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="secondary"
-                                  className="shadow-sm"
-                                  onClick={() => pickSlides(index)}
-                                >
-                                  {copy("admin.replaceSlide")}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="secondary"
-                                  className="shadow-sm"
-                                  disabled={editSlides.length < 2}
-                                  onClick={() => removeSlide(index)}
-                                >
-                                  {copy("admin.remove")}
-                                </Button>
+                              <div
+                                className={cn(
+                                  "absolute flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100",
+                                  gridSlides ? "top-1 right-1" : "top-2 right-2",
+                                )}
+                              >
+                                {gridSlides ? (
+                                  <Button
+                                    type="button"
+                                    size="icon-sm"
+                                    variant="secondary"
+                                    className="shadow-sm"
+                                    aria-label={copy("admin.remove")}
+                                    title={copy("admin.remove")}
+                                    disabled={editSlides.length < 2}
+                                    onClick={() => removeSlide(index)}
+                                  >
+                                    <XIcon />
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="secondary"
+                                      className="shadow-sm"
+                                      onClick={() => pickSlides(index)}
+                                    >
+                                      {copy("admin.replaceSlide")}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="secondary"
+                                      className="shadow-sm"
+                                      disabled={editSlides.length < 2}
+                                      onClick={() => removeSlide(index)}
+                                    >
+                                      {copy("admin.remove")}
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             </li>
                           );
@@ -1998,6 +2146,14 @@ export function WorksPanel({
                     <XIcon />
                   </Button>
                 </div>
+                {showingSlides && editSlides.length > 1 ? (
+                  <div className="grid gap-1.5">
+                    <SlideViewTabs value={slideView} onChange={setSlideView} copy={copy} />
+                    {gridSlides ? (
+                      <p className="text-xs text-muted-foreground">{copy("admin.slideReorder")}</p>
+                    ) : null}
+                  </div>
+                ) : null}
                 <TypeTabs
                   value={editDraft.type}
                   onChange={(type) =>
