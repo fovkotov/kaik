@@ -1,5 +1,7 @@
 import { isMobile } from "./tweaks.js";
 import { openLightboxGallery } from "./author-lightbox.js";
+import { publicUrl } from "./public-url.js";
+import { createPagerState, layoutWeightedDots } from "./viewer-pager.js";
 
 const SLIDE = "[data-img-slider-slide]";
 const PREV = "[data-img-slider-prev]";
@@ -7,6 +9,7 @@ const NEXT = "[data-img-slider-next]";
 const IGNORE =
   "button, a, [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-format-mute], [data-work-ig], [data-work-student-prev], [data-work-student-next], [data-fly-close], [data-article-close]";
 const COARSE = window.matchMedia("(pointer: coarse)");
+const CHEVRON = publicUrl("assets/author/exp2-chevron.svg");
 
 const AXIS_PX = 8;
 const TAP_PX = AXIS_PX;
@@ -41,6 +44,19 @@ function slideImages(slide) {
   return [...slide.querySelectorAll("img")].filter(
     (img) => !img.closest(".img-slider__nav") && !img.closest(".img-slider__dots"),
   );
+}
+
+/** Pale experiment-2 chrome on arrows, including works-feed markup. */
+function upgradeNav(root) {
+  root.querySelectorAll(`${PREV}, ${NEXT}`).forEach((btn) => {
+    btn.classList.add("viewer-btn");
+    const icon = btn.querySelector("img");
+    if (!icon) return;
+    icon.classList.add("img-slider__chevron", "viewer-btn__icon");
+    icon.src = CHEVRON;
+    icon.setAttribute("width", "34");
+    icon.setAttribute("height", "34");
+  });
 }
 
 /** Keep slides + nav in a clipped stage; dots sit below in flow. */
@@ -118,6 +134,7 @@ function wrapDelta(i, index, count, offset) {
 }
 
 function bindSlider(root) {
+  upgradeNav(root);
   ensureStage(root);
   const slides = [...root.querySelectorAll(SLIDE)];
   if (slides.length < 2) return;
@@ -134,6 +151,8 @@ function bindSlider(root) {
   /** Pointer down that may become a tap-to-next (no swipe / no scroll). */
   let press = null;
   let dots = [];
+  let dotsTrack = null;
+  const pagerState = createPagerState();
 
   const widthOf = () => root.clientWidth || 1;
 
@@ -147,10 +166,12 @@ function bindSlider(root) {
   const syncDots = (active = index) => {
     const current = wrapIndex(active);
     syncSlides(current);
-    dots.forEach((dot, i) => {
-      const on = i === current;
-      dot.classList.toggle("is-active", on);
-      dot.setAttribute("aria-current", on ? "true" : "false");
+    layoutWeightedDots({
+      dots,
+      track: dotsTrack,
+      pager,
+      active: current,
+      state: pagerState,
     });
   };
 
@@ -302,6 +323,9 @@ function bindSlider(root) {
   }
 
   pager.replaceChildren();
+  dotsTrack = document.createElement("div");
+  dotsTrack.className = "img-slider__dots-track";
+  pager.append(dotsTrack);
   slides.forEach((_, i) => {
     const dot = document.createElement("button");
     dot.type = "button";
@@ -312,7 +336,7 @@ function bindSlider(root) {
       holdFocus(event);
       goTo(i);
     });
-    pager.append(dot);
+    dotsTrack.append(dot);
     dots.push(dot);
   });
 

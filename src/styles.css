@@ -1624,7 +1624,7 @@ html.is-mobile .author-lb__hit--next {
   }
 
   .img-slider__dot:not(.is-active):hover::after {
-    background: rgba(255, 255, 255, 0.48);
+    background: rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -2708,18 +2708,7 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
 }
 
 .works-feed .img-slider__dots {
-  height: calc(100cqw * 20 / 1408);
   margin-top: calc(100cqw * 6 / 1408);
-  padding: 0 calc(100cqw * 6 / 1408);
-}
-
-.works-feed .img-slider__dot {
-  width: calc(100cqw * 12 / 1408);
-}
-
-.works-feed .img-slider__dot::after {
-  width: calc(100cqw * 5 / 1408);
-  height: calc(100cqw * 5 / 1408);
 }
 
 /* Long decks (30+ slides): dots would overflow the cell — arrows and tap carry it. */
@@ -2739,18 +2728,7 @@ html.is-mobile .card.is-program-open.is-program-scroll[data-program-card] .progr
   }
 
   .works-feed .img-slider__dots {
-    height: 20px;
     margin-top: 6px;
-    padding: 0 6px;
-  }
-
-  .works-feed .img-slider__dot {
-    width: 12px;
-  }
-
-  .works-feed .img-slider__dot::after {
-    width: 5px;
-    height: 5px;
   }
 }
 
@@ -4191,6 +4169,7 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   -webkit-user-drag: none;
 }
 
+/* Plate comes from `.viewer-btn` (34×34 #e5e5e5, radius 140, blur 46). */
 .img-slider__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   position: absolute;
@@ -4199,20 +4178,12 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(36.46 * var(--u));
-  height: calc(36.46 * var(--u));
-  padding: calc(8 * var(--u));
-  border: 0;
-  border-radius: 120px;
-  background: rgba(85, 85, 85, 0.8);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
   transform: translateY(-50%);
   transition: transform 160ms var(--ease-out);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  color: rgba(255, 255, 255, 0.64);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .img-slider__nav--prev {
@@ -4246,41 +4217,47 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 
 .img-slider__chevron {
   display: block;
-  width: calc(20 * var(--u));
-  height: calc(20 * var(--u));
   pointer-events: none;
 }
 
-.img-slider__nav--prev .img-slider__chevron {
+/* `exp2-chevron.svg` points left, so next is the mirrored one. */
+.img-slider__nav--next .img-slider__chevron {
   transform: scaleX(-1);
 }
 
+/* Scale-weighted pager — same computed look as `.author-lb__dots`, in flow. */
 .img-slider__dots {
-  display: flex;
+  --dots-visible: 1;
   position: relative;
-  left: auto;
-  bottom: auto;
   z-index: 2;
-  transform: none;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  height: calc(28 * var(--u));
+  width: calc(var(--dots-visible) * 16px);
+  height: 28px;
   margin: calc(12 * var(--u)) 0 0;
-  padding: 0 calc(8 * var(--u));
-  border-radius: 120px;
-  background: var(--lb-btn);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 0;
+  background: transparent;
   pointer-events: auto;
   flex-shrink: 0;
 }
 
+.img-slider__dots-track {
+  --dots-x: 0px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  transform: translate3d(var(--dots-x), 0, 0);
+  transition: transform 200ms ease;
+  will-change: transform;
+}
+
 .img-slider__dot {
+  --dot-scale: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(16 * var(--u));
+  flex: 0 0 auto;
+  width: 16px;
   height: 100%;
   padding: 0;
   border: 0;
@@ -4293,15 +4270,17 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 
 .img-slider__dot::after {
   content: "";
-  width: calc(7 * var(--u));
-  height: calc(7 * var(--u));
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--dot);
-  transition: background 0.2s ease;
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(var(--dot-scale));
+  transition: transform 200ms ease, background 200ms ease;
 }
 
 .img-slider__dot.is-active::after {
-  background: var(--dot-on);
+  background: rgba(0, 0, 0, 0.64);
+  transition: transform 200ms ease, background 500ms ease;
 }
 
 .history-card__grid {
