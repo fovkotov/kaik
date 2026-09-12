@@ -4356,6 +4356,57 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   color: var(--history-mute);
 }
 
+/*
+  Reader-facing photos lift 12px on hover — same easing as the 2px panel-link
+  lift, duration scaled for the longer move. No fade. Card artwork
+  (`card-illust`), the fullscreen viewer and the author collage keep their own.
+  The slider lifts its stage, not the slide: the stage is `overflow: clip`.
+*/
+.program-card__shot,
+img.program-card__mark,
+.history-card__figure,
+.history-card .img-slider__stage {
+  transition: transform 200ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .history-card__figure:hover,
+  .history-card .img-slider:hover .img-slider__stage {
+    transform: translateY(-12px);
+  }
+}
+
+/* Below 901px (and on touch builds) the strip becomes an `overflow-y: hidden`
+   scroller that would crop the rise, so the lift stays desktop-only. */
+@media (hover: hover) and (pointer: fine) and (min-width: 901px) {
+  html:not(.is-mobile) .program-card__shot:hover,
+  html:not(.is-mobile) img.program-card__mark:hover {
+    transform: translateY(-12px);
+  }
+}
+
+/* A drag is a pan, not a hover — keep the grabbed strip flat. */
+.program-card__strip.is-swiping .program-card__shot,
+.program-card__strip.is-swiping img.program-card__mark {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .program-card__shot,
+  img.program-card__mark,
+  .history-card__figure,
+  .history-card .img-slider__stage {
+    transition: none;
+  }
+
+  html:not(.is-mobile) .program-card__shot:hover,
+  html:not(.is-mobile) img.program-card__mark:hover,
+  .history-card__figure:hover,
+  .history-card .img-slider:hover .img-slider__stage {
+    transform: none;
+  }
+}
+
 [data-program-card],
 [data-focus-card] {
   --focus-open-w: min(680px, calc(var(--frame-w) - 48px));
