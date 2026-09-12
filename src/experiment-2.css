@@ -335,6 +335,27 @@ html.is-viewer-open .experiment-two__scroll {
   grid-column: span var(--grid-columns);
 }
 
+/* Workshops-only feed: the same 4-then-1 cadence the planner already runs, widened
+   so a pair fills the row and the fifth card closes the cycle — 6/6/6/6/12 across
+   the 12 tracks instead of 5/5/5/5/10 with a dead strip down the right edge. The
+   cycle counts grid children, which are exactly the filtered cards. Desktop only:
+   the phone's 4 tracks keep the planned spans. */
+@media (min-width: 761px) {
+  /* Dense would lift a later pair-card into a hole above the full-width one and
+     break the cycle. The pairs tile the row exactly, so nothing is left to backfill. */
+  .works-grid.is-workshops-only {
+    grid-auto-flow: row;
+  }
+
+  .works-grid.is-workshops-only .work-card {
+    grid-column: span var(--grid-half-columns);
+  }
+
+  .works-grid.is-workshops-only .work-card:nth-child(5n) {
+    grid-column: span var(--grid-columns);
+  }
+}
+
 .work-card--font .work-card__art {
   container-type: inline-size;
   height: var(--font-tester-h);

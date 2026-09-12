@@ -84,6 +84,11 @@ function activeColumns() {
   return NARROW.matches ? layout.mobileColumns : layout.columns;
 }
 
+/** Half a row, floored so a pair never overflows an odd track count. */
+function halfColumns() {
+  return Math.max(1, Math.floor(activeColumns() / 2));
+}
+
 /** Desktop: interactive hero height. Mobile: height of the static illustration block. */
 function activeHeroVh() {
   return NARROW.matches ? layout.heroVhMobile : layout.heroVh;
@@ -252,6 +257,7 @@ function readStoredLayout() {
 function applyLayout(next, { persist = false } = {}) {
   layout = normalizeExperiment2Layout(next);
   grid.style.setProperty("--grid-columns", String(activeColumns()));
+  grid.style.setProperty("--grid-half-columns", String(halfColumns()));
   page?.style.setProperty("--hero-vh", String(activeHeroVh()));
   grid.style.setProperty("--grid-gap-x", `${layout.gapX}px`);
   grid.style.setProperty("--grid-gap-y", `${layout.gapY}px`);
@@ -912,6 +918,9 @@ function setupFilters() {
     /* Full-width specimens while only fonts are shown. A grid state class rather than
        a layout edit, so returning to the mixed feed restores the planned span. */
     grid.classList.toggle("is-fonts-only", exclusiveType === TYPE_FONT);
+    /* Same idea for the workshop tab: the planned 4-then-1 cadence widened to fill
+       the row. A state class, so the mixed feed keeps the planned spans. */
+    grid.classList.toggle("is-workshops-only", exclusiveType === TYPE_LETTERING);
   };
   filters.forEach((button) => {
     button.addEventListener("click", (event) => {
@@ -2142,6 +2151,7 @@ async function boot() {
   layout = readStoredLayout() ?? catalogLayout;
   page?.style.setProperty("--hero-vh", String(activeHeroVh()));
   grid.style.setProperty("--grid-columns", String(activeColumns()));
+  grid.style.setProperty("--grid-half-columns", String(halfColumns()));
   setupGridGeometry();
   setupFilters();
   document.querySelectorAll("[data-enroll]").forEach((link) => {
