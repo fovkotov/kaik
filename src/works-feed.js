@@ -305,7 +305,6 @@ function orderItems(items, opts) {
 function renderFeed(root, catalog, opts) {
   let items = catalog.items;
   // Daily-practice letters are an admin bucket: only shown when asked for explicitly.
-  items = items.filter((item) => !item.hidden);
   items = Array.isArray(opts.types)
     ? items.filter((item) => opts.types.includes(item.type))
     : items.filter((item) => item.type !== TYPE_DAILY);

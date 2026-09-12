@@ -838,10 +838,15 @@ function fontCardFor(item, span) {
   return card;
 }
 
+function finalsTabOnly() {
+  return enabledTypes.size === 1 && enabledTypes.has(TYPE_FINAL);
+}
+
 function visibleWorks() {
+  const hideFromFinals = finalsTabOnly();
   return catalog.filter(
     (item) =>
-      !item.hidden &&
+      !(hideFromFinals && item.hidden) &&
       enabledTypes.has(item.type) &&
       VISUAL_TYPES.includes(item.type) &&
       (item.type === TYPE_FONT ? Boolean(fontFile(item)) : imageFiles(item).length > 0),
@@ -1147,9 +1152,7 @@ async function startHero() {
     playTickClick(event);
     nextHero();
   });
-  const heroCandidates = catalog.filter(
-    (item) => !item.hidden && item.type === TYPE_LETTERING && svgFile(item),
-  );
+  const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
   workshopWorks = await preloadHeroWorks(heroCandidates);
   if (workshopWorks.length) nextHero();
   else hero.classList.add("is-loaded");

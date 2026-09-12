@@ -102,7 +102,7 @@ function deckFor(items, key) {
   const byId = items.find((item) => String(item.id).toLowerCase() === want);
   if (byId) return slidesOf([byId]);
   const mine = items.filter(
-    (item) => !item.hidden && String(item.nick || "").toLowerCase() === want,
+    (item) => String(item.nick || "").toLowerCase() === want,
   );
   if (!mine.length) return [];
   const finals = mine
