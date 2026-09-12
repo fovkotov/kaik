@@ -634,14 +634,18 @@ button.work-card:active .work-card__art {
    gutters so the side chips sit --edge from the iframe like the grid. */
 .filter-bar {
   position: sticky;
-  /* Desktop: flush to iframe top (frame-clip only). Mobile overrides to 12px. */
-  top: var(--frame-clip-top);
+  /* Desktop Figma 223:142 — plates sit 16px from the iframe top. */
+  top: calc(var(--edge) + var(--frame-clip-top));
   z-index: 40;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  align-items: start;
   width: calc(100% + 2 * var(--gutter) - 2 * var(--edge));
   margin: 0 calc(var(--edge) - var(--gutter)) calc(-1 * var(--island-h));
+}
+
+.filter-bar .filter-chip {
+  padding: 0;
 }
 
 .filter-bar__side {
@@ -727,9 +731,9 @@ button.work-card:active .work-card__art {
   background: #b28753;
 }
 
-/* Figma 241:95943 / 241:95945 / 251:1353: same 1px 2px 2px plate, 17px semibold, ink 75%. */
+/* Figma 223:142 / 252:1603 — lang plate is orange, not the earlier pink. */
 .filter-chip--lang .filter-chip__plate {
-  background: #ff00ae;
+  background: #ff8d02;
 }
 
 .filter-chip--enroll .filter-chip__plate {
@@ -745,8 +749,8 @@ button.work-card:active .work-card__art {
 
 .filter-chip__arrow {
   display: block;
-  width: 10px;
-  height: 17px;
+  width: 12px;
+  height: 20px;
   flex: none;
 }
 
@@ -1244,8 +1248,11 @@ button.work-card:active .work-card__art {
     display: flex;
     justify-content: space-between;
     align-items: start;
+    /* Mobile Figma 252:1603 — 12px from the iframe edges. */
     top: calc(12px + var(--frame-clip-top));
-    margin: calc(-1 * var(--hero-h)) calc(var(--edge) - var(--gutter)) 0;
+    width: calc(100% + 2 * var(--gutter) - 24px);
+    /* Page pad is --edge (16); pull the extra 4px so plates sit at Figma's 12. */
+    margin: calc(-1 * var(--hero-h) - var(--edge) + 12px) calc(12px - var(--gutter)) 0;
   }
 
   /* Block height minus the island already counted above, plus the grid's usual 24px gap
@@ -1263,12 +1270,16 @@ button.work-card:active .work-card__art {
     display: none;
   }
 
-  /* Two rows: daily | workshop / finals | fonts. Plates touch on both axes. */
+  /* Pack like Figma: wrap in a 270px cluster so the top row stays tight
+     (daily+workshop) instead of stretching to the wider finals cell. */
   .filter-island {
     order: 1;
-    display: grid;
-    grid-template-columns: repeat(2, max-content);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
     justify-content: start;
+    width: min(270px, 100%);
+    max-width: 270px;
     margin: 0;
     gap: 0;
   }
@@ -1281,11 +1292,16 @@ button.work-card:active .work-card__art {
     font-size: 16px;
   }
 
+  .filter-chip__arrow {
+    width: 11px;
+    height: 19px;
+  }
+
   .mobile-bar {
     position: fixed;
-    left: var(--edge);
-    right: var(--edge);
-    bottom: calc(var(--edge) + var(--frame-clip-bottom));
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + var(--frame-clip-bottom));
     z-index: 40;
     display: flex;
     align-items: center;
