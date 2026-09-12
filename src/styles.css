@@ -418,6 +418,7 @@ a {
 .panel__nav a[data-work-nav],
 .panel__enroll,
 .panel__lang .lang-btn {
+  position: relative;
   text-decoration-color: currentColor;
   transition: transform 160ms var(--ease-out);
 }
@@ -427,7 +428,21 @@ a {
   .panel__nav a[data-work-nav]:hover,
   .panel__enroll:hover,
   .panel__lang .lang-btn:hover {
+    z-index: 1;
     transform: translateY(-2px);
+  }
+
+  /* Transform moves the hit box; this band keeps the vacated 2px in :hover. */
+  .panel__nav a[data-program-nav]:is(:hover, :active)::after,
+  .panel__nav a[data-work-nav]:is(:hover, :active)::after,
+  .panel__enroll:is(:hover, :active)::after,
+  .panel__lang .lang-btn:is(:hover, :active)::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 2px;
   }
 }
 
@@ -442,6 +457,7 @@ a {
 .panel__nav a[data-work-nav]:active,
 .panel__enroll:active,
 .panel__lang .lang-btn:active {
+  z-index: 1;
   transform: translateY(-1px) scale(0.97);
 }
 
@@ -466,6 +482,13 @@ a {
   .panel__lang .lang-btn:focus-visible,
   .panel__lang .lang-btn:active {
     transform: none;
+  }
+
+  .panel__nav a[data-program-nav]:is(:hover, :active)::after,
+  .panel__nav a[data-work-nav]:is(:hover, :active)::after,
+  .panel__enroll:is(:hover, :active)::after,
+  .panel__lang .lang-btn:is(:hover, :active)::after {
+    content: none;
   }
 }
 
@@ -924,6 +947,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .landing-card__enroll,
 .landing-card__nav a,
 .landing-card__lang .lang-btn {
+  position: relative;
   transition: transform 160ms var(--ease-out);
 }
 
@@ -931,7 +955,19 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   .landing-card__enroll:hover,
   .landing-card__nav a:hover,
   .landing-card__lang .lang-btn:hover {
+    z-index: 1;
     transform: translateY(-2px);
+  }
+
+  .landing-card__enroll:is(:hover, :active)::after,
+  .landing-card__nav a:is(:hover, :active)::after,
+  .landing-card__lang .lang-btn:is(:hover, :active)::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 2px;
   }
 }
 
@@ -944,6 +980,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .landing-card__enroll:active,
 .landing-card__nav a:active,
 .landing-card__lang .lang-btn:active {
+  z-index: 1;
   transform: translateY(-1px) scale(0.97);
 }
 
@@ -964,6 +1001,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   .landing-card__lang .lang-btn:focus-visible,
   .landing-card__lang .lang-btn:active {
     transform: none;
+  }
+
+  .landing-card__enroll:is(:hover, :active)::after,
+  .landing-card__nav a:is(:hover, :active)::after,
+  .landing-card__lang .lang-btn:is(:hover, :active)::after {
+    content: none;
   }
 }
 
@@ -4358,20 +4401,27 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 }
 
 /*
-  Reader-facing photos lift 12px on hover — same easing as the 2px panel-link
+  Reader-facing photos lift 8px on hover — same easing as the 2px panel-link
   lift, duration scaled for the longer move. No fade. Card artwork
   (`card-illust`), the fullscreen viewer and the author collage keep their own.
   The slider lifts its stage, not the slide: the stage is `overflow: clip`.
+  Figures keep the untransformed hit box; only the inner visual rises so the
+  vacated 8px stays clickable. Marks are replaced elements (`::after` is a no-op)
+  so the vacated band is padded on the img itself.
 */
-.program-card__shot,
+.program-card__shot img,
 img.program-card__mark,
-.history-card__figure,
+.history-card__figure img,
 .history-card .img-slider__stage {
   transition: transform 200ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .history-card__figure:hover,
+  .history-card__figure:is(:hover, :active) {
+    overflow: visible;
+  }
+
+  .history-card__figure:hover img,
   .history-card .img-slider:hover .img-slider__stage {
     transform: translateY(-8px);
   }
@@ -4380,25 +4430,38 @@ img.program-card__mark,
 /* Below 901px (and on touch builds) the strip becomes an `overflow-y: hidden`
    scroller that would crop the rise, so the lift stays desktop-only. */
 @media (hover: hover) and (pointer: fine) and (min-width: 901px) {
-  html:not(.is-mobile) .program-card__shot:hover,
+  html:not(.is-mobile) .program-card__shot:is(:hover, :active) {
+    overflow: visible;
+  }
+
+  html:not(.is-mobile) .program-card__shot:hover img {
+    transform: translateY(-8px);
+  }
+
   html:not(.is-mobile) img.program-card__mark:hover {
+    box-sizing: content-box;
+    padding-bottom: 8px;
+    margin-bottom: -8px;
     transform: translateY(-8px);
   }
 }
 
 /* A drag is a pan, not a hover — keep the grabbed strip flat. */
 .program-card__strip.is-swiping .program-card__shot,
+.program-card__strip.is-swiping .program-card__shot img,
 .program-card__strip.is-swiping img.program-card__mark {
   transform: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 /*
-  Press gives 2px of the lift back, faster than it rose, so the photo answers the
-  finger like a button. Same hover guard as the lift: on touch there is no raised
-  state to dip from, so nothing can stick down.
+  Press gives the lift 2px back, faster than it rose, so the photo answers the
+  finger like a button. Same hover guard as the lift: on touch there is no
+  raised state to dip from, so nothing can stick down.
 */
 @media (hover: hover) and (pointer: fine) {
-  .history-card__figure:active,
+  .history-card__figure:active img,
   .history-card .img-slider:active .img-slider__stage {
     transform: translateY(-6px);
     transition-duration: 100ms;
@@ -4406,30 +4469,38 @@ img.program-card__mark,
 }
 
 @media (hover: hover) and (pointer: fine) and (min-width: 901px) {
-  html:not(.is-mobile) .program-card__strip:not(.is-swiping) .program-card__shot:active,
+  html:not(.is-mobile) .program-card__strip:not(.is-swiping) .program-card__shot:active img,
   html:not(.is-mobile) .program-card__strip:not(.is-swiping) img.program-card__mark:active {
     transform: translateY(-6px);
     transition-duration: 100ms;
   }
+
+  html:not(.is-mobile) .program-card__strip:not(.is-swiping) img.program-card__mark:active {
+    box-sizing: content-box;
+    padding-bottom: 8px;
+    margin-bottom: -8px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .program-card__shot,
+  .program-card__shot img,
   img.program-card__mark,
-  .history-card__figure,
+  .history-card__figure img,
   .history-card .img-slider__stage {
     transition: none;
   }
 
-  html:not(.is-mobile) .program-card__shot:hover,
+  html:not(.is-mobile) .program-card__shot:hover img,
   html:not(.is-mobile) img.program-card__mark:hover,
-  html:not(.is-mobile) .program-card__strip:not(.is-swiping) .program-card__shot:active,
+  html:not(.is-mobile) .program-card__strip:not(.is-swiping) .program-card__shot:active img,
   html:not(.is-mobile) .program-card__strip:not(.is-swiping) img.program-card__mark:active,
-  .history-card__figure:hover,
-  .history-card__figure:active,
+  .history-card__figure:hover img,
+  .history-card__figure:active img,
   .history-card .img-slider:hover .img-slider__stage,
   .history-card .img-slider:active .img-slider__stage {
     transform: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
   }
 }
 
