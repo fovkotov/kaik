@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-12T14:45:26.290Z",
+  "updatedAt": "2026-09-12T14:58:52.846Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3487,6 +3487,24 @@
       "createdAt": "2026-09-10T19:38:12.144Z",
       "originalName": "Petroglyph.otf",
       "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_e6dd2cde",
+      "type": "final",
+      "author": "алёна",
+      "nick": "alenuchotam",
+      "stream": "1",
+      "width": 1600,
+      "height": 900,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_e6dd2cde_0.webp",
+        "wrk_e6dd2cde_1.webp",
+        "wrk_e6dd2cde_2.webp",
+        "wrk_e6dd2cde_3.webp"
+      ],
+      "originalName": "01.webp",
+      "createdAt": "2026-09-12T14:58:52.846Z"
     }
   ]
 }
