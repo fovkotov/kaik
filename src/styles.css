@@ -4391,6 +4391,27 @@ img.program-card__mark,
   transform: none;
 }
 
+/*
+  Press gives 2px of the lift back, faster than it rose, so the photo answers the
+  finger like a button. Same hover guard as the lift: on touch there is no raised
+  state to dip from, so nothing can stick down.
+*/
+@media (hover: hover) and (pointer: fine) {
+  .history-card__figure:active,
+  .history-card .img-slider:active .img-slider__stage {
+    transform: translateY(-10px);
+    transition-duration: 100ms;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 901px) {
+  html:not(.is-mobile) .program-card__strip:not(.is-swiping) .program-card__shot:active,
+  html:not(.is-mobile) .program-card__strip:not(.is-swiping) img.program-card__mark:active {
+    transform: translateY(-10px);
+    transition-duration: 100ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .program-card__shot,
   img.program-card__mark,
@@ -4401,8 +4422,12 @@ img.program-card__mark,
 
   html:not(.is-mobile) .program-card__shot:hover,
   html:not(.is-mobile) img.program-card__mark:hover,
+  html:not(.is-mobile) .program-card__strip:not(.is-swiping) .program-card__shot:active,
+  html:not(.is-mobile) .program-card__strip:not(.is-swiping) img.program-card__mark:active,
   .history-card__figure:hover,
-  .history-card .img-slider:hover .img-slider__stage {
+  .history-card__figure:active,
+  .history-card .img-slider:hover .img-slider__stage,
+  .history-card .img-slider:active .img-slider__stage {
     transform: none;
   }
 }
