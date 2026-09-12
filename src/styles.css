@@ -1916,27 +1916,30 @@ html.is-mobile .author-lb__hit--next {
   flex: 0 0 auto;
 }
 
-/* Same 36×36 `--lb-btn` chrome as `.author-lb__arrow` / `.img-slider__nav`.
+/* Experiment-2 viewer chrome: 34×34 #e5e5e5 plate + exp2-chevron (black 40%).
    Appear: opacity + scale(0.95→1), never scale(0). Enter 160ms / exit 120ms,
    strong ease-out. Hover-in is gated; hide-at-ends uses `.is-gone`. */
 .program-card__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --nav-in: 160ms;
   --nav-out: 120ms;
+  --nav-btn: #e5e5e5;
+  --nav-btn-size: 34px;
+  --nav-btn-blur: 46px;
   position: absolute;
   top: 50%;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 8px;
+  width: var(--nav-btn-size);
+  height: var(--nav-btn-size);
+  padding: 0;
   border: 0;
-  border-radius: 120px;
-  background: var(--lb-btn);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  border-radius: 140px;
+  background: var(--nav-btn);
+  backdrop-filter: blur(var(--nav-btn-blur));
+  -webkit-backdrop-filter: blur(var(--nav-btn-blur));
   opacity: 0;
   transform: translateY(-50%) scale(0.95);
   pointer-events: none;
@@ -1969,12 +1972,12 @@ html.is-mobile .author-lb__hit--next {
 
 .program-card__chevron {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: var(--nav-btn-size);
+  height: var(--nav-btn-size);
   pointer-events: none;
 }
 
-.program-card__nav--prev .program-card__chevron {
+.program-card__nav--next .program-card__chevron {
   transform: scaleX(-1);
 }
 
