@@ -1386,6 +1386,30 @@ html.is-author-lb-open .fly-close {
   right: 0;
 }
 
+/* Experiment-2 viewer chrome, shared by every fullscreen image viewer button
+   (arrows + close): a 34×34 #e5e5e5 plate carrying a black-40% glyph. */
+.viewer-btn {
+  --viewer-btn: #e5e5e5;
+  --viewer-btn-blur: 46px;
+  --viewer-btn-size: 34px;
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
+  padding: 0;
+  border: 0;
+  border-radius: 140px;
+  background: var(--viewer-btn);
+  backdrop-filter: blur(var(--viewer-btn-blur));
+  -webkit-backdrop-filter: blur(var(--viewer-btn-blur));
+}
+
+.viewer-btn__icon {
+  display: block;
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 .author-lb__arrow {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   position: fixed;
@@ -1395,32 +1419,18 @@ html.is-author-lb-open .fly-close {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-  border: 0;
-  border-radius: 120px;
-  background: var(--lb-btn);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  transform: translate(-50%, -50%) scale(1.05);
+  transform: translate(-50%, -50%);
   pointer-events: none;
-  transition: transform 160ms var(--ease-out);
+  transition: transform 120ms var(--ease-out);
 }
 
 .author-lb__hit.is-aiming .author-lb__arrow {
   display: flex;
 }
 
-.author-lb__hit--prev .author-lb__chevron {
+/* `exp2-chevron.svg` points left, so next is the mirrored one. */
+.author-lb__hit--next .author-lb__chevron {
   transform: scaleX(-1);
-}
-
-.author-lb__chevron {
-  display: block;
-  width: 20px;
-  height: 20px;
-  pointer-events: none;
 }
 
 .author-lb__hit.is-aiming:active .author-lb__arrow,
@@ -1467,16 +1477,7 @@ html.is-mobile .author-lb__hit--next {
   bottom: auto;
   z-index: 4;
   box-sizing: border-box;
-  width: 44px;
-  height: 44px;
   margin: 0;
-  padding: 10px;
-  border: 0;
-  border-radius: 173px;
-  background: var(--lb-btn);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  color: var(--dot);
   line-height: 0;
   cursor: pointer;
   appearance: none;
