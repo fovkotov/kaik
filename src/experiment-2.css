@@ -629,7 +629,7 @@ button.work-card:active .work-card__art {
   font-size: 20px;
 }
 
-/* Sticky row: language chip | filter island | signup chip. The island stays
+/* Sticky row: about | filter island | signup + language. The island stays
    centered whatever the side chips measure; the row bleeds past the page
    gutters so the side chips sit --edge from the iframe like the grid. */
 .filter-bar {
@@ -657,6 +657,12 @@ button.work-card:active .work-card__art {
 .filter-bar__side--end {
   grid-column: 3;
   justify-self: end;
+}
+
+.filter-bar__cluster {
+  display: flex;
+  align-items: center;
+  gap: 0;
 }
 
 .filter-island {
@@ -721,7 +727,7 @@ button.work-card:active .work-card__art {
   background: #b28753;
 }
 
-/* Figma 241:95943 / 241:95945: same 1px 2px 2px plate, 17px semibold, ink 75%. */
+/* Figma 241:95943 / 241:95945 / 251:1353: same 1px 2px 2px plate, 17px semibold, ink 75%. */
 .filter-chip--lang .filter-chip__plate {
   background: #ff00ae;
 }
@@ -730,12 +736,26 @@ button.work-card:active .work-card__art {
   background: #06dc68;
 }
 
+.filter-chip--about .filter-chip__plate {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #c7f0ff;
+}
+
+.filter-chip__arrow {
+  display: block;
+  width: 10px;
+  height: 17px;
+  flex: none;
+}
+
 .filter-chip[aria-checked="false"] .filter-chip__plate {
   color: #b0b0b0;
   background: #dcdcdc;
 }
 
-/* Mobile-only bottom bar (en/ru | signup); desktop keeps these chips in the sticky row. */
+/* Mobile-only bottom bar (signup | language); desktop keeps these chips in the sticky row. */
 .mobile-bar {
   display: none;
 }
@@ -1211,17 +1231,19 @@ button.work-card:active .work-card__art {
     display: none;
   }
 
-  /* Mobile first screen: the filter island sits up top over the illustration block
-     and sticks there on scroll; en/ru + signup move to the fixed bottom bar. The bar
-     keeps its DOM slot after the block (so it paints above it) but is pulled up by the
-     block's height, and the works panel is pushed back down by the same amount. */
+  /* Mobile first screen: the filter island + about sit up top over the illustration
+     block and stick there on scroll; signup + language move to the fixed bottom bar.
+     The bar keeps its DOM slot after the block (so it paints above it) but is pulled
+     up by the block's height, and the works panel is pushed back down by the same amount. */
   .works-page {
     /* Room for the fixed bottom bar so the last row of works can scroll clear of it. */
     padding-bottom: calc(48px + 40px + var(--frame-clip-bottom));
   }
 
   .filter-bar {
-    grid-template-columns: 1fr;
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
     top: calc(12px + var(--frame-clip-top));
     margin: calc(-1 * var(--hero-h)) calc(var(--edge) - var(--gutter)) 0;
   }
@@ -1232,17 +1254,22 @@ button.work-card:active .work-card__art {
     margin-top: calc(var(--hero-h) - var(--island-h) + 24px);
   }
 
-  .filter-bar__side {
+  .filter-bar__side--start {
+    order: 2;
+    padding: 0;
+  }
+
+  .filter-bar__side--end {
     display: none;
   }
 
   /* Two rows: daily | workshop / finals | fonts. Plates touch on both axes. */
   .filter-island {
-    grid-column: 1;
-    grid-row: auto;
+    order: 1;
     display: grid;
     grid-template-columns: repeat(2, max-content);
-    justify-content: center;
+    justify-content: start;
+    margin: 0;
     gap: 0;
   }
 

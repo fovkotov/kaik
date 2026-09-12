@@ -229,7 +229,7 @@ function retranslateDynamic() {
 }
 
 /** Language chip shows the current locale; a click flips en ↔ ru.
-    Two copies exist (desktop sticky row, mobile bottom bar); CSS shows one at a time. */
+    Two copies exist (desktop sticky cluster, mobile bottom bar); CSS shows one at a time. */
 function setupLanguage() {
   const toggles = [...document.querySelectorAll("[data-lang-toggle]")];
   const labels = toggles.map((toggle) => toggle.querySelector("[data-lang-label]")).filter(Boolean);
@@ -2166,7 +2166,7 @@ async function boot() {
   grid.style.setProperty("--grid-half-columns", String(halfColumns()));
   setupGridGeometry();
   setupFilters();
-  document.querySelectorAll("[data-enroll]").forEach((link) => {
+  document.querySelectorAll("[data-enroll], [data-about]").forEach((link) => {
     link.addEventListener("click", (event) => playTickClick(event));
   });
   syncIslandSticky();

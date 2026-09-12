@@ -63,19 +63,24 @@
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <!-- Desktop: one sticky row — language chip | filter island | signup chip.
-             Mobile: only the island (two rows) sticks up top; the side chips live in
-             the fixed bottom bar below (data-mobile-bar). -->
+        <!-- Desktop: about | filter island | signup + language.
+             Mobile: island + about stick up top; signup + language live in
+             the fixed bottom bar (data-mobile-bar). -->
         <div class="filter-bar" data-filter-bar>
-          <button
-            class="filter-chip filter-chip--lang filter-bar__side filter-bar__side--start"
-            type="button"
-            data-lang-toggle
-            aria-label="Переключить язык"
-            data-i18n-aria="exp2.lang"
+          <a
+            class="filter-chip filter-chip--about filter-bar__side filter-bar__side--start"
+            href="https://kaik.pictures/"
+            target="_top"
+            rel="noopener noreferrer"
+            data-about
+            aria-label="О курсе"
+            data-i18n-aria="exp2.about"
           >
-            <span class="filter-chip__plate" data-lang-label>en</span>
-          </button>
+            <span class="filter-chip__plate">
+              <span data-i18n="exp2.about">о курсе</span>
+              <img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" />
+            </span>
+          </a>
 
           <div class="filter-island" data-filter-island role="group" aria-label="Фильтры работ" data-i18n-aria="exp2.filters">
             <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
@@ -92,15 +97,26 @@
             </button>
           </div>
 
-          <a
-            class="filter-chip filter-chip--enroll filter-bar__side filter-bar__side--end"
-            href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform"
-            target="_blank"
-            rel="noopener noreferrer"
-            data-enroll
-          >
-            <span class="filter-chip__plate" data-i18n="exp2.enroll">join waitlist</span>
-          </a>
+          <div class="filter-bar__cluster filter-bar__side filter-bar__side--end">
+            <a
+              class="filter-chip filter-chip--enroll"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-enroll
+            >
+              <span class="filter-chip__plate" data-i18n="exp2.enroll">join waitlist</span>
+            </a>
+            <button
+              class="filter-chip filter-chip--lang"
+              type="button"
+              data-lang-toggle
+              aria-label="Переключить язык"
+              data-i18n-aria="exp2.lang"
+            >
+              <span class="filter-chip__plate" data-lang-label>en</span>
+            </button>
+          </div>
         </div>
 
         <section class="works-panel" aria-label="Работы студентов">
@@ -111,18 +127,9 @@
       </div>
     </div>
 
-    <!-- Mobile only: en/ru + signup pinned to the bottom of the iframe. Sibling of the
+    <!-- Mobile only: signup + language pinned to the bottom of the iframe. Sibling of the
          scroll root so position: fixed sticks to the frame, not the scroller. -->
     <div class="mobile-bar" data-mobile-bar>
-      <button
-        class="filter-chip filter-chip--lang"
-        type="button"
-        data-lang-toggle
-        aria-label="Переключить язык"
-        data-i18n-aria="exp2.lang"
-      >
-        <span class="filter-chip__plate" data-lang-label>en</span>
-      </button>
       <a
         class="filter-chip filter-chip--enroll"
         href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform"
@@ -132,6 +139,15 @@
       >
         <span class="filter-chip__plate" data-i18n="exp2.enroll">join waitlist</span>
       </a>
+      <button
+        class="filter-chip filter-chip--lang"
+        type="button"
+        data-lang-toggle
+        aria-label="Переключить язык"
+        data-i18n-aria="exp2.lang"
+      >
+        <span class="filter-chip__plate" data-lang-label>en</span>
+      </button>
     </div>
 
     <aside class="grid-settings" data-grid-settings hidden aria-label="Настройки сетки">
