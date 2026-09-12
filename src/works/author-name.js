@@ -68,7 +68,7 @@ function matchCase(source, latin) {
   return latin;
 }
 
-/** RU→EN transliteration per Cyrillic word. Latin names ("Katia", "Artem") pass through. */
+/** RU→EN transliteration per Cyrillic word. Latin names ("bogdan") pass through. */
 export function latinizeName(name) {
   const value = String(name ?? "");
   if (!CYRILLIC.test(value)) return value;
