@@ -1889,6 +1889,12 @@ html.is-mobile .author-lb__hit--next {
   object-position: center;
 }
 
+/* Balloon «lettering» is a wide word (≈3.86∶1) in a taller Figma frame
+   (400×132 ≈ 3.03∶1). Cover would crop L and G; contain keeps the word whole. */
+.program-card__shot img[src$="practice-lettering.svg"] {
+  object-fit: contain;
+}
+
 .program-card__mark {
   flex: 0 0 auto;
   width: calc(var(--sw) * var(--u));
