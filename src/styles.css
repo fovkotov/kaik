@@ -1499,30 +1499,67 @@ html.is-mobile .author-lb__hit--next {
   transform: scale(0.97);
 }
 
-.author-lb__dots.img-slider__dots,
-.author-lb .author-lb__dots {
-  --u: 1px;
-  display: flex;
+/* Scale-weighted pager — same computed look as experiment-2 `.viewer__dots`. */
+.author-lb__dots {
+  --dots-visible: 1;
   position: absolute;
   left: 50%;
-  bottom: 24px;
+  bottom: calc(24px + var(--frame-clip-bottom));
   z-index: 4;
-  transform: translateX(-50%);
+  width: calc(var(--dots-visible) * 16px);
   height: 28px;
-  padding: 0 8px;
+  overflow: hidden;
+  transform: translateX(-50%);
   pointer-events: auto;
 }
 
-.author-lb__dots .img-slider__dot {
-  width: 16px;
+.author-lb__dots-track {
+  --dots-x: 0px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  transform: translate3d(var(--dots-x), 0, 0);
+  transition: transform 200ms ease;
+  will-change: transform;
 }
 
-.author-lb__dots .img-slider__dot::after {
-  width: 7px;
-  height: 7px;
+.author-lb__dot {
+  --dot-scale: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.author-lb__dot::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  transform: scale(var(--dot-scale));
+  transition: transform 200ms ease, background 200ms ease;
+}
+
+.author-lb__dot.is-active::after {
+  background: rgba(0, 0, 0, 0.64);
+  transition: transform 200ms ease, background 500ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .author-lb__dot:not(.is-active):hover::after {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
   .img-slider__dot:not(.is-active):hover::after {
     background: rgba(255, 255, 255, 0.48);
   }
@@ -4155,11 +4192,6 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   transform: scaleX(-1);
 }
 
-.author-lb .author-lb__dots,
-.author-lb__dots.img-slider__dots {
-  display: flex;
-}
-
 .img-slider__dots {
   display: flex;
   position: relative;
@@ -4179,16 +4211,6 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   -webkit-backdrop-filter: blur(40px);
   pointer-events: auto;
   flex-shrink: 0;
-}
-
-/* Lightbox dots stay in bottom chrome, not in document flow. */
-.author-lb__dots.img-slider__dots,
-.author-lb .author-lb__dots {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  margin: 0;
-  transform: translateX(-50%);
 }
 
 .img-slider__dot {

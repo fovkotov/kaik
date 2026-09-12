@@ -37,12 +37,21 @@ const CHROME = "[data-author-lb-close], [data-author-lb-dots], [data-author-lb-d
 const NAV = "[data-author-lb-prev], [data-author-lb-next]";
 const NO_ZOOM = `${CHROME}, ${NAV}`;
 const ABSORB_MS = 400;
+/* Same windowed pager as experiment-2: 3 full-size dots, two faded neighbors
+   on each side, the rest clipped. Active stays in the main window. */
+const DOTS_MAIN = 3;
+const DOTS_VISIBLE = DOTS_MAIN + 4;
+const DOT_SLOT = 16;
+const DOT_SCALE = [1, 0.75, 0.5, 0.33];
 
 let root = null;
 let track = null;
 let slides = [];
 let pager = null;
 let dots = [];
+let dotsTrack = null;
+let dotAnchor = 0;
+let dotLast = -1;
 /** Active gallery; defaults to author works, swapped for article sliders. */
 let gallery = AUTHOR_WORKS;
 let index = 0;
@@ -162,11 +171,28 @@ function syncSlides(active = index) {
 function syncDots(active = index) {
   const current = wrap(active);
   syncSlides(current);
+  layoutDots(current);
+}
+
+function layoutDots(active) {
+  const n = dots.length;
+  if (!n || !dotsTrack) return;
+  const main = Math.min(n, DOTS_MAIN);
+  if (dotLast < 0) dotAnchor = Math.min(active, main - 1);
+  else dotAnchor = Math.max(0, Math.min(main - 1, dotAnchor + (active - dotLast)));
+  dotLast = active;
+  const start = Math.max(0, Math.min(n - main, active - dotAnchor));
+  const end = start + main - 1;
   dots.forEach((dot, i) => {
-    const on = i === current;
+    const distance = i < start ? start - i : i > end ? i - end : 0;
+    dot.style.setProperty("--dot-scale", String(DOT_SCALE[Math.min(distance, DOT_SCALE.length - 1)]));
+    const on = i === active;
     dot.classList.toggle("is-active", on);
     dot.setAttribute("aria-current", on ? "true" : "false");
   });
+  const visible = Math.min(n, DOTS_VISIBLE);
+  const x = n > DOTS_VISIBLE ? ((visible - 1) / 2 - (start + end) / 2) * DOT_SLOT : 0;
+  dotsTrack.style.setProperty("--dots-x", `${x}px`);
 }
 
 function paint(offset) {
@@ -453,6 +479,7 @@ function openAt(i, shot) {
     }
   });
   paint(0);
+  dotLast = -1;
   syncDots();
   preload(index + 1);
   preload(index - 1);
@@ -589,11 +616,16 @@ function buildSlides() {
 
 function buildDots() {
   if (!pager) return;
-  pager.replaceChildren();
+  dotsTrack = document.createElement("div");
+  dotsTrack.className = "author-lb__dots-track";
+  pager.replaceChildren(dotsTrack);
+  pager.style.setProperty("--dots-visible", String(Math.min(gallery.length, DOTS_VISIBLE)));
+  dotAnchor = 0;
+  dotLast = -1;
   dots = gallery.map((_, i) => {
     const dot = document.createElement("button");
     dot.type = "button";
-    dot.className = "img-slider__dot";
+    dot.className = "author-lb__dot";
     dot.setAttribute("data-author-lb-dot", "");
     dot.setAttribute("aria-label", `${i + 1} / ${gallery.length}`);
     dot.addEventListener("click", (event) => {
@@ -601,7 +633,7 @@ function buildDots() {
       event.stopPropagation();
       goTo(i);
     });
-    pager.append(dot);
+    dotsTrack.append(dot);
     return dot;
   });
 }
