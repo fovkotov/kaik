@@ -3136,15 +3136,9 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   height: calc(276.539 * var(--u));
 }
 
-.card-illust--exercises .card-illust__art--tooth {
-  left: calc(14.909 * var(--u));
-  top: calc(80 * var(--u));
-  width: calc(250.321 * var(--u));
-  height: calc(310.549 * var(--u));
-}
-
+/* Figma 251:35 — cake centred on the 595-wide face, no tooth. */
 .card-illust--exercises .card-illust__art--cake {
-  left: calc(285.387 * var(--u));
+  left: calc(150 * var(--u));
   top: calc(81.845 * var(--u));
   width: calc(295.522 * var(--u));
   height: calc(299.948 * var(--u));
@@ -6079,10 +6073,6 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     display: none;
   }
 
-  .card-illust__art--cake {
-    display: none;
-  }
-
   /* Peek dog is the stacked-face overlay; other face arts stay inert. */
   .card-illust--program:not([data-fly-illust-close]) {
     z-index: 2;
@@ -6238,8 +6228,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     pointer-events: none;
   }
 
-  /* Figma 76:1528 — tooth sits in the flex gap under the title (150×186
-     at 72,49 on 318×450). In-flow so 1/2/3 never run under it. */
+  /* Cake sits in the flex gap under the title, in-flow so 1/2/3 never run
+     under it. */
   .card-illust--exercises {
     order: 2;
     position: relative;
@@ -6251,21 +6241,21 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     pointer-events: none;
   }
 
-  /* Open article is height:auto — keep the tooth slot so it doesn't collapse. */
+  /* Open article is height:auto — keep the cake slot so it doesn't collapse. */
   .card.is-program-open .card-illust--exercises {
     flex: 0 0 auto;
-    min-height: calc(var(--card-w) * 0.4715 * 186 / 149.93);
+    min-height: calc(var(--card-w) * 0.558 * 299.948 / 295.522);
   }
 
-  .card-illust--exercises .card-illust__art--tooth {
+  .card-illust--exercises .card-illust__art--cake {
     top: 50%;
     left: 50%;
     right: auto;
     bottom: auto;
-    width: 47.15%;
+    width: 55.8%;
     height: auto;
     max-height: 100%;
-    aspect-ratio: 149.93 / 186;
+    aspect-ratio: 295.522 / 299.948;
     transform: translate(-50%, -50%);
     object-fit: contain;
   }
