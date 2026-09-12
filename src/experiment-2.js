@@ -4,6 +4,7 @@ import { playUISound } from "./lib/ui-sounds.js";
 import { playTickClick } from "./tick-clicks.js";
 import { applyTranslations, getLocale, setLocale, t } from "./scriptik.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
+import { localizedAuthor } from "./works/author-name.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
   TYPE_DAILY,
@@ -135,11 +136,16 @@ function hasAuthorIdentity(item) {
   return Boolean(fieldText(item?.author) || fieldText(item?.nick));
 }
 
+/** The catalog stores one spelling; `en` prints it in Latin, `ru` as written. */
+function authorText(item) {
+  return localizedAuthor(fieldText(item?.author), getLocale());
+}
+
 /** Name, @nick and stream as spans; muted parts get `.is-muted`. */
 function metaNodes(item) {
   if (!hasAuthorIdentity(item)) return [];
   const nodes = [];
-  const author = fieldText(item?.author);
+  const author = authorText(item);
   const nick = fieldText(item?.nick);
   const stream = fieldText(item?.stream);
   if (author) {
@@ -183,7 +189,7 @@ function altFor(item) {
         : item.type === TYPE_FONT
           ? t("exp2.kind.font")
           : t("exp2.kind.workshop");
-  const author = fieldText(item?.author);
+  const author = authorText(item);
   return author ? `${kind}, ${author}` : kind;
 }
 
