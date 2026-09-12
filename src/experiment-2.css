@@ -1273,13 +1273,16 @@ button.work-card:active .work-card__art {
   }
 
   /* Clip window is full-bleed so swipe neighbors enter/leave at the iframe edges.
-     The resting slide still contains with a 16px side gutter so glyphs don't kiss the screen. */
+     Every slide uses the same 16px side gutter — if only .is-active is inset,
+     flipping the class mid-swipe (committedSteps) shrinks the incoming image. */
   .viewer__stage {
     inset: calc(56px + var(--frame-clip-top)) 0 calc(84px + var(--frame-clip-bottom));
   }
 
-  .viewer.is-mobile .viewer__slide.is-active img {
+  .viewer.is-mobile .viewer__slide img {
     width: calc(100% - 2 * var(--edge));
+    max-width: calc(100% - 2 * var(--edge));
+    flex: none;
   }
 
   /* Mobile: dots sit 12px from the iframe bottom; caption stays the same
