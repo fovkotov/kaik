@@ -1,5 +1,5 @@
 import { isMobile } from "./tweaks.js";
-import { bindLightboxShot, openLightboxGallery } from "./author-lightbox.js";
+import { openLightboxGallery } from "./author-lightbox.js";
 import { publicUrl } from "./public-url.js";
 import { createPagerState, layoutWeightedDots } from "./viewer-pager.js";
 
@@ -593,6 +593,76 @@ function articleItem(img) {
   };
 }
 
+/** Same press-vs-scroll gate as author collage shots — scroll does not open. */
+function bindArticleShot(shot, resolve) {
+  let press = null;
+
+  const clearPress = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+    press = null;
+  };
+
+  const onMove = (event) => {
+    if (!press || event.pointerId !== press.id || press.moved) return;
+    const dx = event.clientX - press.x;
+    const dy = event.clientY - press.y;
+    if (Math.hypot(dx, dy) > TAP_PX) press.moved = true;
+  };
+
+  const onUp = (event) => {
+    if (!press || event.pointerId !== press.id) return;
+    onMove(event);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+  };
+
+  const onCancel = (event) => {
+    if (!press || event.pointerId !== press.id) return;
+    clearPress();
+  };
+
+  shot.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.button && event.button !== 0) return;
+      clearPress();
+      press = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+    },
+    true,
+  );
+
+  shot.addEventListener(
+    "click",
+    (event) => {
+      const moved = Boolean(press?.moved);
+      clearPress();
+      const picked = moved ? null : resolve(event);
+      if (!moved && !picked?.items?.length) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (moved) return;
+      openLightboxGallery(picked.items, picked.index ?? 0, shot);
+    },
+    true,
+  );
+
+  shot.addEventListener("keydown", (event) => {
+    if (event.target !== shot) return;
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    const picked = resolve(event);
+    if (!picked?.items?.length) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openLightboxGallery(picked.items, picked.index ?? 0, shot);
+  });
+}
+
 function collectArticleShots(root) {
   const shots = [];
   const seen = new Set();
@@ -639,7 +709,7 @@ function bindArticleFigures(scope = document) {
     pairs.forEach(({ shot }, index) => {
       if (shot.tabIndex < 0) shot.tabIndex = 0;
       if (!shot.getAttribute("role")) shot.setAttribute("role", "button");
-      bindLightboxShot(shot, (event) => {
+      bindArticleShot(shot, (event) => {
         if (!articleOpen(shot)) return null;
         if (event?.target?.closest?.("a, button, [data-article-close]")) return null;
         if (!items.length) return null;
