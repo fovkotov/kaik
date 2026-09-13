@@ -1,5 +1,5 @@
 import { isMobile } from "./tweaks.js";
-import { openLightboxGallery } from "./author-lightbox.js";
+import { bindLightboxShot, openLightboxGallery } from "./author-lightbox.js";
 import { publicUrl } from "./public-url.js";
 import { createPagerState, layoutWeightedDots } from "./viewer-pager.js";
 
@@ -570,8 +570,88 @@ function bindSlider(root) {
   ro.observe(root);
 }
 
+/** Artwork, chrome, and cards that already have their own viewer. */
+const ARTICLE_SKIP =
+  ".img-slider, [data-img-slider], .card-illust, .card__art, .author-card, [data-author-work], .format-card, .format-card__media, .link-card, #letterfolio, .author-lb, .article-close, .article-close-row, button, a";
+
+function articleOpen(el) {
+  return Boolean(el.closest(".is-program-open"));
+}
+
+function articleShotImg(shot) {
+  return shot.matches("img") ? shot : shot.querySelector("img");
+}
+
+function articleItem(img) {
+  if (!img) return null;
+  const src = img.currentSrc || img.src || img.getAttribute("src") || "";
+  if (!src) return null;
+  return {
+    src,
+    width: img.naturalWidth || Number(img.getAttribute("width")) || 1920,
+    height: img.naturalHeight || Number(img.getAttribute("height")) || 1080,
+  };
+}
+
+function collectArticleShots(root) {
+  const shots = [];
+  const seen = new Set();
+  const take = (shot) => {
+    if (!shot || seen.has(shot) || shot.closest(ARTICLE_SKIP)) return;
+    if (!articleItem(articleShotImg(shot))) return;
+    seen.add(shot);
+    shots.push(shot);
+  };
+  root.querySelectorAll(".history-card__figure").forEach(take);
+  // Bare article photos that are not already wrapped in a figure / slider.
+  root.querySelectorAll(".history-card img").forEach((img) => {
+    if (img.closest(".history-card__figure")) return;
+    take(img);
+  });
+  shots.sort((a, b) => {
+    const pos = a.compareDocumentPosition(b);
+    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+    return 0;
+  });
+  return shots;
+}
+
+/**
+ * Standalone article photos share one gallery per card so prev/next walks
+ * figures, grids, and book spreads. Sliders keep their own bind above.
+ */
+function bindArticleFigures(scope = document) {
+  const roots = new Set();
+  scope.querySelectorAll(".history-card, [data-history-card], [data-article-card]").forEach((el) => {
+    const root = el.classList.contains("history-card")
+      ? el
+      : el.querySelector(".history-card") || null;
+    if (root) roots.add(root);
+  });
+
+  roots.forEach((root) => {
+    const shots = collectArticleShots(root);
+    const pairs = shots
+      .map((shot) => ({ shot, item: articleItem(articleShotImg(shot)) }))
+      .filter((row) => row.item);
+    const items = pairs.map((row) => row.item);
+    pairs.forEach(({ shot }, index) => {
+      if (shot.tabIndex < 0) shot.tabIndex = 0;
+      if (!shot.getAttribute("role")) shot.setAttribute("role", "button");
+      bindLightboxShot(shot, (event) => {
+        if (!articleOpen(shot)) return null;
+        if (event?.target?.closest?.("a, button, [data-article-close]")) return null;
+        if (!items.length) return null;
+        return { items, index };
+      });
+    });
+  });
+}
+
 export function initImgSliders(scope = document) {
   scope.querySelectorAll("[data-img-slider]").forEach(bindSlider);
+  bindArticleFigures(scope);
 }
 
 export function initHistorySlideshows() {

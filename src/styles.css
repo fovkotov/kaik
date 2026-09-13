@@ -4086,6 +4086,7 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   border: 0;
   outline: none;
   box-shadow: none;
+  cursor: pointer;
 }
 
 .history-card__figure--center {
