@@ -54,6 +54,9 @@
   --dot-on: rgba(255, 255, 255, 0.64);
   --lb-btn: rgba(85, 85, 85, 0.8);
   --enroll: #ff4c00;
+  /* Shared stroke for enroll / program / work / lang — not from-font (thicker on enroll). */
+  --nav-underline: 1px;
+  --nav-underline-offset: 0.12em;
   --font-en: "Helvetica Rounded", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-ru: "SF Pro Rounded", ui-rounded, system-ui, sans-serif;
   --font: var(--font-en);
@@ -420,6 +423,8 @@ a {
 .panel__lang .lang-btn {
   position: relative;
   text-decoration-color: currentColor;
+  text-decoration-thickness: var(--nav-underline);
+  text-underline-offset: var(--nav-underline-offset);
   transition: transform 160ms var(--ease-out);
 }
 
@@ -597,7 +602,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .lang-btn.is-active {
   text-decoration: underline;
-  text-underline-offset: 0.12em;
+  text-decoration-thickness: var(--nav-underline);
+  text-underline-offset: var(--nav-underline-offset);
 }
 
 .lang-sep {
@@ -884,7 +890,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   margin: 0;
   color: #ff4c00;
   text-decoration: underline;
-  text-underline-offset: 0.12em;
+  text-decoration-thickness: var(--nav-underline);
+  text-underline-offset: var(--nav-underline-offset);
   pointer-events: auto;
   touch-action: manipulation;
 }
@@ -910,7 +917,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 .landing-card__nav a {
   color: rgba(0, 0, 0, 0.48);
   text-decoration: underline;
-  text-underline-offset: 0.12em;
+  text-decoration-thickness: var(--nav-underline);
+  text-underline-offset: var(--nav-underline-offset);
 }
 
 .landing-card__lang {
@@ -935,7 +943,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .landing-card__lang .lang-btn.is-active {
   text-decoration: underline;
-  text-underline-offset: 0.12em;
+  text-decoration-thickness: var(--nav-underline);
+  text-underline-offset: var(--nav-underline-offset);
 }
 
 .landing-card__lang .lang-sep {
@@ -5994,7 +6003,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     letter-spacing: 0;
     color: #ff4c00;
     text-decoration: underline;
-    text-underline-offset: 0.12em;
+    text-decoration-thickness: var(--nav-underline);
+    text-underline-offset: var(--nav-underline-offset);
     pointer-events: auto;
   }
 
@@ -6025,7 +6035,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
 
   .panel__lang .lang-btn.is-active {
     text-decoration: underline;
-    text-underline-offset: 0.12em;
+    text-decoration-thickness: var(--nav-underline);
+    text-underline-offset: var(--nav-underline-offset);
   }
 
   .panel__nav {
@@ -6042,7 +6053,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   .panel__nav a[data-program-nav],
   .panel__nav a[data-work-nav] {
     text-decoration: underline;
-    text-underline-offset: 0.12em;
+    text-decoration-thickness: var(--nav-underline);
+    text-underline-offset: var(--nav-underline-offset);
   }
 
   .panel__nav .panel__enroll {

@@ -10,7 +10,8 @@
 .panel__nav a[data-work-nav] .work-nav__label,
 .landing-card__nav a[data-work-nav] .work-nav__label {
   text-decoration: underline;
-  text-underline-offset: 0.12em;
+  text-decoration-thickness: var(--nav-underline);
+  text-underline-offset: var(--nav-underline-offset);
   text-decoration-color: currentColor;
 }
 
