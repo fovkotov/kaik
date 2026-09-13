@@ -4,6 +4,7 @@ import { svgToInline } from "./letters/svg.js";
 import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
 import { isMobile } from "./tweaks.js";
+import { createPagerState, layoutWeightedDots, resetPagerState } from "./viewer-pager.js";
 
 const svgTextCache = new Map();
 
@@ -33,25 +34,23 @@ const FLICK_VEL = 500;
 const SPRING_RESPONSE = 0.4;
 const MIN_Z = 1;
 const MAX_Z = 4;
-const CHROME = "[data-author-lb-close], [data-author-lb-dots], [data-author-lb-dot]";
+const CHROME =
+  "[data-author-lb-close], [data-author-lb-dots], [data-author-lb-dot], [data-author-lb-mute]";
 const NAV = "[data-author-lb-prev], [data-author-lb-next]";
 const NO_ZOOM = `${CHROME}, ${NAV}`;
+/** Slides carry a photo, inline ink SVG, or a video (format-card workshop clip). */
+const MEDIA = "svg, img, video";
+const SOUND_ON = "format.sound.on";
+const SOUND_OFF = "format.sound.off";
 const ABSORB_MS = 400;
-/* Same windowed pager as experiment-2: 3 full-size dots, two faded neighbors
-   on each side, the rest clipped. Active stays in the main window. */
-const DOTS_MAIN = 3;
-const DOTS_VISIBLE = DOTS_MAIN + 4;
-const DOT_SLOT = 16;
-const DOT_SCALE = [1, 0.75, 0.5, 0.33];
-
 let root = null;
 let track = null;
 let slides = [];
 let pager = null;
+let muteBtn = null;
 let dots = [];
 let dotsTrack = null;
-let dotAnchor = 0;
-let dotLast = -1;
+let pagerState = createPagerState();
 /** Active gallery; defaults to author works, swapped for article sliders. */
 let gallery = AUTHOR_WORKS;
 let index = 0;
@@ -149,7 +148,7 @@ function cardOpen(card = authorCard()) {
 
 function preload(i) {
   const work = gallery[wrap(i)];
-  if (!work) return;
+  if (!work || work.video) return;
   if (work.ink || isSvgSrc(work.src)) {
     fetchSvgText(work.src).catch(() => {});
     return;
@@ -160,7 +159,52 @@ function preload(i) {
 }
 
 function activeMedia() {
-  return slides[index]?.querySelector("svg, img") ?? null;
+  return slides[index]?.querySelector(MEDIA) ?? null;
+}
+
+function activeVideo() {
+  return slides[wrap(index)]?.querySelector("video") ?? null;
+}
+
+/** The badge mirrors the card's speaker button, so its state reads the same. */
+function syncMuteBtn() {
+  if (!muteBtn) return;
+  const video = activeVideo();
+  muteBtn.hidden = !video;
+  if (!video) return;
+  const key = video.muted ? SOUND_ON : SOUND_OFF;
+  muteBtn.setAttribute("aria-pressed", video.muted ? "false" : "true");
+  muteBtn.setAttribute("data-i18n-aria", key);
+  muteBtn.setAttribute("aria-label", t(key));
+}
+
+/** Only the open, active slide plays — and it inherits the card's mute state. */
+function syncVideos() {
+  slides.forEach((slide, i) => {
+    const video = slide.querySelector("video");
+    if (!video) return;
+    if (!open || i !== wrap(index)) {
+      video.pause();
+      return;
+    }
+    const work = gallery[i];
+    video.muted = work?.muted !== false;
+    const at = Number(work?.time);
+    if (Number.isFinite(at) && Math.abs(video.currentTime - at) > 0.25) {
+      try {
+        video.currentTime = at;
+      } catch {
+        // Metadata not ready yet — the clip just starts from the top.
+      }
+    }
+    playVideo(video);
+  });
+  syncMuteBtn();
+}
+
+function playVideo(video) {
+  const play = video.play();
+  if (play && typeof play.catch === "function") play.catch(() => {});
 }
 
 function syncSlides(active = index) {
@@ -175,24 +219,13 @@ function syncDots(active = index) {
 }
 
 function layoutDots(active) {
-  const n = dots.length;
-  if (!n || !dotsTrack) return;
-  const main = Math.min(n, DOTS_MAIN);
-  if (dotLast < 0) dotAnchor = Math.min(active, main - 1);
-  else dotAnchor = Math.max(0, Math.min(main - 1, dotAnchor + (active - dotLast)));
-  dotLast = active;
-  const start = Math.max(0, Math.min(n - main, active - dotAnchor));
-  const end = start + main - 1;
-  dots.forEach((dot, i) => {
-    const distance = i < start ? start - i : i > end ? i - end : 0;
-    dot.style.setProperty("--dot-scale", String(DOT_SCALE[Math.min(distance, DOT_SCALE.length - 1)]));
-    const on = i === active;
-    dot.classList.toggle("is-active", on);
-    dot.setAttribute("aria-current", on ? "true" : "false");
+  layoutWeightedDots({
+    dots,
+    track: dotsTrack,
+    pager,
+    active,
+    state: pagerState,
   });
-  const visible = Math.min(n, DOTS_VISIBLE);
-  const x = n > DOTS_VISIBLE ? ((visible - 1) / 2 - (start + end) / 2) * DOT_SLOT : 0;
-  dotsTrack.style.setProperty("--dots-x", `${x}px`);
 }
 
 function paint(offset) {
@@ -244,7 +277,7 @@ function resetZoom() {
   panX = 0;
   panY = 0;
   slides.forEach((slide) => {
-    const media = slide.querySelector("svg, img");
+    const media = slide.querySelector(MEDIA);
     if (media) media.style.transform = "";
   });
   root?.classList.remove("is-zoomed");
@@ -342,6 +375,7 @@ function finishIndex(next) {
   }
   paint(0);
   syncDots();
+  syncVideos();
   preload(index + 1);
   preload(index - 1);
 }
@@ -418,6 +452,8 @@ function lockScroll() {
 function setOpen(next) {
   open = next;
   document.documentElement.classList.toggle("is-author-lb-open", next);
+  // Lets a card's own video stand down while the lightbox shows the same clip.
+  document.dispatchEvent(new CustomEvent("kaik:lightbox", { detail: { open: next } }));
   if (!root) return;
   root.hidden = !next;
   root.setAttribute("aria-hidden", next ? "false" : "true");
@@ -436,6 +472,7 @@ function closeLb() {
   cancelZoomSession();
   resetZoom();
   setOpen(false);
+  syncVideos();
   root?.classList.remove("is-dragging");
   root?.querySelectorAll(".author-lb__hit.is-aiming").forEach((hit) => hit.classList.remove("is-aiming"));
   const scroller = card ? focusScrollRoot(card) : null;
@@ -460,6 +497,7 @@ function openAt(i, shot) {
   savedScroll = card ? focusScrollRoot(card).scrollTop : 0;
   savedDeckY = getScrollRoot()?.scrollTop ?? 0;
   lastShot = shot instanceof HTMLElement ? shot : null;
+  root?.classList.toggle("is-single", gallery.length < 2);
   cancelSpring();
   pending = wrap(i);
   index = pending;
@@ -479,8 +517,9 @@ function openAt(i, shot) {
     }
   });
   paint(0);
-  dotLast = -1;
+  resetPagerState(pagerState);
   syncDots();
+  syncVideos();
   preload(index + 1);
   preload(index - 1);
   lockScroll();
@@ -553,6 +592,26 @@ async function fetchSvgText(src) {
   }
 }
 
+/** Muted-by-default loop, same flags as the card video — no controls, no PiP. */
+function appendVideo(slide, work) {
+  const video = document.createElement("video");
+  video.className = "author-lb__video";
+  if (work.poster) video.poster = work.poster;
+  video.src = work.src;
+  video.loop = true;
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  video.controls = false;
+  video.draggable = false;
+  video.setAttribute("playsinline", "");
+  video.setAttribute("webkit-playsinline", "");
+  video.setAttribute("draggable", "false");
+  video.setAttribute("disablepictureinpicture", "");
+  slide.append(video);
+}
+
 function appendPhoto(slide, work) {
   const image = document.createElement("img");
   image.alt = "";
@@ -602,6 +661,12 @@ function buildSlides() {
     slide.className = "author-lb__slide";
     slide.setAttribute("data-author-lb-slide", "");
     if (i === 0) slide.classList.add("is-active");
+    if (work.video) {
+      slide.classList.add("is-video");
+      appendVideo(slide, work);
+      track.append(slide);
+      return slide;
+    }
     const ink = Boolean(work.ink) || isSvgSrc(work.src);
     if (ink) {
       slide.classList.add("is-ink");
@@ -616,12 +681,12 @@ function buildSlides() {
 
 function buildDots() {
   if (!pager) return;
+  // A one-item gallery (the workshop clip) has nothing to page through.
+  root?.classList.toggle("is-single", gallery.length < 2);
   dotsTrack = document.createElement("div");
   dotsTrack.className = "author-lb__dots-track";
   pager.replaceChildren(dotsTrack);
-  pager.style.setProperty("--dots-visible", String(Math.min(gallery.length, DOTS_VISIBLE)));
-  dotAnchor = 0;
-  dotLast = -1;
+  resetPagerState(pagerState);
   dots = gallery.map((_, i) => {
     const dot = document.createElement("button");
     dot.type = "button";
@@ -638,68 +703,129 @@ function buildDots() {
   });
 }
 
+/** Same speaker badge as the format card, hidden unless the slide is a video. */
+function buildMuteBtn() {
+  if (!root) return null;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "author-lb__mute";
+  btn.setAttribute("data-author-lb-mute", "");
+  btn.setAttribute("aria-pressed", "false");
+  btn.hidden = true;
+  for (const state of ["off", "on"]) {
+    const icon = document.createElement("img");
+    icon.className = `author-lb__mute-icon author-lb__mute-icon--${state}`;
+    icon.src = publicUrl(`assets/cards/format/${state === "off" ? "mute" : "unmute"}.svg`);
+    icon.alt = "";
+    icon.width = 34;
+    icon.height = 34;
+    icon.draggable = false;
+    icon.setAttribute("draggable", "false");
+    btn.append(icon);
+  }
+  btn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const video = activeVideo();
+    if (!video) return;
+    video.muted = !video.muted;
+    const work = gallery[wrap(index)];
+    if (work) work.muted = video.muted;
+    if (!video.muted) playVideo(video);
+    syncMuteBtn();
+    // Keeps the card badge in step, so closing does not surprise with audio.
+    document.dispatchEvent(
+      new CustomEvent("kaik:lightbox-mute", { detail: { src: work?.src, muted: video.muted } }),
+    );
+  });
+  root.append(btn);
+  return btn;
+}
+
+/**
+ * Make any element open the shared fullscreen viewer. `resolve` returns
+ * `{ items, index }` for the click, or nothing to skip it.
+ */
+export function bindLightboxShot(shot, resolve) {
+  let press = null;
+
+  const clearPress = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+    press = null;
+  };
+
+  const onMove = (event) => {
+    if (!press || event.pointerId !== press.id || press.moved) return;
+    const dx = event.clientX - press.x;
+    const dy = event.clientY - press.y;
+    if (Math.hypot(dx, dy) > TAP_PX) press.moved = true;
+  };
+
+  const onUp = (event) => {
+    if (!press || event.pointerId !== press.id) return;
+    onMove(event);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+    // Keep `press` until click so a scroll-swipe does not open the lightbox.
+  };
+
+  const onCancel = (event) => {
+    if (!press || event.pointerId !== press.id) return;
+    clearPress();
+  };
+
+  // Do not preventDefault / stopPropagation on pointerdown — that traps the
+  // gesture and blocks deck drag + open-card pan-y scroll on mobile.
+  shot.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.button && event.button !== 0) return;
+      clearPress();
+      press = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+    },
+    true,
+  );
+
+  shot.addEventListener(
+    "click",
+    (event) => {
+      const moved = Boolean(press?.moved);
+      clearPress();
+      // Nothing to open (a nested control was hit): leave the click alone.
+      const picked = moved ? null : resolve(event);
+      if (!moved && !picked?.items?.length) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (moved) return;
+      openLightboxGallery(picked.items, picked.index ?? 0, shot);
+    },
+    true,
+  );
+
+  shot.addEventListener("keydown", (event) => {
+    if (event.target !== shot) return;
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    const picked = resolve(event);
+    if (!picked?.items?.length) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openLightboxGallery(picked.items, picked.index ?? 0, shot);
+  });
+}
+
 function bindShots() {
   document.querySelectorAll("[data-author-work]").forEach((shot) => {
-    let press = null;
-
-    const clearPress = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onCancel);
-      press = null;
-    };
-
-    const onMove = (event) => {
-      if (!press || event.pointerId !== press.id || press.moved) return;
-      const dx = event.clientX - press.x;
-      const dy = event.clientY - press.y;
-      if (Math.hypot(dx, dy) > TAP_PX) press.moved = true;
-    };
-
-    const onUp = (event) => {
-      if (!press || event.pointerId !== press.id) return;
-      onMove(event);
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onCancel);
-      // Keep `press` until click so a scroll-swipe does not open the lightbox.
-    };
-
-    const onCancel = (event) => {
-      if (!press || event.pointerId !== press.id) return;
-      clearPress();
-    };
-
-    // Do not preventDefault / stopPropagation on pointerdown — that traps the
-    // gesture and blocks deck drag + open-card pan-y scroll on mobile.
-    shot.addEventListener(
-      "pointerdown",
-      (event) => {
-        if (event.button && event.button !== 0) return;
-        clearPress();
-        press = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
-        window.addEventListener("pointermove", onMove);
-        window.addEventListener("pointerup", onUp);
-        window.addEventListener("pointercancel", onCancel);
-      },
-      true,
-    );
-
-    shot.addEventListener(
-      "click",
-      (event) => {
-        const moved = Boolean(press?.moved);
-        clearPress();
-        event.preventDefault();
-        event.stopPropagation();
-        if (moved) return;
-        const i = Number(shot.getAttribute("data-author-work"));
-        if (!Number.isFinite(i)) return;
-        useGallery(AUTHOR_WORKS);
-        openAt(i, shot);
-      },
-      true,
-    );
+    bindLightboxShot(shot, () => {
+      const i = Number(shot.getAttribute("data-author-work"));
+      if (!Number.isFinite(i)) return null;
+      return { items: AUTHOR_WORKS, index: i };
+    });
   });
 }
 
@@ -731,6 +857,7 @@ export function initAuthorLightbox() {
 
   track = root.querySelector("[data-author-lb-track]");
   pager = root.querySelector("[data-author-lb-dots]");
+  muteBtn = buildMuteBtn();
 
   buildSlides();
   buildDots();
@@ -1031,5 +1158,6 @@ export function initAuthorLightbox() {
     if (prev) prev.setAttribute("aria-label", t("author.lb.prev"));
     const next = root.querySelector("[data-author-lb-next]");
     if (next) next.setAttribute("aria-label", t("author.lb.next"));
+    syncMuteBtn();
   });
 }

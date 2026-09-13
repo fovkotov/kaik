@@ -11,6 +11,7 @@ import { initImgSliders } from "./img-slider.js";
 import { initProgramStrips } from "./program-strip.js";
 import { initProjectViewer } from "./project-viewer.js";
 import { initProgramModal } from "./program-modal.js";
+import { initStudentProgress } from "./student-progress.js";
 import { initDropcaps } from "./letters/dropcap.js";
 import { initWorksFeed } from "./works-feed.js";
 import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
@@ -1069,6 +1070,8 @@ initTweaks();
 initStageSettings();
 initTickClicks();
 initSoundSettings();
+// The progress sheets must exist before the deck and program modal query them.
+initStudentProgress();
 initDeck();
 initTextAppear();
 const programApi = initProgramModal();

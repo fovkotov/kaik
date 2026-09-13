@@ -241,12 +241,37 @@ export function carryFocusScroll(card, mutate) {
   return top > 0 ? applyFocusScroll(card, top) : 0;
 }
 
+/**
+ * Article range while the card is still flying open. The card only becomes the
+ * scroller when the flight lands (`is-program-scroll`); until then it is
+ * `overflow: hidden` and its own range is 0, so the thumb would paint
+ * full-length and collapse the instant the card lands. The article is already
+ * laid out inside a clipped face — measure it there. Face plus its children
+ * covers `.work-card > .work-card__full` and `.program-card > __sheet`.
+ */
+function pendingRange(card) {
+  let range = 0;
+  const scan = (el, depth) => {
+    if (el.hasAttribute("data-focus-scroll")) return;
+    range = Math.max(range, scrollRange(el));
+    if (depth > 0) [...el.children].forEach((child) => scan(child, depth - 1));
+  };
+  [...card.children].forEach((child) => scan(child, 1));
+  return range;
+}
+
 function metrics(card) {
   const root = liveFocusScrollRoot(card);
   const view = card.clientHeight;
   const port = root === card ? view : root.clientHeight;
   const maxScroll = Math.max(0, root.scrollHeight - port);
-  const full = port + maxScroll;
+  // Thumb length comes from the article, which outlives the fly. `maxScroll`
+  // stays the real one, so the thumb still sits at the top until the card can
+  // scroll — a face that overflows by a stray px must not pass for the article.
+  const reach = card.classList.contains("is-program-scroll")
+    ? maxScroll
+    : Math.max(maxScroll, pendingRange(card));
+  const full = port + reach;
   const rail = Math.max(0, view - INSET * 2);
   const thumbH = Math.min(rail, Math.max(MIN_THUMB, (port / Math.max(full, 1)) * rail));
   return {

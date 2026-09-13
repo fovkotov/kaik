@@ -8,10 +8,14 @@ import { initImgSliders } from "./img-slider.js";
 import { initProgramStrips } from "./program-strip.js";
 import { initDropcaps } from "./letters/dropcap.js";
 import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
+import { initProjectViewer } from "./project-viewer.js";
+import { initStudentProgress } from "./student-progress.js";
 import { initWorksFeed } from "./works-feed.js";
 
 const IGNORE =
-  "a, button, [data-tweaks], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-author-work], [data-preview-media], [data-preview-hit], [data-format-mute], [data-work-ig], .work-card__who, [data-work-student-prev], [data-work-student-next], [data-work-open], input, textarea, select";
+  "a, button, [data-tweaks], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-author-work], [data-preview-media], [data-preview-hit], [data-progress-video], [data-project-viewer], [data-format-mute], [data-work-ig], .work-card__who, [data-work-student-prev], [data-work-student-next], input, textarea, select";
+
+const WORK_OPEN = "[data-work-open]";
 
 const MOVE_MS = 520;
 const MOVE_EASE = "cubic-bezier(0.22, 1, 0.32, 1)";
@@ -94,6 +98,33 @@ function invertFlip(el, from, to) {
   });
 }
 
+/**
+ * Student sheets on `/list` reuse the deck's contract: the card carries
+ * `data-work-student` + `is-work-open`, and `student-progress.js` follows it
+ * to start or stop the review player.
+ */
+function openStudent(card, id) {
+  if (!id || !card?.hasAttribute("data-work-card")) return;
+  card.setAttribute("data-work-student", id);
+  card.getBoundingClientRect();
+  card.classList.add("is-work-open");
+  card.scrollTop = 0;
+}
+
+function switchStudent(card, dir) {
+  if (!card?.classList.contains("is-work-open")) return;
+  const ids = [...card.querySelectorAll(WORK_OPEN)]
+    .map((sheet) => sheet.getAttribute("data-work-open") || "")
+    .filter(Boolean);
+  const at = ids.indexOf(card.getAttribute("data-work-student") || "");
+  if (at < 0 || ids.length < 2) return;
+  card.classList.add("is-work-switch");
+  void card.offsetWidth;
+  card.setAttribute("data-work-student", ids[(at + dir + ids.length) % ids.length]);
+  card.scrollTop = 0;
+  requestAnimationFrame(() => card.classList.remove("is-work-switch"));
+}
+
 function initList() {
   const stack = document.querySelector("[data-list]");
   const stage = document.querySelector("[data-list-stage]");
@@ -144,6 +175,8 @@ function initList() {
       card.querySelectorAll("[data-article-close]").forEach((btn) => {
         btn.hidden = true;
       });
+      card.classList.remove("is-work-open");
+      card.removeAttribute("data-work-student");
       card.scrollTop = 0;
     }
     left.classList.toggle("is-covered", on);
@@ -206,7 +239,10 @@ function initList() {
     if (event.target.closest(IGNORE)) return;
     const card = event.target.closest("[data-card]");
     if (!card || !stack.contains(card)) return;
-    openCard(card);
+    // A student tile flies the whole progress card over first, then opens them.
+    const sheet = event.target.closest(WORK_OPEN);
+    const id = sheet?.getAttribute("data-work-open") || "";
+    openCard(card).then(() => openStudent(card, id));
   });
 
   stage.addEventListener("click", (event) => {
@@ -216,7 +252,23 @@ function initList() {
       event.preventDefault();
       event.stopPropagation();
       closeCard();
+      return;
     }
+    const sheet = event.target.closest(WORK_OPEN);
+    if (sheet) {
+      event.preventDefault();
+      event.stopPropagation();
+      openStudent(open.card, sheet.getAttribute("data-work-open") || "");
+    }
+  });
+
+  document.querySelectorAll("[data-work-student-prev], [data-work-student-next]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!open) return;
+      switchStudent(open.card, btn.hasAttribute("data-work-student-prev") ? -1 : 1);
+    });
   });
 
   closeBtn?.addEventListener("click", (event) => {
@@ -258,10 +310,13 @@ window.matchMedia("(max-width: 900px)").addEventListener("change", syncMobileCla
 initEmbed();
 initLocale();
 initTickClicks();
+// The progress sheets must exist before the list binds card and nav clicks.
+initStudentProgress();
 const listApi = initList();
 initAuthorLightbox();
 initImgSliders();
 initProgramStrips();
+initProjectViewer();
 initFormatVideo();
 initPreviewMedia();
 initWorksFeed();

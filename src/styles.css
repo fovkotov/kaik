@@ -1144,6 +1144,21 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: none !important;
 }
 
+/* Click target over the clip; the speaker badge keeps its own higher layer. */
+.format-card__hit {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .format-card__mute {
   position: absolute;
   right: 0;
@@ -1466,6 +1481,96 @@ html.is-author-lb-open .fly-close {
 /* Fallback `<img src="*.svg">` only if the document fetch fails. */
 .author-lb__slide.is-ink img {
   filter: brightness(0);
+}
+
+/* Video slide (the workshop clip) fills the stage like a photo slide. */
+.author-lb__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transform-origin: center center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.author-lb__video::-webkit-media-controls {
+  display: none !important;
+}
+
+/* Same speaker badge as the format card, so the mute state reads the same. */
+.author-lb__mute {
+  display: flex;
+  position: absolute;
+  right: 16px;
+  bottom: calc(24px + var(--frame-clip-bottom));
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.author-lb__mute[hidden] {
+  display: none;
+}
+
+.author-lb__mute-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.author-lb__mute[aria-pressed="false"] .author-lb__mute-icon--on,
+.author-lb__mute[aria-pressed="true"] .author-lb__mute-icon--off {
+  visibility: hidden;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .author-lb__mute:hover {
+    transform: scale(1.05);
+  }
+}
+
+.author-lb__mute:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .author-lb__mute {
+    transition: none;
+  }
+
+  .author-lb__mute:hover,
+  .author-lb__mute:active {
+    transform: none;
+  }
+}
+
+/* One-item gallery: nothing to page, so drop the arrows and the pager. */
+.author-lb.is-single .author-lb__hit--prev,
+.author-lb.is-single .author-lb__hit--next,
+.author-lb.is-single .author-lb__dots {
+  display: none;
 }
 
 .author-lb__hit {
@@ -3274,6 +3379,7 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   object-fit: fill;
 }
 
+/* Figma 271:1730 — 595×842 face: pink title, sausage, 2×2 grid of student tiles. */
 .progress-card {
   --u: calc(var(--card-w) / 595);
   --progress-ink: rgba(0, 0, 0, 0.4);
@@ -3281,11 +3387,6 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   z-index: 1;
   width: 100%;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: calc(25 * var(--u));
-  padding: 0 calc(12 * var(--u)) calc(8 * var(--u)) calc(6 * var(--u));
   background: #8a7e59;
   color: var(--progress-ink);
   font-family: var(--font);
@@ -3295,46 +3396,46 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 }
 
 .progress-card__title {
+  position: absolute;
+  left: calc(155.936 * var(--u));
+  top: calc(-0.846 * var(--u));
+  width: calc(284 * var(--u));
   margin: 0;
-  flex-shrink: 0;
-  height: calc(40 * var(--u));
   font-size: calc(33.934 * var(--u));
-  line-height: 1;
+  line-height: calc(40 * var(--u));
   text-align: center;
   white-space: nowrap;
   color: #ff91f8;
   pointer-events: none;
 }
 
-.progress-card__stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: calc(7 * var(--u));
-  width: calc(577 * var(--u));
-  flex-shrink: 0;
+/* Group 430 — the pink sausage above the grid. */
+.progress-card__illust {
+  position: absolute;
+  left: calc(120.215 * var(--u));
+  top: calc(50 * var(--u));
+  width: calc(351.062 * var(--u));
+  height: calc(189 * var(--u));
+  pointer-events: none;
 }
 
-.progress-card__row {
-  position: relative;
+.progress-card__illust img {
+  display: block;
   width: 100%;
-  height: calc(252 * var(--u));
-  flex-shrink: 0;
-  z-index: 0;
-}
-
-.progress-card__row:hover {
-  z-index: 2;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
 }
 
 .progress-card__sheet {
   position: absolute;
-  top: 0;
-  display: block;
-  width: calc(362.132 * var(--u));
-  height: calc(252.133 * var(--u));
+  left: calc(var(--l) * var(--u));
+  top: calc(var(--t) * var(--u));
+  width: calc(284.875 * var(--u));
+  height: calc(284.88 * var(--u));
+  overflow: hidden;
   background: #fff;
-  filter: drop-shadow(0 calc(1.941 * var(--u)) calc(0.97 * var(--u)) rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(0 calc(1.527 * var(--u)) calc(0.763 * var(--u)) rgba(0, 0, 0, 0.25));
   cursor: pointer;
   appearance: none;
   text-align: left;
@@ -3358,33 +3459,18 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   }
 }
 
-.progress-card__sheet--yan {
-  left: 0;
-  top: calc(0.288 * var(--u));
-}
-
-.progress-card__sheet--polina {
-  left: calc(215 * var(--u));
-  top: calc(-0.077 * var(--u));
-}
-
-.progress-card__sheet--alena {
-  left: calc(110.902 * var(--u));
-  top: calc(-0.133 * var(--u));
-}
-
 .progress-card__who {
   position: absolute;
-  top: 0;
-  left: calc(50% + 0.31 * var(--u));
+  top: calc(2 * var(--u));
+  left: calc(50% + 0.25 * var(--u));
   transform: translateX(-50%);
-  width: calc(378.817 * var(--u));
+  width: calc(298.001 * var(--u));
   margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   font-family: var(--font-en);
-  font-size: calc(18.908 * var(--u));
+  font-size: calc(14.874 * var(--u));
   line-height: normal;
   text-align: center;
   color: var(--progress-ink);
@@ -3397,61 +3483,54 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 }
 
 .progress-card__ig {
-  position: relative;
-  z-index: 2;
   color: inherit;
+}
+
+.progress-card__thumb {
+  position: absolute;
+  left: calc(var(--l) * var(--u));
+  top: calc(var(--t) * var(--u));
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--u));
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.progress-card__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
 }
 
 .progress-card__week {
   position: absolute;
+  left: calc(var(--l) * var(--u));
+  top: calc(var(--t) * var(--u));
   margin: 0;
-  font-size: calc(8.652 * var(--u));
+  font-size: calc(6.806 * var(--u));
   line-height: normal;
   white-space: nowrap;
   color: var(--progress-ink);
   pointer-events: none;
 }
 
-.progress-card__week--yan-1 {
-  left: calc(9.268 * var(--u));
-  top: calc(105.055 * var(--u));
-}
-
-.progress-card__week--yan-4 {
-  left: calc(118.031 * var(--u));
-  top: calc(73.539 * var(--u));
-}
-
-.progress-card__week--polina-1 {
-  left: calc(14.832 * var(--u));
-  top: calc(164.999 * var(--u));
-}
-
-.progress-card__week--polina-3 {
-  left: calc(105.678 * var(--u));
-  top: calc(228.032 * var(--u));
-  width: calc(38 * var(--u));
-  text-align: center;
-}
-
-.progress-card__week--alena-1 {
-  left: calc(221.238 * var(--u));
-  top: calc(57.471 * var(--u));
-}
-
-.progress-card__week--alena-4 {
-  left: calc(162.527 * var(--u));
-  top: calc(150.785 * var(--u));
-  width: calc(38 * var(--u));
+/* "6 неделя" sits on the arrow head, centred on its own offset from the middle. */
+.progress-card__week--end {
+  left: calc(50% + var(--cx) * var(--u));
+  transform: translateX(-50%);
   text-align: center;
 }
 
 .progress-card__expand {
   position: absolute;
-  left: calc(337.414 * var(--u));
-  top: calc(6.798 * var(--u));
-  width: calc(18 * var(--u));
-  height: calc(18 * var(--u));
+  left: calc(265.429 * var(--u));
+  top: calc(5.347 * var(--u));
+  width: calc(15 * var(--u));
+  height: calc(14 * var(--u));
   pointer-events: none;
 }
 
@@ -3481,92 +3560,28 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   user-select: none;
 }
 
-.progress-card__art--cover {
-  overflow: hidden;
-}
-
-.progress-card__art--cover img {
-  object-fit: cover;
-  object-position: center;
-}
-
-.progress-card__line {
+/* Week 1 → week 6 arrow. Figma mirrors the exported path and lets the stroke
+   bleed outside the box, so `--ax` / `--ay` are negative insets. */
+.progress-card__arrow {
   position: absolute;
   left: calc(var(--l) * var(--u));
   top: calc(var(--t) * var(--u));
   width: calc(var(--w) * var(--u));
   height: calc(var(--h) * var(--u));
+  transform: scaleX(-1);
   pointer-events: none;
 }
 
-.progress-card__line-fill {
+.progress-card__arrow img {
   position: absolute;
+  left: var(--ax);
+  top: var(--ay);
+  width: calc(100% - var(--ax));
+  height: calc(100% - var(--ay));
   display: block;
-}
-
-.progress-card__line-fill img {
-  display: block;
-  width: 100%;
-  height: 100%;
   max-width: none;
   pointer-events: none;
   user-select: none;
-}
-
-.progress-card__line-fill--yan {
-  top: -11.39%;
-  right: 0;
-  bottom: -3.02%;
-  left: -0.12%;
-}
-
-.progress-card__line--polina,
-.progress-card__line--alena {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.progress-card__line-spin {
-  display: block;
-  flex: none;
-}
-
-.progress-card__line-spin--polina {
-  transform: rotate(90deg) scaleY(-1);
-}
-
-.progress-card__line-spin--alena {
-  transform: rotate(180deg) scaleY(-1);
-}
-
-.progress-card__line-box {
-  position: relative;
-  display: block;
-}
-
-.progress-card__line-box--polina {
-  width: calc(51.292 * var(--u));
-  height: calc(84.044 * var(--u));
-}
-
-.progress-card__line-box--alena {
-  width: calc(33.68 * var(--u));
-  height: calc(84.353 * var(--u));
-}
-
-.progress-card__line-fill--polina {
-  top: -0.74%;
-  right: -6.96%;
-  bottom: 0;
-  left: 0;
-}
-
-.progress-card__line-fill--alena {
-  top: -0.73%;
-  right: -10.59%;
-  bottom: 0;
-  left: 0;
 }
 
 .work-card {
@@ -3626,11 +3641,120 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
     filter var(--work-swap-ms) var(--work-swap-ease);
 }
 
-.work-card__head {
+/* Figma 251:470 — name/blurb sit 8 apart, the review 24 below them. */
+.work-card__intro {
   display: flex;
   flex-direction: column;
   gap: calc(24 * var(--u));
   width: 100%;
+}
+
+.work-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8 * var(--u));
+  width: 100%;
+}
+
+.work-card__video {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(10 * var(--u));
+  width: 100%;
+  flex-shrink: 0;
+  /* Always interactive — deck focus and list taps ignore [data-progress-video]. */
+  pointer-events: auto;
+  touch-action: manipulation;
+  overscroll-behavior: contain;
+}
+
+.work-card__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+.work-card__embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+
+/* Below the player — YouTube owns every edge of its own frame. The floor keeps
+   it a real tap target once --u shrinks in the list and on mobile. */
+.work-card__sound {
+  display: none;
+  position: relative;
+  z-index: 2;
+  width: max(34px, calc(34 * var(--u)));
+  height: max(34px, calc(34 * var(--u)));
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* No player, nothing to mute. */
+.work-card__video.is-playing .work-card__sound {
+  display: flex;
+}
+
+/* The shared asset is a white disc for dark video; the sheet under it is white. */
+.work-card__sound-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: invert(1);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.work-card__sound[aria-pressed="false"] .work-card__sound-icon--on,
+.work-card__sound[aria-pressed="true"] .work-card__sound-icon--off {
+  visibility: hidden;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .work-card__sound:hover {
+    transform: scale(1.05);
+  }
+}
+
+.work-card__sound:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work-card__sound {
+    transition: none;
+  }
+
+  .work-card__sound:hover,
+  .work-card__sound:active {
+    transform: none;
+  }
 }
 
 .work-card__nav {
@@ -3675,6 +3799,19 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   align-items: stretch;
   gap: var(--work-chrome-gap);
   padding-top: calc(40 * var(--u));
+}
+
+/* The nav row is absolute px while the rest of the sheet scales with --u. A
+   flying card is still inside the scaled deck, so divide the deck scale back
+   out; the landing drops that transform (`is-focus-landed`) and the chrome is
+   44px again. Without this the whole sheet jumps up by 44 × (scale − 1) in the
+   frame the flight lands. */
+.card.is-program-open[data-work-card] .work-card {
+  --work-chrome-h: calc(44px / var(--deck-scale, 1));
+}
+
+html.is-focus-landed .card.is-program-open[data-work-card] .work-card {
+  --work-chrome-h: 44px;
 }
 
 .card.is-work-open .work-card__nav {
@@ -3808,9 +3945,14 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 .work-card__photo {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: var(--ar, 3 / 4);
   overflow: hidden;
   flex-shrink: 0;
+}
+
+/* The final cover hands the tap to the shared experiment-2 deck. */
+.work-card__photo--final {
+  cursor: pointer;
 }
 
 .work-card__photo img {
@@ -3841,10 +3983,11 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   min-width: 0;
 }
 
+/* Each week names its own Figma gap: 2 between photos, 16 or 52 between sheets. */
 .work-card__marks {
   display: flex;
   flex-direction: column;
-  gap: calc(100 * var(--u));
+  gap: calc(var(--gap, 52) * var(--u));
   width: 100%;
 }
 
@@ -3864,57 +4007,6 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   user-select: none;
 }
 
-.work-card__mark--fresh {
-  height: calc(192 * var(--u));
-  overflow: hidden;
-}
-
-.work-card__mark--fresh img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.work-card__mark--mind img {
-  position: static;
-  width: 100%;
-  height: auto;
-}
-
-.work-card__mark--kaik {
-  height: calc(169 * var(--u));
-  overflow: hidden;
-}
-
-.work-card__mark--design {
-  height: calc(298 * var(--u));
-  overflow: hidden;
-}
-
-.work-card__mark--letter {
-  height: calc(228 * var(--u));
-  overflow: hidden;
-}
-
-.work-card__mark--kaik img,
-.work-card__mark--design img,
-.work-card__mark--letter img,
-.work-card__mark--polina-boring img {
-  width: 100%;
-  height: auto;
-}
-
-.work-card__full--polina .work-card__mark--polina-boring {
-  height: calc(167 * var(--u));
-}
-
-.work-card__full--polina .work-card__mark--polina-boring img {
-  height: 100%;
-  object-fit: fill;
-}
-
 .card.is-program-open .work-card {
   height: 100%;
   min-height: 100%;
@@ -3923,8 +4015,9 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 }
 
 .card[data-work-student="alena"] .work-card__full--alena,
+.card[data-work-student="roma"] .work-card__full--roma,
 .card[data-work-student="yan"] .work-card__full--yan,
-.card[data-work-student="polina"] .work-card__full--polina {
+.card[data-work-student="alyona"] .work-card__full--alyona {
   display: flex;
   position: absolute;
   top: 0;
@@ -3941,8 +4034,9 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 }
 
 .card.is-work-open[data-work-student="alena"] .work-card__full--alena,
+.card.is-work-open[data-work-student="roma"] .work-card__full--roma,
 .card.is-work-open[data-work-student="yan"] .work-card__full--yan,
-.card.is-work-open[data-work-student="polina"] .work-card__full--polina {
+.card.is-work-open[data-work-student="alyona"] .work-card__full--alyona {
   position: relative;
   top: auto;
   left: auto;
@@ -4422,16 +4516,19 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
 .program-card__shot img,
 img.program-card__mark,
 .history-card__figure img,
+.format-card__media .format-card__video,
 .history-card .img-slider__stage {
   transition: transform 200ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .history-card__figure:is(:hover, :active) {
+  .history-card__figure:is(:hover, :active),
+  .format-card__media:is(:hover, :active) {
     overflow: visible;
   }
 
   .history-card__figure:hover img,
+  .format-card__media:hover .format-card__video,
   .history-card .img-slider:hover .img-slider__stage {
     transform: translateY(-8px);
   }
@@ -4472,6 +4569,7 @@ img.program-card__mark,
 */
 @media (hover: hover) and (pointer: fine) {
   .history-card__figure:active img,
+  .format-card__media:active .format-card__video,
   .history-card .img-slider:active .img-slider__stage {
     transform: translateY(-6px);
     transition-duration: 100ms;
@@ -4496,6 +4594,7 @@ img.program-card__mark,
   .program-card__shot img,
   img.program-card__mark,
   .history-card__figure img,
+  .format-card__media .format-card__video,
   .history-card .img-slider__stage {
     transition: none;
   }
@@ -4506,6 +4605,8 @@ img.program-card__mark,
   html:not(.is-mobile) .program-card__strip:not(.is-swiping) img.program-card__mark:active,
   .history-card__figure:hover img,
   .history-card__figure:active img,
+  .format-card__media:hover .format-card__video,
+  .format-card__media:active .format-card__video,
   .history-card .img-slider:hover .img-slider__stage,
   .history-card .img-slider:active .img-slider__stage {
     transform: none;
@@ -5926,11 +6027,11 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     text-size-adjust: 100%;
   }
 
+  /* Figma ratio only — a px size overflows the tile on a long nick. */
   .progress-card__who,
   .progress-card__who span,
   .progress-card__ig {
-    font-size: 12px !important;
-    line-height: 14px;
+    line-height: normal;
     letter-spacing: 0;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -6599,75 +6700,22 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     gap: 6px;
   }
 
-  /* Figma 76:985 — 318×450: 4px top, 16px title, staggered sheets, 12px who/@ig. */
-  .progress-card {
-    --pm: calc(var(--card-w) / 317.993);
-    justify-content: flex-start;
-    gap: 11px;
-    padding: 4px 3px;
-  }
-
+  /* The 2×2 face scales with --u; only the 7px week labels stop being legible. */
   .progress-card__title {
-    height: auto;
-    white-space: nowrap;
     font-family: var(--font-en);
-    font-size: 16px;
-    line-height: 1.2;
     letter-spacing: 0;
   }
 
-  .progress-card__stack {
-    width: 100%;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .progress-card__row {
-    height: calc(134.75 * var(--pm));
-  }
-
-  .progress-card__sheet {
-    width: calc(193.539 * var(--pm));
-    height: calc(134.75 * var(--pm));
-    transform: none;
-  }
-
-  .progress-card__sheet--yan {
-    left: 0;
-    top: 0;
-  }
-
-  .progress-card__sheet--polina {
-    left: auto;
-    right: 0;
-    top: 0;
-  }
-
-  .progress-card__sheet--alena {
-    left: 50%;
-    top: 0;
-    transform: translateX(-50%);
-  }
-
+  /* Keep the Figma ratio — a px floor here overflows the tile and lands on
+     the thumb once a nick is as long as @l200kmhinthewronglane. */
   .progress-card__who,
   .progress-card__who span,
   .progress-card__ig {
-    top: 0;
-    width: calc(202.456 * var(--pm));
     font-family: var(--font-en);
-    font-size: 12px;
     line-height: normal;
     letter-spacing: 0;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-  }
-
-  .progress-card__expand {
-    left: auto;
-    right: calc(6.8 * var(--pm));
-    top: calc(3.63 * var(--pm));
-    width: calc(9.62 * var(--pm));
-    height: calc(9.62 * var(--pm));
   }
 
   .progress-card__week {

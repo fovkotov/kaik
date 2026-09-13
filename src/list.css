@@ -226,6 +226,13 @@ body.list .card.is-list-moving {
   pointer-events: none;
 }
 
+/* The list pane owns the close button — the in-card X would double up on it. */
+html body.list .card.is-work-open .work-card__close,
+html body.list .card.is-work-open .work-card__close:not([hidden]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 html body.list .fly-close:not([hidden]) {
   display: flex !important;
   align-items: center;
