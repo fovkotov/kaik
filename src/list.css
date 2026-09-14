@@ -233,6 +233,11 @@ html body.list .card.is-work-open .work-card__close:not([hidden]) {
   pointer-events: none !important;
 }
 
+/* Pane close sits on the right edge — keep the sound chip from sliding under it. */
+html body.list .card.is-work-open .work-card__nav-end {
+  margin-right: 52px;
+}
+
 html body.list .fly-close:not([hidden]) {
   display: flex !important;
   align-items: center;

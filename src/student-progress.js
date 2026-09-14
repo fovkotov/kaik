@@ -360,6 +360,8 @@ function faceHtml() {
 
 function navHtml() {
   const chevron = esc(publicUrl("assets/cards/work/nav-chevron.svg"));
+  const mute = esc(publicUrl("assets/cards/work/sound-off.svg"));
+  const unmute = esc(publicUrl("assets/cards/work/sound-on.svg"));
   return `<div class="work-card__nav" data-work-student-nav>
       <button type="button" class="work-card__nav-btn work-card__nav-btn--prev" data-work-student-prev data-i18n-aria="work.prev" aria-label="${esc(t("work.prev"))}">
         <img class="work-card__nav-chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
@@ -367,9 +369,15 @@ function navHtml() {
       <button type="button" class="work-card__nav-btn work-card__nav-btn--next" data-work-student-next data-i18n-aria="work.next" aria-label="${esc(t("work.next"))}">
         <img class="work-card__nav-chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
       </button>
-      <button type="button" class="work-card__close article-close" data-article-close hidden data-i18n-aria="work.close" aria-label="${esc(t("work.close"))}">
-        <img class="article-close__icon" src="${esc(publicUrl("assets/frame-2136141284.svg"))}" alt="" width="24" height="24" />
-      </button>
+      <div class="work-card__nav-end">
+        <button type="button" class="work-card__close article-close" data-article-close hidden data-i18n-aria="work.close" aria-label="${esc(t("work.close"))}">
+          <img class="article-close__icon" src="${esc(publicUrl("assets/frame-2136141284.svg"))}" alt="" width="24" height="24" />
+        </button>
+        <button type="button" class="work-card__nav-btn work-card__sound" data-progress-sound aria-pressed="false" data-i18n-aria="format.sound.on" aria-label="${esc(t("format.sound.on"))}">
+          <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--off" src="${mute}" alt="" width="20" height="20" draggable="false" />
+          <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--on" src="${unmute}" alt="" width="20" height="20" draggable="false" />
+        </button>
+      </div>
     </div>`;
 }
 
@@ -401,8 +409,6 @@ function weekHtml(week) {
 }
 
 function sheetHtml(student) {
-  const mute = esc(publicUrl("assets/cards/format/mute.svg"));
-  const unmute = esc(publicUrl("assets/cards/format/unmute.svg"));
   return `<div class="work-card__full work-card__full--${esc(student.id)}" data-work-full="${esc(student.id)}">
         <div class="work-card__intro">
           <header class="work-card__head">
@@ -414,10 +420,6 @@ function sheetHtml(student) {
           </header>
           <div class="work-card__video" data-progress-video data-video-start="${student.start}">
             <div class="work-card__frame" data-progress-frame></div>
-            <button type="button" class="work-card__sound" data-progress-sound aria-pressed="false" data-i18n-aria="format.sound.on" aria-label="${esc(t("format.sound.on"))}">
-              <img class="work-card__sound-icon work-card__sound-icon--off" src="${mute}" alt="" width="34" height="34" draggable="false" />
-              <img class="work-card__sound-icon work-card__sound-icon--on" src="${unmute}" alt="" width="34" height="34" draggable="false" />
-            </button>
           </div>
         </div>
         ${student.weeks.map(weekHtml).join("\n        ")}
@@ -453,8 +455,12 @@ function tellPlayer(frame, func) {
   );
 }
 
-function syncSound(media, on) {
-  const btn = media.querySelector("[data-progress-sound]");
+function soundBtn(root) {
+  return root.querySelector("[data-progress-sound]");
+}
+
+function syncSound(root, on) {
+  const btn = soundBtn(root);
   if (!btn) return;
   const key = on ? "format.sound.off" : "format.sound.on";
   btn.setAttribute("aria-pressed", on ? "true" : "false");
@@ -471,7 +477,6 @@ function setVideoActive(media, on) {
   if (!on) {
     frame?.remove();
     media.classList.remove("is-playing");
-    syncSound(media, false);
     return;
   }
   if (frame) return;
@@ -485,19 +490,23 @@ function setVideoActive(media, on) {
   next.loading = "lazy";
   (media.querySelector("[data-progress-frame]") || media).append(next);
   media.classList.add("is-playing");
-  syncSound(media, false);
 }
 
-function bindSound(media) {
-  const btn = media.querySelector("[data-progress-sound]");
+function bindSound(mount) {
+  const btn = soundBtn(mount);
+  btn?.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+  });
   btn?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    const frame = media.querySelector("iframe");
+    const card = mount.closest(CARD) || mount;
+    const id = card.getAttribute("data-work-student") || "";
+    const frame = card.querySelector(`[data-work-full="${id}"] iframe`);
     if (!frame) return;
     const on = btn.getAttribute("aria-pressed") !== "true";
     tellPlayer(frame, on ? "unMute" : "mute");
-    syncSound(media, on);
+    syncSound(mount, on);
   });
 }
 
@@ -607,7 +616,8 @@ function bindFinal(sheet) {
  * players just follow it. Works the same whether program-modal (deck) or
  * list.js drives the attributes.
  */
-function watchCard(card) {
+function watchCard(card, mount) {
+  let last = "";
   const sync = () => {
     const open = card.classList.contains("is-work-open");
     const current = card.getAttribute("data-work-student") || "";
@@ -615,6 +625,11 @@ function watchCard(card) {
       const id = media.closest("[data-work-full]")?.getAttribute("data-work-full") || "";
       setVideoActive(media, open && id === current);
     });
+    const key = open ? current : "";
+    if (key !== last) {
+      last = key;
+      syncSound(mount, false);
+    }
   };
   new MutationObserver(sync).observe(card, {
     attributes: true,
@@ -633,20 +648,20 @@ export function initStudentProgress(scope = document) {
     ${navHtml()}
     ${STUDENTS.map(sheetHtml).join("\n    ")}`;
 
-    mount.querySelectorAll(VIDEO).forEach(bindSound);
+    bindSound(mount);
     mount.querySelectorAll("[data-work-full]").forEach((sheet) => {
       bindShots(sheet);
       bindFinal(sheet);
     });
 
     const card = mount.closest(CARD);
-    if (card) watchCard(card);
+    if (card) watchCard(card, mount);
   });
 
   document.addEventListener("kaik:translated", () => {
-    scope.querySelectorAll(VIDEO).forEach((media) => {
-      const btn = media.querySelector("[data-progress-sound]");
-      syncSound(media, btn?.getAttribute("aria-pressed") === "true");
+    mounts.forEach((mount) => {
+      const btn = soundBtn(mount);
+      syncSound(mount, btn?.getAttribute("aria-pressed") === "true");
     });
   });
 }

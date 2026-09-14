@@ -3658,10 +3658,6 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 
 .work-card__video {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: calc(10 * var(--u));
   width: 100%;
   flex-shrink: 0;
   /* Always interactive — deck focus and list taps ignore [data-progress-video]. */
@@ -3689,72 +3685,14 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   pointer-events: auto;
 }
 
-/* Below the player — YouTube owns every edge of its own frame. The floor keeps
-   it a real tap target once --u shrinks in the list and on mobile. */
-.work-card__sound {
-  display: none;
-  position: relative;
-  z-index: 2;
-  width: max(34px, calc(34 * var(--u)));
-  height: max(34px, calc(34 * var(--u)));
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  line-height: 0;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -webkit-tap-highlight-color: transparent;
-  pointer-events: auto;
-  touch-action: manipulation;
-  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-/* No player, nothing to mute. */
-.work-card__video.is-playing .work-card__sound {
-  display: flex;
-}
-
-/* The shared asset is a white disc for dark video; the sheet under it is white. */
-.work-card__sound-icon {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  filter: invert(1);
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-.work-card__sound[aria-pressed="false"] .work-card__sound-icon--on,
+/* Same frosted chip as prev/next — lives in the nav row, not on the player. */
+.work-card__sound .work-card__sound-icon--on,
 .work-card__sound[aria-pressed="true"] .work-card__sound-icon--off {
-  visibility: hidden;
+  display: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .work-card__sound:hover {
-    transform: scale(1.05);
-  }
-}
-
-.work-card__sound:active {
-  transform: scale(0.97);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .work-card__sound {
-    transition: none;
-  }
-
-  .work-card__sound:hover,
-  .work-card__sound:active {
-    transform: none;
-  }
+.work-card__sound[aria-pressed="true"] .work-card__sound-icon--on {
+  display: block;
 }
 
 .work-card__nav {
@@ -3772,9 +3710,15 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   pointer-events: auto;
 }
 
+.work-card__nav-end {
+  display: flex;
+  align-items: center;
+  gap: inherit;
+  margin-left: auto;
+}
+
 .work-card__nav .work-card__close {
   display: none;
-  margin-left: auto;
   flex: none;
   background: rgba(85, 85, 85, 0.06);
   backdrop-filter: blur(40px);
