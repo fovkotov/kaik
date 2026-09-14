@@ -3686,6 +3686,15 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 }
 
 /* Same frosted chip as prev/next — lives in the nav row, not on the player. */
+.work-card__sound {
+  padding: 0;
+}
+
+.work-card__sound .work-card__sound-icon {
+  width: calc(40 * var(--u));
+  height: calc(40 * var(--u));
+}
+
 .work-card__sound .work-card__sound-icon--on,
 .work-card__sound[aria-pressed="true"] .work-card__sound-icon--off {
   display: none;
@@ -6704,6 +6713,15 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   .card.is-program-open[data-work-card].is-work-open .work-card__nav-chevron {
     width: 20px;
     height: 20px;
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__sound {
+    padding: 0;
+  }
+
+  .card.is-program-open[data-work-card].is-work-open .work-card__sound .work-card__sound-icon {
+    width: 40px;
+    height: 40px;
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__who {

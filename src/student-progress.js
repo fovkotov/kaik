@@ -370,12 +370,12 @@ function navHtml() {
         <img class="work-card__nav-chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
       </button>
       <div class="work-card__nav-end">
-        <button type="button" class="work-card__close article-close" data-article-close hidden data-i18n-aria="work.close" aria-label="${esc(t("work.close"))}">
-          <img class="article-close__icon" src="${esc(publicUrl("assets/frame-2136141284.svg"))}" alt="" width="24" height="24" />
-        </button>
         <button type="button" class="work-card__nav-btn work-card__sound" data-progress-sound aria-pressed="false" data-i18n-aria="format.sound.on" aria-label="${esc(t("format.sound.on"))}">
           <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--off" src="${mute}" alt="" width="20" height="20" draggable="false" />
           <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--on" src="${unmute}" alt="" width="20" height="20" draggable="false" />
+        </button>
+        <button type="button" class="work-card__close article-close" data-article-close hidden data-i18n-aria="work.close" aria-label="${esc(t("work.close"))}">
+          <img class="article-close__icon" src="${esc(publicUrl("assets/frame-2136141284.svg"))}" alt="" width="24" height="24" />
         </button>
       </div>
     </div>`;
