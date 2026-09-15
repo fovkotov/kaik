@@ -12,7 +12,7 @@
  */
 
 import { bindLightboxShot, openLightboxGallery } from "./author-lightbox.js";
-import { initImgSliders } from "./img-slider.js";
+import { initProgramStrips } from "./program-strip.js";
 import { publicUrl } from "./public-url.js";
 import { openProjectViewer, projectSlidesFor } from "./project-viewer.js";
 import { t } from "./scriptik.js";
@@ -411,6 +411,10 @@ function weekHtml(week) {
         </section>`;
 }
 
+/** Same 16∶9 tile as program week-6 project shots (Figma 355.5×200). */
+const FINAL_SW = 355.556;
+const FINAL_SH = 200;
+
 function finalCoverHtml(student, slide) {
   const src = slide?.src || student.cover;
   const w = slide?.width || 1600;
@@ -420,24 +424,32 @@ function finalCoverHtml(student, slide) {
           </div>`;
 }
 
+function finalShotSize(slide) {
+  const w = Number(slide?.width) || 16;
+  const h = Number(slide?.height) || 9;
+  if (!w || !h) return { sw: FINAL_SW, sh: FINAL_SH };
+  return { sw: (w / h) * FINAL_SH, sh: FINAL_SH };
+}
+
 function finalSliderHtml(student, slides) {
-  const chevron = esc(publicUrl("assets/cards/history/chevron.svg"));
-  const many = slides.length > 12 ? " works-feed__slider--many" : "";
-  const figures = slides
-    .map(
-      (slide, i) =>
-        `<figure class="img-slider__slide${i === 0 ? " is-active" : ""}" data-img-slider-slide>
+  const chevron = esc(publicUrl("assets/author/exp2-chevron.svg"));
+  const shots = slides
+    .map((slide, i) => {
+      const { sw, sh } = finalShotSize(slide);
+      return `<figure class="program-card__shot" data-project-viewer="${esc(student.nick)}" style="--sw: ${sw}; --sh: ${sh}">
           <img src="${esc(slide.src)}" alt="" width="${slide.width || 1600}" height="${slide.height || 900}" loading="${i ? "lazy" : "eager"}" decoding="async" draggable="false" />
-        </figure>`,
-    )
+        </figure>`;
+    })
     .join("");
-  return `<div class="img-slider work-card__final${many}" data-img-slider data-progress-final="${esc(student.nick)}" data-project-viewer="${esc(student.nick)}">
-            ${figures}
-            <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="${esc(t("history.prev"))}">
-              <img class="img-slider__chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
+  return `<div class="program-card__strip work-card__final" data-program-strip data-progress-final="${esc(student.nick)}">
+            <div class="program-card__track program-card__track--projects" data-program-track>
+              ${shots}
+            </div>
+            <button type="button" class="program-card__nav program-card__nav--prev" data-program-strip-prev data-i18n-aria="history.prev" aria-label="${esc(t("history.prev"))}">
+              <img class="program-card__chevron" src="${chevron}" alt="" width="34" height="34" draggable="false" />
             </button>
-            <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="${esc(t("history.next"))}">
-              <img class="img-slider__chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
+            <button type="button" class="program-card__nav program-card__nav--next" data-program-strip-next data-i18n-aria="history.next" aria-label="${esc(t("history.next"))}">
+              <img class="program-card__chevron" src="${chevron}" alt="" width="34" height="34" draggable="false" />
             </button>
           </div>`;
 }
@@ -450,11 +462,11 @@ function fillFinal(slot, items) {
   const key = slides.map((s) => s.src).join("\n") || student.cover;
   if (slot.getAttribute("data-final-key") === key) return;
   const wrap = document.createElement("div");
-  wrap.innerHTML = slides.length > 1 ? finalSliderHtml(student, slides) : finalCoverHtml(student, slides[0]);
+  wrap.innerHTML = slides.length ? finalSliderHtml(student, slides) : finalCoverHtml(student);
   const next = wrap.firstElementChild;
   next.setAttribute("data-final-key", key);
   slot.replaceWith(next);
-  if (slides.length > 1) initImgSliders(next.parentElement);
+  if (slides.length) initProgramStrips(next);
   else bindFinal(next);
 }
 
@@ -658,7 +670,7 @@ function bindTap(el, go) {
 
 /** The final cover hands off to the shared experiment-2 deck. */
 function bindFinal(final) {
-  if (!final || final.hasAttribute("data-img-slider")) return;
+  if (!final || final.hasAttribute("data-program-strip") || final.hasAttribute("data-img-slider")) return;
   const img = final.querySelector("img");
   bindTap(final, () => {
     openProjectViewer(final.getAttribute("data-project-viewer"), final).then((opened) => {

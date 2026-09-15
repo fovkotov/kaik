@@ -13,7 +13,7 @@ import { initStudentProgress } from "./student-progress.js";
 import { initWorksFeed } from "./works-feed.js";
 
 const IGNORE =
-  "a, button, [data-tweaks], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-author-work], [data-preview-media], [data-preview-hit], [data-progress-video], [data-project-viewer], [data-format-mute], [data-work-ig], .work-card__who, [data-work-student-prev], [data-work-student-next], input, textarea, select";
+  "a, button, [data-tweaks], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-author-work], [data-preview-media], [data-preview-hit], [data-progress-video], [data-project-viewer], [data-format-mute], [data-work-ig], .work-card__who, [data-work-student-prev], [data-work-student-next], input, textarea, select";
 
 const WORK_OPEN = "[data-work-open]";
 

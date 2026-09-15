@@ -79,6 +79,8 @@ function mediaFromEvent(event, track) {
 }
 
 function bindStrip(root) {
+  if (root.dataset.programStripReady != null) return;
+  root.dataset.programStripReady = "";
   const track = root.querySelector(TRACK);
   const prev = root.querySelector(PREV);
   const next = root.querySelector(NEXT);
@@ -452,5 +454,8 @@ function bindStrip(root) {
 }
 
 export function initProgramStrips(scope = document) {
-  scope.querySelectorAll(STRIP).forEach(bindStrip);
+  const roots = [];
+  if (scope.matches?.(STRIP)) roots.push(scope);
+  scope.querySelectorAll?.(STRIP).forEach((el) => roots.push(el));
+  roots.forEach(bindStrip);
 }

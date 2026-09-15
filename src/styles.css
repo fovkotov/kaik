@@ -3586,6 +3586,7 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 
 .work-card {
   --u: calc(var(--card-w) / 709);
+  --program-side: calc(48 * var(--u));
   --work-chrome-gap: calc(24 * var(--u));
   --work-ink: rgba(0, 0, 0, 0.4);
   --work-rule: rgba(0, 0, 0, 0.08);
@@ -3908,31 +3909,9 @@ html.is-focus-landed .card.is-program-open[data-work-card] .work-card {
   cursor: pointer;
 }
 
-/* Same img-slider chrome as the program / history cards, full sheet width. */
-.work-card__final.img-slider {
-  width: 100%;
-  margin: 0;
-}
-
-.work-card__final .img-slider__stage {
-  height: auto;
-  aspect-ratio: 16 / 9;
-}
-
-.work-card__final .img-slider__slide {
-  align-items: center;
-  justify-content: center;
-}
-
-.work-card__final .img-slider__slide img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.work-card__final.works-feed__slider--many .img-slider__dots {
-  display: none;
+/* Same horizontal project strip as the program card, bleeding to the sheet. */
+.work-card__final.program-card__strip {
+  margin-top: 0;
 }
 
 .work-card__photo img {
@@ -6703,6 +6682,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   }
 
   .card.is-program-open .work-card__full {
+    --program-side: 16px;
     padding: 0 16px calc(72px + env(safe-area-inset-bottom, 0px));
     gap: 24px;
   }
