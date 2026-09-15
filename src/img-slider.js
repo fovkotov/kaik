@@ -1,5 +1,6 @@
 import { isMobile } from "./tweaks.js";
 import { openLightboxGallery } from "./author-lightbox.js";
+import { openProjectViewer } from "./project-viewer.js";
 import { publicUrl } from "./public-url.js";
 import { createPagerState, layoutWeightedDots } from "./viewer-pager.js";
 
@@ -537,13 +538,19 @@ function bindSlider(root) {
         return;
       }
       const tapNext = root.hasAttribute("data-slider-tap-next");
-      if (!articleOpen() && !tapNext) return;
+      const projectKey = root.getAttribute("data-project-viewer") || "";
+      if (!articleOpen(root) && !tapNext && !projectKey) return;
       event.preventDefault();
       event.stopPropagation();
       // Desktop: open the shared fullscreen lightbox (author-works chrome).
       // Mobile: keep tap-to-advance; drag/swipe handles the rest.
       // `data-slider-tap-next` (works feed): a click always flips the slide.
+      // Progress finals: the same tap opens that student's experiment-2 deck.
       if (!isMobile() && !tapNext) {
+        if (projectKey) {
+          openProjectViewer(projectKey, root);
+          return;
+        }
         const items = galleryItems(slides);
         if (items.length) openLightboxGallery(items, pending, root);
         return;

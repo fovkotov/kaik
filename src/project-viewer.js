@@ -112,6 +112,11 @@ function deckFor(items, key) {
   return slidesOf([...mine].sort((a, b) => newest(b, a)));
 }
 
+/** Same deck the fullscreen viewer opens — reuse it for in-card sliders. */
+export function projectSlidesFor(items, key) {
+  return deckFor(items, key);
+}
+
 function slidesOf(works) {
   const out = [];
   works.forEach((work) => {

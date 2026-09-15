@@ -3908,6 +3908,33 @@ html.is-focus-landed .card.is-program-open[data-work-card] .work-card {
   cursor: pointer;
 }
 
+/* Same img-slider chrome as the program / history cards, full sheet width. */
+.work-card__final.img-slider {
+  width: 100%;
+  margin: 0;
+}
+
+.work-card__final .img-slider__stage {
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+.work-card__final .img-slider__slide {
+  align-items: center;
+  justify-content: center;
+}
+
+.work-card__final .img-slider__slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.work-card__final.works-feed__slider--many .img-slider__dots {
+  display: none;
+}
+
 .work-card__photo img {
   position: absolute;
   inset: 0;

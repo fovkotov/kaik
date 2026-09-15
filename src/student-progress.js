@@ -12,9 +12,12 @@
  */
 
 import { bindLightboxShot, openLightboxGallery } from "./author-lightbox.js";
+import { initImgSliders } from "./img-slider.js";
 import { publicUrl } from "./public-url.js";
-import { openProjectViewer } from "./project-viewer.js";
+import { openProjectViewer, projectSlidesFor } from "./project-viewer.js";
 import { t } from "./scriptik.js";
+import { loadWorksCatalog } from "./works/catalog.js";
+import { subscribeWorksCatalog } from "./works/live.js";
 
 const MOUNT = "[data-progress-mount]";
 const CARD = "[data-work-card]";
@@ -408,6 +411,64 @@ function weekHtml(week) {
         </section>`;
 }
 
+function finalCoverHtml(student, slide) {
+  const src = slide?.src || student.cover;
+  const w = slide?.width || 1600;
+  const h = slide?.height || 900;
+  return `<div class="work-card__photo work-card__photo--final" style="--ar: 16 / 9" data-progress-final="${esc(student.nick)}" data-project-viewer="${esc(student.nick)}" role="button" tabindex="0">
+            <img src="${esc(src)}" alt="" width="${w}" height="${h}" loading="lazy" decoding="async" draggable="false" />
+          </div>`;
+}
+
+function finalSliderHtml(student, slides) {
+  const chevron = esc(publicUrl("assets/cards/history/chevron.svg"));
+  const many = slides.length > 12 ? " works-feed__slider--many" : "";
+  const figures = slides
+    .map(
+      (slide, i) =>
+        `<figure class="img-slider__slide${i === 0 ? " is-active" : ""}" data-img-slider-slide>
+          <img src="${esc(slide.src)}" alt="" width="${slide.width || 1600}" height="${slide.height || 900}" loading="${i ? "lazy" : "eager"}" decoding="async" draggable="false" />
+        </figure>`,
+    )
+    .join("");
+  return `<div class="img-slider work-card__final${many}" data-img-slider data-progress-final="${esc(student.nick)}" data-project-viewer="${esc(student.nick)}">
+            ${figures}
+            <button type="button" class="img-slider__nav img-slider__nav--prev" data-img-slider-prev data-i18n-aria="history.prev" aria-label="${esc(t("history.prev"))}">
+              <img class="img-slider__chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
+            </button>
+            <button type="button" class="img-slider__nav img-slider__nav--next" data-img-slider-next data-i18n-aria="history.next" aria-label="${esc(t("history.next"))}">
+              <img class="img-slider__chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
+            </button>
+          </div>`;
+}
+
+function fillFinal(slot, items) {
+  const nick = slot.getAttribute("data-progress-final") || "";
+  const student = STUDENTS.find((s) => s.nick === nick);
+  if (!student) return;
+  const slides = projectSlidesFor(items, nick);
+  const key = slides.map((s) => s.src).join("\n") || student.cover;
+  if (slot.getAttribute("data-final-key") === key) return;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = slides.length > 1 ? finalSliderHtml(student, slides) : finalCoverHtml(student, slides[0]);
+  const next = wrap.firstElementChild;
+  next.setAttribute("data-final-key", key);
+  slot.replaceWith(next);
+  if (slides.length > 1) initImgSliders(next.parentElement);
+  else bindFinal(next);
+}
+
+function hydrateFinals(scope) {
+  const paint = async () => {
+    const catalog = await loadWorksCatalog();
+    scope.querySelectorAll("[data-progress-final]").forEach((slot) => {
+      fillFinal(slot, catalog.items || []);
+    });
+  };
+  paint();
+  subscribeWorksCatalog(paint);
+}
+
 function sheetHtml(student) {
   return `<div class="work-card__full work-card__full--${esc(student.id)}" data-work-full="${esc(student.id)}">
         <div class="work-card__intro">
@@ -427,9 +488,7 @@ function sheetHtml(student) {
           <h2 class="work-card__week-head">
             <span class="work-card__week-title" data-i18n="work.final.ready">${esc(t("work.final.ready"))}</span>
           </h2>
-          <div class="work-card__photo work-card__photo--final" style="--ar: 1600 / 900" data-project-viewer="${esc(student.nick)}" role="button" tabindex="0">
-            <img src="${esc(student.cover)}" alt="" width="1600" height="900" loading="lazy" decoding="async" draggable="false" />
-          </div>
+          ${finalCoverHtml(student)}
         </section>
       </div>`;
 }
@@ -598,9 +657,8 @@ function bindTap(el, go) {
 }
 
 /** The final cover hands off to the shared experiment-2 deck. */
-function bindFinal(sheet) {
-  const final = sheet.querySelector("[data-project-viewer]");
-  if (!final) return;
+function bindFinal(final) {
+  if (!final || final.hasAttribute("data-img-slider")) return;
   const img = final.querySelector("img");
   bindTap(final, () => {
     openProjectViewer(final.getAttribute("data-project-viewer"), final).then((opened) => {
@@ -651,12 +709,14 @@ export function initStudentProgress(scope = document) {
     bindSound(mount);
     mount.querySelectorAll("[data-work-full]").forEach((sheet) => {
       bindShots(sheet);
-      bindFinal(sheet);
+      bindFinal(sheet.querySelector("[data-progress-final]"));
     });
 
     const card = mount.closest(CARD);
     if (card) watchCard(card, mount);
   });
+
+  hydrateFinals(scope);
 
   document.addEventListener("kaik:translated", () => {
     mounts.forEach((mount) => {
