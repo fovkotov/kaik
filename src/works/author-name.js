@@ -80,3 +80,39 @@ export function localizedAuthor(name, locale) {
   const value = String(name ?? "");
   return locale === "ru" ? value : latinizeName(value);
 }
+
+/** Known first-name spellings for the English dropcap pill. */
+const FIRST_NAMES = {
+  nadya: "Nadya",
+  anya: "Anya",
+  alena: "Alyona",
+  alyona: "Alyona",
+  andrei: "Andrei",
+  roma: "Roma",
+  yan: "Yan",
+  katya: "Katya",
+  katia: "Katia",
+  kira: "Kira",
+  masha: "Masha",
+  danil: "Danil",
+  polina: "Polina",
+  ksusha: "Ksusha",
+  bogdan: "Bogdan",
+};
+
+function titleName(word) {
+  const key = word.toLowerCase();
+  if (FIRST_NAMES[key]) return FIRST_NAMES[key];
+  return word ? word[0].toUpperCase() + word.slice(1) : word;
+}
+
+/** One-line dropcap credit: `Nadya @oh_narcy 1` — no "stream" label. */
+export function formatDropcapCredit(author, stream) {
+  const latin = localizedAuthor(author, "en").trim();
+  const tokens = latin.split(/\s+/).filter(Boolean);
+  const nickAt = tokens.findIndex((token) => token.startsWith("@"));
+  const nameTokens = nickAt === -1 ? tokens : tokens.slice(0, nickAt);
+  const nick = nickAt === -1 ? "" : tokens[nickAt];
+  const name = nameTokens.map(titleName).join(" ");
+  return [name, nick, stream].filter((part) => part !== "" && part != null).join(" ");
+}

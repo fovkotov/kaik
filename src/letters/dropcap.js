@@ -12,6 +12,7 @@ import {
 import { firstGrapheme, normalizeChar } from "./shared.js";
 import { svgToInline } from "./svg.js";
 import { sameCatalog, subscribeCatalog } from "./live.js";
+import { formatDropcapCredit } from "../works/author-name.js";
 
 /** First paint always opens on this gothic L. Click still cycles lettering. */
 const FIRST_DROPCAP_ID = "ltr_53a64d7a";
@@ -124,7 +125,6 @@ function ensurePopover() {
   el.dataset.dropcapPopover = "";
   el.innerHTML = `
     <p class="dropcap-popover__author" data-pop-author></p>
-    <p class="dropcap-popover__stream" data-pop-stream></p>
     <span class="dropcap-popover__arrow" aria-hidden="true"></span>
   `;
   document.body.append(el);
@@ -132,13 +132,7 @@ function ensurePopover() {
 }
 
 function locale() {
-  return document.documentElement.lang === "ru" ? "ru" : "en";
-}
-
-function copy() {
-  return locale() === "ru"
-    ? { stream: (s) => `поток ${s}` }
-    : { stream: (s) => `stream ${s}` };
+  return "en";
 }
 
 function placePopover(popover, anchor) {
@@ -174,8 +168,10 @@ function showPopover(button, entry) {
   }
   const popover = ensurePopover();
   popover.hidden = false;
-  popover.querySelector("[data-pop-author]").textContent = entry.author;
-  popover.querySelector("[data-pop-stream]").textContent = copy().stream(entry.stream);
+  popover.querySelector("[data-pop-author]").textContent = formatDropcapCredit(
+    entry.author,
+    entry.stream,
+  );
   popover.dataset.slot = button.dataset.slot;
   placePopover(popover, button);
 }
@@ -208,9 +204,7 @@ function applyMeta(button, entry) {
   button.dataset.svgStamp = svgStamp(entry);
   button.setAttribute(
     "aria-label",
-    locale() === "ru"
-      ? `Буквица ${entry.char}, ${entry.author}, поток ${entry.stream}`
-      : `Drop cap ${entry.char}, ${entry.author}, stream ${entry.stream}`,
+    `Drop cap ${entry.char}, ${formatDropcapCredit(entry.author, entry.stream)}`,
   );
 }
 

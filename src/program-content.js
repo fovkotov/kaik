@@ -4,24 +4,29 @@ export const PROGRAM_HTML = `
     <h2 class="program-week__title">1 week</h2>
     <ul class="program-list">
       <li class="program-row">
-        <p class="program-row__name">История леттеринга и отличие от каллиграфии</p>
+        <p class="program-row__name">History of lettering (and why it differs from calligraphy)</p>
         <p class="program-row__when"></p>
-        <p class="program-row__kind">запись</p>
+        <p class="program-row__kind">recording</p>
       </li>
       <li class="program-row">
-        <p class="program-row__name">Инструменты и пайплайны</p>
-        <p class="program-row__when">запись</p>
-        <p class="program-row__kind">запись</p>
+        <p class="program-row__name">Tools and pipelines</p>
+        <p class="program-row__when"></p>
+        <p class="program-row__kind">recording</p>
       </li>
       <li class="program-row">
-        <p class="program-row__name">Авторы, насмотренность, референсы</p>
-        <p class="program-row__when">запись</p>
-        <p class="program-row__kind">запись</p>
+        <p class="program-row__name">Artists, inspiration, references</p>
+        <p class="program-row__when"></p>
+        <p class="program-row__kind">recording</p>
       </li>
       <li class="program-row">
-        <p class="program-row__name">Обсуждение тем для финального проекта</p>
-        <p class="program-row__when">17 сентября, Четверг</p>
-        <p class="program-row__kind program-row__kind--live">звонок</p>
+        <p class="program-row__name">Discussion of topics for the final project</p>
+        <p class="program-row__when">9 November (Mon)</p>
+        <p class="program-row__kind program-row__kind--live">call</p>
+      </li>
+      <li class="program-row">
+        <p class="program-row__name">Gothic calligraphy</p>
+        <p class="program-row__when">12 November (Thu)</p>
+        <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
     </ul>
   </section>
@@ -29,60 +34,60 @@ export const PROGRAM_HTML = `
     <h2 class="program-week__title">2 week</h2>
     <ul class="program-list">
       <li class="program-row">
-        <p class="program-row__name">Готическая каллиграфия</p>
-        <p class="program-row__when">21 сентября, Понедельник</p>
-        <p class="program-row__kind program-row__kind--live">воркшоп</p>
+        <p class="program-row__name">Five Exercises</p>
+        <p class="program-row__when">16 November (Mon)</p>
+        <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
       <li class="program-row">
-        <p class="program-row__name">Пять стартовых упражнений</p>
-        <p class="program-row__when">24 сентября, Четверг</p>
-        <p class="program-row__kind program-row__kind--live">воркшоп</p>
+        <p class="program-row__name">Converting (lettering) to digital</p>
+        <p class="program-row__when"></p>
+        <p class="program-row__kind">recording</p>
       </li>
       <li class="program-row">
-        <p class="program-row__name">Перевод надписи в диджитал</p>
-        <p class="program-row__when">запись</p>
-        <p class="program-row__kind">запись</p>
+        <p class="program-row__name">Experimental typography: what are layout rules and how to break them</p>
+        <p class="program-row__when"></p>
+        <p class="program-row__kind">recording</p>
       </li>
       <li class="program-row">
-        <p class="program-row__name">Экспериментальная типографика: правила вёрстки и&nbsp;их разрушение</p>
-        <p class="program-row__when">запись</p>
-        <p class="program-row__kind">запись</p>
+        <p class="program-row__name">Lettering stylisation</p>
+        <p class="program-row__when">19 November (Thu)</p>
+        <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
     </ul>
   </section>
   <section class="program-week">
     <h2 class="program-week__title">3 week</h2>
     <ul class="program-list">
+      <li class="program-row program-row--no-when">
+        <p class="program-row__name">Modular typography</p>
+        <p class="program-row__kind">recording</p>
+      </li>
+      <li class="program-row program-row--no-when">
+        <p class="program-row__name">Lettering + typography, working with titles</p>
+        <p class="program-row__kind">recording</p>
+      </li>
       <li class="program-row">
-        <p class="program-row__name">Вариативная стилизация надписи</p>
-        <p class="program-row__when">28 сентября, Понедельник</p>
-        <p class="program-row__kind program-row__kind--live">воркшоп</p>
-      </li>
-      <li class="program-row program-row--no-when">
-        <p class="program-row__name">Модульная типографика</p>
-        <p class="program-row__kind">запись</p>
-      </li>
-      <li class="program-row program-row--no-when">
-        <p class="program-row__name">Леттеринг + типографика, работа с титрами</p>
-        <p class="program-row__kind">запись</p>
+        <p class="program-row__name">Modular typography</p>
+        <p class="program-row__when">26 November (Thu)</p>
+        <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
     </ul>
   </section>
   <section class="program-week">
     <h2 class="program-week__title">4 week</h2>
     <ul class="program-list">
+      <li class="program-row program-row--no-when">
+        <p class="program-row__name">Working with effects</p>
+        <p class="program-row__kind">recording</p>
+      </li>
+      <li class="program-row program-row--no-when">
+        <p class="program-row__name">AI for letters</p>
+        <p class="program-row__kind">recording</p>
+      </li>
       <li class="program-row">
-        <p class="program-row__name">Модульная типографика</p>
-        <p class="program-row__when">5 октября, Понедельник</p>
-        <p class="program-row__kind program-row__kind--live">воркшоп</p>
-      </li>
-      <li class="program-row program-row--no-when">
-        <p class="program-row__name">Работа с эффектами</p>
-        <p class="program-row__kind">запись</p>
-      </li>
-      <li class="program-row program-row--no-when">
-        <p class="program-row__name">Нейросети для рисования/обработки букв</p>
-        <p class="program-row__kind">запись</p>
+        <p class="program-row__name">Final Project consultation 1</p>
+        <p class="program-row__when">30 November (Mon)</p>
+        <p class="program-row__kind program-row__kind--live">call</p>
       </li>
     </ul>
   </section>
@@ -90,9 +95,9 @@ export const PROGRAM_HTML = `
     <h2 class="program-week__title">5 week</h2>
     <ul class="program-list">
       <li class="program-row">
-        <p class="program-row__name">Консультация-предпросмотр</p>
-        <p class="program-row__when">12 октября, Понедельник</p>
-        <p class="program-row__kind program-row__kind--live">звонок</p>
+        <p class="program-row__name">Final Project consultation 2</p>
+        <p class="program-row__when">3 December (Thu)</p>
+        <p class="program-row__kind program-row__kind--live">call</p>
       </li>
     </ul>
   </section>
@@ -100,14 +105,14 @@ export const PROGRAM_HTML = `
     <h2 class="program-week__title">6 week</h2>
     <ul class="program-list">
       <li class="program-row">
-        <p class="program-row__name">Финальный просмотр работ</p>
-        <p class="program-row__when">19 октября, Понедельник</p>
-        <p class="program-row__kind program-row__kind--live">просмотр</p>
+        <p class="program-row__name">Final Project Presentations</p>
+        <p class="program-row__when">10 December (Thu)</p>
+        <p class="program-row__kind program-row__kind--live">review</p>
       </li>
       <li class="program-row">
-        <p class="program-row__name">Что делать (с жизнью) после курса</p>
-        <p class="program-row__when">22 октября, Четверг</p>
-        <p class="program-row__kind program-row__kind--live">звонок</p>
+        <p class="program-row__name">What to do (with your life) after the course</p>
+        <p class="program-row__when">14 December (Mon)</p>
+        <p class="program-row__kind program-row__kind--live">call</p>
       </li>
     </ul>
   </section>

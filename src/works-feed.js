@@ -74,7 +74,7 @@ function artMarkup(src, item) {
 }
 
 function sliderMarkup(item, files, opts) {
-  const chevron = esc(publicUrl("assets/cards/history/chevron.svg"));
+  const chevron = esc(publicUrl("assets/author/exp2-chevron.svg"));
   const slides = files
     .map(
       (file, i) =>

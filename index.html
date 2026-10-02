@@ -16,33 +16,12 @@
     </script>
     <!-- /Yandex.Metrika counter -->
     <script>
-      /* Scriptik boot: lock html lang to the browser (or saved choice) before paint. */
+      /* Course UI is English-only. Drop a leftover ru override before paint. */
       (function () {
-        var KEY = "kaik-course-locale";
-        var SUPPORTED = { en: 1, ru: 1 };
-        function pick(value) {
-          if (!value) return null;
-          var base = String(value).toLowerCase().split("-")[0];
-          return SUPPORTED[base] ? base : null;
-        }
-        var locale = null;
-        try {
-          locale = pick(localStorage.getItem(KEY));
-        } catch (e) {}
-        if (!locale) {
-          var list = navigator.languages || [];
-          for (var i = 0; i < list.length; i++) {
-            locale = pick(list[i]);
-            if (locale) break;
-          }
-          if (!locale) {
-            locale = pick(navigator.language) || pick(navigator.userLanguage);
-          }
-        }
-        locale = locale || "en";
-        document.documentElement.lang = locale;
-        document.documentElement.setAttribute("data-locale", locale);
-        document.documentElement.classList.toggle("lang-ru", locale === "ru");
+        try { localStorage.removeItem("kaik-course-locale"); } catch (e) {}
+        document.documentElement.lang = "en";
+        document.documentElement.setAttribute("data-locale", "en");
+        document.documentElement.classList.remove("lang-ru");
       })();
     </script>
     <script type="application/json" id="kaik-dropcap-catalog">{"en":"L","ru":"Э","letters":[{"id":"ltr_d094952c","file":"ltr_d094952c.svg","char":"L"},{"id":"ltr_9c88f6f0","file":"ltr_9c88f6f0.svg","char":"L"},{"id":"ltr_a7085a04","file":"ltr_a7085a04.svg","char":"L"},{"id":"ltr_d2559774","file":"ltr_d2559774.svg","char":"L"},{"id":"ltr_49304cb0","file":"ltr_49304cb0.svg","char":"L"},{"id":"ltr_98d9510f","file":"ltr_98d9510f.svg","char":"L"},{"id":"ltr_25a367eb","file":"ltr_25a367eb.svg","char":"L"},{"id":"ltr_49efced6","file":"ltr_49efced6.svg","char":"L"},{"id":"ltr_53a64d7a","file":"ltr_53a64d7a.svg","char":"L"},{"id":"ltr_f268d1c2","file":"ltr_f268d1c2.svg","char":"L"}]}</script>
@@ -182,27 +161,22 @@
             </script>
           <div class="panel__copy">
             <p class="panel__title" data-i18n="title">ETTER II</p>
-            <p class="panel__dates" data-i18n="dates">from 14 september
-to 26 october</p>
-            <p class="panel__dates panel__dates--short" data-i18n="dates.short">14 september – 26 october</p>
-            <p class="panel__dates panel__dates--stack" data-i18n="dates.stack">14 september
-26 october</p>
-            <a class="panel__enroll" href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform" target="_blank" rel="noopener noreferrer" data-i18n="nav.enroll">join waitlist</a>
+            <p class="panel__dates" data-i18n="dates">from 9 Nov.
+to 14 Dec.</p>
+            <p class="panel__dates panel__dates--short" data-i18n="dates.short">9 Nov. — 14 Dec.</p>
+            <p class="panel__dates panel__dates--stack" data-i18n="dates.stack">9 Nov.
+14 Dec.</p>
+            <a class="panel__enroll" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-enroll><span data-i18n="nav.enroll">enroll</span> <span class="enroll-price">€250</span></a>
           </div>
         </div>
       </div>
 
       <div class="panel__chrome">
         <nav class="panel__nav" aria-label="Course">
-          <a class="panel__enroll" href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform" target="_blank" rel="noopener noreferrer" data-i18n="nav.enroll">join waitlist</a>
+          <a class="panel__enroll" href="https://web.tribute.tg/p/AOo" target="_top" rel="noopener noreferrer" data-enroll><span data-i18n="nav.enroll">enroll</span> <span class="enroll-price">€250</span></a>
           <a href="/program.html" data-program-nav data-i18n="nav.program">program</a>
           <a href="https://kaik.pictures/letter_works" target="_blank" rel="noopener" data-work-nav><span class="work-nav__label" data-i18n="nav.work">student work</span><img class="work-nav__arrow" src="/assets/student-work-arrow.svg" alt="" width="11" height="19" draggable="false" aria-hidden="true" /></a>
         </nav>
-        <div class="panel__lang" role="group" data-i18n-aria="lang.label" aria-label="Language">
-          <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">en</button>
-          <span class="lang-sep" aria-hidden="true">/</span>
-          <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">ru</button>
-        </div>
       </div>
       </div>
     </aside>
@@ -243,14 +217,14 @@ to 26 october</p>
         data-tip="-18"
         style="--card-color: #ffffff; --z: 10"
       >
-        <img class="card__art card__art--cover" src="/assets/cards/01.webp" alt="" draggable="false" />
+        <img class="card__art card__art--cover" src="/assets/cards/letter-eng-poster.webp" alt="" draggable="false" />
         <div class="landing-card" data-landing-card-face>
           <div class="landing-card__hero">
             <img
-              src="/assets/cards/landing-hero.png"
+              src="/assets/cards/letter-eng-poster.webp"
               alt=""
-              width="608"
-              height="564"
+              width="896"
+              height="1200"
               draggable="false"
             />
           </div>
@@ -258,33 +232,21 @@ to 26 october</p>
             <div class="landing-card__intro">
               <div class="landing-card__meta">
                 <p class="landing-card__title" data-i18n="landing.title">LETTER II</p>
-                <p class="landing-card__dates" data-i18n="landing.dates">from 14 september
-to 26 october</p>
+                <p class="landing-card__dates" data-i18n="landing.dates">from 9 Nov.
+to 14 Dec.</p>
               </div>
               <a
                 class="landing-card__enroll"
-                href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform"
-                target="_blank"
+                href="https://web.tribute.tg/p/AOo"
+                target="_top"
                 rel="noopener noreferrer"
-                data-i18n="nav.enroll"
-                >join waitlist</a
+                data-enroll
+                ><span data-i18n="nav.enroll">enroll</span> <span class="enroll-price">€250</span></a
               >
             </div>
             <nav class="landing-card__nav" aria-label="Course">
               <a href="/program.html" data-program-nav data-i18n="nav.program">program</a>
               <a href="https://kaik.pictures/letter_works" target="_blank" rel="noopener" data-work-nav><span class="work-nav__label" data-i18n="nav.work">student work</span><img class="work-nav__arrow" src="/assets/student-work-arrow.svg" alt="" width="11" height="19" draggable="false" aria-hidden="true" /></a>
-              <div
-                class="landing-card__lang"
-                role="group"
-                data-i18n-aria="lang.label"
-                aria-label="Language"
-              >
-                <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">
-                  en
-                </button>
-                <span class="lang-sep" aria-hidden="true">/</span>
-                <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">ru</button>
-              </div>
             </nav>
           </div>
         </div>
@@ -581,29 +543,29 @@ to 26 october</p>
               <div class="program-card__body">
                 <ul class="program-card__list">
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w1.a">История леттеринга и отличие от каллиграфии</span>
+                    <span class="program-card__name" data-i18n="program.w1.a">History of lettering (and why it differs from calligraphy)</span>
                     <span class="program-card__when"></span>
-                    <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                    <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                   </li>
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w1.b">Инструменты и пайплайны</span>
+                    <span class="program-card__name" data-i18n="program.w1.b">Tools and pipelines</span>
                     <span class="program-card__when"></span>
-                    <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                    <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                   </li>
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w1.c">Авторы, насмотренность, референсы</span>
+                    <span class="program-card__name" data-i18n="program.w1.c">Artists, inspiration, references</span>
                     <span class="program-card__when"></span>
-                    <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                    <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                   </li>
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w1.d">Обсуждение тем для финального проекта</span>
-                    <span class="program-card__when" data-i18n="program.date.sep14">14 сентября, Понедельник</span>
-                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">звонок</span>
+                    <span class="program-card__name" data-i18n="program.w1.d">Discussion of topics for the final project</span>
+                    <span class="program-card__when" data-i18n="program.date.nov9">9 November (Mon)</span>
+                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">call</span>
                   </li>
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w1.e">Готическая каллиграфия</span>
-                    <span class="program-card__when" data-i18n="program.date.sep17">17 сентября, Четверг</span>
-                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                    <span class="program-card__name" data-i18n="program.w1.e">Gothic calligraphy</span>
+                    <span class="program-card__when" data-i18n="program.date.nov12">12 November (Thu)</span>
+                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">workshop</span>
                   </li>
                 </ul>
                 <div class="program-card__strip" data-program-strip>
@@ -643,9 +605,9 @@ to 26 october</p>
               <div class="program-card__body">
                 <ul class="program-card__list">
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w2.a">Пять стартовых упражнений</span>
-                    <span class="program-card__when" data-i18n="program.date.sep21">21 сентября, Четверг</span>
-                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                    <span class="program-card__name" data-i18n="program.w2.a">Five Exercises</span>
+                    <span class="program-card__when" data-i18n="program.date.nov16">16 November (Mon)</span>
+                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">workshop</span>
                   </li>
                 </ul>
                 <div class="program-card__strip" data-program-strip>
@@ -681,19 +643,19 @@ to 26 october</p>
                 </div>
                 <ul class="program-card__list">
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w2.b">Перевод надписи в диджитал</span>
+                    <span class="program-card__name" data-i18n="program.w2.b">Converting (lettering) to digital</span>
                     <span class="program-card__when"></span>
-                    <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                    <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                   </li>
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w2.c">Экспериментальная типографика: правила вёрстки и их разрушение</span>
+                    <span class="program-card__name" data-i18n="program.w2.c">Experimental typography: what are layout rules and how to break them</span>
                     <span class="program-card__when"></span>
-                    <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                    <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                   </li>
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w2.d">Вариативная стилизация надписи</span>
-                    <span class="program-card__when" data-i18n="program.date.oct24">24 октября, Четверг</span>
-                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                    <span class="program-card__name" data-i18n="program.w2.d">Lettering stylisation</span>
+                    <span class="program-card__when" data-i18n="program.date.nov19">19 November (Thu)</span>
+                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">workshop</span>
                   </li>
                 </ul>
                 <div class="program-card__strip" data-program-strip>
@@ -732,17 +694,17 @@ to 26 october</p>
               <div class="program-card__body">
                 <ul class="program-card__list">
                   <li class="program-card__row program-card__row--no-when">
-                    <span class="program-card__name" data-i18n="program.w3.a">Модульная типографика</span>
-                    <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                    <span class="program-card__name" data-i18n="program.w3.a">Modular typography</span>
+                    <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                   </li>
                   <li class="program-card__row program-card__row--no-when">
-                    <span class="program-card__name" data-i18n="program.w3.b">Леттеринг + типографика, работа с титрами</span>
-                    <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                    <span class="program-card__name" data-i18n="program.w3.b">Lettering + typography, working with titles</span>
+                    <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                   </li>
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w3.c">Модульная типографика</span>
-                    <span class="program-card__when" data-i18n="program.date.oct1">1 октября, Четверг</span>
-                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">воркшоп</span>
+                    <span class="program-card__name" data-i18n="program.w3.c">Modular typography</span>
+                    <span class="program-card__when" data-i18n="program.date.nov26">26 November (Thu)</span>
+                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.workshop">workshop</span>
                   </li>
                 </ul>
                 <div class="program-card__strip" data-program-strip>
@@ -773,17 +735,17 @@ to 26 october</p>
               <h2 class="program-card__week-title" data-i18n="program.w4">4 week</h2>
               <ul class="program-card__list">
                 <li class="program-card__row program-card__row--no-when">
-                  <span class="program-card__name" data-i18n="program.w4.a">Работа с эффектами</span>
-                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                  <span class="program-card__name" data-i18n="program.w4.a">Working with effects</span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                 </li>
                 <li class="program-card__row program-card__row--no-when">
-                  <span class="program-card__name" data-i18n="program.w4.b">Нейросети для рисования/обработки букв</span>
-                  <span class="program-card__kind" data-i18n="program.kind.rec">запись</span>
+                  <span class="program-card__name" data-i18n="program.w4.b">AI for letters</span>
+                  <span class="program-card__kind" data-i18n="program.kind.rec">recording</span>
                 </li>
                 <li class="program-card__row">
-                  <span class="program-card__name" data-i18n="program.w4.c">Консультация по финальным проектам</span>
-                  <span class="program-card__when" data-i18n="program.date.oct5">5 октября, Понедельник</span>
-                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">звонок</span>
+                  <span class="program-card__name" data-i18n="program.w4.c">Final Project consultation 1</span>
+                  <span class="program-card__when" data-i18n="program.date.nov30">30 November (Mon)</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">call</span>
                 </li>
               </ul>
             </section>
@@ -791,9 +753,9 @@ to 26 october</p>
               <h2 class="program-card__week-title" data-i18n="program.w5">5 week</h2>
               <ul class="program-card__list">
                 <li class="program-card__row">
-                  <span class="program-card__name" data-i18n="program.w5.a">Консультация-предпросмотр</span>
-                  <span class="program-card__when" data-i18n="program.date.oct8">8 октября, Четверг</span>
-                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">звонок</span>
+                  <span class="program-card__name" data-i18n="program.w5.a">Final Project consultation 2</span>
+                  <span class="program-card__when" data-i18n="program.date.dec3">3 December (Thu)</span>
+                  <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">call</span>
                 </li>
               </ul>
             </section>
@@ -802,9 +764,9 @@ to 26 october</p>
               <div class="program-card__body">
                 <ul class="program-card__list">
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w6.a">Финальный просмотр работ</span>
-                    <span class="program-card__when" data-i18n="program.date.oct15">15 октября, Четверг</span>
-                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.review">просмотр</span>
+                    <span class="program-card__name" data-i18n="program.w6.a">Final Project Presentations</span>
+                    <span class="program-card__when" data-i18n="program.date.dec10">10 December (Thu)</span>
+                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.review">review</span>
                   </li>
                 </ul>
                 <div class="program-card__strip" data-program-strip>
@@ -831,9 +793,9 @@ to 26 october</p>
                 </div>
                 <ul class="program-card__list">
                   <li class="program-card__row">
-                    <span class="program-card__name" data-i18n="program.w6.b">Что делать (с жизнью) после курса</span>
-                    <span class="program-card__when" data-i18n="program.date.oct19">19 октября, Четверг</span>
-                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">звонок</span>
+                    <span class="program-card__name" data-i18n="program.w6.b">What to do (with your life) after the course</span>
+                    <span class="program-card__when" data-i18n="program.date.dec14">14 December (Mon)</span>
+                    <span class="program-card__kind program-card__kind--live" data-i18n="program.kind.call">call</span>
                   </li>
                 </ul>
               </div>
@@ -841,7 +803,7 @@ to 26 october</p>
             <section class="program-card__week program-card__week--practice">
               <div class="program-card__practice-head">
                 <h2 class="program-card__practice-title" data-i18n="program.practice">daily practice</h2>
-                <p class="program-card__practice-lead" data-i18n="program.practice.lead">кроме просмотра записей и участия в воркшопах студенты выполняют разные ежедневные задания по написанию букв и слов — это по желанию</p>
+                <p class="program-card__practice-lead" data-i18n="program.practice.lead">besides watching recordings and joining workshops, students do optional daily assignments — writing letters and words</p>
               </div>
               <div class="program-card__strip" data-program-strip>
                 <div class="program-card__track" data-program-track>
@@ -1007,48 +969,7 @@ to 26 october</p>
           </div>
         </div>
       </article>
-      <article
-        class="card"
-        data-card
-        data-focus-card
-        data-base-rotate="-6.38"
-        data-base-x="2"
-        data-base-y="-22"
-        data-tip="13"
-        style="--card-color: #b28753; --z: 3"
-      >
-        <div class="preview-card">
-          <p class="preview-card__title" data-i18n="preview.title">recording of the final review</p>
-          <div class="preview-card__media" data-preview-media>
-            <iframe
-              class="preview-card__embed"
-              src="https://www.youtube.com/embed/K06Djv3prto?playsinline=1&rel=0&enablejsapi=1"
-              title="Recording of the final review"
-              loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-              referrerpolicy="strict-origin-when-cross-origin"
-              allowfullscreen
-            ></iframe>
-            <button
-              type="button"
-              class="preview-card__hit"
-              data-preview-hit
-              data-i18n-aria="preview.play"
-              aria-label="Play video"
-            ></button>
-          </div>
-          <div class="card-illust card-illust--preview" aria-hidden="true">
-            <img
-              class="card-illust__art"
-              src="/assets/cards/overlays/preview-group.svg"
-              alt=""
-              width="569"
-              height="363"
-              draggable="false"
-            />
-          </div>
-        </div>
-      </article>
+
       <article
         class="card"
         data-card
@@ -1112,7 +1033,7 @@ to 26 october</p>
               <div class="faq-card__body">
                 <p class="faq-card__q" data-i18n="faq.more.q">Still have questions?</p>
                 <p class="faq-card__a faq-card__a--wide">
-                  <span data-i18n="faq.more.a">Ask them here: </span><a href="https://t.me/vanokregular" target="_top" rel="noopener noreferrer">@vanokregular</a>
+                  <span data-i18n="faq.more.a">Ask them here: </span><a href="mailto:kaik.pictures@gmail.com" target="_top" rel="noopener noreferrer">kaik.pictures@gmail.com</a>
                 </p>
               </div>
             </div>
@@ -1424,14 +1345,14 @@ to 26 october</p>
         data-tip="-18"
         style="--card-color: #ffffff; --z: 0"
       >
-        <img class="card__art card__art--cover" src="/assets/cards/01.webp" alt="" draggable="false" />
+        <img class="card__art card__art--cover" src="/assets/cards/letter-eng-poster.webp" alt="" draggable="false" />
         <div class="landing-card" data-landing-card-face>
           <div class="landing-card__hero">
             <img
-              src="/assets/cards/landing-hero.png"
+              src="/assets/cards/letter-eng-poster.webp"
               alt=""
-              width="608"
-              height="564"
+              width="896"
+              height="1200"
               draggable="false"
             />
           </div>
@@ -1439,33 +1360,21 @@ to 26 october</p>
             <div class="landing-card__intro">
               <div class="landing-card__meta">
                 <p class="landing-card__title" data-i18n="landing.title">LETTER II</p>
-                <p class="landing-card__dates" data-i18n="landing.dates">from 14 september
-to 26 october</p>
+                <p class="landing-card__dates" data-i18n="landing.dates">from 9 Nov.
+to 14 Dec.</p>
               </div>
               <a
                 class="landing-card__enroll"
-                href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform"
-                target="_blank"
+                href="https://web.tribute.tg/p/AOo"
+                target="_top"
                 rel="noopener noreferrer"
-                data-i18n="nav.enroll"
-                >join waitlist</a
+                data-enroll
+                ><span data-i18n="nav.enroll">enroll</span> <span class="enroll-price">€250</span></a
               >
             </div>
             <nav class="landing-card__nav" aria-label="Course">
               <a href="/program.html" data-program-nav data-i18n="nav.program">program</a>
               <a href="https://kaik.pictures/letter_works" target="_blank" rel="noopener" data-work-nav><span class="work-nav__label" data-i18n="nav.work">student work</span><img class="work-nav__arrow" src="/assets/student-work-arrow.svg" alt="" width="11" height="19" draggable="false" aria-hidden="true" /></a>
-              <div
-                class="landing-card__lang"
-                role="group"
-                data-i18n-aria="lang.label"
-                aria-label="Language"
-              >
-                <button type="button" class="lang-btn is-active" data-lang="en" aria-pressed="true">
-                  en
-                </button>
-                <span class="lang-sep" aria-hidden="true">/</span>
-                <button type="button" class="lang-btn" data-lang="ru" aria-pressed="false">ru</button>
-              </div>
             </nav>
           </div>
         </div>

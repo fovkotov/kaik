@@ -362,7 +362,7 @@ function faceHtml() {
 }
 
 function navHtml() {
-  const chevron = esc(publicUrl("assets/cards/work/nav-chevron.svg"));
+  const chevron = esc(publicUrl("assets/author/exp2-chevron.svg"));
   const mute = esc(publicUrl("assets/cards/work/sound-off.svg"));
   const unmute = esc(publicUrl("assets/cards/work/sound-on.svg"));
   return `<div class="work-card__nav" data-work-student-nav>

@@ -507,6 +507,10 @@ a {
   pointer-events: auto;
 }
 
+.enroll-price {
+  margin-left: 0.35em;
+}
+
 .panel__lockup .panel__enroll {
   display: none;
 }
@@ -771,21 +775,12 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: none;
 }
 
-.dropcap-popover__author,
-.dropcap-popover__stream {
+.dropcap-popover__author {
   margin: 0;
   font-size: 0.75rem;
   line-height: 1rem;
-}
-
-.dropcap-popover__author {
   font-weight: 600;
-}
-
-.dropcap-popover__stream {
-  margin-top: 0.125rem;
-  color: rgba(0, 0, 0, 0.45);
-  font-weight: 400;
+  white-space: nowrap;
 }
 
 @media (max-width: 900px) {
@@ -818,6 +813,10 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: block;
   pointer-events: none;
   user-select: none;
+}
+
+.card[data-landing-card] .card__art--cover {
+  object-position: center top;
 }
 
 /* Mobile landing card (Figma 125:171) — replaces fixed footer nav. */

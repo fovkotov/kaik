@@ -3,9 +3,8 @@ import { getScrollRoot, getViewportSize, initEmbed, isFocusFrozen, onFrameMetric
 import { initFormatVideo } from "./format-video.js";
 import { initPreviewMedia } from "./preview-media.js";
 import { initTickClicks } from "./tick-clicks.js";
-import { initSoundSettings, noteDesktopDeckDelta } from "./sound-settings.js";
+import { initSoundSettings } from "./sound-settings.js";
 import { initStageSettings } from "./stage-settings.js";
-import { playFirstScrollFromGesture } from "./lib/sound-catalog.js";
 import { initAuthorLightbox, isAuthorLightboxOpen } from "./author-lightbox.js";
 import { initImgSliders } from "./img-slider.js";
 import { initProgramStrips } from "./program-strip.js";
@@ -14,7 +13,7 @@ import { initProgramModal } from "./program-modal.js";
 import { initStudentProgress } from "./student-progress.js";
 import { initDropcaps } from "./letters/dropcap.js";
 import { initWorksFeed } from "./works-feed.js";
-import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
+import { applyTranslations, getLocale } from "./scriptik.js";
 import {
   canPlayCardIntro,
   canPlayTextIntro,
@@ -44,12 +43,6 @@ const PROGRAM_MOBILE_ROTATE = -1;
 
 function initLocale() {
   applyTranslations(getLocale());
-
-  document.querySelectorAll("[data-lang]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      setLocale(btn.getAttribute("data-lang"));
-    });
-  });
 }
 
 function cardSpeed(index, count, params) {
@@ -612,11 +605,8 @@ function initDeck() {
       scheduleRender();
       return;
     }
-    playFirstScrollFromGesture(event);
     event.preventDefault();
     root.scrollTop += event.deltaY;
-    // Ticks in this wheel turn — not the deferred `scroll` event / rAF paint.
-    noteDesktopDeckDelta(event.deltaY, event);
     scheduleRender();
   };
   window.addEventListener("wheel", onDeckWheel, { passive: false });

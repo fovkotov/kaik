@@ -16,7 +16,7 @@ import {
   entryLabel,
 } from "@/letters/taxonomy.js";
 import { publicUrl } from "@/public-url.js";
-import { getLocale, setLocale as persistLocale, t } from "@/scriptik.js";
+import { getLocale, t } from "@/scriptik.js";
 
 type Kind = typeof KIND_LETTER | typeof KIND_WORD;
 
@@ -140,7 +140,7 @@ function Chip({
 }
 
 export function CatalogApp() {
-  const [locale, setLocaleState] = useState(() => getLocale() as "en" | "ru");
+  const locale = getLocale();
   const [catalog, setCatalog] = useState<Catalog>({ letters: [] });
   const [filters, setFilters] = useState(readFilters);
 
@@ -175,12 +175,6 @@ export function CatalogApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  function changeLocale(next: string) {
-    if (next !== "en" && next !== "ru") return;
-    persistLocale(next);
-    setLocaleState(next);
-  }
 
   function patch(partial: Partial<typeof filters>) {
     setFilters((current) => {
@@ -238,27 +232,6 @@ export function CatalogApp() {
             </nav>
             <div className="archive-bar__meta">
               <a href={publicUrl()}>{copy("catalog.site")}</a>
-              <div className="archive-lang" role="group" aria-label={copy("lang.label")}>
-                <button
-                  type="button"
-                  className={locale === "en" ? "lang-btn is-active" : "lang-btn"}
-                  onClick={() => changeLocale("en")}
-                  aria-pressed={locale === "en"}
-                >
-                  en
-                </button>
-                <span className="lang-sep" aria-hidden="true">
-                  /
-                </span>
-                <button
-                  type="button"
-                  className={locale === "ru" ? "lang-btn is-active" : "lang-btn"}
-                  onClick={() => changeLocale("ru")}
-                  aria-pressed={locale === "ru"}
-                >
-                  ru
-                </button>
-              </div>
             </div>
           </div>
 

@@ -7,39 +7,32 @@
 import { safeStorage } from "./embed.js";
 import { glueHangingPrepositions } from "./hanging-prepositions.js";
 
-export const SUPPORTED = ["en", "ru"];
+export const SUPPORTED = ["en"];
 export const DEFAULT_LOCALE = "en";
 export const STORAGE_KEY = "kaik-course-locale";
 const storage = safeStorage();
 
-/** English waitlist form; Russian still goes to Tribute payment. */
-export const ENROLL_HREF = {
-  en: "https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform",
-  ru: "https://web.tribute.tg/p/AOo",
-};
+/** Course purchase — former Russian Tribute link, now the only enroll URL. */
+export const ENROLL_HREF = "https://web.tribute.tg/p/AOo";
 
-function enrollHref(locale) {
-  return ENROLL_HREF[locale] || ENROLL_HREF[DEFAULT_LOCALE];
-}
-
-function applyEnrollLink(node, locale) {
-  node.setAttribute("href", enrollHref(locale));
-  node.setAttribute("target", "_blank");
+function applyEnrollLink(node) {
+  node.setAttribute("href", ENROLL_HREF);
+  node.setAttribute("target", "_top");
   node.setAttribute("rel", "noopener noreferrer");
 }
 
 const dictionaries = {
   en: {
     title: "ETTER II",
-    dates: "from 14 september\nto 26 october",
-    "dates.short": "14 september – 26 october",
-    "dates.stack": "14 september\n26 october",
+    dates: "from 9 Nov.\nto 14 Dec.",
+    "dates.short": "9 Nov. — 14 Dec.",
+    "dates.stack": "9 Nov.\n14 Dec.",
     "landing.title": "LETTER II",
-    "landing.dates": "from 14 september\nto 26 october",
+    "landing.dates": "from 9 Nov.\nto 14 Dec.",
     "nav.program": "program",
     "nav.work": "student work",
     "nav.catalog": "catalog",
-    "nav.enroll": "join waitlist",
+    "nav.enroll": "enroll",
     "lang.label": "Language",
     "stage.settings": "settings",
     "stage.title": "position",
@@ -244,33 +237,33 @@ const dictionaries = {
     "program.kind.call": "call",
     "program.kind.workshop": "workshop",
     "program.kind.review": "review",
-    "program.date.sep14": "14 September, Monday",
-    "program.date.sep17": "17 September, Thursday",
-    "program.date.sep21": "21 September, Thursday",
-    "program.date.oct24": "24 October, Thursday",
-    "program.date.oct1": "1 October, Thursday",
-    "program.date.oct5": "5 October, Monday",
-    "program.date.oct8": "8 October, Thursday",
-    "program.date.oct15": "15 October, Thursday",
-    "program.date.oct19": "19 October, Thursday",
-    "program.w1.a": "History of lettering and how it differs from calligraphy",
+    "program.date.nov9": "9 November (Mon)",
+    "program.date.nov12": "12 November (Thu)",
+    "program.date.nov16": "16 November (Mon)",
+    "program.date.nov19": "19 November (Thu)",
+    "program.date.nov26": "26 November (Thu)",
+    "program.date.nov30": "30 November (Mon)",
+    "program.date.dec3": "3 December (Thu)",
+    "program.date.dec10": "10 December (Thu)",
+    "program.date.dec14": "14 December (Mon)",
+    "program.w1.a": "History of lettering (and why it differs from calligraphy)",
     "program.w1.b": "Tools and pipelines",
-    "program.w1.c": "Authors, looking, references",
-    "program.w1.d": "Final project topic discussion",
+    "program.w1.c": "Artists, inspiration, references",
+    "program.w1.d": "Discussion of topics for the final project",
     "program.w1.e": "Gothic calligraphy",
-    "program.w2.a": "Five starting exercises",
-    "program.w2.b": "Taking lettering into digital",
-    "program.w2.c": "Experimental typography: layout rules and breaking them",
-    "program.w2.d": "Variable styling of a lettering",
+    "program.w2.a": "Five Exercises",
+    "program.w2.b": "Converting (lettering) to digital",
+    "program.w2.c": "Experimental typography: what are layout rules and how to break them",
+    "program.w2.d": "Lettering stylisation",
     "program.w3.a": "Modular typography",
     "program.w3.b": "Lettering + typography, working with titles",
     "program.w3.c": "Modular typography",
     "program.w4.a": "Working with effects",
-    "program.w4.b": "Neural nets for drawing / processing letters",
-    "program.w4.c": "Final project consultation",
-    "program.w5.a": "Preview consultation",
-    "program.w6.a": "Final review of works",
-    "program.w6.b": "What to do (with life) after the course",
+    "program.w4.b": "AI for letters",
+    "program.w4.c": "Final Project consultation 1",
+    "program.w5.a": "Final Project consultation 2",
+    "program.w6.a": "Final Project Presentations",
+    "program.w6.b": "What to do (with your life) after the course",
     "program.practice": "daily practice",
     "program.practice.lead": "besides watching recordings and joining workshops, students do optional daily assignments — writing letters and words",
     "program.practice.arina": "arina @SWAGGABILITY · 1 cohort",
@@ -280,8 +273,6 @@ const dictionaries = {
     "exercises.1": "Choose one letter. Come up with and draw as many variations of its shape as possible in 10 minutes, regardless of the references.",
     "exercises.2": "Find a long stick. Attach a pen to the end of it, and try to draw as many letters as possible in 10 minutes, holding the stick with your left hand.",
     "exercises.3": "Choose the inscription that you like. Anything from a word on an album cover to a street sign. Try to copy it first in a minute, then in 10, then in 30.",
-    "preview.title": "recording of the final review",
-    "preview.play": "Play final review recording",
     "progress.title": "student progress",
     "progress.week1": "1 week",
     "progress.week3": "3 week",
@@ -390,7 +381,7 @@ const dictionaries = {
     "history.meta.program": "Program:",
     "history.meta.click": "Click here",
     "history.meta.start": "Start:",
-    "history.join": "JOIN WAITLIST",
+    "history.join": "enroll €250",
   },
   ru: {
     title: "ETTER II",
@@ -643,8 +634,6 @@ const dictionaries = {
     "exercises.1": "Выбери одну букву. Придумай и нарисуй как можно больше вариаций её формы за 10 минут, не опираясь на референсы.",
     "exercises.2": "Найди длинную палку. Прикрепи ручку на конец и попробуй нарисовать как можно больше букв за 10 минут, держа палку левой рукой.",
     "exercises.3": "Выбери надпись, которая тебе нравится. Что угодно — от слова на обложке альбома до уличной вывески. Попробуй скопировать её сначала за минуту, потом за 10, потом за 30.",
-    "preview.title": "запись финального просмотра",
-    "preview.play": "Смотреть запись финального просмотра",
     "progress.title": "прогресс студентов",
     "progress.week1": "1 неделя",
     "progress.week3": "3 неделя",
@@ -764,17 +753,6 @@ export function normalizeLocale(value) {
 }
 
 export function detectBrowserLocale() {
-  const candidates = [
-    ...(navigator.languages || []),
-    navigator.language,
-    navigator.userLanguage,
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    const match = normalizeLocale(candidate);
-    if (match) return match;
-  }
-
   return DEFAULT_LOCALE;
 }
 
@@ -789,27 +767,17 @@ export function lockLocale(locale) {
 
 export function getLocale() {
   if (pageLocaleLock) return pageLocaleLock;
-  const saved = normalizeLocale(storage.getItem(STORAGE_KEY));
-  if (saved) return saved;
-
-  const fromHtml = normalizeLocale(
-    document.documentElement.getAttribute("data-locale") ||
-      document.documentElement.lang,
-  );
-  if (fromHtml) return fromHtml;
-
-  return detectBrowserLocale();
+  return DEFAULT_LOCALE;
 }
 
-export function setLocale(locale) {
+export function setLocale() {
   if (pageLocaleLock) {
     applyTranslations(pageLocaleLock);
     return pageLocaleLock;
   }
-  const next = normalizeLocale(locale) || DEFAULT_LOCALE;
-  storage.setItem(STORAGE_KEY, next);
-  applyTranslations(next);
-  return next;
+  storage.removeItem(STORAGE_KEY);
+  applyTranslations(DEFAULT_LOCALE);
+  return DEFAULT_LOCALE;
 }
 
 export function t(key, locale = getLocale()) {
@@ -819,7 +787,7 @@ export function t(key, locale = getLocale()) {
 export function applyTranslations(locale = getLocale()) {
   document.documentElement.lang = locale;
   document.documentElement.setAttribute("data-locale", locale);
-  document.documentElement.classList.toggle("lang-ru", locale === "ru");
+  document.documentElement.classList.remove("lang-ru");
   document.documentElement.classList.add("i18n-ready");
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
@@ -827,22 +795,22 @@ export function applyTranslations(locale = getLocale()) {
     if (!key) return;
     node.textContent = t(key, locale);
     if (key === "nav.enroll" && node instanceof HTMLAnchorElement) {
-      applyEnrollLink(node, locale);
+      applyEnrollLink(node);
     }
   });
-
-  /* Experiment-2 enroll is Tribute payment in markup; do not rewrite it. */
-  if (!document.body.classList.contains("experiment-two")) {
-    document.querySelectorAll("[data-enroll]").forEach((node) => {
-      if (node instanceof HTMLAnchorElement) applyEnrollLink(node, locale);
-    });
-  }
 
   document.querySelectorAll("[data-i18n-aria]").forEach((node) => {
     const key = node.getAttribute("data-i18n-aria");
     if (!key) return;
     node.setAttribute("aria-label", t(key, locale));
   });
+
+  /* Experiment-2 waitlist is the Google Form in markup; do not rewrite it. */
+  if (!document.body.classList.contains("experiment-two")) {
+    document.querySelectorAll("[data-enroll]").forEach((node) => {
+      if (node instanceof HTMLAnchorElement) applyEnrollLink(node);
+    });
+  }
 
   document.querySelectorAll("[data-lang]").forEach((btn) => {
     const active = btn.getAttribute("data-lang") === locale;
@@ -855,5 +823,6 @@ export function applyTranslations(locale = getLocale()) {
 }
 
 export function boot() {
-  applyTranslations(getLocale());
+  storage.removeItem(STORAGE_KEY);
+  applyTranslations(DEFAULT_LOCALE);
 }

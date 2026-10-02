@@ -24,31 +24,10 @@
     <link rel="stylesheet" href="/src/catalog/catalog.css" />
     <script>
       (function () {
-        var KEY = "kaik-course-locale";
-        var SUPPORTED = { en: 1, ru: 1 };
-        function pick(value) {
-          if (!value) return null;
-          var base = String(value).toLowerCase().split("-")[0];
-          return SUPPORTED[base] ? base : null;
-        }
-        var locale = null;
-        try {
-          locale = pick(localStorage.getItem(KEY));
-        } catch (e) {}
-        if (!locale) {
-          var list = navigator.languages || [];
-          for (var i = 0; i < list.length; i++) {
-            locale = pick(list[i]);
-            if (locale) break;
-          }
-          if (!locale) {
-            locale = pick(navigator.language) || pick(navigator.userLanguage);
-          }
-        }
-        locale = locale || "en";
-        document.documentElement.lang = locale;
-        document.documentElement.setAttribute("data-locale", locale);
-        document.documentElement.classList.toggle("lang-ru", locale === "ru");
+        try { localStorage.removeItem("kaik-course-locale"); } catch (e) {}
+        document.documentElement.lang = "en";
+        document.documentElement.setAttribute("data-locale", "en");
+        document.documentElement.classList.remove("lang-ru");
       })();
     </script>
   </head>

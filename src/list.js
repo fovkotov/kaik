@@ -7,7 +7,7 @@ import { initAuthorLightbox } from "./author-lightbox.js";
 import { initImgSliders } from "./img-slider.js";
 import { initProgramStrips } from "./program-strip.js";
 import { initDropcaps } from "./letters/dropcap.js";
-import { applyTranslations, getLocale, setLocale } from "./scriptik.js";
+import { applyTranslations, getLocale } from "./scriptik.js";
 import { initProjectViewer } from "./project-viewer.js";
 import { initStudentProgress } from "./student-progress.js";
 import { initWorksFeed } from "./works-feed.js";
@@ -29,11 +29,6 @@ function syncMobileClass() {
 
 function initLocale() {
   applyTranslations(getLocale());
-  document.querySelectorAll("[data-lang]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      setLocale(btn.getAttribute("data-lang"));
-    });
-  });
 }
 
 function reduceMotion() {
