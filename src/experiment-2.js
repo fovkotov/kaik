@@ -2,7 +2,7 @@ import Lenis from "lenis";
 import { initEmbed, safeStorage } from "./embed.js";
 import { playUISound } from "./lib/ui-sounds.js";
 import { playTickClick } from "./tick-clicks.js";
-import { applyTranslations, getLocale, setLocale, t } from "./scriptik.js";
+import { lockLocale, t } from "./scriptik.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
 import { localizedAuthor } from "./works/author-name.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
@@ -14,6 +14,9 @@ import {
   normalizeExperiment2Layout,
 } from "./works/taxonomy.js";
 import { fontFlags, settleFontText, shapeFontText } from "./works/font-display.js";
+
+/** This page is English-only. Ignore leftover `kaik-course-locale` = ru. */
+const PAGE_LOCALE = "en";
 
 const VISUAL_TYPES = [TYPE_DAILY, TYPE_LETTERING, TYPE_FINAL, TYPE_FONT];
 const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
@@ -136,9 +139,13 @@ function hasAuthorIdentity(item) {
   return Boolean(fieldText(item?.author) || fieldText(item?.nick));
 }
 
-/** The catalog stores one spelling; `en` prints it in Latin, `ru` as written. */
+/** The catalog stores one spelling; this page always prints Latin. */
 function authorText(item) {
-  return localizedAuthor(fieldText(item?.author), getLocale());
+  return localizedAuthor(fieldText(item?.author), PAGE_LOCALE);
+}
+
+function copy(key) {
+  return t(key, PAGE_LOCALE);
 }
 
 /** Name, @nick and stream as spans; muted parts get `.is-muted`. */
@@ -162,7 +169,7 @@ function metaNodes(item) {
   if (stream) {
     const streamEl = document.createElement("span");
     streamEl.className = "is-muted";
-    streamEl.textContent = t("exp2.stream").replace("{n}", stream);
+    streamEl.textContent = stream;
     nodes.push(streamEl);
   }
   return nodes;
@@ -183,12 +190,12 @@ function syncLetteringCredit(item) {
 function altFor(item) {
   const kind =
     item.type === TYPE_FINAL
-      ? t("exp2.kind.final")
+      ? copy("exp2.kind.final")
       : item.type === TYPE_DAILY
-        ? t("exp2.kind.daily")
+        ? copy("exp2.kind.daily")
         : item.type === TYPE_FONT
-          ? t("exp2.kind.font")
-          : t("exp2.kind.workshop");
+          ? copy("exp2.kind.font")
+          : copy("exp2.kind.workshop");
   const author = authorText(item);
   return author ? `${kind}, ${author}` : kind;
 }
@@ -222,31 +229,21 @@ function retranslateDynamic() {
     syncCardMeta(card, item);
     const image = card.querySelector("img");
     if (image) image.alt = altFor(item);
-    card.querySelector(".work-card__font-specimen")?.setAttribute("aria-label", t("works.fontTester"));
+    card.querySelector(".work-card__font-specimen")?.setAttribute("aria-label", copy("works.fontTester"));
   });
-  /* Captions may wrap differently in the other language. */
   scheduleCardMeasure();
 }
 
-/** Language chip shows the current locale; a click flips en ↔ ru.
-    Two copies exist (desktop sticky cluster, mobile bottom bar); CSS shows one at a time. */
-function setupLanguage() {
-  const toggles = [...document.querySelectorAll("[data-lang-toggle]")];
-  const labels = toggles.map((toggle) => toggle.querySelector("[data-lang-label]")).filter(Boolean);
+/** Pin English and keep it even if storage still holds `ru` from `/` or `/list`. */
+function lockEnglish() {
+  lockLocale(PAGE_LOCALE);
   document.addEventListener("kaik:translated", (event) => {
-    const locale = event.detail?.locale || getLocale();
-    labels.forEach((label) => {
-      label.textContent = locale;
-    });
+    if (event.detail?.locale !== PAGE_LOCALE) {
+      lockLocale(PAGE_LOCALE);
+      return;
+    }
     retranslateDynamic();
   });
-  toggles.forEach((toggle) => {
-    toggle.addEventListener("click", (event) => {
-      playTickClick(event);
-      setLocale(getLocale() === "ru" ? "en" : "ru");
-    });
-  });
-  applyTranslations(getLocale());
 }
 
 /* ---------- local grid settings ---------- */
@@ -823,7 +820,7 @@ function fontCardFor(item, span) {
   specimen.contentEditable = "true";
   specimen.spellcheck = false;
   specimen.setAttribute("role", "textbox");
-  specimen.setAttribute("aria-label", t("works.fontTester"));
+  specimen.setAttribute("aria-label", copy("works.fontTester"));
   art.append(specimen);
 
   card.append(art);
@@ -2161,7 +2158,7 @@ async function boot() {
   /* iOS Safari only paints :active once the document listens for touch, and the
      press state on cards and chips is pure CSS :active. */
   document.addEventListener("touchstart", () => {}, { passive: true });
-  setupLanguage();
+  lockEnglish();
   initSmoothScroll();
   /* Hero height and track count before the catalog arrives, so the first paint does not jump. */
   layout = readStoredLayout() ?? catalogLayout;

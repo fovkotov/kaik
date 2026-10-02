@@ -657,7 +657,7 @@ button.work-card__art:active {
   font-size: 20px;
 }
 
-/* Sticky row: about | filter island | signup + language. The island stays
+/* Sticky row: about | filter island | signup. The island stays
    centered whatever the side chips measure; the row bleeds past the page
    gutters so the side chips sit --edge from the iframe like the grid. */
 .filter-bar {
@@ -691,12 +691,6 @@ button.work-card__art:active {
   justify-self: end;
 }
 
-.filter-bar__cluster {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
-
 .filter-island {
   grid-column: 2;
   display: flex;
@@ -723,7 +717,7 @@ button.work-card__art:active {
   line-height: inherit;
   cursor: pointer;
   text-decoration: none;
-  /* The <a> chips (lang, enroll) miss the button reset above. */
+  /* The <a> chips (enroll) miss the button reset above. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
@@ -759,11 +753,6 @@ button.work-card__art:active {
   background: #b28753;
 }
 
-/* Figma 223:142 / 252:1603 — lang plate is orange, not the earlier pink. */
-.filter-chip--lang .filter-chip__plate {
-  background: #ff8d02;
-}
-
 .filter-chip--enroll .filter-chip__plate {
   background: #06dc68;
 }
@@ -787,7 +776,7 @@ button.work-card__art:active {
   background: #dcdcdc;
 }
 
-/* Mobile-only bottom bar (signup | language); desktop keeps these chips in the sticky row. */
+/* Mobile-only bottom bar (signup); desktop keeps the enroll chip in the sticky row. */
 .mobile-bar {
   display: none;
 }
@@ -1267,7 +1256,7 @@ button.work-card__art:active {
   }
 
   /* Mobile first screen: the filter island + about sit up top over the illustration
-     block and stick there on scroll; signup + language move to the fixed bottom bar.
+     block and stick there on scroll; signup moves to the fixed bottom bar.
      The bar keeps its DOM slot after the block (so it paints above it) but is pulled
      up by the block's height, and the works panel is pushed back down by the same amount. */
   .works-page {
@@ -1336,7 +1325,7 @@ button.work-card__art:active {
     z-index: 40;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
     pointer-events: none;
   }

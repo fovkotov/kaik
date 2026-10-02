@@ -4,7 +4,7 @@
  * A program-strip slide marked `data-project-viewer="<nick>"` (or a work id)
  * opens this overlay instead of the plain image lightbox: the student's own
  * deck from the works catalog, pale `.viewer-btn` chrome, scale-weighted
- * pager and the `name @nick · stream` caption. Fixed to the iframe, so the
+ * pager and the `name @nick 1` caption. Fixed to the iframe, so the
  * focused card keeps its inner scroll and comes back untouched on close.
  */
 
@@ -132,7 +132,7 @@ function slidesOf(works) {
   return out;
 }
 
-/** Name, then muted @nick and stream — same line as the experiment-2 viewer. */
+/** Name, then muted @nick and stream number — same line as the experiment-2 viewer. */
 function captionNodes(work) {
   const nodes = [];
   const add = (text, muted) => {
@@ -144,7 +144,7 @@ function captionNodes(work) {
   };
   add(work?.author, false);
   if (work?.nick) add(`@${work.nick}`, true);
-  if (work?.stream) add(t("exp2.stream").replace("{n}", work.stream), true);
+  if (work?.stream) add(String(work.stream), true);
   return nodes;
 }
 

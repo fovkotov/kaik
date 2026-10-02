@@ -3,35 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Эксперимент 2 — Käik</title>
+    <title>Experiment 2 — Käik</title>
     <script>
-      /* Scriptik boot: lock html lang to the browser (or saved choice) before paint. */
+      /* This page is English-only. Ignore leftover kaik-course-locale = ru. */
       (function () {
-        var KEY = "kaik-course-locale";
-        var SUPPORTED = { en: 1, ru: 1 };
-        function pick(value) {
-          if (!value) return null;
-          var base = String(value).toLowerCase().split("-")[0];
-          return SUPPORTED[base] ? base : null;
-        }
-        var locale = null;
-        try {
-          locale = pick(localStorage.getItem(KEY));
-        } catch (e) {}
-        if (!locale) {
-          var list = navigator.languages || [];
-          for (var i = 0; i < list.length; i++) {
-            locale = pick(list[i]);
-            if (locale) break;
-          }
-          if (!locale) {
-            locale = pick(navigator.language) || pick(navigator.userLanguage);
-          }
-        }
-        locale = locale || "en";
-        document.documentElement.lang = locale;
-        document.documentElement.setAttribute("data-locale", locale);
-        document.documentElement.classList.toggle("lang-ru", locale === "ru");
+        document.documentElement.lang = "en";
+        document.documentElement.setAttribute("data-locale", "en");
+        document.documentElement.classList.remove("lang-ru");
       })();
     </script>
     <link
@@ -44,7 +22,7 @@
     <div class="experiment-two__scroll" data-scroll-root>
       <div class="experiment-two__content" data-scroll-content>
       <main class="works-page">
-        <section class="lettering-hero" data-lettering-hero aria-label="Интерактивный леттеринг">
+        <section class="lettering-hero" data-lettering-hero aria-label="Interactive lettering">
           <!-- Scooter mark above the two-line caption (Figma 243:95948). Desktop: the loader, gone once
                the first SVG is ready. Mobile (≤760px): stays as the static illustration block — no
                interactive hero is rendered or loaded there. -->
@@ -57,14 +35,14 @@
             class="lettering-hero__action"
             data-lettering-action
             type="button"
-            aria-label="Показать следующий леттеринг"
+            aria-label="Show the next lettering"
             data-i18n-aria="exp2.nextHero"
           ></button>
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <!-- Desktop: about | filter island | signup + language.
-             Mobile: island + about stick up top; signup + language live in
+        <!-- Desktop: about | filter island | signup.
+             Mobile: island + about stick up top; signup lives in
              the fixed bottom bar (data-mobile-bar). -->
         <div class="filter-bar" data-filter-bar>
           <a
@@ -73,87 +51,67 @@
             target="_blank"
             rel="noopener noreferrer"
             data-about
-            aria-label="про «ПИСЬМО»"
+            aria-label="about «LETTER»"
             data-i18n-aria="exp2.about"
           >
             <span class="filter-chip__plate">
-              <span data-i18n="exp2.about">про «ПИСЬМО»</span>
+              <span data-i18n="exp2.about">about «LETTER»</span>
               <img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" />
             </span>
           </a>
 
-          <div class="filter-island" data-filter-island role="group" aria-label="Фильтры работ" data-i18n-aria="exp2.filters">
+          <div class="filter-island" data-filter-island role="group" aria-label="Work filters" data-i18n-aria="exp2.filters">
             <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
               <span class="filter-chip__plate" data-i18n="exp2.filter.daily">daily practice</span>
             </button>
             <button class="filter-chip filter-chip--lettering" type="button" role="checkbox" aria-checked="true" data-filter="lettering">
-              <span class="filter-chip__plate" data-i18n="exp2.filter.workshop">воркшопы</span>
+              <span class="filter-chip__plate" data-i18n="exp2.filter.workshop">workshops</span>
             </button>
             <button class="filter-chip filter-chip--final" type="button" role="checkbox" aria-checked="true" data-filter="final">
-              <span class="filter-chip__plate" data-i18n="exp2.filter.final">финальные проекты</span>
+              <span class="filter-chip__plate" data-i18n="exp2.filter.final">final projects</span>
             </button>
             <button class="filter-chip filter-chip--font" type="button" role="checkbox" aria-checked="true" data-filter="font">
-              <span class="filter-chip__plate" data-i18n="exp2.filter.font">шрифты</span>
+              <span class="filter-chip__plate" data-i18n="exp2.filter.font">fonts</span>
             </button>
           </div>
 
-          <div class="filter-bar__cluster filter-bar__side filter-bar__side--end">
-            <a
-              class="filter-chip filter-chip--enroll"
-              href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-enroll
-            >
-              <span class="filter-chip__plate" data-i18n="exp2.enroll">join waitlist</span>
-            </a>
-            <button
-              class="filter-chip filter-chip--lang"
-              type="button"
-              data-lang-toggle
-              aria-label="Переключить язык"
-              data-i18n-aria="exp2.lang"
-            >
-              <span class="filter-chip__plate" data-lang-label>en</span>
-            </button>
-          </div>
+          <a
+            class="filter-chip filter-chip--enroll filter-bar__side filter-bar__side--end"
+            href="https://web.tribute.tg/p/AOo"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-enroll
+          >
+            <span class="filter-chip__plate" data-i18n="exp2.enroll">enroll €250</span>
+          </a>
         </div>
 
-        <section class="works-panel" aria-label="Работы студентов">
+        <section class="works-panel" aria-label="Student work">
           <div class="works-grid" data-works-grid></div>
-          <p class="works-empty" data-works-empty hidden data-i18n="exp2.empty">ничего нет</p>
+          <p class="works-empty" data-works-empty hidden data-i18n="exp2.empty">nothing here</p>
         </section>
       </main>
       </div>
     </div>
 
-    <!-- Mobile only: signup + language pinned to the bottom of the iframe. Sibling of the
+    <!-- Mobile only: signup pinned to the bottom of the iframe. Sibling of the
          scroll root so position: fixed sticks to the frame, not the scroller. -->
     <div class="mobile-bar" data-mobile-bar>
       <a
         class="filter-chip filter-chip--enroll"
-        href="https://docs.google.com/forms/d/e/1FAIpQLSfghzk5zivpA0fB3yL9lNfX7ONCcNE612S6hqAQzx4amfG9dQ/viewform"
+        href="https://web.tribute.tg/p/AOo"
         target="_blank"
         rel="noopener noreferrer"
         data-enroll
       >
-        <span class="filter-chip__plate" data-i18n="exp2.enroll">join waitlist</span>
+        <span class="filter-chip__plate" data-i18n="exp2.enroll">enroll €250</span>
       </a>
-      <button
-        class="filter-chip filter-chip--lang"
-        type="button"
-        data-lang-toggle
-        aria-label="Переключить язык"
-        data-i18n-aria="exp2.lang"
-      >
-        <span class="filter-chip__plate" data-lang-label>en</span>
-      </button>
     </div>
 
     <aside class="grid-settings" data-grid-settings hidden aria-label="Настройки сетки">
       <div class="grid-settings__head">
         <strong>grid</strong>
-        <button type="button" data-grid-settings-close aria-label="Закрыть">×</button>
+        <button type="button" data-grid-settings-close aria-label="Close">×</button>
       </div>
       <div class="grid-settings__geometry">
         <label>columns <input name="columns" type="number" min="2" max="12" step="1" /></label>
@@ -217,21 +175,21 @@
       aria-hidden="true"
       role="dialog"
       aria-modal="true"
-      aria-label="Просмотр работы"
+      aria-label="View work"
     >
       <figure class="viewer__stage" data-viewer-track></figure>
-      <button type="button" class="viewer__hit viewer__hit--prev" data-viewer-prev aria-label="Предыдущий слайд">
+      <button type="button" class="viewer__hit viewer__hit--prev" data-viewer-prev aria-label="Previous slide">
         <span class="viewer__arrow" aria-hidden="true">
           <img class="viewer__chevron" src="/assets/author/exp2-chevron.svg" alt="" width="34" height="34" draggable="false" />
         </span>
       </button>
       <div class="viewer__hit viewer__hit--mid" data-viewer-mid></div>
-      <button type="button" class="viewer__hit viewer__hit--next" data-viewer-next aria-label="Следующий слайд">
+      <button type="button" class="viewer__hit viewer__hit--next" data-viewer-next aria-label="Next slide">
         <span class="viewer__arrow" aria-hidden="true">
           <img class="viewer__chevron" src="/assets/author/exp2-chevron.svg" alt="" width="34" height="34" draggable="false" />
         </span>
       </button>
-      <button type="button" class="viewer__close" data-viewer-close aria-label="Закрыть">
+      <button type="button" class="viewer__close" data-viewer-close aria-label="Close">
         <img src="/assets/author/exp2-close.svg" alt="" width="34" height="34" draggable="false" />
       </button>
       <p class="viewer__caption" data-viewer-caption></p>

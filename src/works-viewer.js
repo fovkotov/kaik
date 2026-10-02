@@ -47,7 +47,7 @@ export function workMetaNodes(item) {
   if (item.stream) {
     const stream = document.createElement("span");
     stream.className = "is-muted";
-    stream.textContent = `поток ${item.stream}`;
+    stream.textContent = String(item.stream);
     nodes.push(stream);
   }
   return nodes;

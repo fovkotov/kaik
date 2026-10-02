@@ -162,11 +162,11 @@ const dictionaries = {
     "exp2.filter.final": "final projects",
     "exp2.filter.font": "fonts",
     "exp2.empty": "nothing here",
-    "exp2.enroll": "join waitlist",
+    "exp2.enroll": "enroll €250",
     "exp2.about": "about «LETTER»",
     "exp2.lang": "Switch language",
     "exp2.nextHero": "Show the next lettering",
-    "exp2.stream": "stream {n}",
+    "exp2.stream": "{n}",
     "exp2.anon": "author not specified",
     "exp2.kind.final": "Final project",
     "exp2.kind.daily": "Daily Practice",
@@ -525,11 +525,11 @@ const dictionaries = {
     "exp2.filter.final": "финальные проекты",
     "exp2.filter.font": "шрифты",
     "exp2.empty": "ничего нет",
-    "exp2.enroll": "записаться",
+    "exp2.enroll": "enroll €250",
     "exp2.about": "про «ПИСЬМО»",
     "exp2.lang": "Переключить язык",
     "exp2.nextHero": "Показать следующий леттеринг",
-    "exp2.stream": "{n} поток",
+    "exp2.stream": "{n}",
     "exp2.anon": "автор не указан",
     "exp2.kind.final": "Финальный проект",
     "exp2.kind.daily": "Daily Practice",
@@ -778,7 +778,17 @@ export function detectBrowserLocale() {
   return DEFAULT_LOCALE;
 }
 
+/** Pin a page to one locale. Experiment-2 uses this so leftover `ru` in storage never shows. */
+let pageLocaleLock = null;
+
+export function lockLocale(locale) {
+  pageLocaleLock = normalizeLocale(locale) || DEFAULT_LOCALE;
+  applyTranslations(pageLocaleLock);
+  return pageLocaleLock;
+}
+
 export function getLocale() {
+  if (pageLocaleLock) return pageLocaleLock;
   const saved = normalizeLocale(storage.getItem(STORAGE_KEY));
   if (saved) return saved;
 
@@ -792,6 +802,10 @@ export function getLocale() {
 }
 
 export function setLocale(locale) {
+  if (pageLocaleLock) {
+    applyTranslations(pageLocaleLock);
+    return pageLocaleLock;
+  }
   const next = normalizeLocale(locale) || DEFAULT_LOCALE;
   storage.setItem(STORAGE_KEY, next);
   applyTranslations(next);
@@ -817,9 +831,12 @@ export function applyTranslations(locale = getLocale()) {
     }
   });
 
-  document.querySelectorAll("[data-enroll]").forEach((node) => {
-    if (node instanceof HTMLAnchorElement) applyEnrollLink(node, locale);
-  });
+  /* Experiment-2 enroll is Tribute payment in markup; do not rewrite it. */
+  if (!document.body.classList.contains("experiment-two")) {
+    document.querySelectorAll("[data-enroll]").forEach((node) => {
+      if (node instanceof HTMLAnchorElement) applyEnrollLink(node, locale);
+    });
+  }
 
   document.querySelectorAll("[data-i18n-aria]").forEach((node) => {
     const key = node.getAttribute("data-i18n-aria");
