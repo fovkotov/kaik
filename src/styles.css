@@ -507,10 +507,6 @@ a {
   pointer-events: auto;
 }
 
-.enroll-price {
-  margin-left: 0.35em;
-}
-
 .panel__lockup .panel__enroll {
   display: none;
 }
@@ -888,6 +884,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   display: inline-block;
   margin: 0;
   color: #ff4c00;
+  white-space: nowrap;
   text-decoration: underline;
   text-decoration-thickness: var(--nav-underline);
   text-underline-offset: var(--nav-underline-offset);
@@ -6062,6 +6059,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     line-height: normal;
     letter-spacing: 0;
     color: #ff4c00;
+    white-space: nowrap;
     text-decoration: underline;
     text-decoration-thickness: var(--nav-underline);
     text-underline-offset: var(--nav-underline-offset);

@@ -32,7 +32,7 @@ const dictionaries = {
     "nav.program": "program",
     "nav.work": "student work",
     "nav.catalog": "catalog",
-    "nav.enroll": "enroll",
+    "nav.enroll": "enroll €250",
     "lang.label": "Language",
     "stage.settings": "settings",
     "stage.title": "position",
