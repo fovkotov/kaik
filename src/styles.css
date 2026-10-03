@@ -5722,7 +5722,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     display: flex;
     flex-wrap: nowrap;
     align-items: stretch;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 0;
     width: 100%;
     height: calc(22 * var(--u));
@@ -5767,7 +5767,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     background: #fed301;
   }
 
-  .card[data-landing-card] .landing-card__chip--enroll {
+  .card[data-landing-card] .landing-card__nav a.landing-card__chip--enroll {
     display: flex;
     flex: 1 1 auto;
     min-width: 0;
