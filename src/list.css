@@ -196,6 +196,37 @@ body.list .card[data-landing-card] .landing-card {
   height: 100%;
 }
 
+@media (min-width: 901px) {
+  body.list .card[data-landing-card]:not(.is-list-open) {
+    height: calc(var(--card-w) * 1200 / 896);
+    background: transparent;
+  }
+
+  body.list .card[data-landing-card]:not(.is-list-open) .landing-card {
+    background: transparent;
+  }
+
+  body.list .card[data-landing-card] .landing-card__hero {
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+
+  body.list .card[data-landing-card]:not(.is-list-open) .landing-card__hero img {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    object-fit: cover;
+    object-position: center center;
+  }
+}
+
+@media (max-width: 900px) {
+  body.list .card[data-landing-card]:not(.is-list-open) .landing-card__foot {
+    display: flex;
+  }
+}
+
 body.list .card[data-landing-card]:not(.is-list-open) .landing-card__foot {
   display: none;
 }
