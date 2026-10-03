@@ -23,11 +23,11 @@ function applyEnrollLink(node) {
 
 const dictionaries = {
   en: {
-    title: "ETTER II",
+    title: "etter",
     dates: "from 9 Nov.\nto 14 Dec.",
     "dates.short": "9 Nov. — 14 Dec.",
     "dates.stack": "9 Nov.\n14 Dec.",
-    "landing.title": "LETTER II",
+    "landing.title": "letter",
     "landing.dates": "from 9 Nov.\nto 14 Dec.",
     "nav.program": "program",
     "nav.work": "student work",
@@ -384,11 +384,11 @@ const dictionaries = {
     "history.join": "enroll €250",
   },
   ru: {
-    title: "ETTER II",
+    title: "etter",
     dates: "с 14 сентября\nпо 26 октября",
     "dates.short": "14 сентября – 26 октября",
     "dates.stack": "14 сентября\n26 октября",
-    "landing.title": "LETTER II",
+    "landing.title": "letter",
     "landing.dates": "с 14 сентября\nпо 26 октября",
     "nav.program": "программа",
     "nav.work": "работы студентов",
