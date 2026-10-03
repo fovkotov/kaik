@@ -12,8 +12,8 @@ export const DEFAULT_LOCALE = "en";
 export const STORAGE_KEY = "kaik-course-locale";
 const storage = safeStorage();
 
-/** Course purchase — former Russian Tribute link, now the only enroll URL. */
-export const ENROLL_HREF = "https://web.tribute.tg/p/AOo";
+/** Course purchase Tribute link. */
+export const ENROLL_HREF = "https://web.tribute.tg/p/FWM";
 
 function applyEnrollLink(node) {
   node.setAttribute("href", ENROLL_HREF);
