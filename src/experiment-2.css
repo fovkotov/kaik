@@ -766,10 +766,16 @@ button.work-card__art:active {
   vertical-align: top;
 }
 
-/* Hard break after "letter schedule"; the arrow stays in the parent's nowrap
-   so it cannot drop onto a third line. */
+/* The source newline is a hard break only on mobile. Desktop collapses it
+   so "letter schedule and program" and the arrow stay on one line. */
 .filter-chip--about .filter-chip__plate > span {
   white-space: pre-line;
+}
+
+@media (min-width: 761px) {
+  .filter-chip--about .filter-chip__plate > span {
+    white-space: nowrap;
+  }
 }
 
 .filter-chip__arrow {
@@ -1332,6 +1338,11 @@ button.work-card__art:active {
   .filter-chip__arrow {
     width: 11px;
     height: 19px;
+  }
+
+  /* Two-line plate from the mobile mock: honor the newline after "letter schedule". */
+  .filter-chip--about .filter-chip__plate > span {
+    white-space: pre-line;
   }
 
   .mobile-bar {
