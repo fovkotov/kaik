@@ -277,6 +277,8 @@ function initList() {
 
   function bindNav(selector, findCard) {
     document.querySelectorAll(selector).forEach((link) => {
+      const href = link.getAttribute("href") || "";
+      if (/^https?:\/\//i.test(href)) return;
       link.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -290,10 +292,6 @@ function initList() {
 
   bindNav("[data-program-nav], [data-i18n='nav.program']", () =>
     cards.find((el) => el.hasAttribute("data-program-card")),
-  );
-  bindNav("[data-work-nav], [data-i18n='nav.work']", () =>
-    cards.find((el) => el.hasAttribute("data-works-card")) ||
-    cards.find((el) => el.hasAttribute("data-work-card")),
   );
 
   return { openCard, closeCard };

@@ -5024,24 +5024,58 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  padding: calc(16 * var(--u)) calc(32 * var(--u));
+  padding: 0;
   box-sizing: border-box;
 }
 
 .card.is-program-open .faq-card__title {
+  order: 1;
   position: relative;
   top: auto;
   left: auto;
   transform: none;
+  width: 100%;
   margin-top: 0;
+  padding: 4px 0 0;
+}
+
+.card.is-program-open .card-illust--faq {
+  order: 2;
+  position: relative;
+  inset: auto;
+  z-index: 1;
+  width: 71.48%;
+  max-width: 420px;
+  height: auto;
+  aspect-ratio: 227.306 / 209.916;
+  margin: 16px auto 0;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.card.is-program-open .card-illust--faq .card-illust__art--drop {
+  display: none;
+}
+
+.card.is-program-open .card-illust--faq .card-illust__art--frog {
+  display: block;
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .card.is-program-open .faq-card__list {
+  order: 3;
   position: relative;
   left: auto;
   bottom: auto;
   transform: none;
-  margin-top: calc(16 * var(--u));
+  width: 100%;
+  margin-top: 16px;
+  padding: 0 0 24px;
 }
 
 .card.is-program-open .history-card__text,
@@ -6922,7 +6956,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
 
   .card.is-program-open .faq-card {
     justify-content: flex-start;
-    padding: 16px 8px 8px;
+    padding: 0;
   }
 
   .faq-card__title {
@@ -6957,7 +6991,7 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   /* Open sheet: flow from the top. Do not pin the last FAQ row to the bottom. */
   .card.is-program-open .faq-card {
     justify-content: flex-start;
-    padding: 16px 8px 0;
+    padding: 0;
   }
 
   .card.is-program-open .faq-card__title {
