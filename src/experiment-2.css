@@ -758,10 +758,18 @@ button.work-card__art:active {
 }
 
 .filter-chip--about .filter-chip__plate {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
   background: #c7f0ff;
+  line-height: 1.15;
+  vertical-align: top;
+}
+
+/* Hard break after "letter schedule"; the arrow stays in the parent's nowrap
+   so it cannot drop onto a third line. */
+.filter-chip--about .filter-chip__plate > span {
+  white-space: pre-line;
 }
 
 .filter-chip__arrow {
@@ -771,12 +779,19 @@ button.work-card__art:active {
   flex: none;
 }
 
+.filter-chip--about .filter-chip__arrow {
+  display: inline-block;
+  margin-left: 4px;
+  /* 20px glyph centered on the last text line (same optical place as the old flex row). */
+  vertical-align: -0.32em;
+}
+
 .filter-chip[aria-checked="false"] .filter-chip__plate {
   color: #b0b0b0;
   background: #dcdcdc;
 }
 
-/* Mobile-only bottom bar (signup); desktop keeps the enroll chip in the sticky row. */
+/* Mobile-only bottom bar (schedule + signup). Desktop keeps both chips in the sticky row. */
 .mobile-bar {
   display: none;
 }
@@ -1255,10 +1270,11 @@ button.work-card__art:active {
     display: none;
   }
 
-  /* Mobile first screen: the filter island + about sit up top over the illustration
-     block and stick there on scroll; signup moves to the fixed bottom bar.
-     The bar keeps its DOM slot after the block (so it paints above it) but is pulled
-     up by the block's height, and the works panel is pushed back down by the same amount. */
+  /* Mobile first screen: the filter island sits up top over the illustration
+     block and sticks there on scroll. Schedule and signup live in the fixed
+     bottom bar (a sibling of the scroll root). The filter bar keeps its DOM
+     slot after the block (so it paints above it) but is pulled up by the
+     block's height, and the works panel is pushed back down by the same amount. */
   .works-page {
     /* Room for the fixed bottom bar so the last row of works can scroll clear of it. */
     padding-bottom: calc(48px + 40px + var(--frame-clip-bottom));
@@ -1281,9 +1297,10 @@ button.work-card__art:active {
     margin-top: calc(var(--hero-h) - var(--island-h) + 24px);
   }
 
-  .filter-bar__side--start {
-    order: 2;
-    padding: 0;
+  /* Schedule chip leaves the top cluster; the copy in .mobile-bar is pinned
+     to the iframe bottom. */
+  .filter-bar .filter-chip--about {
+    display: none;
   }
 
   .filter-bar__side--end {
@@ -1324,8 +1341,8 @@ button.work-card__art:active {
     bottom: calc(12px + var(--frame-clip-bottom));
     z-index: 40;
     display: flex;
-    align-items: center;
-    justify-content: flex-end;
+    align-items: flex-end;
+    justify-content: space-between;
     gap: 12px;
     pointer-events: none;
   }

@@ -41,23 +41,21 @@
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <!-- Desktop: about | filter island | signup.
-             Mobile: island + about stick up top; signup lives in
-             the fixed bottom bar (data-mobile-bar). -->
+        <!-- Desktop: schedule chip | filter island | signup.
+             Mobile: the island sticks up top; schedule and signup live in
+             the fixed bottom bar (data-mobile-bar), a sibling of the scroll root. -->
         <div class="filter-bar" data-filter-bar>
           <a
             class="filter-chip filter-chip--about filter-bar__side filter-bar__side--start"
-            href="https://kaik.pictures/letter2"
+            href="https://kaik.pictures/letter_program"
             target="_blank"
             rel="noopener noreferrer"
             data-about
-            aria-label="about «LETTER»"
+            aria-label="letter schedule and program"
             data-i18n-aria="exp2.about"
           >
-            <span class="filter-chip__plate">
-              <span data-i18n="exp2.about">about «LETTER»</span>
-              <img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" />
-            </span>
+            <span class="filter-chip__plate"><span data-i18n="exp2.about">letter schedule
+and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" /></span>
           </a>
 
           <div class="filter-island" data-filter-island role="group" aria-label="Work filters" data-i18n-aria="exp2.filters">
@@ -94,9 +92,22 @@
       </div>
     </div>
 
-    <!-- Mobile only: signup pinned to the bottom of the iframe. Sibling of the
-         scroll root so position: fixed sticks to the frame, not the scroller. -->
+    <!-- Mobile only: schedule (left) and signup (right), pinned to the bottom
+         of the iframe. Sibling of the scroll root so position: fixed sticks
+         to the frame, not the scroller. -->
     <div class="mobile-bar" data-mobile-bar>
+      <a
+        class="filter-chip filter-chip--about"
+        href="https://kaik.pictures/letter_program"
+        target="_blank"
+        rel="noopener noreferrer"
+        data-about
+        aria-label="letter schedule and program"
+        data-i18n-aria="exp2.about"
+      >
+        <span class="filter-chip__plate"><span data-i18n="exp2.about">letter schedule
+and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" /></span>
+      </a>
       <a
         class="filter-chip filter-chip--enroll"
         href="https://web.tribute.tg/p/FWM"

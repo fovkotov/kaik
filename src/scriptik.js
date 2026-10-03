@@ -156,7 +156,7 @@ const dictionaries = {
     "exp2.filter.font": "fonts",
     "exp2.empty": "nothing here",
     "exp2.enroll": "enroll €250",
-    "exp2.about": "about «LETTER»",
+    "exp2.about": "letter schedule\nand program",
     "exp2.lang": "Switch language",
     "exp2.nextHero": "Show the next lettering",
     "exp2.stream": "{n}",
@@ -517,7 +517,7 @@ const dictionaries = {
     "exp2.filter.font": "шрифты",
     "exp2.empty": "ничего нет",
     "exp2.enroll": "enroll €250",
-    "exp2.about": "про «ПИСЬМО»",
+    "exp2.about": "letter schedule\nand program",
     "exp2.lang": "Переключить язык",
     "exp2.nextHero": "Показать следующий леттеринг",
     "exp2.stream": "{n}",
@@ -802,7 +802,7 @@ export function applyTranslations(locale = getLocale()) {
   document.querySelectorAll("[data-i18n-aria]").forEach((node) => {
     const key = node.getAttribute("data-i18n-aria");
     if (!key) return;
-    node.setAttribute("aria-label", t(key, locale));
+    node.setAttribute("aria-label", t(key, locale).replace(/\n/g, " "));
   });
 
   /* Experiment-2 waitlist is the Google Form in markup; do not rewrite it. */
