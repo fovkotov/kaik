@@ -11,6 +11,7 @@ import {
   syncFocusScrollbar,
   unmountFocusScrollbar,
 } from "./focus-scrollbar.js";
+import { fitFaqCard, unwatchFaqFit, watchFaqFit } from "./faq-fit.js";
 
 const FOCUS_SEL = "[data-card]";
   const FOCUS_IGNORE =
@@ -808,6 +809,7 @@ export function initProgramModal() {
     card.addEventListener("wheel", trapCardScroll, { passive: true });
     card.addEventListener("touchmove", trapCardScroll, { passive: true });
     mountFocusScrollbar(card);
+    watchFaqFit(card);
   }
 
   function clearFlyBox(el) {
@@ -837,6 +839,7 @@ export function initProgramModal() {
     const host = card;
     keepScroll(host, () => {
       unflattenLanded(host);
+      unwatchFaqFit(host);
       host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
       clearExpandHost(host);
       host.style.transform = restTransform;
@@ -888,6 +891,7 @@ export function initProgramModal() {
     host.removeEventListener("touchmove", trapCardScroll);
     keepScroll(host, () => {
       unflattenLanded(host);
+      unwatchFaqFit(host);
       host.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
       clearExpandHost(host);
       clearFlyBox(host);
@@ -1009,6 +1013,7 @@ export function initProgramModal() {
           } else {
             flattenLanded(host);
           }
+          fitFaqCard(host);
         });
         deck.setAttribute("data-focus-settled", "");
         syncFocusScrollbar(card);
@@ -1150,6 +1155,7 @@ export function initProgramModal() {
     el.removeEventListener("touchmove", trapCardScroll);
     keepScroll(el, () => {
       unflattenEl(el);
+      unwatchFaqFit(el);
       el.classList.remove("is-program-open", "is-program-scroll", "is-work-open");
       el.classList.add("is-fly-pinned");
       el.style.setProperty("--fly-ms", "0ms");
@@ -1168,6 +1174,7 @@ export function initProgramModal() {
     landedPark.delete(el);
     keepScroll(el, () => {
       unflattenEl(el);
+      unwatchFaqFit(el);
       el.style.removeProperty("--fly-scale");
       el.classList.remove("is-program-open", "is-program-scroll", "is-work-open", "is-fly-pinned");
       el.style.transform = restTf;
@@ -1791,6 +1798,7 @@ export function initProgramModal() {
     if (phase !== "open") return;
     syncCloseBtn();
     syncFocusScrollbar(card);
+    if (card) fitFaqCard(card);
   };
   onFrameMetrics(onFrameResize);
   document.addEventListener("kaik:stage-nudge", onFrameResize);

@@ -5078,6 +5078,36 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
   padding: 0 0 24px;
 }
 
+/*
+  Desktop open FAQ is a poster, not an article. The in-flow sheet
+  (title → frog → questions) is taller than the focus frame, which
+  turned the card into a scroller and clipped the email. Scale the
+  whole face to the frame and center it. Do not restack the internals.
+*/
+@media (min-width: 901px) {
+  html:not(.is-mobile) .card.is-program-open:has(> .faq-card),
+  html:not(.is-mobile) .card.is-program-open.is-program-scroll:has(> .faq-card) {
+    overflow: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  html:not(.is-mobile) .card.is-program-open > .faq-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    overflow: visible;
+    transform: translate(-50%, -50%) scale(var(--faq-fit, 1));
+    transform-origin: center center;
+  }
+}
+
 .card.is-program-open .history-card__text,
 .card.is-program-open .history-card__caption,
 .card.is-program-open .history-card__book-cap {
