@@ -20,12 +20,12 @@ export const PROGRAM_HTML = `
       </li>
       <li class="program-row">
         <p class="program-row__name">Discussion of topics for the final project</p>
-        <p class="program-row__when">9 November (Mon)</p>
+        <p class="program-row__when">9 November (Monday)</p>
         <p class="program-row__kind program-row__kind--live">call</p>
       </li>
       <li class="program-row">
         <p class="program-row__name">Gothic calligraphy</p>
-        <p class="program-row__when">12 November (Thu)</p>
+        <p class="program-row__when">12 November (Thursday)</p>
         <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
     </ul>
@@ -35,7 +35,7 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Five Exercises</p>
-        <p class="program-row__when">16 November (Mon)</p>
+        <p class="program-row__when">16 November (Monday)</p>
         <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
       <li class="program-row">
@@ -50,7 +50,7 @@ export const PROGRAM_HTML = `
       </li>
       <li class="program-row">
         <p class="program-row__name">Lettering stylisation</p>
-        <p class="program-row__when">19 November (Thu)</p>
+        <p class="program-row__when">19 November (Thursday)</p>
         <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
     </ul>
@@ -68,7 +68,7 @@ export const PROGRAM_HTML = `
       </li>
       <li class="program-row">
         <p class="program-row__name">Modular typography</p>
-        <p class="program-row__when">26 November (Thu)</p>
+        <p class="program-row__when">26 November (Thursday)</p>
         <p class="program-row__kind program-row__kind--live">workshop</p>
       </li>
     </ul>
@@ -86,7 +86,7 @@ export const PROGRAM_HTML = `
       </li>
       <li class="program-row">
         <p class="program-row__name">Final Project consultation 1</p>
-        <p class="program-row__when">30 November (Mon)</p>
+        <p class="program-row__when">30 November (Monday)</p>
         <p class="program-row__kind program-row__kind--live">call</p>
       </li>
     </ul>
@@ -96,7 +96,7 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Final Project consultation 2</p>
-        <p class="program-row__when">3 December (Thu)</p>
+        <p class="program-row__when">3 December (Thursday)</p>
         <p class="program-row__kind program-row__kind--live">call</p>
       </li>
     </ul>
@@ -106,12 +106,12 @@ export const PROGRAM_HTML = `
     <ul class="program-list">
       <li class="program-row">
         <p class="program-row__name">Final Project Presentations</p>
-        <p class="program-row__when">10 December (Thu)</p>
+        <p class="program-row__when">10 December (Thursday)</p>
         <p class="program-row__kind program-row__kind--live">review</p>
       </li>
       <li class="program-row">
         <p class="program-row__name">What to do (with your life) after the course</p>
-        <p class="program-row__when">14 December (Mon)</p>
+        <p class="program-row__when">14 December (Monday)</p>
         <p class="program-row__kind program-row__kind--live">call</p>
       </li>
     </ul>
