@@ -1,7 +1,11 @@
 const DESKTOP_MQ = "(min-width: 901px)";
 
-/** @type {WeakMap<HTMLElement, { ro: ResizeObserver, raf: number, stable: number }>} */
+/** @type {WeakMap<HTMLElement, { ro: ResizeObserver, raf: number, stable: number, ticks: number, ownWrite: boolean }>} */
 const watched = new WeakMap();
+
+function trackedOpen(card) {
+  return card.classList.contains("is-program-open") || card.classList.contains("is-list-open");
+}
 
 function desktop() {
   return (
@@ -39,12 +43,32 @@ export function fitFaqCard(card) {
 function pump(card) {
   const rec = watched.get(card);
   if (!rec) return;
+  rec.raf = 0;
+  if (!desktop() || !trackedOpen(card)) {
+    rec.ownWrite = false;
+    return;
+  }
   const before = card.style.getPropertyValue("--faq-fit");
+  rec.ownWrite = true;
   fitFaqCard(card);
   const after = card.style.getPropertyValue("--faq-fit");
-  rec.stable = before === after ? rec.stable + 1 : 0;
-  if (rec.stable < 10) rec.raf = requestAnimationFrame(() => pump(card));
-  else rec.raf = 0;
+  if (before === after) rec.stable += 1;
+  else {
+    rec.stable = 0;
+    rec.ticks += 1;
+  }
+  // Stop once the scale settles. A hard cap covers a resize loop that never
+  // settles; the trailing frame re-opens the observer for a real size change.
+  if (rec.stable < 10 && rec.ticks < 120) {
+    rec.raf = requestAnimationFrame(() => pump(card));
+    return;
+  }
+  rec.raf = requestAnimationFrame(() => {
+    const live = watched.get(card);
+    if (!live) return;
+    live.ownWrite = false;
+    live.raf = 0;
+  });
 }
 
 /** Track the open FAQ card while it flies and after the frame resizes. */
@@ -53,14 +77,15 @@ export function watchFaqFit(card) {
   unwatchFaqFit(card);
   const ro = new ResizeObserver(() => {
     const rec = watched.get(card);
-    if (!rec) return;
+    if (!rec || rec.ownWrite || !desktop() || !trackedOpen(card)) return;
     rec.stable = 0;
+    rec.ticks = 0;
     if (!rec.raf) rec.raf = requestAnimationFrame(() => pump(card));
   });
   ro.observe(card);
   const face = card.querySelector(":scope > .faq-card");
   if (face) ro.observe(face);
-  watched.set(card, { ro, raf: 0, stable: 0 });
+  watched.set(card, { ro, raf: 0, stable: 0, ticks: 0, ownWrite: false });
   fitFaqCard(card);
   const rec = watched.get(card);
   if (rec) rec.raf = requestAnimationFrame(() => pump(card));
