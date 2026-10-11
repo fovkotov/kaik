@@ -1173,8 +1173,8 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .format-card__mute {
   position: absolute;
-  right: 0;
-  bottom: 0;
+  right: calc(8px / var(--deck-scale, 1));
+  bottom: calc(8px / var(--deck-scale, 1));
   z-index: 1;
   box-sizing: border-box;
   width: calc(36px / var(--deck-scale, 1));
@@ -1205,6 +1205,11 @@ html.is-focus-landed .format-card__mute {
   padding: 0;
 }
 
+html.is-focus-landed .card.is-program-open .format-card__mute {
+  right: 8px;
+  bottom: 8px;
+}
+
 .format-card__mute-lift {
   position: absolute;
   inset: 0;
@@ -1213,7 +1218,7 @@ html.is-focus-landed .format-card__mute {
   justify-content: center;
   box-sizing: border-box;
   border-radius: 120px;
-  background: #e3e3e3;
+  background: rgba(227, 227, 227, 0.8);
   pointer-events: none;
   transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -1654,10 +1659,9 @@ html.is-author-lb-open .fly-close {
 }
 
 /* Experiment-2 viewer chrome, shared by every fullscreen image viewer button
-   (arrows + close): a 34×34 #e5e5e5 plate carrying a black-40% glyph. */
+   (arrows + close): a 34×34 pale plate carrying a black-40% glyph. */
 .viewer-btn {
-  --viewer-btn: #e5e5e5;
-  --viewer-btn-blur: 46px;
+  --viewer-btn: rgba(227, 227, 227, 0.8);
   --viewer-btn-size: 34px;
   width: var(--viewer-btn-size);
   height: var(--viewer-btn-size);
@@ -1665,8 +1669,8 @@ html.is-author-lb-open .fly-close {
   border: 0;
   border-radius: 140px;
   background: var(--viewer-btn);
-  backdrop-filter: blur(var(--viewer-btn-blur));
-  -webkit-backdrop-filter: blur(var(--viewer-btn-blur));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .viewer-btn__icon {
@@ -2244,16 +2248,15 @@ html.is-mobile .author-lb__hit--next {
   flex: 0 0 auto;
 }
 
-/* Experiment-2 viewer chrome: 34×34 #e5e5e5 plate + exp2-chevron (black 40%).
+/* Experiment-2 viewer chrome: 34×34 pale plate + exp2-chevron (black 40%).
    Appear: opacity + scale(0.95→1), never scale(0). Enter 160ms / exit 120ms,
    strong ease-out. Hover-in is gated; hide-at-ends uses `.is-gone`. */
 .program-card__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --nav-in: 160ms;
   --nav-out: 120ms;
-  --nav-btn: #e5e5e5;
+  --nav-btn: rgba(227, 227, 227, 0.8);
   --nav-btn-size: 34px;
-  --nav-btn-blur: 46px;
   position: absolute;
   top: 50%;
   z-index: 2;
@@ -2266,8 +2269,8 @@ html.is-mobile .author-lb__hit--next {
   border: 0;
   border-radius: 140px;
   background: var(--nav-btn);
-  backdrop-filter: blur(var(--nav-btn-blur));
-  -webkit-backdrop-filter: blur(var(--nav-btn-blur));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   opacity: 0;
   transform: translateY(-50%) scale(0.95);
   pointer-events: none;
@@ -3868,7 +3871,7 @@ html.is-focus-landed .card.is-program-open[data-work-card] .work-card {
   justify-content: center;
   box-sizing: border-box;
   border-radius: 120px;
-  background: #e3e3e3;
+  background: rgba(227, 227, 227, 0.8);
   pointer-events: none;
   transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -4390,7 +4393,7 @@ html:not(.is-mobile) .author-lb__slide:not(.is-active) {
   -webkit-user-drag: none;
 }
 
-/* Plate comes from `.viewer-btn` (34×34 #e5e5e5, radius 140, blur 46). */
+/* Plate comes from `.viewer-btn` (34×34 pale circle). */
 .img-slider__nav {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   position: absolute;
