@@ -362,23 +362,27 @@ function faceHtml() {
 }
 
 function navHtml() {
-  const chevron = esc(publicUrl("assets/author/exp2-chevron.svg"));
-  const mute = esc(publicUrl("assets/cards/work/sound-off.svg"));
-  const unmute = esc(publicUrl("assets/cards/work/sound-on.svg"));
+  const prev = esc(publicUrl("assets/nav/prev.svg"));
+  const next = esc(publicUrl("assets/nav/next.svg"));
+  const mute = esc(publicUrl("assets/nav/sound-off.svg"));
+  const unmute = esc(publicUrl("assets/nav/sound-on.svg"));
+  const close = esc(publicUrl("assets/nav/close.svg"));
   return `<div class="work-card__nav" data-work-student-nav>
       <button type="button" class="work-card__nav-btn work-card__nav-btn--prev" data-work-student-prev data-i18n-aria="work.prev" aria-label="${esc(t("work.prev"))}">
-        <img class="work-card__nav-chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
+        <span class="work-card__nav-lift"><img class="work-card__nav-chevron" src="${prev}" alt="" width="20" height="20" draggable="false" /></span>
       </button>
       <button type="button" class="work-card__nav-btn work-card__nav-btn--next" data-work-student-next data-i18n-aria="work.next" aria-label="${esc(t("work.next"))}">
-        <img class="work-card__nav-chevron" src="${chevron}" alt="" width="20" height="20" draggable="false" />
+        <span class="work-card__nav-lift"><img class="work-card__nav-chevron" src="${next}" alt="" width="20" height="20" draggable="false" /></span>
       </button>
       <div class="work-card__nav-end">
         <button type="button" class="work-card__nav-btn work-card__sound" data-progress-sound aria-pressed="false" data-i18n-aria="format.sound.on" aria-label="${esc(t("format.sound.on"))}">
-          <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--off" src="${mute}" alt="" width="20" height="20" draggable="false" />
-          <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--on" src="${unmute}" alt="" width="20" height="20" draggable="false" />
+          <span class="work-card__nav-lift">
+            <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--off" src="${mute}" alt="" width="20" height="20" draggable="false" />
+            <img class="work-card__nav-chevron work-card__sound-icon work-card__sound-icon--on" src="${unmute}" alt="" width="20" height="20" draggable="false" />
+          </span>
         </button>
         <button type="button" class="work-card__close article-close" data-article-close hidden data-i18n-aria="work.close" aria-label="${esc(t("work.close"))}">
-          <img class="article-close__icon" src="${esc(publicUrl("assets/frame-2136141284.svg"))}" alt="" width="24" height="24" />
+          <span class="work-card__nav-lift"><img class="work-card__nav-chevron article-close__icon" src="${close}" alt="" width="20" height="20" /></span>
         </button>
       </div>
     </div>`;

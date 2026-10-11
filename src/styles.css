@@ -1176,19 +1176,50 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   right: 0;
   bottom: 0;
   z-index: 1;
-  width: calc(36 * var(--u));
-  height: calc(36 * var(--u));
-  display: flex;
+  box-sizing: border-box;
+  width: calc(36px / var(--deck-scale, 1));
+  height: calc(36px / var(--deck-scale, 1));
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: calc(10px / var(--deck-scale, 1));
+  padding: calc(8px / var(--deck-scale, 1));
+  border: 0;
+  border-radius: 120px;
+  background: rgba(227, 227, 227, 0.8);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
   pointer-events: auto;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
+html.is-focus-landed .format-card__mute {
+  width: 36px;
+  height: 36px;
+  gap: 10px;
+  padding: 8px;
+}
+
+.format-card__mute-lift {
+  display: block;
+  width: calc(20px / var(--deck-scale, 1));
+  height: calc(20px / var(--deck-scale, 1));
+  flex: none;
+  pointer-events: none;
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html.is-focus-landed .format-card__mute-lift {
+  width: 20px;
+  height: 20px;
+}
+
 .format-card__mute-icon {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -1199,7 +1230,7 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
 
 .format-card__mute[aria-pressed="false"] .format-card__mute-icon--on,
 .format-card__mute[aria-pressed="true"] .format-card__mute-icon--off {
-  visibility: hidden;
+  display: none;
 }
 
 .format-card__note {
@@ -3706,16 +3737,7 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
   pointer-events: auto;
 }
 
-/* Same frosted chip as prev/next — lives in the nav row, not on the player. */
-.work-card__sound {
-  padding: 0;
-}
-
-.work-card__sound .work-card__sound-icon {
-  width: calc(40 * var(--u));
-  height: calc(40 * var(--u));
-}
-
+/* Mute and sound-on swap in the same 36px chip as prev/next. */
 .work-card__sound .work-card__sound-icon--on,
 .work-card__sound[aria-pressed="true"] .work-card__sound-icon--off {
   display: none;
@@ -3750,21 +3772,23 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
 .work-card__nav .work-card__close {
   display: none;
   flex: none;
-  background: rgba(85, 85, 85, 0.06);
+  box-sizing: border-box;
+  width: var(--nav-btn, 36px);
+  height: var(--nav-btn, 36px);
+  padding: var(--nav-pad, 8px);
+  border-radius: 120px;
+  background: rgba(227, 227, 227, 0.8);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
 }
 
 .card.is-work-open .work-card__nav .work-card__close:not([hidden]) {
-  display: flex;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--nav-gap, 10px);
   pointer-events: auto;
-}
-
-.work-card__nav .work-card__close .article-close__icon {
-  filter: brightness(0);
-  opacity: 0.32;
 }
 
 .card.is-work-open .work-card {
@@ -3782,10 +3806,18 @@ html:not(.is-mobile) .card:not([data-program-card]) .card-illust--fly-close {
    frame the flight lands. */
 .card.is-program-open[data-work-card] .work-card {
   --work-chrome-h: calc(44px / var(--deck-scale, 1));
+  --nav-btn: calc(36px / var(--deck-scale, 1));
+  --nav-pad: calc(8px / var(--deck-scale, 1));
+  --nav-icon: calc(20px / var(--deck-scale, 1));
+  --nav-gap: calc(10px / var(--deck-scale, 1));
 }
 
 html.is-focus-landed .card.is-program-open[data-work-card] .work-card {
   --work-chrome-h: 44px;
+  --nav-btn: 36px;
+  --nav-pad: 8px;
+  --nav-icon: 20px;
+  --nav-gap: 10px;
 }
 
 .card.is-work-open .work-card__nav {
@@ -3797,59 +3829,95 @@ html.is-focus-landed .card.is-program-open[data-work-card] .work-card {
 }
 
 .work-card__nav-btn {
-  display: flex;
+  display: inline-flex;
   flex: none;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--nav-gap, 10px);
   box-sizing: border-box;
-  width: var(--work-chrome-h);
-  height: var(--work-chrome-h);
-  padding: calc((var(--work-chrome-h) - 20px) / 2);
+  width: var(--nav-btn, 36px);
+  height: var(--nav-btn, 36px);
+  padding: var(--nav-pad, 8px);
   border: 0;
   border-radius: 120px;
-  background: rgba(85, 85, 85, 0.06);
+  background: rgba(227, 227, 227, 0.8);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+  overflow: visible;
   pointer-events: auto;
   touch-action: manipulation;
   user-select: none;
-  transition:
-    background-color 160ms var(--ease-out),
-    transform 160ms var(--ease-out);
 }
 
-.work-card__nav-chevron {
+.work-card__nav-lift {
   display: block;
-  width: calc(20 * var(--u));
-  height: calc(20 * var(--u));
+  width: var(--nav-icon, 20px);
+  height: var(--nav-icon, 20px);
+  flex: none;
+  pointer-events: none;
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.work-card__nav .work-card__nav-chevron {
+  display: block;
+  width: 100%;
+  height: 100%;
+  flex: none;
+  filter: none;
+  opacity: 1;
   pointer-events: none;
   user-select: none;
 }
 
-.work-card__nav-btn--prev .work-card__nav-chevron {
-  transform: scaleX(-1);
+.work-card__nav .work-card__sound .work-card__sound-icon--on,
+.work-card__nav .work-card__sound[aria-pressed="true"] .work-card__sound-icon--off {
+  display: none;
+}
+
+.work-card__nav .work-card__sound[aria-pressed="true"] .work-card__sound-icon--on {
+  display: block;
+}
+
+.work-card__nav-btn:focus-visible .work-card__nav-lift,
+.work-card__nav .work-card__close:focus-visible .work-card__nav-lift,
+.format-card__mute:focus-visible .format-card__mute-lift {
+  transform: translateY(calc(-8px / var(--deck-scale, 1)));
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .work-card__nav-btn:hover {
-    background: rgba(85, 85, 85, 0.12);
+  .work-card__nav-btn:hover .work-card__nav-lift,
+  .work-card__nav .work-card__close:hover .work-card__nav-lift,
+  .format-card__mute:hover .format-card__mute-lift {
+    transform: translateY(calc(-8px / var(--deck-scale, 1)));
   }
 }
 
-.work-card__nav-btn:active {
-  transform: scale(0.97);
+html.is-focus-landed .work-card__nav-btn:hover .work-card__nav-lift,
+html.is-focus-landed .work-card__nav-btn:focus-visible .work-card__nav-lift,
+html.is-focus-landed .work-card__nav .work-card__close:hover .work-card__nav-lift,
+html.is-focus-landed .work-card__nav .work-card__close:focus-visible .work-card__nav-lift,
+html.is-focus-landed .format-card__mute:hover .format-card__mute-lift,
+html.is-focus-landed .format-card__mute:focus-visible .format-card__mute-lift {
+  transform: translateY(-8px);
+}
+
+.work-card__nav-btn:active .work-card__nav-lift,
+.work-card__nav .work-card__close:active .work-card__nav-lift,
+.format-card__mute:active .format-card__mute-lift,
+html.is-focus-landed .work-card__nav-btn:active .work-card__nav-lift,
+html.is-focus-landed .work-card__nav .work-card__close:active .work-card__nav-lift,
+html.is-focus-landed .format-card__mute:active .format-card__mute-lift {
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .work-card__nav-btn {
+  .work-card__nav-lift,
+  .format-card__mute-lift {
     transition: none;
-  }
-
-  .work-card__nav-btn:active {
-    transform: none;
   }
 }
 
@@ -6120,8 +6188,8 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   }
 
   .format-card__mute {
-    width: calc(36 * var(--fm));
-    height: calc(36 * var(--fm));
+    width: calc(36px / var(--deck-scale, 1));
+    height: calc(36px / var(--deck-scale, 1));
   }
 
   .format-card__col--videos {
@@ -6896,23 +6964,14 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
 
   .card.is-program-open[data-work-card].is-work-open .work-card__nav-btn,
   .card.is-program-open[data-work-card].is-work-open .work-card__close {
-    width: var(--work-chrome-h);
-    height: var(--work-chrome-h);
-    padding: 12px;
+    width: var(--nav-btn, 36px);
+    height: var(--nav-btn, 36px);
+    padding: var(--nav-pad, 8px);
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__nav-chevron {
-    width: 20px;
-    height: 20px;
-  }
-
-  .card.is-program-open[data-work-card].is-work-open .work-card__sound {
-    padding: 0;
-  }
-
-  .card.is-program-open[data-work-card].is-work-open .work-card__sound .work-card__sound-icon {
-    width: 40px;
-    height: 40px;
+    width: var(--nav-icon, 20px);
+    height: var(--nav-icon, 20px);
   }
 
   .card.is-program-open[data-work-card].is-work-open .work-card__who {
