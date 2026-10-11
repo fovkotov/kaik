@@ -115,7 +115,7 @@ const STUDENTS = [
       arrow: [141, 47, 134, 120, -2.09, -0.41, P("arrow-roma.svg")],
     },
     start: 1710,
-    cover: FINAL("wrk_4d695bf9_7.webp"),
+    cover: FINAL("wrk_4d695bf9_0.webp"),
     weeks: [
       {
         n: 1,
