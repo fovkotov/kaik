@@ -1914,8 +1914,10 @@ html.is-mobile .author-lb__hit--next {
 
 .program-card__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) calc(180 * var(--u)) calc(80 * var(--u));
+  /* Date sits under the title; the type label stays in the right column. */
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: calc(8 * var(--u));
+  row-gap: calc(2 * var(--u));
   align-items: start;
   width: 100%;
   margin: 0;
@@ -1944,19 +1946,25 @@ html.is-mobile .author-lb__hit--next {
 }
 
 .program-card__name {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
   color: #b6d9c1;
 }
 
 .program-card__when {
+  grid-column: 1;
+  grid-row: 2;
   color: rgba(182, 217, 193, 0.64);
 }
 
 .program-card__when:empty {
-  visibility: hidden;
+  display: none;
 }
 
 .program-card__kind {
+  grid-column: 2;
+  grid-row: 1;
   text-align: right;
   color: #b6d9c1;
   white-space: nowrap;
