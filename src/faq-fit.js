@@ -15,8 +15,9 @@ export function isFaqCard(card) {
 }
 
 /**
- * Uniform scale so the open FAQ face (title → frog → questions, unchanged)
- * sits inside the focus frame. Transform does not reflow the internals.
+ * Uniform scale so the open FAQ poster (same absolute title, illustration,
+ * and list as the closed card) sits inside the focus frame. Transform does
+ * not reflow the internals. A face that already fits stays at scale 1.
  */
 export function fitFaqCard(card) {
   if (!(card instanceof HTMLElement) || !isFaqCard(card)) return;

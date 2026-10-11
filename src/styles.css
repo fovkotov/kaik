@@ -5095,91 +5095,95 @@ html:not(.is-mobile) .card.is-program-open[data-program-card] .card-illust--prog
   cursor: pointer;
 }
 
-.card.is-program-open .faq-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* Phone open sheet only. Desktop focus keeps the closed absolute poster. */
+@media (max-width: 900px) {
+  .card.is-program-open .faq-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-.card.is-program-open .faq-card__title {
-  order: 1;
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
-  width: 100%;
-  margin-top: 0;
-  padding: 4px 0 0;
-}
+  .card.is-program-open .faq-card__title {
+    order: 1;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    margin-top: 0;
+    padding: 4px 0 0;
+  }
 
-.card.is-program-open .card-illust--faq {
-  order: 2;
-  position: relative;
-  inset: auto;
-  z-index: 1;
-  width: 71.48%;
-  max-width: 420px;
-  height: auto;
-  aspect-ratio: 227.306 / 209.916;
-  margin: 16px auto 0;
-  flex-shrink: 0;
-  pointer-events: none;
-}
+  .card.is-program-open .card-illust--faq {
+    order: 2;
+    position: relative;
+    inset: auto;
+    z-index: 1;
+    width: 71.48%;
+    max-width: 420px;
+    height: auto;
+    aspect-ratio: 227.306 / 209.916;
+    margin: 16px auto 0;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
 
-.card.is-program-open .card-illust--faq .card-illust__art--drop {
-  display: none;
-}
+  .card.is-program-open .card-illust--faq .card-illust__art--drop {
+    display: none;
+  }
 
-.card.is-program-open .card-illust--faq .card-illust__art--frog {
-  display: block;
-  position: relative;
-  left: auto;
-  top: auto;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
+  .card.is-program-open .card-illust--faq .card-illust__art--frog {
+    display: block;
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 
-.card.is-program-open .faq-card__list {
-  order: 3;
-  position: relative;
-  left: auto;
-  bottom: auto;
-  transform: none;
-  width: 100%;
-  margin-top: 16px;
-  padding: 0 0 24px;
+  .card.is-program-open .faq-card__list {
+    order: 3;
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    margin-top: 16px;
+    padding: 0 0 24px;
+  }
 }
 
 /*
-  Desktop open FAQ is a poster, not an article. The in-flow sheet
-  (title → frog → questions) is taller than the focus frame, which
-  turned the card into a scroller and clipped the email. Scale the
-  whole face to the frame and center it. Do not restack the internals.
+  Desktop open FAQ is the same poster as the closed card: absolute title,
+  drop illustration, and bottom list. Do not restack them. Fit that A4 face
+  inside the focus frame (contain) and only then apply a uniform --faq-fit
+  scale if the layout box is still taller than the card.
 */
 @media (min-width: 901px) {
   html:not(.is-mobile) .card.is-program-open:has(> .faq-card),
-  html:not(.is-mobile) .card.is-program-open.is-program-scroll:has(> .faq-card) {
+  html:not(.is-mobile) .card.is-program-open.is-program-scroll:has(> .faq-card),
+  html:not(.is-mobile) body.list .card.is-list-open:has(> .faq-card) {
     overflow: hidden;
     overscroll-behavior: contain;
     scrollbar-width: none;
+    container-type: size;
   }
 
   html:not(.is-mobile) .card.is-program-open > .faq-card {
+    --faq-face-w: min(100cqw, calc(100cqh * 210 / 297));
+    --u: calc(var(--faq-face-w) / 595);
     position: absolute;
-    left: 50%;
-    top: 50%;
-    right: auto;
-    bottom: auto;
-    width: 100%;
-    height: auto;
+    inset: 0;
+    width: var(--faq-face-w);
+    height: min(100cqh, calc(var(--faq-face-w) * 297 / 210));
     min-height: 0;
-    margin: 0;
-    overflow: visible;
-    transform: translate(-50%, -50%) scale(var(--faq-fit, 1));
+    margin: auto;
+    overflow: hidden;
+    transform: scale(var(--faq-fit, 1));
     transform-origin: center center;
   }
 }
