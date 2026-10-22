@@ -2121,13 +2121,31 @@ function pinPageScroll(top) {
   if (root) root.scrollTop = top;
 }
 
-/** The sticky row floats over the grid: its measured height feeds the negative margin. */
+/**
+ * Desktop: the filter row is position:fixed, so it has to live outside the
+ * scroll root (Lenis / overflow would carry a fixed descendant away).
+ * Mobile keeps it in the flow, pulled up over the illustration.
+ */
+function placeFilterBar() {
+  const bar = document.querySelector("[data-filter-bar]");
+  const scroll = document.querySelector("[data-scroll-root]");
+  const hero = document.querySelector("[data-lettering-hero]");
+  if (!bar || !scroll || !hero) return;
+  if (NARROW.matches) {
+    if (bar.previousElementSibling !== hero) hero.after(bar);
+    return;
+  }
+  if (bar.previousElementSibling !== scroll) scroll.after(bar);
+}
+
+/** Measured chip-row height. Mobile uses it to keep the grid clear of the island. */
 function syncIslandSticky() {
   const bar = document.querySelector("[data-filter-bar]");
   if (!bar) return;
   const height = bar.getBoundingClientRect().height;
   if (!(height > 0)) return;
-  (bar.closest(".works-page") || bar.parentElement).style.setProperty("--island-h", `${height}px`);
+  const host = document.querySelector(".works-page") || document.documentElement;
+  host.style.setProperty("--island-h", `${height}px`);
 }
 
 function initSmoothScroll() {
@@ -2154,6 +2172,8 @@ function initSmoothScroll() {
 /* ---------- boot ---------- */
 
 async function boot() {
+  /* Before Lenis measures the scroller: desktop nav is a sibling of it. */
+  placeFilterBar();
   initEmbed();
   /* iOS Safari only paints :active once the document listens for touch, and the
      press state on cards and chips is pure CSS :active. */
@@ -2167,9 +2187,16 @@ async function boot() {
   grid.style.setProperty("--grid-half-columns", String(halfColumns()));
   setupGridGeometry();
   setupFilters();
-  document.querySelectorAll("[data-enroll], [data-about]").forEach((link) => {
+  document.querySelectorAll("[data-about]").forEach((link) => {
     link.addEventListener("click", (event) => playTickClick(event));
   });
+  placeFilterBar();
+  const syncFilterBar = () => {
+    placeFilterBar();
+    syncIslandSticky();
+  };
+  NARROW.addEventListener("change", syncFilterBar);
+  window.addEventListener("resize", syncFilterBar);
   syncIslandSticky();
   new ResizeObserver(syncIslandSticky).observe(document.querySelector("[data-filter-bar]") || grid);
   viewer = createViewer(document.querySelector("[data-viewer]"));

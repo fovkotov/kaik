@@ -41,9 +41,10 @@
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
         </section>
 
-        <!-- Desktop: schedule chip | filter island | signup.
-             Mobile: the island sticks up top; schedule and signup live in
-             the fixed bottom bar (data-mobile-bar), a sibling of the scroll root. -->
+        <!-- Desktop: this row is moved out of the scroller (see pinDesktopNav)
+             and fixed to the iframe top — schedule left, filters right.
+             Mobile: it stays here, pulled up over the illustration. The
+             schedule copy lives in the fixed bottom bar (data-mobile-bar). -->
         <div class="filter-bar" data-filter-bar>
           <a
             class="filter-chip filter-chip--about filter-bar__side filter-bar__side--start"
@@ -72,16 +73,6 @@ and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about
               <span class="filter-chip__plate" data-i18n="exp2.filter.font">fonts</span>
             </button>
           </div>
-
-          <a
-            class="filter-chip filter-chip--enroll filter-bar__side filter-bar__side--end"
-            href="https://web.tribute.tg/p/FWM"
-            target="_blank"
-            rel="noopener noreferrer"
-            data-enroll
-          >
-            <span class="filter-chip__plate" data-i18n="exp2.enroll">enroll €250</span>
-          </a>
         </div>
 
         <section class="works-panel" aria-label="Student work">
@@ -92,9 +83,8 @@ and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about
       </div>
     </div>
 
-    <!-- Mobile only: schedule (left) and signup (right), pinned to the bottom
-         of the iframe. Sibling of the scroll root so position: fixed sticks
-         to the frame, not the scroller. -->
+    <!-- Mobile only: schedule chip, pinned to the bottom-left of the iframe.
+         Sibling of the scroll root so position: fixed sticks to the frame. -->
     <div class="mobile-bar" data-mobile-bar>
       <a
         class="filter-chip filter-chip--about"
@@ -107,15 +97,6 @@ and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about
       >
         <span class="filter-chip__plate"><span data-i18n="exp2.about">letter schedule
 and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" /></span>
-      </a>
-      <a
-        class="filter-chip filter-chip--enroll"
-        href="https://web.tribute.tg/p/FWM"
-        target="_blank"
-        rel="noopener noreferrer"
-        data-enroll
-      >
-        <span class="filter-chip__plate" data-i18n="exp2.enroll">enroll €250</span>
       </a>
     </div>
 
