@@ -971,6 +971,70 @@ button.work-card__art:active {
   border-radius: 4px;
 }
 
+/* Fullscreen flying deck. Scroll lives in the iframe, never on this window. */
+.deck-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: none;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: var(--bg);
+}
+
+.deck-stage:not([hidden]) {
+  display: block;
+}
+
+.deck-stage__frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--bg);
+  overscroll-behavior: contain;
+}
+
+.deck-stage__close {
+  position: absolute;
+  top: calc(16px + var(--frame-clip-top));
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
+  padding: 0;
+  border: 0;
+  border-radius: 140px;
+  background: var(--viewer-btn);
+  backdrop-filter: blur(var(--viewer-btn-blur));
+  -webkit-backdrop-filter: blur(var(--viewer-btn-blur));
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 120ms var(--ease-out);
+}
+
+.deck-stage__close img {
+  display: block;
+  width: var(--viewer-btn-size);
+  height: var(--viewer-btn-size);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .deck-stage__close:hover {
+    transform: scale(1.05);
+  }
+}
+
+.deck-stage__close:active {
+  transform: scale(0.97);
+}
+
 /* Fullscreen viewer — exact /experiment chrome, light palette. */
 .viewer {
   position: fixed;

@@ -46,18 +46,16 @@
              Mobile: it stays here, pulled up over the illustration. The
              schedule copy lives in the fixed bottom bar (data-mobile-bar). -->
         <div class="filter-bar" data-filter-bar>
-          <a
+          <button
             class="filter-chip filter-chip--about filter-bar__side filter-bar__side--start"
-            href="https://kaik.pictures/letter_program"
-            target="_blank"
-            rel="noopener noreferrer"
+            type="button"
             data-about
             aria-label="letter schedule and program"
             data-i18n-aria="exp2.about"
           >
             <span class="filter-chip__plate"><span data-i18n="exp2.about">letter schedule
 and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" /></span>
-          </a>
+          </button>
 
           <div class="filter-island" data-filter-island role="group" aria-label="Work filters" data-i18n-aria="exp2.filters">
             <button class="filter-chip filter-chip--daily" type="button" role="checkbox" aria-checked="true" data-filter="daily">
@@ -86,18 +84,16 @@ and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about
     <!-- Mobile only: schedule chip, pinned to the bottom-left of the iframe.
          Sibling of the scroll root so position: fixed sticks to the frame. -->
     <div class="mobile-bar" data-mobile-bar>
-      <a
+      <button
         class="filter-chip filter-chip--about"
-        href="https://kaik.pictures/letter_program"
-        target="_blank"
-        rel="noopener noreferrer"
+        type="button"
         data-about
         aria-label="letter schedule and program"
         data-i18n-aria="exp2.about"
       >
         <span class="filter-chip__plate"><span data-i18n="exp2.about">letter schedule
 and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about-arrow.svg" alt="" width="12" height="20" draggable="false" aria-hidden="true" /></span>
-      </a>
+      </button>
     </div>
 
     <aside class="grid-settings" data-grid-settings hidden aria-label="Настройки сетки">
@@ -158,6 +154,27 @@ and program</span><img class="filter-chip__arrow" src="/assets/author/exp2-about
       </label>
       <button class="grid-settings__reset" type="button" data-grid-settings-reset>Reset to catalog defaults</button>
     </aside>
+
+    <div
+      class="deck-stage"
+      data-deck-stage
+      hidden
+      inert
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Letter schedule and program"
+    >
+      <iframe
+        class="deck-stage__frame"
+        data-deck-stage-frame
+        title="Letter course"
+        allow="autoplay; fullscreen"
+      ></iframe>
+      <button type="button" class="deck-stage__close" data-deck-stage-close aria-label="Close">
+        <img src="/assets/author/exp2-close.svg" alt="" width="34" height="34" draggable="false" />
+      </button>
+    </div>
 
     <div
       class="viewer"

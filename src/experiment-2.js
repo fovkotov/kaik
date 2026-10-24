@@ -4,6 +4,7 @@ import { playUISound } from "./lib/ui-sounds.js";
 import { playTickClick } from "./tick-clicks.js";
 import { lockLocale, t } from "./scriptik.js";
 import { planExperiment2 } from "./experiment-2-planner.js";
+import { publicUrl } from "./public-url.js";
 import { localizedAuthor } from "./works/author-name.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
@@ -2148,6 +2149,77 @@ function syncIslandSticky() {
   host.style.setProperty("--island-h", `${height}px`);
 }
 
+/** Fullscreen flying deck. The iframe is the course page in `?deck=stage`. */
+function initDeckStage() {
+  const stage = document.querySelector("[data-deck-stage]");
+  const frame = document.querySelector("[data-deck-stage-frame]");
+  const closeBtn = document.querySelector("[data-deck-stage-close]");
+  if (!stage || !frame || !closeBtn) return;
+
+  const deckSrc = publicUrl("index.html?deck=stage");
+  let opener = null;
+
+  const pageBits = () =>
+    [
+      document.querySelector("[data-scroll-root]"),
+      document.querySelector("[data-filter-bar]"),
+      document.querySelector("[data-mobile-bar]"),
+    ].filter(Boolean);
+
+  const isOpen = () => !stage.hidden;
+
+  function open(from) {
+    opener = from instanceof HTMLElement ? from : null;
+    if (frame.getAttribute("src") !== deckSrc) frame.src = deckSrc;
+    for (const el of pageBits()) el.setAttribute("inert", "");
+    stage.hidden = false;
+    stage.inert = false;
+    stage.setAttribute("aria-hidden", "false");
+    document.body.classList.add("is-deck-stage");
+    pageLenis?.stop();
+    closeBtn.focus();
+  }
+
+  function close() {
+    if (!isOpen()) return;
+    stage.hidden = true;
+    stage.inert = true;
+    stage.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("is-deck-stage");
+    for (const el of pageBits()) el.removeAttribute("inert");
+    pageLenis?.start();
+    frame.src = "about:blank";
+    opener?.focus?.();
+    opener = null;
+  }
+
+  document.querySelectorAll("[data-about]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      playTickClick(event);
+      open(btn);
+    });
+  });
+
+  closeBtn.addEventListener("click", (event) => {
+    playTickClick(event);
+    close();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !isOpen()) return;
+    event.preventDefault();
+    close();
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.source !== frame.contentWindow) return;
+    if (event.data?.type !== "kaik:deck-stage-close") return;
+    close();
+  });
+}
+
 function initSmoothScroll() {
   const wrapper = document.querySelector("[data-scroll-root]");
   const content = document.querySelector("[data-scroll-content]");
@@ -2187,9 +2259,7 @@ async function boot() {
   grid.style.setProperty("--grid-half-columns", String(halfColumns()));
   setupGridGeometry();
   setupFilters();
-  document.querySelectorAll("[data-about]").forEach((link) => {
-    link.addEventListener("click", (event) => playTickClick(event));
-  });
+  initDeckStage();
   placeFilterBar();
   const syncFilterBar = () => {
     placeFilterBar();

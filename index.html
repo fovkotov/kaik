@@ -24,6 +24,17 @@
         document.documentElement.classList.remove("lang-ru");
       })();
     </script>
+    <script>
+      /* experiment-2 fullscreen: same deck, no text column, no program card. */
+      (function () {
+        try {
+          if (new URLSearchParams(window.location.search).get("deck") !== "stage") return;
+        } catch (e) {
+          return;
+        }
+        document.documentElement.classList.add("deck-stage");
+      })();
+    </script>
     <script type="application/json" id="kaik-dropcap-catalog">{"en":"L","ru":"Э","letters":[{"id":"ltr_d094952c","file":"ltr_d094952c.svg","char":"L"},{"id":"ltr_9c88f6f0","file":"ltr_9c88f6f0.svg","char":"L"},{"id":"ltr_a7085a04","file":"ltr_a7085a04.svg","char":"L"},{"id":"ltr_d2559774","file":"ltr_d2559774.svg","char":"L"},{"id":"ltr_49304cb0","file":"ltr_49304cb0.svg","char":"L"},{"id":"ltr_98d9510f","file":"ltr_98d9510f.svg","char":"L"},{"id":"ltr_25a367eb","file":"ltr_25a367eb.svg","char":"L"},{"id":"ltr_49efced6","file":"ltr_49efced6.svg","char":"L"},{"id":"ltr_53a64d7a","file":"ltr_53a64d7a.svg","char":"L"},{"id":"ltr_f268d1c2","file":"ltr_f268d1c2.svg","char":"L"}]}</script>
     <link
       rel="preload"
@@ -94,6 +105,16 @@
         .panel__dropcap .dropcap svg {
           height: 134px;
         }
+      }
+      /* Stage overlay: the left lockup is not part of this fullscreen. */
+      html.deck-stage .panel {
+        display: none !important;
+      }
+      html.deck-stage [data-program-card] {
+        display: none !important;
+      }
+      html.deck-stage .fly-close {
+        top: calc(var(--focus-close-inset, 16px) + 52px);
       }
     </style>
     <link rel="stylesheet" href="/src/styles.css" />

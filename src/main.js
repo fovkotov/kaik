@@ -317,7 +317,20 @@ function initDeck() {
     return Number.isFinite(n) && n > 0 ? n : 1;
   }
 
+  /** experiment-2 fullscreen on a phone: peel one card up, then the next. */
+  function stagePeel() {
+    return document.documentElement.classList.contains("deck-stage") && isMobile();
+  }
+
+  /** Pixels that carry a centered card fully above the iframe. One progress unit. */
+  function peelExitPx() {
+    const cardH = cardBoxH || state[0]?.el.offsetHeight || 400;
+    const deckTop = deck.getBoundingClientRect().top || 0;
+    return Math.max(cardH + 24, deckTop + cardH + 20);
+  }
+
   function deckMax() {
+    if (stagePeel()) return liveCount();
     return Math.max(0, liveCount() - 1) * focusSpanOf();
   }
 
@@ -332,6 +345,7 @@ function initDeck() {
   }
 
   function cardUnitPx(params) {
+    if (stagePeel()) return peelExitPx();
     const h = cardBoxH || state[0]?.el.offsetHeight || 400;
     // 1.36 = 2.04 / 1.5 — same swipe advances another 1.5× farther.
     // Floor 0.05 (was 0.3) so the speed slider works below 0.3.
@@ -697,7 +711,9 @@ function initDeck() {
           dragInertia = 0;
           animateProgress(dragProgress < 0 ? 0 : max);
         } else if (Math.abs(dragInertia) > INERTIA_MIN) {
-          dragProgress += dragInertia;
+          /* Peel is one card at a time — a flick must not skip a card in one frame. */
+          const step = stagePeel() ? clamp(dragInertia, -0.12, 0.12) : dragInertia;
+          dragProgress += step;
           dragInertia *= INERTIA_FRICTION;
           if (dragProgress <= 0) {
             dragProgress = 0;
@@ -816,7 +832,29 @@ function initDeck() {
       let tossX = mobile ? 0 : params.travelDir * t * travel;
       let tossY;
       let stackScale = 1;
-      if (mobile) {
+      let peelOpacity = 1;
+      const stagePeelOn = mobile && stagePeel();
+      if (stagePeelOn) {
+        /* One card owns the scroll. It travels straight up. Cards behind stay
+           put until this one has fully left, then the next one starts. */
+        const exitPx = peelExitPx();
+        tossX = -baseX;
+        stackScale = 1;
+        if (y < 0) {
+          tossY = i === 0 ? Math.min(18, -y * exitPx) : 0;
+        } else {
+          const k = Math.floor(y);
+          const frac = y - k;
+          if (i < k) {
+            tossY = -exitPx;
+            peelOpacity = 0;
+          } else if (i === k) {
+            tossY = -frac * exitPx;
+          } else {
+            tossY = 0;
+          }
+        }
+      } else if (mobile) {
         const lift = Number.isFinite(Number(params.stackLift)) ? Number(params.stackLift) : 3;
         const rear = clamp(Number(params.rearScale) || 0.55, 0.2, 1);
         const curve = Math.max(0.2, Number(params.scaleProgress) || 1);
@@ -849,6 +887,7 @@ function initDeck() {
       const scrollX = baseX + tossX;
       const scrollY = baseY - originY + tossY;
       const stackOpacity = (() => {
+        if (stagePeelOn) return peelOpacity;
         if (!mobile || focusing) return 1;
         if (slot >= 0) return 1;
         if (flyExit) {
@@ -1054,6 +1093,53 @@ function bindWorkNav(programApi) {
   );
 }
 
+if (document.documentElement.classList.contains("deck-stage")) {
+  document.querySelector("[data-program-card]")?.remove();
+  document.querySelector("[data-deck-loop]")?.remove();
+}
+
+/**
+ * Desktop stage: the stack is already shifted left (tweaks). A short step into
+ * the flight pulls the front cards out of the hole the text column left.
+ */
+function primeDeckStageScroll() {
+  if (!document.documentElement.classList.contains("deck-stage") || isMobile()) return;
+  const root = getScrollRoot();
+  if (!root) return;
+  const params = getParams();
+  const count = [...document.querySelectorAll("[data-card]")].filter((el) => inDeckFlow(el)).length;
+  if (count < 2) return;
+  const targetT = 0.04;
+  const total = maxProgress(count, params);
+  let lo = 0;
+  let hi = 1;
+  for (let n = 0; n < 24; n += 1) {
+    const mid = (lo + hi) / 2;
+    if (cardFlightT(0, count, params, mid) < targetT) lo = mid;
+    else hi = mid;
+  }
+  root.scrollTop = hi * total;
+}
+
+function bindDeckStageEscape() {
+  if (!document.documentElement.classList.contains("deck-stage")) return;
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Escape") return;
+      const deck = document.querySelector("[data-deck]");
+      const busy =
+        isAuthorLightboxOpen() ||
+        Boolean(deck?.hasAttribute("data-program-open")) ||
+        Boolean(deck?.querySelector("[data-fly-lock], .is-program-open, .is-fly-pinned"));
+      if (busy || !window.parent || window.parent === window) return;
+      event.preventDefault();
+      window.parent.postMessage({ type: "kaik:deck-stage-close" }, "*");
+    },
+    true,
+  );
+}
+
 initEmbed();
 initLocale();
 initTweaks();
@@ -1063,6 +1149,7 @@ initSoundSettings();
 // The progress sheets must exist before the deck and program modal query them.
 initStudentProgress();
 initDeck();
+primeDeckStageScroll();
 initTextAppear();
 const programApi = initProgramModal();
 bindProgramNav(programApi);
@@ -1075,3 +1162,4 @@ initFormatVideo();
 initPreviewMedia();
 initDropcaps();
 initWorksFeed();
+bindDeckStageEscape();

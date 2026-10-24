@@ -359,7 +359,15 @@ export function applyDeckParams() {
       if (card.style.left !== left) card.style.left = left;
       if (card.style.right) card.style.right = "";
     } else {
-      const right = `${p.deckRightPx ?? 304}px`;
+      let rightPx = Number(p.deckRightPx);
+      if (!Number.isFinite(rightPx)) rightPx = 304;
+      /* experiment-2 stage drops the left text column, so the right-pinned
+         stack steps toward the middle of the frame. `/` never has this class. */
+      if (root.classList.contains("deck-stage")) {
+        const width = getViewportSize().width || window.innerWidth || 0;
+        rightPx += Math.round(width * 0.2);
+      }
+      const right = `${Math.round(rightPx)}px`;
       if (card.style.left !== "auto") card.style.left = "auto";
       if (card.style.right !== right) card.style.right = right;
     }
