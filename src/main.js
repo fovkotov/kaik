@@ -437,7 +437,9 @@ function initDeck() {
     if (isFocusFrozen()) return false;
     if (deckIntro || deckOutro) return true;
     if (desktopDrag || Math.abs(desktopCoast) > 0.35 || deckWheelTarget != null) return true;
-    if (pileDrag || pileAnim || pileTug) return true;
+    /* Vertical / undecided phone-pile contact must not keep rewriting card poses. */
+    const pileLive = pileDrag && !(phoneStagePile() && pileDrag.axis !== "x");
+    if (pileLive || pileAnim || pileTug) return true;
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
@@ -473,6 +475,15 @@ function initDeck() {
   /** Stage deck on a phone: a centered pile. Drag the top card to the back. */
   function stagePile() {
     return document.documentElement.classList.contains("deck-stage") && isMobile();
+  }
+
+  /**
+   * ≤760 stage pile. A vertical finger belongs to the page scroller.
+   * Wider phones still post scroll deltas; `/` is not a stage pile.
+   */
+  const phonePileMq = window.matchMedia("(max-width: 760px)");
+  function phoneStagePile() {
+    return stagePile() && phonePileMq.matches;
   }
 
   /** Finger-up on the phone pile scrolls experiment-2. The parent ignores this while the deck is closed. */
@@ -975,6 +986,15 @@ function initDeck() {
       pileDrag.axis = Math.abs(sdy) > Math.abs(sdx) ? "y" : "x";
     }
     if (pileDrag.axis === "y") {
+      /* ≤760: one vertical gesture, one scroller. No card pose, no preventDefault,
+         no scrollTop — the parent used to apply these deltas and Safari shook. */
+      if (phoneStagePile()) {
+        if (!pileDrag.scrolled) {
+          pileDrag.scrolled = true;
+          swallowNextClick(pileDrag.el);
+        }
+        return;
+      }
       const delta = pileDrag.lastY - event.clientY;
       pileDrag.lastX = event.clientX;
       pileDrag.lastY = event.clientY;
@@ -1016,7 +1036,7 @@ function initDeck() {
     pileDrag = null;
     deck.classList.remove("is-dragging");
     if (!current?.moved) {
-      scheduleRender();
+      if (!(current && phoneStagePile() && current.axis === "y")) scheduleRender();
       return;
     }
     const dist = Math.hypot(current.x, current.y);
@@ -1086,6 +1106,7 @@ function initDeck() {
       pagePan.axis = Math.abs(dy) > Math.abs(dx) ? "y" : "x";
     }
     if (pagePan.axis !== "y") return;
+    if (phoneStagePile()) return;
     const delta = pagePan.lastY - event.clientY;
     pagePan.lastY = event.clientY;
     if (event.cancelable) event.preventDefault();
@@ -1252,6 +1273,26 @@ function initDeck() {
     el.addEventListener("pointerup", endDrag);
     el.addEventListener("pointercancel", endDrag);
   });
+
+  /* Horizontal pile drag only. A vertical touchmove must stay default so the
+     page can pan; touch-action: pan-y is what lets Safari start that pan. */
+  if (document.documentElement.classList.contains("deck-stage")) {
+    const onStagePileTouchMove = (event) => {
+      if (!phoneStagePile() || !pileDrag) return;
+      const touch = Array.from(event.changedTouches).find((item) => item.identifier === pileDrag.id);
+      if (!touch) return;
+      const sdx = touch.clientX - pileDrag.startX;
+      const sdy = touch.clientY - pileDrag.startY;
+      if (!pileDrag.axis) {
+        if (Math.hypot(sdx, sdy) <= PILE_TAP_PX) return;
+        pileDrag.axis = Math.abs(sdy) > Math.abs(sdx) ? "y" : "x";
+      }
+      if (pileDrag.axis === "x" && event.cancelable) event.preventDefault();
+    };
+    for (const el of [deck, root]) {
+      el.addEventListener("touchmove", onStagePileTouchMove, { passive: false });
+    }
+  }
 
   document.addEventListener("kaik:cancel-deck-drag", () => {
     pagePan = null;
@@ -1627,6 +1668,7 @@ function initDeck() {
       }
 
       if (mobile && stagePile()) {
+        if (phoneStagePile() && pileDrag && pileDrag.axis !== "x") return;
         const active = pileDrag?.el || pileAnim?.el || null;
         const depth = pileDepth(item.el);
         const peek = pileOffset(depth);

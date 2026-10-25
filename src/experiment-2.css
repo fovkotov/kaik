@@ -1592,12 +1592,26 @@ button.work-card__art:active {
     pointer-events: auto;
   }
 
-  /* Open: the hero fills the iframe so the lettering strip is pushed below
-     the fold. Tabs are position:fixed — a margin tied to --hero-h slid them
-     while the height eased. The deck box itself does not crop. */
+  /* Open: the hero fills the stable frame so the lettering strip stays below
+     the fold. 100vh tracks the URL bar and the 520ms height ease reads as a
+     shake. --frame-h is the scrollport, pinned in px while this deck is live.
+     Tabs are position:fixed — a margin tied to --hero-h slid them while the
+     height eased. The deck box itself does not crop. */
   body.is-hero-deck .works-page {
-    --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
+    --hero-frame: var(--frame-h);
     --hero-h: calc(var(--hero-frame) - var(--edge));
+  }
+
+  body.is-hero-deck-preload .lettering-hero__deck,
+  body.is-hero-deck .lettering-hero__deck:not([hidden]) {
+    height: var(--frame-h);
+  }
+
+  /* A later frame-size write must not ease the hero or the lettering strip.
+     Filter and schedule chip keep their own close flight. */
+  body.is-hero-deck.is-frame-pin .lettering-hero,
+  body.is-hero-deck.is-frame-pin .works-panel {
+    transition: none;
   }
 
   body.is-hero-deck .filter-bar,
@@ -1630,7 +1644,7 @@ button.work-card__art:active {
   }
 
   body.is-hero-deck .lettering-hero__deck-frame {
-    touch-action: none;
+    touch-action: pan-y;
   }
 
   /* Clip window is full-bleed so swipe neighbors enter/leave at the iframe edges.

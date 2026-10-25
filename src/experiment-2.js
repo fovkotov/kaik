@@ -1,5 +1,5 @@
 import Lenis from "lenis";
-import { initEmbed, safeStorage } from "./embed.js";
+import { initEmbed, onFrameMetrics, safeStorage } from "./embed.js";
 import { playUISound } from "./lib/ui-sounds.js";
 import { playTickClick } from "./tick-clicks.js";
 import { lockLocale, t } from "./scriptik.js";
@@ -1593,6 +1593,23 @@ async function startHero() {
       playTickClick(event);
       nextHero();
     });
+    /* Empty hero background advances the same queue. The word button, the
+       filter chips, and the schedule chip keep their own clicks. Desktop
+       lettering stays on the full-hero button. An open deck hides the bounce. */
+    hero.addEventListener("click", (event) => {
+      if (!NARROW.matches || document.body.classList.contains("is-hero-deck")) return;
+      const node = event.target instanceof Element ? event.target : null;
+      if (
+        !node ||
+        node.closest(
+          "[data-lettering-action], [data-filter], [data-about], [data-filter-bar], [data-mobile-bar]",
+        )
+      ) {
+        return;
+      }
+      playTickClick(event);
+      nextHero();
+    });
     REDUCE.addEventListener("change", syncHeroMode);
     document.addEventListener("visibilitychange", syncHeroMode);
     const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
@@ -2595,6 +2612,28 @@ function syncIslandSticky() {
 }
 
 /**
+ * Phone open-deck height. `--frame-h` on the page is the scrollport in px, not
+ * a live 100vh, so the URL bar cannot ease the hero, the filter row, or the strip.
+ * Closed hero height still comes from `--hero-vh`. Desktop does not set this.
+ */
+function pinStageFrame(live) {
+  if (!page) return;
+  if (!NARROW.matches) {
+    page.style.removeProperty("--frame-h");
+    document.body.classList.remove("is-frame-pin");
+    return;
+  }
+  const h = Math.round(document.querySelector("[data-scroll-root]")?.clientHeight || 0);
+  if (!(h > 0)) return;
+  const next = `${h}px`;
+  if (page.style.getPropertyValue("--frame-h") === next) return;
+  if (live && document.body.classList.contains("is-hero-deck")) {
+    document.body.classList.add("is-frame-pin");
+  }
+  page.style.setProperty("--frame-h", next);
+}
+
+/**
  * Flying deck inside the lettering hero, both widths.
  * The schedule chip scrolls to the top, shows `index.html?deck=stage`, and
  * swaps the eye. A second tap plays the outro and the hero collapses.
@@ -2794,7 +2833,8 @@ function initDeckStage() {
     setExpanded(true);
     scrollPageTo(0, 0.55);
     pauseHeroMotion();
-    document.body.classList.remove("is-hero-deck-settling");
+    document.body.classList.remove("is-hero-deck-settling", "is-frame-pin");
+    pinStageFrame(false);
     document.body.classList.add("is-hero-deck");
     setHeroDeckFocus(false);
     heroDeck.hidden = false;
@@ -2813,6 +2853,8 @@ function initDeckStage() {
     heroDeck.hidden = false;
     heroDeck.inert = true;
     heroDeck.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("is-frame-pin");
+    void hero?.offsetHeight;
     document.body.classList.remove("is-hero-deck");
     /* Keep the tabs pinned until the hero height has eased back. Dropping
        the fixed pin in the same frame slides them while the box is still tall. */
@@ -2865,10 +2907,12 @@ function initDeckStage() {
   NARROW.addEventListener("change", () => {
     if (!NARROW.matches) clearChipReturn();
     if (!NARROW.matches && isOpen()) close();
+    pinStageFrame(false);
     preloadHeroFrame();
     applyHeroChrome();
   });
 
+  pinStageFrame(false);
   preloadHeroFrame();
 
   window.addEventListener("message", (event) => {
@@ -2930,6 +2974,7 @@ async function boot() {
   /* Before Lenis measures the scroller: desktop nav is a sibling of it. */
   placeFilterBar();
   initEmbed();
+  onFrameMetrics(() => pinStageFrame(true));
   /* iOS Safari only paints :active once the document listens for touch, and the
      press state on cards and chips is pure CSS :active. */
   document.addEventListener("touchstart", () => {}, { passive: true });

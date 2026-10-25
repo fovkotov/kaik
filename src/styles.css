@@ -7387,6 +7387,20 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     --card-h: calc(var(--stack-card-w) * 450 / 320);
     --stack-card-h: var(--card-h);
   }
+
+  /* touch-action is the intersection of the ancestor chain. The ≤900 rule
+     body:not(.admin):not(.catalog) is more specific than a bare body, so this
+     has to beat it or Safari still treats the pile as touch-action: none.
+     pan-y lets a vertical finger scroll without waiting on JS. A sideways
+     drag still preventDefaults. `/` keeps touch-action: none. */
+  html.deck-stage,
+  html.deck-stage body:not(.admin):not(.catalog),
+  html.deck-stage body:not(.admin):not(.catalog) .viewport,
+  html.deck-stage .deck,
+  html.deck-stage .deck .card:not(.is-program-open),
+  html.deck-stage .deck .card:not(.is-program-open) * {
+    touch-action: pan-y;
+  }
 }
 
 /* ≤760 stacked and fullscreen faces: dachshund across the top (head at the
