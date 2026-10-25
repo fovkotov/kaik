@@ -34,8 +34,9 @@
   --gutter: clamp(18px, 4.4vw, 72px);
   --edge: 16px;
   --font-tester-h: 365px;
-  /* Mobile font tester: a fixed strip; the specimen is sized from it, so nothing spills. */
-  --font-card-h-mobile: 80px;
+  /* Mobile font tester: a fixed strip; the specimen is sized from it, so nothing spills.
+     160px is 2× the previous 80px strip so the type (height × 0.55) doubles with the box. */
+  --font-card-h-mobile: 160px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --frame-w: 100vw;
   --frame-h: 100%;
@@ -1510,7 +1511,7 @@ button.work-card__art:active {
      line-height 1 so the line box fits, and the box clips — the grid span is the strip itself. */
   .work-card__font-specimen {
     padding: 0 8px;
-    font-size: calc(min(22cqw, var(--font-card-h-mobile) * 0.55) * var(--font-fit, 1));
+    font-size: calc(min(44cqw, var(--font-card-h-mobile) * 0.55) * var(--font-fit, 1));
     line-height: 1;
     overflow: hidden;
   }

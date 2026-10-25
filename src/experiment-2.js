@@ -24,7 +24,7 @@ const FONT_RE = /\.(?:ttf|otf|woff2?)$/i;
 const FONT_TESTER_MAX_CHARS = 60;
 const FONT_TESTER_PX = 365;
 /* Fallback only — the live value is `--font-card-h-mobile` in experiment-2.css. */
-const FONT_TESTER_PX_MOBILE = 80;
+const FONT_TESTER_PX_MOBILE = 160;
 
 const hero = document.querySelector("[data-lettering-hero]");
 const letteringImage = document.querySelector("[data-lettering-image]");
