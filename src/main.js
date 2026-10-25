@@ -311,6 +311,15 @@ function initDeck() {
   let deckWheelTarget = null;
   let deckWheelAt = 0;
   /**
+   * Desktop stage only. Deck-local px added to every card so the leftmost one
+   * clears the iframe. Frozen once the user drags or wheels, so the glide can
+   * still carry the left card off-screen toward the right of the fan.
+   */
+  let stageInsetX = 0;
+  let stageInsetFrozen = false;
+  let stageUserMoved = false;
+  const STAGE_EDGE = 16;
+  /**
    * Desktop deck-stage pointer drag, as a multiple of the stage base (/12).
    * 1 matches that base. The G panel on experiment-2 posts updates on top.
    */
@@ -478,6 +487,8 @@ function initDeck() {
   /** Horizontal trackpad / wheel on the stage deck. Same target+damp as Lenis. */
   function queueDeckWheel(delta) {
     if (!delta || desktopDrag) return;
+    stageUserMoved = true;
+    stageInsetFrozen = true;
     const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
     const base = deckWheelTarget ?? root.scrollTop ?? 0;
     deckWheelTarget = clamp(base + delta, 0, maxTop);
@@ -1158,6 +1169,8 @@ function initDeck() {
       if (!desktopDrag.moved && Math.abs(dx) <= 6) return;
       if (!desktopDrag.moved) {
         desktopDrag.moved = true;
+        stageUserMoved = true;
+        stageInsetFrozen = true;
         deck.classList.add("is-dragging");
       }
       const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
@@ -1402,6 +1415,31 @@ function initDeck() {
     else markIntroDone();
   }
 
+  /** After the desktop stage settles, nudge the fan right until the left card clears. */
+  function fitStageInset(scale, mobile) {
+    if (stageInsetFrozen || stageUserMoved || desktopDrag || deckIntro || deckOutro) return;
+    if (mobile || !document.documentElement.classList.contains("deck-stage")) return;
+    const cards = [...deck.querySelectorAll(".card")].filter(
+      (el) => inDeckFlow(el) && el.parentElement === deck,
+    );
+    if (!cards.length) return;
+    let minLeft = Infinity;
+    for (const card of cards) {
+      const left = card.getBoundingClientRect().left;
+      if (left < minLeft) minLeft = left;
+    }
+    const title = deck.querySelector(".author-card__title");
+    if (title) minLeft = Math.min(minLeft, title.getBoundingClientRect().left);
+    if (!Number.isFinite(minLeft)) return;
+    const deficit = STAGE_EDGE - minLeft;
+    if (deficit > 0.5) {
+      stageInsetX += deficit / Math.max(Number(scale) || 1, 0.01);
+      scheduleRender();
+      return;
+    }
+    stageInsetFrozen = true;
+  }
+
   function render() {
     raf = 0;
     if (document.visibilityState === "hidden" || deckConcealed) return;
@@ -1544,6 +1582,12 @@ function initDeck() {
       pileTug = null;
     }
 
+    /* Phone stage exit only (≤760). The flight is one viewport wide and the
+       rotated pile still leaves a tip on the right. 32px more, and only on
+       the way out — progress 0 stays on the open pile. Desktop keeps `vw`. */
+    const outroDistance =
+      mobile && stagePile() && window.matchMedia("(max-width: 760px)").matches ? vw + 32 : vw;
+
     items.forEach((item, i) => {
       const t = mobile ? 0 : cardFlightT(i, count, params, p);
       const slot = mobileStackSlot(i, mobile ? Math.max(0, y) : y, focusSpanOf(params));
@@ -1593,7 +1637,7 @@ function initDeck() {
         const follow = active === item.el ? { x: 0, y: 0, r: 0 } : pileFollow(item.el);
         const pileIndex = Math.max(0, pileOrder.indexOf(item.el));
         const introShift = deckIntro ? deckIntro.shift(i, now, vw) : 0;
-        const outroShift = deckOutro ? deckOutro.shift(pileIndex, now, vw) : 0;
+        const outroShift = deckOutro ? deckOutro.shift(pileIndex, now, outroDistance) : 0;
         const x = peek.x + extraX + follow.x + introShift + outroShift;
         const yPos = pileY + peek.y + extraY + follow.y;
         const rot = (arriving ? 0 : peek.r) + tilt + follow.r;
@@ -1711,7 +1755,8 @@ function initDeck() {
         );
         if (settled != null) flightX = settled;
       }
-      const x = baseX + flightX + parallaxX + worksX + introX + fanX + outroX;
+      const x =
+        baseX + flightX + parallaxX + worksX + introX + fanX + outroX + (stageDesktop ? stageInsetX : 0);
       const yPos = scrollY + parallaxY - item.hover * params.hoverLift + worksY + introY;
 
       const twist = mobile
@@ -1772,11 +1817,13 @@ function initDeck() {
     }
 
     if (document.visibilityState === "hidden") return;
+    fitStageInset(params.deckScale, mobile);
     if (needsDeckFrame(mobile)) scheduleRender();
   }
 
   onFrameMetrics(() => {
     if (isFocusFrozen()) return;
+    if (!stageUserMoved) stageInsetFrozen = false;
     refreshCardBox();
     scheduleRender();
   });
@@ -1955,6 +2002,9 @@ function initDeck() {
         desktopCoast = 0;
         desktopDrag = null;
         deck.classList.remove("is-dragging");
+        stageInsetX = 0;
+        stageInsetFrozen = false;
+        stageUserMoved = false;
         root.scrollTop = 0;
         pileOrder = liveItems().map((item) => item.el);
         document.documentElement.classList.remove("intro-ready", "intro-text", "intro-done");
@@ -1988,6 +2038,7 @@ function initDeck() {
       if (type === "kaik:deck-stage-card-scale") {
         setDeckStageCardScale(event.data?.scale);
         refreshCardBox();
+        if (!stageUserMoved) stageInsetFrozen = false;
         scheduleRender();
         return;
       }

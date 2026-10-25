@@ -635,6 +635,17 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: hidden;
 }
 
+/* Desktop stage fan is wider than the deck box. The box's overflow clips the
+   leftmost card against the iframe edge. `/` keeps the hidden deck above. */
+@media (min-width: 901px) {
+  html.deck-stage .deck {
+    overflow: visible;
+    clip-path: none;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+}
+
 /* Open card dest is in local space; at scale < 1 it can exceed the deck box. */
 .deck:has([data-fly-lock]) {
   overflow: visible;
@@ -7320,6 +7331,14 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
 
 /* Stage phone cards are 1.15× smaller than the ≤900 fit. Desktop scale stays
    the G-panel value. `/` does not have html.deck-stage. */
+@media (max-width: 760px) {
+  /* One fullscreen card covers the pile. The open card lives in
+     .deck-focus-layer, so this only hides the siblings still in the deck. */
+  html.deck-stage [data-deck][data-program-open] .card:not(.is-program-open) {
+    visibility: hidden !important;
+  }
+}
+
 @media (max-width: 760px) {
   html.deck-stage {
     --stack-card-w: calc(min(320px, var(--frame-w)) * 1.07 / 1.15);

@@ -196,6 +196,13 @@ body.is-hero-deck .lettering-hero__deck:not([hidden]) {
   pointer-events: auto;
 }
 
+/* Open desktop hero: the host used to clip the iframe's left edge. */
+@media (min-width: 761px) {
+  body.is-hero-deck .lettering-hero__deck:not([hidden]) {
+    overflow: visible;
+  }
+}
+
 /* Chrome above the hero iframe. Desktop sets is-hero-deck-focus only for a
    real picture. A phone also sets it while a focusable card is open, so the
    filter row and the bottom schedule chip leave the fullscreen card. */
