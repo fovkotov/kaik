@@ -618,12 +618,12 @@ function initDeck() {
   const PILE_TAP_PX = 6;
   const PILE_FLICK = 0.55;
   /** Card directly under the top trails this fraction of the drag, then a cap. */
-  const PILE_FOLLOW_GAIN = 0.34;
-  const PILE_FOLLOW_CAP = 22;
+  const PILE_FOLLOW_GAIN = 0.68;
+  const PILE_FOLLOW_CAP = 44;
   /** Each card deeper trails this fraction of the card above it. */
   const PILE_FOLLOW_FALLOFF = 0.45;
   /** Share of the top card's drag tilt. Same falloff by depth. */
-  const PILE_FOLLOW_TILT = 0.3;
+  const PILE_FOLLOW_TILT = 0.6;
 
   function pileScreenScale() {
     const s = Number(getParams().deckScale);
