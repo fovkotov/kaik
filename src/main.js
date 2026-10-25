@@ -38,6 +38,7 @@ import {
   inDeckFlow,
   isMobile,
   normalizeViewMode,
+  setDeckStageCardScale,
 } from "./tweaks.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -1363,6 +1364,12 @@ function initDeck() {
       }
       if (type === "kaik:deck-stage-drag-speed") {
         deckStageDragScale = clampDeckStageDragScale(event.data?.scale);
+        return;
+      }
+      if (type === "kaik:deck-stage-card-scale") {
+        setDeckStageCardScale(event.data?.scale);
+        refreshCardBox();
+        scheduleRender();
         return;
       }
       if (type !== "kaik:deck-stage-outro") return;

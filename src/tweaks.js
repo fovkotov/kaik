@@ -170,6 +170,36 @@ const A4_ASPECT = 297 / 210;
 const CARD_GUTTER = 12;
 const A4_MAX_W = 490;
 
+/** Same key the experiment-2 G panel writes. 1 = today's settled stage size. */
+const DECK_STAGE_CARD_SCALE_KEY = "kaik:experiment-2:card-scale";
+let deckStageCardScale = 1;
+
+function clampDeckStageCardScale(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(1.6, Math.max(0.6, Math.round(n * 100) / 100));
+}
+
+function readDeckStageCardScale() {
+  if (!document.documentElement.classList.contains("deck-stage")) return 1;
+  try {
+    const raw = storage.getItem(DECK_STAGE_CARD_SCALE_KEY);
+    if (raw == null || raw === "") return 1;
+    return clampDeckStageCardScale(JSON.parse(raw));
+  } catch {
+    return 1;
+  }
+}
+
+/** Desktop stage only. Live updates from the experiment-2 G panel. */
+export function setDeckStageCardScale(value) {
+  const next = clampDeckStageCardScale(value);
+  if (next === deckStageCardScale) return next;
+  deckStageCardScale = next;
+  if (document.documentElement.classList.contains("deck-stage") && !isMobile()) applyDeckParams();
+  return next;
+}
+
 function readCardPoseExtents() {
   let maxRotate = 0;
   let maxBaseY = 0;
@@ -304,6 +334,9 @@ export function syncCardMetrics() {
   const a4MaxH = Math.min(A4_MAX_W, frameW * widthFrac) * A4_ASPECT;
   const worksMaxH = Math.max(0, frameW / scale - widthGutter);
   h = Math.min(h, a4MaxH, worksMaxH) * cardSize;
+  /* G-panel multiplier. 1 is the settled fit above. `/` never has this class;
+     the mobile branch returned already, so the peel is untouched. */
+  if (document.documentElement.classList.contains("deck-stage")) h *= deckStageCardScale;
   h = Math.max(1, Math.round(h * 100) / 100);
   // A collapsed fit (bad centre sample, transient 0-height frame) must never
   // overwrite a good box — the whole deck would shrink to a sliver.
@@ -728,6 +761,7 @@ export function devTweaksEnabled() {
  * @param {(params: typeof DESKTOP) => void} [onChange]
  */
 export function initTweaks(onChange) {
+  deckStageCardScale = readDeckStageCardScale();
   loadSaved();
   applyDeckParams();
   onFrameMetrics(() => applyDeckParams());
