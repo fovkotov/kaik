@@ -43,6 +43,23 @@ import {
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const lerp = (a, b, t) => a + (b - a) * t;
+/**
+ * Lettering-page wheel glide (`new Lenis({ smoothWheel: true })`).
+ * Default lerp is 0.1; line mode uses 100/6. `lenisDamp` is Lenis `damp`.
+ */
+const LENIS_WHEEL_LERP = 0.1;
+const LENIS_LINE_HEIGHT = 100 / 6;
+
+function lenisWheelPx(delta, deltaMode, pageSize) {
+  if (!delta) return 0;
+  if (deltaMode === 1) return delta * LENIS_LINE_HEIGHT;
+  if (deltaMode === 2) return delta * (pageSize || 0);
+  return delta;
+}
+
+function lenisDamp(from, to, dtSeconds) {
+  return lerp(from, to, 1 - Math.exp(-LENIS_WHEEL_LERP * 60 * dtSeconds));
+}
 /** Mobile stack only: keep the green program card nearly flat (not cardRotate × −6.52°). */
 const PROGRAM_MOBILE_ROTATE = -1;
 
@@ -290,6 +307,9 @@ function initDeck() {
   let desktopDrag = null;
   /** Leftover px/frame after a desktop flick; decays like mobile inertia. */
   let desktopCoast = 0;
+  /** Deck-stage horizontal wheel target. Glides with the lettering-page Lenis lerp. */
+  let deckWheelTarget = null;
+  let deckWheelAt = 0;
   /**
    * Desktop deck-stage pointer drag, as a multiple of the stage base (/12).
    * 1 matches that base. The G panel on experiment-2 posts updates on top.
@@ -407,7 +427,7 @@ function initDeck() {
   function needsDeckFrame(mobile) {
     if (isFocusFrozen()) return false;
     if (deckIntro || deckOutro) return true;
-    if (desktopDrag || Math.abs(desktopCoast) > 0.35) return true;
+    if (desktopDrag || Math.abs(desktopCoast) > 0.35 || deckWheelTarget != null) return true;
     if (pileDrag || pileAnim || pileTug) return true;
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
@@ -447,9 +467,28 @@ function initDeck() {
   }
 
   /** Finger-up on the phone pile scrolls experiment-2. The parent ignores this while the deck is closed. */
-  function postStagePageScroll(deltaY) {
+  function postStagePageScroll(deltaY, smooth = false) {
     if (!deltaY || !window.parent || window.parent === window) return;
-    window.parent.postMessage({ type: "kaik:deck-stage-page-wheel", deltaY }, "*");
+    window.parent.postMessage(
+      { type: "kaik:deck-stage-page-wheel", deltaY, smooth: smooth === true },
+      "*",
+    );
+  }
+
+  /** Horizontal trackpad / wheel on the stage deck. Same target+damp as Lenis. */
+  function queueDeckWheel(delta) {
+    if (!delta || desktopDrag) return;
+    const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
+    const base = deckWheelTarget ?? root.scrollTop ?? 0;
+    deckWheelTarget = clamp(base + delta, 0, maxTop);
+    desktopCoast = 0;
+    if (!deckWheelAt) deckWheelAt = performance.now();
+    scheduleRender();
+  }
+
+  function clearDeckWheel() {
+    deckWheelTarget = null;
+    deckWheelAt = 0;
   }
 
   function swallowNextClick(el) {
@@ -1059,6 +1098,7 @@ function initDeck() {
       if (event.button && event.button !== 0) return;
       if (programLocked() || isAuthorLightboxOpen()) return;
       if (event.target.closest?.(DRAG_IGNORE)) return;
+      clearDeckWheel();
       desktopCoast = 0;
       desktopDrag = {
         id: event.pointerId,
@@ -1244,13 +1284,10 @@ function initDeck() {
     ) {
       event.preventDefault();
       if (programLocked()) holdFlyLock();
-      const line = event.deltaMode === 1 ? 16 : 1;
-      const pxX = event.deltaX * line;
-      const pxY = event.deltaY * line;
+      const pxX = lenisWheelPx(event.deltaX, event.deltaMode, window.innerWidth);
+      const pxY = lenisWheelPx(event.deltaY, event.deltaMode, window.innerHeight);
       const horizontal = event.shiftKey || Math.abs(pxX) > Math.abs(pxY);
-      if (!horizontal && window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: "kaik:deck-stage-page-wheel", deltaY: pxY }, "*");
-      }
+      if (!horizontal) postStagePageScroll(pxY, true);
       return;
     }
     if (isAuthorLightboxOpen()) {
@@ -1270,8 +1307,7 @@ function initDeck() {
          `/` still advances the flying stack. */
       if (stagePile()) {
         if (focusOpen() || isFocusFrozen() || isAuthorLightboxOpen()) return;
-        const line = event.deltaMode === 1 ? 16 : 1;
-        postStagePageScroll(event.deltaY * line);
+        postStagePageScroll(lenisWheelPx(event.deltaY, event.deltaMode, window.innerHeight), true);
         return;
       }
       if (drag) return;
@@ -1289,20 +1325,14 @@ function initDeck() {
     }
     if (document.documentElement.classList.contains("deck-stage")) {
       event.preventDefault();
-      const line = event.deltaMode === 1 ? 16 : 1;
-      const pxX = event.deltaX * line;
-      const pxY = event.deltaY * line;
+      const pxX = lenisWheelPx(event.deltaX, event.deltaMode, window.innerWidth);
+      const pxY = lenisWheelPx(event.deltaY, event.deltaMode, window.innerHeight);
       const horizontal = event.shiftKey || Math.abs(pxX) > Math.abs(pxY);
       if (horizontal) {
-        const dx = pxX || pxY;
-        const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
-        root.scrollTop = clamp((root.scrollTop || 0) + dx * 1.1, 0, maxTop);
-        scheduleRender();
+        queueDeckWheel(pxX || pxY);
         return;
       }
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: "kaik:deck-stage-page-wheel", deltaY: pxY }, "*");
-      }
+      postStagePageScroll(pxY, true);
       return;
     }
     event.preventDefault();
@@ -1347,6 +1377,8 @@ function initDeck() {
     pileDrag = null;
     pileAnim = null;
     pileTug = null;
+    clearDeckWheel();
+    desktopCoast = 0;
     deck.classList.remove("is-dragging");
     ensurePileOrder();
     lastDeckProgress = null;
@@ -1373,6 +1405,7 @@ function initDeck() {
     if (document.visibilityState === "hidden" || deckConcealed) return;
     if (isFocusFrozen()) {
       pileTug = null;
+      clearDeckWheel();
       if (deckIntro) {
         deckIntro = null;
         cancelIntroAnimations();
@@ -1432,17 +1465,30 @@ function initDeck() {
     }
 
     holdFlyLock();
-    if (
-      !mobile &&
-      document.documentElement.classList.contains("deck-stage") &&
-      !desktopDrag &&
-      Math.abs(desktopCoast) > 0.35
-    ) {
-      const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
-      const next = clamp((root.scrollTop || 0) + desktopCoast, 0, maxTop);
-      if (root.scrollTop !== next) root.scrollTop = next;
-      desktopCoast *= INERTIA_FRICTION;
-      if (Math.abs(desktopCoast) < 0.35 || next <= 0 || next >= maxTop) desktopCoast = 0;
+    if (!mobile && document.documentElement.classList.contains("deck-stage") && !desktopDrag) {
+      if (deckWheelTarget != null && freezeY == null && !locked && !focusOpen()) {
+        const wheelNow = performance.now();
+        const dt = deckWheelAt ? (wheelNow - deckWheelAt) / 1000 : 0;
+        deckWheelAt = wheelNow;
+        if (dt > 0) {
+          const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
+          deckWheelTarget = clamp(deckWheelTarget, 0, maxTop);
+          let value = lenisDamp(root.scrollTop || 0, deckWheelTarget, dt);
+          if (Math.round(value) === Math.round(deckWheelTarget)) {
+            value = deckWheelTarget;
+            clearDeckWheel();
+          }
+          if (root.scrollTop !== value) root.scrollTop = value;
+        }
+      } else if (deckWheelTarget != null) {
+        clearDeckWheel();
+      } else if (Math.abs(desktopCoast) > 0.35) {
+        const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
+        const next = clamp((root.scrollTop || 0) + desktopCoast, 0, maxTop);
+        if (root.scrollTop !== next) root.scrollTop = next;
+        desktopCoast *= INERTIA_FRICTION;
+        if (Math.abs(desktopCoast) < 0.35 || next <= 0 || next >= maxTop) desktopCoast = 0;
+      }
     }
     const y = freezeY != null ? freezeY : mobile ? dragProgress : root.scrollTop || 0;
     const span = focusSpanOf(params);
@@ -1903,6 +1949,7 @@ function initDeck() {
         pileDrag = null;
         pileAnim = null;
         pileTug = null;
+        clearDeckWheel();
         desktopCoast = 0;
         desktopDrag = null;
         deck.classList.remove("is-dragging");
@@ -1949,6 +1996,7 @@ function initDeck() {
       pileDrag = null;
       pileAnim = null;
       pileTug = null;
+      clearDeckWheel();
       desktopCoast = 0;
       desktopDrag = null;
       deck.classList.remove("is-dragging");
