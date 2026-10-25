@@ -6975,6 +6975,25 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     object-fit: contain;
   }
 
+  /* Pile only: keep an 8px gap under the frog. The slot may shrink so the
+     answers stay inside the card; a face that already clears the frog does not. */
+  .card:not(.is-program-open) .card-illust--faq {
+    flex: 1 1 auto;
+    min-height: 0;
+    aspect-ratio: auto;
+    height: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .card:not(.is-program-open) .card-illust--faq .card-illust__art--frog {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+  }
+
   /* Preview illustration — Figma 196:457 Group on 318×451 (left 6.983, top 72, 304.027×193.954). */
   .card-illust--preview .card-illust__art {
     left: calc(6.983 * var(--card-w) / 318);
@@ -7230,6 +7249,12 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     width: 100%;
     flex-shrink: 0;
     margin-top: auto;
+  }
+
+  /* Same 8px inset as the sides, so the last line is not flush with the edge. */
+  .card:not(.is-program-open) .faq-card__list {
+    margin-top: 0;
+    padding: 8px;
   }
 
   .card.is-program-open .faq-card__list {
