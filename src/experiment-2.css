@@ -146,11 +146,17 @@ html.is-viewer-open .experiment-two__scroll {
   overscroll-behavior: contain;
 }
 
-/* Both widths: the flying deck replaces the lettering and grows to the iframe.
-   The filter row and the mobile bottom chip stay above the iframe. */
-body.is-hero-deck .works-page {
-  --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
-  --hero-h: calc(var(--hero-frame) - var(--edge));
+/* Desktop: the flying deck replaces the lettering and the hero grows to the
+   iframe. The filter row stays fixed above that frame.
+   Phone (≤760px) keeps the resting hero height. There the filter row is pulled
+   up by --hero-h and the works grid is pushed down by the same amount, while
+   the hero height eases over 520ms. Growing it slid the tabs down on close and
+   brought the grid up from below the fold. */
+@media (min-width: 761px) {
+  body.is-hero-deck .works-page {
+    --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
+    --hero-h: calc(var(--hero-frame) - var(--edge));
+  }
 }
 
 body.is-hero-deck .lettering-hero {
@@ -1407,7 +1413,9 @@ button.work-card__art:active {
   }
 
   /* One lettering flies in the hero, below the author. The name stays fixed
-     in the upper-middle band (about 41vh), and the bounce lane starts under it. */
+     in the upper-middle of the white hero (centre at 40.5vh). The bounce
+     lane is the marked red frame: under the chips, inset from the edges,
+     and stopping above the bottom lettering strip. */
   .lettering-hero.is-dvd,
   .lettering-hero.is-dvd .lettering-hero__action {
     cursor: pointer;
@@ -1438,9 +1446,16 @@ button.work-card__art:active {
 
   .lettering-hero.is-dvd .lettering-hero__credit {
     display: flex;
-    /* Upper-middle of the phone hero: ~41vh, never under the filters, never
-       past the upper half so the bounce lane below stays open. */
-    top: clamp(calc(var(--island-h) + 24px), calc(41vh - var(--edge)), 52%);
+    /* Marked shots: the line is horizontally centred, and its centre sits at
+       40.5% of the phone viewport — upper-middle of the white hero, clear of
+       the filter chips above and of the flying lettering below.
+       Hero starts at --edge, and translateY(-50%) puts the line's centre on
+       that 40.5vh mark. The max() keeps a short iframe from tucking it under
+       the chips. */
+    left: 0;
+    right: 0;
+    padding-inline: 12px;
+    top: max(calc(var(--island-h) + 36px), calc(40.5vh - var(--edge)));
     bottom: auto;
     z-index: 4;
     font-size: 14px;
@@ -1570,15 +1585,22 @@ button.work-card__art:active {
     pointer-events: auto;
   }
 
+  /* The hero box stays the resting DVD height, so clip the frame to it.
+     overflow:visible (the desktop open rule) would let a tall iframe paint
+     over the works grid, and hiding that iframe on close would pop the grid in. */
+  body.is-hero-deck .lettering-hero {
+    overflow: hidden;
+  }
+
   /* The open deck used to be a full-bleed iframe, so it was the hit target
      for the filter island and the schedule chip, and a vertical swipe flew
      the top card (and its lettering strip) off instead of scrolling. Keep
-     the frame between those two controls. Explicit height, not bottom, so
-     the hidden preload boots at this same size. */
+     the frame in the hero, under the filter island and above the works.
+     Explicit height, not bottom, so the hidden preload boots at this same size. */
   body.is-hero-deck-preload .lettering-hero__deck,
   body.is-hero-deck .lettering-hero__deck:not([hidden]) {
     top: calc(12px + var(--island-h) + 8px - var(--edge));
-    height: calc(100vh - var(--island-h) - 96px - var(--frame-clip-top) - var(--frame-clip-bottom));
+    height: calc(var(--hero-h) - 12px - var(--island-h) - 8px + var(--edge));
   }
 
   body.is-hero-deck-preload:not(.is-hero-deck) .lettering-hero__deck-frame {

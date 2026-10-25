@@ -1288,13 +1288,22 @@ function createFollower() {
 
 /**
  * Mobile hero (≤760px): one lettering coasts at a steady speed and reverses on
- * the hero edges, like the DVD logo. A wall hit advances the same queue as a
- * desktop click. The author credit stays fixed in the upper-middle; the artwork
- * only travels in the lane below that label.
+ * the marked bounce frame, like the DVD logo. A wall hit advances the same queue
+ * as a desktop click. The frame is inset 12px from the phone edges, starts just
+ * under the filter chips, and stops above the bottom lettering strip and the
+ * schedule chip. The author credit stays fixed in the upper-middle; the artwork
+ * box never crosses that label.
  * `prefers-reduced-motion` parks the piece in the centre — a tap still advances.
  */
 function createBounce() {
   const SPEED = 74;
+  /* Red frame: a small margin from the phone edges, the same 12px as the chips. */
+  const SIDE = 12;
+  /* Clear band so the lettering box cannot meet the author line. */
+  const AUTHOR_GAP = 28;
+  /* Red bar: the box stops in the white gap above the bottom letterforms. */
+  const STRIP_GAP = 20;
+  const CHIP_GAP = 16;
   const pos = { x: 0, y: 0 };
   const vel = { x: SPEED, y: SPEED };
   const limit = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
@@ -1312,15 +1321,38 @@ function createBounce() {
     return Number.isFinite(n) ? n : 0;
   }
 
-  /** How far down the flying piece must stay so it cannot cover the author. */
-  function laneTop() {
-    const floor = Math.max(12, islandHeight() + 8);
-    if (!credit || credit.hidden) return floor;
-    if (getComputedStyle(credit).display === "none") return floor;
-    const gap = 20;
-    const below = credit.getBoundingClientRect().bottom - hero.getBoundingClientRect().top + gap;
-    if (Number.isFinite(below) && below > floor) return below;
-    return floor;
+  /**
+   * Hero-local edges the lettering box must stay inside.
+   * Top is just under the filter chips, then pushed below the author.
+   * Bottom is the higher of the hero edge, the first work row, and the schedule chip.
+   */
+  function fieldEdges() {
+    const heroBox = hero.getBoundingClientRect();
+    const width = hero.clientWidth;
+    const height = hero.clientHeight;
+    let top = Math.max(12, islandHeight() + 10);
+    const island = document.querySelector("[data-filter-island]");
+    if (island) {
+      const below = island.getBoundingClientRect().bottom - heroBox.top + 10;
+      if (Number.isFinite(below)) top = Math.max(top, below);
+    }
+    if (credit && !credit.hidden && getComputedStyle(credit).display !== "none") {
+      const below = credit.getBoundingClientRect().bottom - heroBox.top + AUTHOR_GAP;
+      if (Number.isFinite(below)) top = Math.max(top, below);
+    }
+    let bottom = height;
+    const strip = document.querySelector("[data-works-grid] .work-card");
+    if (strip) {
+      const edge = strip.getBoundingClientRect().top - heroBox.top - STRIP_GAP;
+      if (Number.isFinite(edge)) bottom = Math.min(bottom, edge);
+    }
+    const chip = document.querySelector("[data-mobile-bar]");
+    if (chip && getComputedStyle(chip).display !== "none") {
+      const edge = chip.getBoundingClientRect().top - heroBox.top - CHIP_GAP;
+      if (Number.isFinite(edge)) bottom = Math.min(bottom, edge);
+    }
+    if (bottom < top + 8) bottom = top + 8;
+    return { left: SIDE, right: Math.max(SIDE, width - SIDE), top, bottom };
   }
 
   function seedVelocity() {
@@ -1408,13 +1440,11 @@ function createBounce() {
     if (artW < 2 || artH < 2) return;
     const boxW = hero.clientWidth;
     const boxH = hero.clientHeight;
-    const padX = 12;
-    const padB = 12;
-    const padT = laneTop();
-    const minCx = padX + artW / 2;
-    const maxCx = boxW - padX - artW / 2;
-    const minCy = padT + artH / 2;
-    const maxCy = boxH - padB - artH / 2;
+    const field = fieldEdges();
+    const minCx = field.left + artW / 2;
+    const maxCx = field.right - artW / 2;
+    const minCy = field.top + artH / 2;
+    const maxCy = field.bottom - artH / 2;
     if (maxCx > minCx) {
       limit.minX = minCx - boxW / 2;
       limit.maxX = maxCx - boxW / 2;
@@ -1426,7 +1456,8 @@ function createBounce() {
       limit.minY = minCy - boxH / 2;
       limit.maxY = maxCy - boxH / 2;
     } else {
-      /* Taller than the lane under the author: sit the top edge against that lane. */
+      /* Taller than the lane under the author: sit the top edge against that lane
+         so the box cannot cover the name. The hero clips the bottom. */
       const pinned = minCy - boxH / 2;
       limit.minY = pinned;
       limit.maxY = pinned;
@@ -1507,6 +1538,10 @@ function createBounce() {
   const bar = document.querySelector("[data-filter-bar]");
   if (bar) new ResizeObserver(measure).observe(bar);
   if (credit) new ResizeObserver(measure).observe(credit);
+  const strip = document.querySelector("[data-works-grid]");
+  if (strip) new ResizeObserver(measure).observe(strip);
+  const chip = document.querySelector("[data-mobile-bar]");
+  if (chip) new ResizeObserver(measure).observe(chip);
 
   return { setActive, measure, park, release };
 }
