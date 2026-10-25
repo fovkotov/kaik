@@ -194,15 +194,18 @@ body.is-hero-deck .lettering-hero__deck:not([hidden]) {
   pointer-events: auto;
 }
 
-/* Fullscreen picture inside the deck. The chip row sits above the iframe;
-   fade it so it cannot take the click. Card focus does not set this class.
-   Mobile never sets is-hero-deck-focus — the filters and the bottom chip stay. */
-body.is-hero-deck .filter-bar {
+/* Chrome above the hero iframe. Desktop sets is-hero-deck-focus only for a
+   real picture. A phone also sets it while a focusable card is open, so the
+   filter row and the bottom schedule chip leave the fullscreen card. */
+body.is-hero-deck .filter-bar,
+body.is-hero-deck .mobile-bar {
   transition: opacity 180ms var(--ease-out);
 }
 
 body.is-hero-deck.is-hero-deck-focus .filter-bar,
-body.is-hero-deck.is-hero-deck-focus .filter-bar > * {
+body.is-hero-deck.is-hero-deck-focus .filter-bar > *,
+body.is-hero-deck.is-hero-deck-focus .mobile-bar,
+body.is-hero-deck.is-hero-deck-focus .mobile-bar > * {
   opacity: 0;
   pointer-events: none;
 }

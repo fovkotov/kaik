@@ -1,11 +1,13 @@
 /**
- * The experiment-2 overlay paints its close button on top of this iframe,
- * in the same corner as every inner viewer. Viewers report when they are up
- * so that button (and Esc) leaves the picture, not the deck.
+ * The experiment-2 page paints its filter row and schedule chip above this
+ * iframe. Viewers report when they are up so that chrome (and the overlay
+ * close button) leaves the picture, not the deck.
  *
- * A focused program card is not a viewer. `open` stays false for card focus
- * alone. If a leftover "program" holder is the only thing keeping the report
- * open when a picture closes, drop it so the parent chrome comes back.
+ * A focused card reports the "program" holder on a phone. `viewer` stays
+ * false for that, so desktop chrome hides only for a real picture. Closing
+ * a picture while the card is still focused must keep the program holder —
+ * the phone chrome stays hidden until the card itself closes. A leftover
+ * program holder with no focused card is dropped so the chrome can return.
  */
 
 const closers = new Set();
@@ -23,8 +25,9 @@ function inDeckStage() {
 }
 
 /**
- * `viewer` is an inner picture only. The mobile overlay close button
- * still dismisses the deck when the only thing up is a focused card.
+ * `viewer` is an inner picture only. Card focus uses the "program" holder
+ * and leaves `viewer` false, so the overlay close button still dismisses
+ * the deck when the only thing up is a focused card.
  */
 export function notifyDeckStageViewer(open, holder = "viewer") {
   if (!inDeckStage()) return;
@@ -32,7 +35,8 @@ export function notifyDeckStageViewer(open, holder = "viewer") {
   if (open) holders.add(key);
   else {
     holders.delete(key);
-    if (key !== "program" && holders.size === 1 && holders.has("program")) {
+    const cardFocused = document.documentElement.classList.contains("is-focus-frozen");
+    if (key !== "program" && holders.size === 1 && holders.has("program") && !cardFocused) {
       holders.delete("program");
     }
   }

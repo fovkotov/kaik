@@ -2331,8 +2331,11 @@ function initDeckStage() {
   let opener = null;
   // Real fullscreen picture (author lightbox, project deck, history, format clip).
   // Overlay close leaves that picture, and still closes the deck when only a
-  // card is focused. The desktop hero hides the filter bar on this signal only.
+  // card is focused. Desktop hides the filter bar for a picture only.
+  // A phone also hides the filter row and the schedule chip while a card is focused.
   let viewerOpen = false;
+  let heroPicture = false;
+  let heroCover = false;
   let heroDeckOpen = false;
   let heroClosing = false;
   let outroTimer = 0;
@@ -2358,13 +2361,26 @@ function initDeckStage() {
     frame.contentWindow?.postMessage({ type: "kaik:deck-stage-viewer-close" }, origin);
   }
 
-  function setHeroDeckFocus(on) {
-    const next = Boolean(on) && heroDeckOpen && !heroClosing && !NARROW.matches;
-    document.body.classList.toggle("is-hero-deck-focus", next);
+  function applyHeroChrome() {
+    const live = heroDeckOpen && !heroClosing;
+    const hide = live && (NARROW.matches ? heroCover : heroPicture);
+    document.body.classList.toggle("is-hero-deck-focus", hide);
     const bar = document.querySelector("[data-filter-bar]");
-    if (!bar || NARROW.matches) return;
-    if (next) bar.setAttribute("inert", "");
-    else if (!isOpen()) bar.removeAttribute("inert");
+    const mobileBar = document.querySelector("[data-mobile-bar]");
+    if (hide) {
+      bar?.setAttribute("inert", "");
+      mobileBar?.setAttribute("inert", "");
+      return;
+    }
+    if (isOpen()) return;
+    bar?.removeAttribute("inert");
+    mobileBar?.removeAttribute("inert");
+  }
+
+  function setHeroDeckFocus(picture, cover = picture) {
+    heroPicture = Boolean(picture);
+    heroCover = Boolean(cover);
+    applyHeroChrome();
   }
 
   const pageBits = () =>
@@ -2495,6 +2511,7 @@ function initDeckStage() {
   NARROW.addEventListener("change", () => {
     if (!NARROW.matches && isOpen()) close();
     preloadHeroFrame();
+    applyHeroChrome();
   });
 
   preloadHeroFrame();
@@ -2508,8 +2525,9 @@ function initDeckStage() {
     if (type === "kaik:deck-stage-viewer") {
       const picture =
         event.data.viewer == null ? Boolean(event.data.open) : Boolean(event.data.viewer);
+      const cover = event.data.viewer == null ? picture : Boolean(event.data.open);
       if (fromOverlay && isOpen()) viewerOpen = picture;
-      if (fromHero) setHeroDeckFocus(picture);
+      if (fromHero) setHeroDeckFocus(picture, cover);
       return;
     }
     if (type === "kaik:deck-stage-page-wheel" && fromHero && heroDeckOpen && !heroClosing) {

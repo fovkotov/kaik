@@ -870,6 +870,9 @@ export function initProgramModal() {
   function lockCard() {
     if (!card) return;
     setFocusFrozen(true);
+    // Phone deck-stage only. Experiment-2 hides its filter row and schedule chip
+    // for this focus. Desktop leaves that chrome up; a picture viewer reports itself.
+    if (isMobile()) notifyDeckStageViewer(true, "program");
     cancelIntroAnimations();
     deck.removeAttribute("data-focus-settled");
     card.setAttribute("data-fly-lock", "");
@@ -1037,7 +1040,8 @@ export function initProgramModal() {
     applyDeckParams();
     syncAria();
     next?.();
-    // Card focus never reports open. This only clears a leftover program holder.
+    // Phone deck-stage: the card is gone, so the parent chrome can return.
+    // A picture that is still up keeps its own holder.
     if (phase === "idle") notifyDeckStageViewer(false, "program");
   }
 
