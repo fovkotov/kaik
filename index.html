@@ -25,7 +25,7 @@
       })();
     </script>
     <script>
-      /* experiment-2 fullscreen: same deck, no text column, no program card. */
+      /* experiment-2 fullscreen: same deck, no text column. */
       (function () {
         try {
           if (new URLSearchParams(window.location.search).get("deck") !== "stage") return;
@@ -110,7 +110,6 @@
       html.deck-stage .panel {
         display: none !important;
       }
-      html.deck-stage [data-program-card],
       html.deck-stage [data-landing-card],
       html.deck-stage [data-link-card] {
         display: none !important;

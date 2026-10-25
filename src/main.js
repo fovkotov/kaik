@@ -1099,7 +1099,7 @@ function bindWorkNav(programApi) {
 
 if (document.documentElement.classList.contains("deck-stage")) {
   document
-    .querySelectorAll("[data-program-card], [data-landing-card], [data-link-card], [data-deck-loop]")
+    .querySelectorAll("[data-landing-card], [data-link-card], [data-deck-loop]")
     .forEach((el) => el.remove());
 }
 
