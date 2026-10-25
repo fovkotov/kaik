@@ -205,7 +205,8 @@ body.is-hero-deck .lettering-hero__deck:not([hidden]) {
 
 /* Chrome above the hero iframe. Desktop sets is-hero-deck-focus only for a
    real picture. A phone also sets it while a focusable card is open, so the
-   filter row and the bottom schedule chip leave the fullscreen card. */
+   filter row and the bottom schedule chip leave the fullscreen card.
+   Closing that card on a phone plays is-chips-return (they fly back in). */
 body.is-hero-deck .filter-bar,
 body.is-hero-deck .mobile-bar {
   transition: opacity 180ms var(--ease-out);
@@ -1671,6 +1672,43 @@ button.work-card__art:active {
     line-height: 1;
     overflow: hidden;
   }
+
+  /* Card close only (playChipReturn). The filter row is one layer, so the
+     chips travel together. is-chips-from-top is the offscreen frame; the
+     return class eases that transform back to the resting spot. */
+  body.is-hero-deck.is-chips-from-top .filter-bar,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .filter-bar,
+  body.is-hero-deck.is-chips-from-top .filter-bar > *,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .filter-bar > *,
+  body.is-hero-deck.is-chips-from-top .mobile-bar,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .mobile-bar,
+  body.is-hero-deck.is-chips-from-top .mobile-bar > *,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .mobile-bar > * {
+    opacity: 1;
+    transition: none;
+  }
+
+  body.is-hero-deck.is-chips-from-top .filter-bar,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .filter-bar {
+    transform: translate3d(0, calc(-100% - 12px - var(--frame-clip-top) - 8px), 0);
+  }
+
+  body.is-hero-deck.is-chips-from-top .mobile-bar,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .mobile-bar {
+    transform: translate3d(0, calc(100% + 12px + var(--frame-clip-bottom) + 8px), 0);
+  }
+
+  body.is-hero-deck.is-chips-return .filter-bar,
+  body.is-hero-deck.is-chips-return .filter-bar > *,
+  body.is-hero-deck.is-chips-return .mobile-bar,
+  body.is-hero-deck.is-chips-return .mobile-bar > * {
+    opacity: 1;
+  }
+
+  body.is-hero-deck.is-chips-return .filter-bar,
+  body.is-hero-deck.is-chips-return .mobile-bar {
+    transition: transform 520ms var(--ease-out);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1709,5 +1747,17 @@ button.work-card__art:active {
   .viewer__close:hover,
   .viewer__close:active {
     transform: none;
+  }
+
+  /* Card-close return: show the chips where they rest. No travel. */
+  body.is-hero-deck.is-chips-from-top .filter-bar,
+  body.is-hero-deck.is-chips-from-top .mobile-bar,
+  body.is-hero-deck.is-chips-return .filter-bar,
+  body.is-hero-deck.is-chips-return .mobile-bar,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .filter-bar,
+  body.is-hero-deck.is-hero-deck-focus.is-chips-from-top .mobile-bar {
+    transform: none;
+    transition: none;
+    opacity: 1;
   }
 }

@@ -2628,10 +2628,14 @@ function initDeckStage() {
   let viewerOpen = false;
   let heroPicture = false;
   let heroCover = false;
+  /* Phone chrome was hidden for a focused card (not a picture on its own). */
+  let cardChrome = false;
   let heroDeckOpen = false;
   let heroClosing = false;
   let outroTimer = 0;
   let settleTimer = 0;
+  let chipsReturnTimer = 0;
+  let chipsReturnEnd = null;
 
   function setExpanded(on) {
     document.querySelectorAll("[data-about]").forEach((btn) => {
@@ -2654,26 +2658,76 @@ function initDeckStage() {
     frame.contentWindow?.postMessage({ type: "kaik:deck-stage-viewer-close" }, origin);
   }
 
-  function applyHeroChrome() {
+  function clearChipReturn() {
+    window.clearTimeout(chipsReturnTimer);
+    chipsReturnTimer = 0;
+    const bar = document.querySelector("[data-filter-bar]");
+    if (chipsReturnEnd && bar) bar.removeEventListener("transitionend", chipsReturnEnd);
+    chipsReturnEnd = null;
+    document.body.classList.remove("is-chips-return", "is-chips-from-top");
+  }
+
+  /**
+   * Phone, card X only. The row starts fully above the top edge and the
+   * schedule chip starts fully below its bottom edge, then both ease to rest.
+   * Reduced motion snaps them into place. Filter taps and desktop never call this.
+   */
+  function playChipReturn() {
+    clearChipReturn();
+    const body = document.body;
+    const bar = document.querySelector("[data-filter-bar]");
+    if (REDUCE.matches) {
+      body.classList.add("is-chips-return");
+      body.classList.remove("is-hero-deck-focus");
+      void bar?.offsetWidth;
+      body.classList.remove("is-chips-return");
+      return;
+    }
+    body.classList.add("is-chips-from-top");
+    void bar?.offsetWidth;
+    body.classList.remove("is-hero-deck-focus", "is-chips-from-top");
+    body.classList.add("is-chips-return");
+    const finish = (event) => {
+      if (event && (event.target !== bar || event.propertyName !== "transform")) return;
+      clearChipReturn();
+    };
+    chipsReturnEnd = finish;
+    bar?.addEventListener("transitionend", finish);
+    chipsReturnTimer = window.setTimeout(() => clearChipReturn(), 700);
+  }
+
+  function applyHeroChrome(opts = {}) {
     const live = heroDeckOpen && !heroClosing;
     const hide = live && (NARROW.matches ? heroCover : heroPicture);
-    document.body.classList.toggle("is-hero-deck-focus", hide);
+    const body = document.body;
+    const wasHidden = body.classList.contains("is-hero-deck-focus");
     const bar = document.querySelector("[data-filter-bar]");
     const mobileBar = document.querySelector("[data-mobile-bar]");
     if (hide) {
+      clearChipReturn();
+      body.classList.add("is-hero-deck-focus");
       bar?.setAttribute("inert", "");
       mobileBar?.setAttribute("inert", "");
       return;
     }
+    const cardReturn = Boolean(opts.cardReturn) && wasHidden && live && NARROW.matches;
+    if (cardReturn) playChipReturn();
+    else body.classList.remove("is-hero-deck-focus");
     if (isOpen()) return;
     bar?.removeAttribute("inert");
     mobileBar?.removeAttribute("inert");
   }
 
   function setHeroDeckFocus(picture, cover = picture) {
-    heroPicture = Boolean(picture);
-    heroCover = Boolean(cover);
-    applyHeroChrome();
+    const nextPicture = Boolean(picture);
+    const nextCover = Boolean(cover);
+    const cardReturn =
+      cardChrome && !nextCover && !nextPicture && NARROW.matches && heroDeckOpen && !heroClosing;
+    heroPicture = nextPicture;
+    heroCover = nextCover;
+    if (!nextCover) cardChrome = false;
+    else if (NARROW.matches && !nextPicture) cardChrome = true;
+    applyHeroChrome({ cardReturn });
   }
 
   const pageBits = () =>
@@ -2809,6 +2863,7 @@ function initDeckStage() {
   });
 
   NARROW.addEventListener("change", () => {
+    if (!NARROW.matches) clearChipReturn();
     if (!NARROW.matches && isOpen()) close();
     preloadHeroFrame();
     applyHeroChrome();
