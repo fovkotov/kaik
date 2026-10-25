@@ -1290,9 +1290,9 @@ function createFollower() {
  * Mobile hero (≤760px): one lettering coasts at a steady speed and reverses on
  * the marked bounce frame, like the DVD logo. A wall hit advances the same queue
  * as a desktop click. The frame is inset 12px from the phone edges, starts just
- * under the filter chips, and stops above the bottom lettering strip and the
- * schedule chip. The author credit stays fixed in the upper-middle; the artwork
- * box never crosses that label.
+ * under the filter chips, and stops just above the author line, the bottom
+ * lettering strip, and the schedule chip. The author credit stays fixed; the
+ * artwork box never crosses that label.
  * `prefers-reduced-motion` parks the piece in the centre — a tap still advances.
  */
 function createBounce() {
@@ -1323,8 +1323,8 @@ function createBounce() {
 
   /**
    * Hero-local edges the lettering box must stay inside.
-   * Top is just under the filter chips, then pushed below the author.
-   * Bottom is the higher of the hero edge, the first work row, and the schedule chip.
+   * Top is just under the filter chips.
+   * Bottom stops above the author line, and also above the first work row and the schedule chip.
    */
   function fieldEdges() {
     const heroBox = hero.getBoundingClientRect();
@@ -1336,11 +1336,11 @@ function createBounce() {
       const below = island.getBoundingClientRect().bottom - heroBox.top + 10;
       if (Number.isFinite(below)) top = Math.max(top, below);
     }
-    if (credit && !credit.hidden && getComputedStyle(credit).display !== "none") {
-      const below = credit.getBoundingClientRect().bottom - heroBox.top + AUTHOR_GAP;
-      if (Number.isFinite(below)) top = Math.max(top, below);
-    }
     let bottom = height;
+    if (credit && !credit.hidden && getComputedStyle(credit).display !== "none") {
+      const above = credit.getBoundingClientRect().top - heroBox.top - AUTHOR_GAP;
+      if (Number.isFinite(above)) bottom = Math.min(bottom, above);
+    }
     const strip = document.querySelector("[data-works-grid] .work-card");
     if (strip) {
       const edge = strip.getBoundingClientRect().top - heroBox.top - STRIP_GAP;
@@ -1456,9 +1456,9 @@ function createBounce() {
       limit.minY = minCy - boxH / 2;
       limit.maxY = maxCy - boxH / 2;
     } else {
-      /* Taller than the lane under the author: sit the top edge against that lane
-         so the box cannot cover the name. The hero clips the bottom. */
-      const pinned = minCy - boxH / 2;
+      /* Taller than the lane above the author: sit the bottom edge against that
+         lane so the box cannot cover the name. */
+      const pinned = maxCy - boxH / 2;
       limit.minY = pinned;
       limit.maxY = pinned;
     }

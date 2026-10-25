@@ -1412,10 +1412,9 @@ button.work-card__art:active {
     display: flex;
   }
 
-  /* One lettering flies in the hero, below the author. The name stays fixed
-     in the upper-middle of the white hero (centre at 40.5vh). The bounce
-     lane is the marked red frame: under the chips, inset from the edges,
-     and stopping above the bottom lettering strip. */
+  /* One lettering flies in the hero, above the author. The name stays fixed
+     low in the white gap above the bottom lettering strip (centre at 70.61vh).
+     The bounce lane runs from just under the chips to just above that line. */
   .lettering-hero.is-dvd,
   .lettering-hero.is-dvd .lettering-hero__action {
     cursor: pointer;
@@ -1446,16 +1445,16 @@ button.work-card__art:active {
 
   .lettering-hero.is-dvd .lettering-hero__credit {
     display: flex;
-    /* Marked shots: the line is horizontally centred, and its centre sits at
-       40.5% of the phone viewport — upper-middle of the white hero, clear of
-       the filter chips above and of the flying lettering below.
+    /* Horizontally centred. The phone-frame shot puts the ink centre at 84.92%
+       of the visible frame, 4.86% of that frame above the letter-strip ink.
+       On the 390×844 hero that strip starts at 75.47%, so the same gap puts
+       the centre at 70.61vh — in the white gap, still inside the hero.
        Hero starts at --edge, and translateY(-50%) puts the line's centre on
-       that 40.5vh mark. The max() keeps a short iframe from tucking it under
-       the chips. */
+       that mark. The max() keeps a short iframe from tucking it under the chips. */
     left: 0;
     right: 0;
     padding-inline: 12px;
-    top: max(calc(var(--island-h) + 36px), calc(40.5vh - var(--edge)));
+    top: max(calc(var(--island-h) + 36px), calc(70.61vh - var(--edge)));
     bottom: auto;
     z-index: 4;
     font-size: 14px;
