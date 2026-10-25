@@ -908,7 +908,11 @@ function initDeck() {
 
       const introX = deckIntro && !flyLocked && !mobile ? deckIntro.shift(i, now, vw) : 0;
       const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, -vh) : 0;
-      const x = scrollX + parallaxX + worksX + introX;
+      const fanX =
+        !mobile && document.documentElement.classList.contains("deck-stage")
+          ? stageFanLocal(i, count, vw, Number(params.deckScale) || 1)
+          : 0;
+      const x = scrollX + parallaxX + worksX + introX + fanX;
       const yPos = scrollY + parallaxY - item.hover * params.hoverLift + worksY + introY;
 
       const twist = mobile
@@ -1100,26 +1104,20 @@ if (document.documentElement.classList.contains("deck-stage")) {
 }
 
 /**
- * Desktop stage: the stack is already shifted left (tweaks). A short step into
- * the flight pulls the front cards out of the hole the text column left.
+ * Desktop stage rest fan, in deck-local px (the deck is scaled).
+ * Scroll cannot make this shape: the lead curve throws card 0 off the left
+ * before the cards behind it move. Card 0 stays on the left shift; each card
+ * behind steps right so the pile overlaps across the frame. `/` never calls this.
  */
-function primeDeckStageScroll() {
-  if (!document.documentElement.classList.contains("deck-stage") || isMobile()) return;
-  const root = getScrollRoot();
-  if (!root) return;
-  const params = getParams();
-  const count = [...document.querySelectorAll("[data-card]")].filter((el) => inDeckFlow(el)).length;
-  if (count < 2) return;
-  const targetT = 0.04;
-  const total = maxProgress(count, params);
-  let lo = 0;
-  let hi = 1;
-  for (let n = 0; n < 24; n += 1) {
-    const mid = (lo + hi) / 2;
-    if (cardFlightT(0, count, params, mid) < targetT) lo = mid;
-    else hi = mid;
-  }
-  root.scrollTop = hi * total;
+function stageFanLocal(index, count, vw, scale) {
+  if (index <= 0 || count <= 1) return 0;
+  const s = Math.max(scale || 1, 0.01);
+  // History card's visual right at scroll 0 on a 1135px frame, then the extra
+  // left shift as the frame grows (right pin += 20% of width, times deck scale).
+  const lastRight = 651 - (vw - 1135) * 0.2 * s;
+  const span = Math.max(0, vw - 28 - lastRight);
+  const visualStep = clamp(span / (count - 1), 28, 170);
+  return (index * visualStep) / s;
 }
 
 function bindDeckStageEscape() {
@@ -1150,7 +1148,6 @@ initSoundSettings();
 // The progress sheets must exist before the deck and program modal query them.
 initStudentProgress();
 initDeck();
-primeDeckStageScroll();
 initTextAppear();
 const programApi = initProgramModal();
 bindProgramNav(programApi);

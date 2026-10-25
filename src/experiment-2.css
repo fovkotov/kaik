@@ -767,30 +767,9 @@ button.work-card__art:active {
   vertical-align: top;
 }
 
-/* The source newline is a hard break only on mobile. Desktop collapses it
-   so "letter schedule and program" and the arrow stay on one line. */
+/* One line on desktop and on the mobile bottom pin. */
 .filter-chip--about .filter-chip__plate > span {
-  white-space: pre-line;
-}
-
-@media (min-width: 761px) {
-  .filter-chip--about .filter-chip__plate > span {
-    white-space: nowrap;
-  }
-}
-
-.filter-chip__arrow {
-  display: block;
-  width: 12px;
-  height: 20px;
-  flex: none;
-}
-
-.filter-chip--about .filter-chip__arrow {
-  display: inline-block;
-  margin-left: 4px;
-  /* 20px glyph centered on the last text line (same optical place as the old flex row). */
-  vertical-align: -0.32em;
+  white-space: nowrap;
 }
 
 .filter-chip[aria-checked="false"] .filter-chip__plate {
@@ -1398,16 +1377,6 @@ button.work-card__art:active {
 
   .filter-chip__plate {
     font-size: 16px;
-  }
-
-  .filter-chip__arrow {
-    width: 11px;
-    height: 19px;
-  }
-
-  /* Two-line plate from the mobile mock: honor the newline after "letter schedule". */
-  .filter-chip--about .filter-chip__plate > span {
-    white-space: pre-line;
   }
 
   .mobile-bar {
