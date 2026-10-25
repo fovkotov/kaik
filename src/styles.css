@@ -4734,6 +4734,18 @@ img.program-card__mark,
   initial-value: 0deg;
 }
 
+@property --fly-rx {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --fly-ry {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 /* In-deck focus: keep deck stacking (`z-index: var(--z)`).
    Mobile expand-host drives its own width/height/transform inline. */
 .card.is-program-open:not([data-expand-host]),
@@ -4752,15 +4764,18 @@ img.program-card__mark,
   overscroll-behavior: contain;
   transform-origin: 50% 55%;
   cursor: default;
-  /* --fly-scale: parked sibling compensation while the deck is unscaled (is-focus-landed). */
-  transform: rotate(var(--fly-rot, 0deg)) scale(var(--fly-scale, 1));
+  /* --fly-scale: parked sibling compensation while the deck is unscaled (is-focus-landed).
+     rotateX/Y match the stack so the pin doesn't flatten, then pop, at the handoff. */
+  transform: rotate(var(--fly-rot, 0deg)) rotateY(var(--fly-ry, 0deg)) rotateX(var(--fly-rx, 0deg)) scale(var(--fly-scale, 1));
   transition:
     left var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
     top var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
     width var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
     height var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
     --fly-w var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
-    --fly-rot var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1));
+    --fly-rot var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
+    --fly-rx var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1)),
+    --fly-ry var(--fly-ms, 0.92s) var(--fly-ease, cubic-bezier(0.22, 1, 0.32, 1));
 }
 
 /* Mobile expand stays in the deck: same left/top as the stack card.
@@ -5008,6 +5023,17 @@ body:not(.list) .card.is-program-open[data-program-card] {
 html.is-focus-frozen body:not(.list) .deck {
   perspective: none;
   transform-style: flat;
+}
+
+/* Desktop flight keeps the stack perspective. Dropping it for the tween and
+   putting it back on the last frame is the close-time card jump. Mobile
+   expand still flattens (rule above). */
+@media (min-width: 901px) {
+  html.is-focus-frozen body:not(.list) .deck {
+    perspective: 1400px;
+    perspective-origin: 70% 50%;
+    transform-style: preserve-3d;
+  }
 }
 
 html.is-focus-landed body:not(.list) .deck {

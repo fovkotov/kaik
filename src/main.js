@@ -1021,8 +1021,8 @@ function initDeck() {
         item.el.classList.contains("is-program-open") ||
         item.el.classList.contains("is-fly-pinned");
       if (flyLocked) {
-        // Keep item.hover as-is: the snapshot pose program-modal returns this
-        // card to includes that lift, so the handover frame matches exactly.
+        // Focus already zeroed hover and the cursor. Keep them there so the
+        // close handoff matches the un-hovered stack pose.
         if (hoveredIndex === i) hoveredIndex = -1;
         item.hoverTarget = item.hover;
         if (mobile) {
@@ -1038,8 +1038,7 @@ function initDeck() {
         ? item.hoverTarget
         : easeTo(item.hover, item.hoverTarget, params.hoverLerp);
 
-      // While locked pointerSmooth is frozen (not zeroed) so a sibling that
-      // lands home mid-close keeps its snapshot offset instead of jumping.
+      // Cursor offset is zeroed when focus freezes, so this stays 0 until thaw.
       const depth = Math.pow(params.cursorFalloff, i);
       const pointerAmt = mobile ? 0 : depth;
       const parallaxX = pointerSmooth.x * params.parallaxX * pointerAmt;
@@ -1226,6 +1225,60 @@ function initDeck() {
   document.addEventListener("kaik:focus-thawed", () => {
     refreshCardBox();
     scheduleRender();
+  });
+  // Snapshot reads the live pose first. This runs from lockCard, after that
+  // snapshot, so the open flight can still start on the hovered pixels.
+  document.addEventListener("kaik:focus-frozen", () => {
+    hoveredIndex = -1;
+    pointer.x = 0;
+    pointer.y = 0;
+    pointerSmooth.x = 0;
+    pointerSmooth.y = 0;
+    state.forEach((item) => {
+      item.hover = 0;
+      item.hoverTarget = 0;
+      item.el.classList.remove("is-hovered");
+    });
+  });
+  document.addEventListener("kaik:focus-home", (event) => {
+    const detail = event.detail;
+    if (!detail) return;
+    const params = getParams();
+    const mobile = isMobile();
+    const byEl = new Map();
+    liveItems().forEach((item, i) => {
+      const tf = item.el.style.transform || "";
+      const tr = tf.match(
+        /translate3d\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)px\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)px/i,
+      );
+      if (!tr) return;
+      const ang = (name) => {
+        const m = tf.match(
+          new RegExp(`${name}\\(\\s*([+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:e[+-]?\\d+)?)deg`, "i"),
+        );
+        return m ? Number.parseFloat(m[1]) : 0;
+      };
+      const scaleM = tf.match(/scale\(\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*\)/i);
+      const scale = scaleM ? scaleM[1] : "1";
+      const pointerAmt = mobile ? 0 : Math.pow(params.cursorFalloff, i);
+      const parallaxX = pointerSmooth.x * params.parallaxX * pointerAmt;
+      const parallaxY = pointerSmooth.y * params.parallaxY * pointerAmt;
+      const cursorRotY = pointerSmooth.x * params.cursorTiltY * pointerAmt;
+      const cursorRotX = -pointerSmooth.y * params.cursorTiltX * pointerAmt;
+      const cursorRotZ = pointerSmooth.x * params.cursorTiltZ * pointerAmt * 0.65;
+      const x = Number.parseFloat(tr[1]) - parallaxX;
+      const y = Number.parseFloat(tr[2]) - parallaxY + item.hover * params.hoverLift;
+      const rotateZ = ang("rotateZ") - cursorRotZ;
+      const rotateY = ang("rotateY") - cursorRotY;
+      const rotateX = ang("rotateX") - cursorRotX;
+      byEl.set(
+        item.el,
+        {
+          transform: `translate3d(${x}px, ${y}px, 0) rotateZ(${rotateZ}deg) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${scale})`,
+        },
+      );
+    });
+    detail.byEl = byEl;
   });
   const revealHost = deckStageFrameHost();
   if (revealHost) {

@@ -242,10 +242,51 @@ export function initProgramModal() {
       width: br.x - tl.x,
       height: br.y - tl.y,
       rotate: box.rotate ?? 0,
+      rotateX: 0,
+      rotateY: 0,
     };
   }
 
-  function capturePose(el) {
+  /** translate3d / rotateZ written by the deck loop. Ignores perspective projection. */
+  function stackAxes(tf) {
+    const src = String(tf || "");
+    const tr = src.match(/translate3d\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)px\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)px/i);
+    const ang = (name) => {
+      const m = src.match(new RegExp(`${name}\\(\\s*([+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:e[+-]?\\d+)?)deg`, "i"));
+      return m ? Number.parseFloat(m[1]) : 0;
+    };
+    return {
+      x: tr ? Number.parseFloat(tr[1]) : 0,
+      y: tr ? Number.parseFloat(tr[2]) : 0,
+      rotate: ang("rotateZ"),
+      rotateX: ang("rotateX"),
+      rotateY: ang("rotateY"),
+      hasTranslate: Boolean(tr),
+    };
+  }
+
+  function poseFromLayout(el, parts) {
+    return {
+      left: el.offsetLeft + parts.x,
+      top: el.offsetTop + parts.y,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+      rotate: parts.rotate,
+      rotateX: parts.rotateX,
+      rotateY: parts.rotateY,
+    };
+  }
+
+  function inStackCard(el) {
+    return (
+      !el.classList.contains("is-fly-pinned") &&
+      !el.classList.contains("is-program-open") &&
+      getComputedStyle(el).position !== "fixed"
+    );
+  }
+
+  /** Projected box for a card already pinned or mid-flight (switchFocus). */
+  function captureProjectedPose(el) {
     const width = el.offsetWidth;
     const height = el.offsetHeight;
     const rect = el.getBoundingClientRect();
@@ -259,13 +300,32 @@ export function initProgramModal() {
     const axis = visualToDeckLocal(rect.left + rect.width / 2, rect.top + rect.height / 2);
     const vx = width / 2 - originX;
     const vy = height / 2 - originY;
+    const rx = Number.parseFloat(el.style.getPropertyValue("--fly-rx"));
+    const ry = Number.parseFloat(el.style.getPropertyValue("--fly-ry"));
     return {
       left: axis.x - originX - vx * Math.cos(rad) + vy * Math.sin(rad),
       top: axis.y - originY - vx * Math.sin(rad) - vy * Math.cos(rad),
       width,
       height,
       rotate,
+      rotateX: Number.isFinite(rx) ? rx : 0,
+      rotateY: Number.isFinite(ry) ? ry : 0,
     };
+  }
+
+  function capturePose(el) {
+    if (inStackCard(el)) {
+      const parts = stackAxes(el.style.transform);
+      if (parts.hasTranslate) return poseFromLayout(el, parts);
+    }
+    return captureProjectedPose(el);
+  }
+
+  /** Un-hovered, cursor-flat stack pose. Deck loop fills detail.byEl. */
+  function focusHomes() {
+    const detail = {};
+    document.dispatchEvent(new CustomEvent("kaik:focus-home", { detail }));
+    return detail.byEl instanceof Map ? detail.byEl : new Map();
   }
 
   function stackCardSize(from) {
@@ -306,7 +366,7 @@ export function initProgramModal() {
   }
 
   function destBox(from) {
-    return visualBoxToCardSpace(destVisual(from));
+    return { ...visualBoxToCardSpace(destVisual(from)), rotateX: 0, rotateY: 0 };
   }
 
   /** Mobile fullscreen: the tapped node is the surface (no clone). */
@@ -519,6 +579,8 @@ export function initProgramModal() {
         width: from.width,
         height: from.height,
         rotate: (from.rotate ?? 0) + dirX * (10 + (dist - 1) * 3),
+        rotateX: 0,
+        rotateY: 0,
       };
     }
 
@@ -538,6 +600,8 @@ export function initProgramModal() {
       width: from.width,
       height: from.height,
       rotate: (from.rotate ?? 0) + r,
+      rotateX: 0,
+      rotateY: 0,
     };
   }
 
@@ -704,6 +768,8 @@ export function initProgramModal() {
     el.style.setProperty("--fly-w", `${box.width}px`);
     el.style.setProperty("--fly-h", `${box.height}px`);
     el.style.setProperty("--fly-rot", `${box.rotate ?? 0}deg`);
+    if (Number.isFinite(box.rotateX)) el.style.setProperty("--fly-rx", `${box.rotateX}deg`);
+    if (Number.isFinite(box.rotateY)) el.style.setProperty("--fly-ry", `${box.rotateY}deg`);
     el.style.setProperty("--fly-ms", withTransition ? `${FLY_MS}ms` : "0ms");
     el.style.setProperty("--fly-ease", FLY_EASE);
     el.style.transform = "";
@@ -716,18 +782,11 @@ export function initProgramModal() {
   function flyEnded(event, host) {
     if (event.target !== host) return false;
     if (host.hasAttribute("data-expand-host")) {
-      return event.propertyName === "transform" || event.propertyName === "width";
+      return event.propertyName === "transform";
     }
-    return (
-      event.propertyName === "top" ||
-      event.propertyName === "left" ||
-      event.propertyName === "height" ||
-      event.propertyName === "width" ||
-      event.propertyName === "transform" ||
-      event.propertyName === "border-radius" ||
-      event.propertyName === "--fly-w" ||
-      event.propertyName === "--fly-rot"
-    );
+    // Width, height, and --fly-* can settle a frame early and hand the card
+    // back while the focused card is still moving.
+    return event.propertyName === "top" || event.propertyName === "left";
   }
 
   function trapCardScroll(event) {
@@ -820,6 +879,8 @@ export function initProgramModal() {
       "--fly-w",
       "--fly-h",
       "--fly-rot",
+      "--fly-rx",
+      "--fly-ry",
       "--fly-ms",
       "--fly-ease",
     ].forEach((name) => el.style.removeProperty(name));
@@ -1028,6 +1089,14 @@ export function initProgramModal() {
     if (card?.hasAttribute("data-expand-host")) {
       if (!finishExpandClose()) return;
     } else {
+      cards.forEach((el) => {
+        if (el === card) return;
+        if (el.classList.contains("is-fly-pinned") || retiring.has(el)) {
+          const saved = poses.get(el);
+          cancelRetire(el);
+          finishRetireHome(el, saved?.restTransform ?? el.style.transform);
+        }
+      });
       releaseCard();
     }
     completeClose();
@@ -1130,10 +1199,16 @@ export function initProgramModal() {
 
   function snapshotPoses() {
     if (poses.size) return;
+    const homes = focusHomes();
     cards.forEach((el) => {
+      const from = capturePose(el);
+      const home = homes.get(el);
+      const restTransform = home?.transform || el.style.transform;
+      const rest = home ? poseFromLayout(el, stackAxes(restTransform)) : from;
       poses.set(el, {
-        rest: capturePose(el),
-        restTransform: el.style.transform,
+        rest,
+        from,
+        restTransform,
         layout: cardLayout(el),
         fromFixed: captureFixedHome(el),
       });
@@ -1145,6 +1220,7 @@ export function initProgramModal() {
     const fixed = getComputedStyle(el).position === "fixed";
     poses.set(el, {
       rest: nextRest,
+      from: prev?.from ?? nextRest,
       restTransform: nextTransform,
       layout: fixed && prev?.layout ? prev.layout : cardLayout(el),
       fromFixed: fixed && prev?.fromFixed ? prev.fromFixed : captureFixedHome(el),
@@ -1205,6 +1281,14 @@ export function initProgramModal() {
     retiring.set(el, rec);
     const finish = () => {
       if (retiring.get(el) !== rec) return;
+      if (mode === "home" && phase === "closing") {
+        // Stay pinned on the home box. onFlySettled releases the whole deck
+        // in one frame so perspective and the stack transform don't stagger.
+        if (rec.onEnd) el.removeEventListener("transitionend", rec.onEnd);
+        rec.onEnd = null;
+        window.clearTimeout(rec.timer);
+        return;
+      }
       if (rec.onEnd) el.removeEventListener("transitionend", rec.onEnd);
       retiring.delete(el);
       if (mode === "home") finishRetireHome(el, restTf);
@@ -1248,7 +1332,7 @@ export function initProgramModal() {
       if (el.classList.contains("is-fly-pinned") || retiring.has(el)) return;
       const saved = poses.get(el);
       if (!saved) return;
-      pinEl(el, saved.rest, false);
+      pinEl(el, saved.from ?? saved.rest, false);
       el.classList.add("is-fly-pinned");
       fresh.push(el);
     });
@@ -1291,7 +1375,7 @@ export function initProgramModal() {
       startExpandOpen();
       return;
     }
-    pin(rest, false);
+    pin(saved?.from ?? rest, false);
     lockCard();
     card.getBoundingClientRect();
     syncAria();
