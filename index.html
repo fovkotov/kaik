@@ -118,8 +118,12 @@
       html.deck-stage [data-link-card] {
         display: none !important;
       }
-      html.deck-stage .fly-close {
-        top: calc(var(--focus-close-inset, 16px) + 52px);
+      /* Phone focus uses the 16px card inset. Wider stage keeps the close
+         below the parent chrome. */
+      @media (min-width: 761px) {
+        html.deck-stage .fly-close {
+          top: calc(var(--focus-close-inset, 16px) + 52px);
+        }
       }
       @media (min-width: 901px) {
         html.deck-stage .deck,
@@ -217,8 +221,9 @@ to 14 Dec.</p>
       </div>
     </aside>
 
-    <button type="button" class="fly-close" data-fly-close hidden aria-label="Close">
+    <button type="button" class="fly-close viewer-btn" data-fly-close hidden aria-label="Close">
       <img class="fly-close__icon" src="/assets/frame-2136141284.svg" alt="" width="24" height="24" />
+      <img class="fly-close__viewer viewer-btn__icon" src="/assets/author/exp2-close.svg" alt="" width="34" height="34" />
     </button>
 
     <div class="author-lb" data-author-lightbox hidden inert aria-hidden="true" role="dialog" aria-modal="true" data-i18n-aria="author.lb.label">
