@@ -1120,6 +1120,44 @@ function stageFanLocal(index, count, vw, scale) {
   return (index * visualStep) / s;
 }
 
+/**
+ * Desktop stage opens a step into the flight, not at scroll 0.
+ * Card 0 moves left until it sits on the left half; the cards behind barely
+ * move yet, so the author and program stay overlapped and the tail still
+ * hangs off the right. Mobile peel is untouched.
+ */
+function primeDeckStageScroll() {
+  if (!document.documentElement.classList.contains("deck-stage") || isMobile()) return;
+  const root = getScrollRoot();
+  const front = document.querySelector("[data-deck] [data-card]");
+  if (!root || !front) return;
+  const params = getParams();
+  const count = [...document.querySelectorAll("[data-card]")].filter((el) => inDeckFlow(el)).length;
+  if (count < 2) return;
+  const scale = Math.max(Number(params.deckScale) || 1, 0.01);
+  const targetLeft = 40;
+  const baseX = Number(front.dataset.baseX) || 0;
+  // Before the first frame, CSS parks every card at translateX(100vw).
+  // Undo that, then add the deck's own baseX, to read the scroll-0 edge.
+  const parked = !document.documentElement.classList.contains("intro-ready");
+  const park = parked ? window.innerWidth * scale : 0;
+  const currentLeft = front.getBoundingClientRect().left - park + baseX * scale;
+  const need = currentLeft - targetLeft;
+  if (need < 12) return;
+  const { width: vw } = getViewportSize();
+  const travel = Math.max((vw || window.innerWidth) * (Number(params.travelMult) || 1.1), 1);
+  const targetT = clamp(need / scale / travel, 0, 0.24);
+  const total = maxProgress(count, params);
+  let lo = 0;
+  let hi = 1;
+  for (let n = 0; n < 24; n += 1) {
+    const mid = (lo + hi) / 2;
+    if (cardFlightT(0, count, params, mid) < targetT) lo = mid;
+    else hi = mid;
+  }
+  root.scrollTop = hi * total;
+}
+
 function bindDeckStageEscape() {
   if (!document.documentElement.classList.contains("deck-stage")) return;
   document.addEventListener(
@@ -1148,6 +1186,7 @@ initSoundSettings();
 // The progress sheets must exist before the deck and program modal query them.
 initStudentProgress();
 initDeck();
+primeDeckStageScroll();
 initTextAppear();
 const programApi = initProgramModal();
 bindProgramNav(programApi);
