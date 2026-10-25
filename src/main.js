@@ -1053,11 +1053,24 @@ function initDeck() {
       const introX = deckIntro && !flyLocked && !mobile ? deckIntro.shift(i, now, vw) : 0;
       const outroX = deckOutro && !flyLocked && !mobile ? deckOutro.shift(i, now, vw) : 0;
       const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, -vh) : 0;
-      const fanX =
-        !mobile && document.documentElement.classList.contains("deck-stage")
-          ? stageFanLocal(i, count, vw, Number(params.deckScale) || 1)
-          : 0;
-      const x = scrollX + parallaxX + worksX + introX + fanX + outroX;
+      const stageDesktop =
+        !mobile && document.documentElement.classList.contains("deck-stage");
+      const fanX = stageDesktop
+        ? stageFanLocal(i, count, vw, Number(params.deckScale) || 1)
+        : 0;
+      let flightX = tossX;
+      if (stageDesktop && i === count - 1) {
+        const settled = stageLastFlightX(
+          item.el,
+          deck,
+          vw,
+          Number(params.deckScale) || 1,
+          p,
+          baseX + fanX + worksX,
+        );
+        if (settled != null) flightX = settled;
+      }
+      const x = baseX + flightX + parallaxX + worksX + introX + fanX + outroX;
       const yPos = scrollY + parallaxY - item.hover * params.hoverLift + worksY + introY;
 
       const twist = mobile
@@ -1309,6 +1322,30 @@ function stageFanLocal(index, count, vw, scale) {
   const span = Math.max(0, vw - 28 - lastRight);
   const visualStep = clamp(span / (count - 1), 28, 170);
   return (index * visualStep) / s;
+}
+
+/** Resting inset for the last card once the stage deck is fully scrolled.
+ *  Layout target sits a little further in than the painted edge: a slight
+ *  rotate grows the axis-aligned box past the unrotated right. */
+const STAGE_LAST_MARGIN = 42;
+
+/**
+ * Local toss for the last in-flow desktop stage card.
+ * `stageFanLocal` is a constant +X, and the lead curve still gives this card
+ * a full `travel` toss at p = 1, so the tail either stays past the right edge
+ * or flies off the left. p = 0 keeps the opening fan (toss 0). p = 1 parks
+ * the card's right edge `STAGE_LAST_MARGIN` inside the viewport.
+ * `/` and mobile never call this.
+ */
+function stageLastFlightX(card, deckEl, vw, scale, p, parkedX) {
+  const s = Math.max(scale || 1, 0.01);
+  const layoutRight = card.offsetLeft + card.offsetWidth;
+  if (!(layoutRight > 0) || !(vw > 0)) return null;
+  const deckLeft = deckEl.getBoundingClientRect().left;
+  const settleX = (vw - STAGE_LAST_MARGIN - deckLeft) / s - layoutRight;
+  const flightEnd = settleX - parkedX;
+  if (!(flightEnd < 0)) return 0;
+  return clamp(p, 0, 1) * flightEnd;
 }
 
 /**
