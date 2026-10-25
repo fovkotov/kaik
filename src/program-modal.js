@@ -690,22 +690,7 @@ export function initProgramModal() {
     landedPark.clear();
   }
 
-  function flattenLanded(el) {
-    if (!el || isWorksHost(el)) return;
-    const painted = el.getBoundingClientRect();
-    const dest = destVisual();
-    const box =
-      painted.width > 1 && painted.height > 1
-        ? {
-            left: painted.left,
-            top: painted.top,
-            width: painted.width,
-            height: painted.height,
-          }
-        : dest;
-    landSiblings(el);
-    document.documentElement.classList.add("is-focus-landed");
-    el.classList.add("is-program-scroll");
+  function placeFlat(el, box) {
     el.style.position = "fixed";
     el.style.left = `${box.left}px`;
     el.style.top = `${box.top}px`;
@@ -722,6 +707,39 @@ export function initProgramModal() {
     el.style.setProperty("--fly-h", `${box.height}px`);
     el.style.setProperty("--fly-rot", "0deg");
     el.style.setProperty("--fly-ms", "0ms");
+  }
+
+  function flattenLanded(el) {
+    if (!el || isWorksHost(el)) return;
+    const painted = el.getBoundingClientRect();
+    const dest = destVisual();
+    const box =
+      painted.width > 1 && painted.height > 1
+        ? {
+            left: painted.left,
+            top: painted.top,
+            width: painted.width,
+            height: painted.height,
+          }
+        : dest;
+    landSiblings(el);
+    document.documentElement.classList.add("is-focus-landed");
+    el.classList.add("is-program-scroll");
+    placeFlat(el, box);
+    if (isMobile()) return;
+    // Desktop flight keeps transform-style: preserve-3d, and landing does not
+    // clear it. The deck stays the fixed containing block after the scale drop,
+    // so viewport left/top slide by the deck's border box. Rebase in this frame.
+    const placed = el.getBoundingClientRect();
+    const dx = placed.left - box.left;
+    const dy = placed.top - box.top;
+    if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
+    placeFlat(el, {
+      left: box.left - dx,
+      top: box.top - dy,
+      width: box.width,
+      height: box.height,
+    });
   }
 
   /** Clear one card's flatten inline styles; never touches the deck-wide landed state. */
