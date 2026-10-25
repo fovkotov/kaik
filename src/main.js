@@ -673,6 +673,8 @@ function initDeck() {
   /**
    * Depth in the resting pile. While the top card is dragged or flying off,
    * the card under it is already depth 0. A spring-back eases the others home.
+   * Once the flung card is off-screen it is already last in `pileOrder`, so
+   * the new top stays put while that card travels into the back slot.
    */
   function pileDepth(el) {
     const idx = pileOrder.indexOf(el);
@@ -755,6 +757,76 @@ function initDeck() {
     return { x, y, r: src.tilt * PILE_FOLLOW_TILT * falloff };
   }
 
+  /** True when the flung card's box has cleared the frame, including flick tilt. */
+  function pileCardOffscreen(x, y) {
+    const { width: vw, height: vh } = getViewportSize();
+    if (!(vw > 0) || !(vh > 0)) return false;
+    const scale = pileScreenScale();
+    const cardW = (cardBoxW || 280) * scale;
+    const cardH = (cardBoxH || 400) * scale;
+    const left = (vw - cardW) / 2 + x * scale;
+    const top = (vh - cardH) / 2 + y * scale;
+    const pad = 28 + Math.abs(pileDragTilt(x)) * 0.01 * Math.max(cardW, cardH);
+    return left + cardW < -pad || left > vw + pad || top + cardH < -pad || top > vh + pad;
+  }
+
+  /**
+   * How far below the pile the return lane sits, in deck px.
+   * 0 when the card is already leaving through the bottom.
+   */
+  function pileUnderArc(fromY) {
+    const { height: vh } = getViewportSize();
+    const scale = pileScreenScale();
+    const cardH = (cardBoxH || 400) * scale;
+    const below = (vh - cardH) / 2;
+    const room = (below - 12) / scale - fromY;
+    if (!(room > 12)) return 0;
+    return Math.min(room, 150);
+  }
+
+  /**
+   * Card has left the frame. Order already has it at the back, so the new top
+   * does not move. The same card then comes back from the side it left, low
+   * enough to read as sliding under the pile, and eases into the deepest slot.
+   */
+  function beginPileArrive() {
+    const el = pileAnim.el;
+    const fromX = pileAnim.x;
+    const fromY = pileAnim.y;
+    const fromTilt = pileDragTilt(fromX);
+    const offscreen = pileCardOffscreen(fromX, fromY);
+    pileSendToBack(el);
+    const dest = pileOffset(Math.max(0, pileOrder.length - 1));
+    const relX = fromX - dest.x;
+    const relY = fromY - dest.y;
+    const arc = offscreen ? pileUnderArc(relY) : 0;
+    const laneY = relY + arc;
+    const dist = Math.hypot(relX, laneY);
+    pileAnim = {
+      mode: "arrive",
+      el,
+      x: relX,
+      y: laneY,
+      tilt: fromTilt,
+      fromX: relX,
+      fromY: laneY,
+      fromTilt,
+      destR: dest.r,
+      t0: performance.now(),
+      dur: clamp(420 + dist * 0.28, 460, 680),
+    };
+  }
+
+  function stepPileArrive() {
+    const anim = pileAnim;
+    const t = clamp((performance.now() - anim.t0) / anim.dur, 0, 1);
+    const u = 1 - (1 - t) ** 3;
+    anim.x = anim.fromX * (1 - u);
+    anim.y = anim.fromY * (1 - u);
+    anim.tilt = anim.fromTilt + (anim.destR - anim.fromTilt) * u;
+    if (t >= 1) pileAnim = null;
+  }
+
   function stepPileAnim() {
     if (!pileAnim) return;
     if (pileAnim.mode === "back") {
@@ -769,6 +841,10 @@ function initDeck() {
       }
       return;
     }
+    if (pileAnim.mode === "arrive") {
+      stepPileArrive();
+      return;
+    }
     pileAnim.speed = Math.min((pileAnim.speed || 22) * 1.06, 84);
     pileAnim.x += (pileAnim.dirX || 0) * pileAnim.speed;
     pileAnim.y += (pileAnim.dirY || 0) * pileAnim.speed;
@@ -776,10 +852,8 @@ function initDeck() {
     const exit =
       Math.hypot(vw || 1, vh || 1) * 0.55 +
       Math.hypot(cardBoxW || 280, cardBoxH || 400) * 0.55;
-    if (Math.hypot(pileAnim.x, pileAnim.y) >= exit) {
-      const el = pileAnim.el;
-      pileAnim = null;
-      pileSendToBack(el);
+    if (pileCardOffscreen(pileAnim.x, pileAnim.y) || Math.hypot(pileAnim.x, pileAnim.y) >= exit) {
+      beginPileArrive();
     }
   }
 
@@ -1374,14 +1448,16 @@ function initDeck() {
         const peek = pileOffset(depth);
         const extraX = active === item.el ? pileDrag?.x ?? pileAnim?.x ?? 0 : 0;
         const extraY = active === item.el ? pileDrag?.y ?? pileAnim?.y ?? 0 : 0;
-        const tilt = active === item.el ? pileDragTilt(extraX) : 0;
+        const arriving = pileAnim?.mode === "arrive" && active === item.el;
+        const tilt = active === item.el ? (arriving ? pileAnim.tilt || 0 : pileDragTilt(extraX)) : 0;
         const follow = active === item.el ? { x: 0, y: 0, r: 0 } : pileFollow(item.el);
         const pileIndex = Math.max(0, pileOrder.indexOf(item.el));
         const introShift = deckIntro ? deckIntro.shift(i, now, vw) : 0;
         const outroShift = deckOutro ? deckOutro.shift(pileIndex, now, vw) : 0;
         const x = peek.x + extraX + follow.x + introShift + outroShift;
         const yPos = pileY + peek.y + extraY + follow.y;
-        const pose = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${peek.r + tilt + follow.r}deg) rotateY(0deg) rotateX(0deg) scale(1)`;
+        const rot = (arriving ? 0 : peek.r) + tilt + follow.r;
+        const pose = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${rot}deg) rotateY(0deg) rotateX(0deg) scale(1)`;
         if (item.el.style.transform !== pose) item.el.style.transform = pose;
         if (item.el.style.opacity !== "1") item.el.style.opacity = "1";
         const lifted =
@@ -1392,7 +1468,9 @@ function initDeck() {
           item.inert = inert;
           setStackHit(item.el, { mobile: true, inert });
         }
-        const z = String(active === item.el ? count + 5 : count - Math.min(count, Math.round(depth)));
+        const z = String(
+          active === item.el && !arriving ? count + 5 : count - Math.min(count, Math.round(depth)),
+        );
         if (item.el.style.zIndex !== z) item.el.style.zIndex = z;
         return;
       }
