@@ -10,9 +10,25 @@ export function sameCatalog(a, b) {
   return (a.letters?.length || 0) === (b.letters?.length || 0);
 }
 
+function frameIsConcealed() {
+  if (document.visibilityState === "hidden") return true;
+  try {
+    const frame = window.frameElement;
+    if (!frame || window.parent === window) return false;
+    const host = frame.closest("[data-hero-deck], [data-deck-stage]") || frame;
+    if (host.closest("[hidden]")) return true;
+    const style = frame.ownerDocument.defaultView.getComputedStyle(host);
+    return style.display === "none" || style.visibility === "hidden";
+  } catch {
+    return false;
+  }
+}
+
 export function subscribeCatalog(onUpdate) {
   const run = () => {
-    if (document.visibilityState === "hidden") return;
+    // A visibility:hidden preload iframe stays document-visible, so the dev
+    // poll would cache-bust catalog.json every 3s under the lettering page.
+    if (frameIsConcealed()) return;
     onUpdate();
   };
 

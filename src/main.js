@@ -192,6 +192,17 @@ function deckStageWide() {
   return (document.documentElement.clientWidth || window.innerWidth || 0) >= 901;
 }
 
+function deckStageFrameHost() {
+  if (window.parent === window) return null;
+  try {
+    const frame = window.frameElement;
+    if (!frame) return null;
+    return frame.closest("[data-hero-deck], [data-deck-stage]") || frame;
+  } catch {
+    return null;
+  }
+}
+
 function deckStageIntroHeld() {
   if (!document.documentElement.classList.contains("deck-stage")) return false;
   if (window.parent === window) return false;
@@ -202,6 +213,24 @@ function deckStageIntroHeld() {
     const host = frame.closest("[data-hero-deck]");
     const parentBody = frame.ownerDocument?.body;
     return Boolean(host && parentBody && !parentBody.classList.contains("is-hero-deck"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The hero preload iframe is `display:block` (so it boots at desktop width)
+ * and only `visibility:hidden`. That does not set `document.hidden`, so a
+ * pointer, hover, or intro wake keeps `requestAnimationFrame` running under
+ * the lettering. True when this deck must not paint.
+ */
+function deckStageConcealed() {
+  const host = deckStageFrameHost();
+  if (!host) return false;
+  if (host.closest("[hidden]")) return true;
+  try {
+    const style = host.ownerDocument.defaultView.getComputedStyle(host);
+    return style.display === "none" || style.visibility === "hidden";
   } catch {
     return false;
   }
@@ -346,8 +375,11 @@ function initDeck() {
 
   refreshCardBox();
 
+  let deckConcealed = deckStageConcealed();
+
   function scheduleRender() {
     if (raf) return;
+    if (document.visibilityState === "hidden" || deckConcealed) return;
     raf = requestAnimationFrame(render);
   }
 
@@ -846,6 +878,7 @@ function initDeck() {
 
   function render() {
     raf = 0;
+    if (document.visibilityState === "hidden" || deckConcealed) return;
     if (isFocusFrozen()) {
       if (deckIntro) {
         deckIntro = null;
@@ -1193,6 +1226,30 @@ function initDeck() {
     refreshCardBox();
     scheduleRender();
   });
+  const revealHost = deckStageFrameHost();
+  if (revealHost) {
+    const wakeDeck = () => {
+      const next = deckStageConcealed();
+      if (next && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+      const was = deckConcealed;
+      deckConcealed = next;
+      if (was && !next) scheduleRender();
+    };
+    const parentDoc = revealHost.ownerDocument;
+    if (parentDoc.body) {
+      new MutationObserver(wakeDeck).observe(parentDoc.body, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+    }
+    new MutationObserver(wakeDeck).observe(revealHost, {
+      attributes: true,
+      attributeFilter: ["hidden", "class", "style"],
+    });
+  }
   scheduleRender();
 
   function programCardIndex() {
