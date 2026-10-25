@@ -41,24 +41,28 @@ const SETTINGS_KEY = "kaik:experiment-2:grid-v2";
 const DRAG_SPEED_KEY = "kaik:experiment-2:drag-speed";
 const DRAG_SPEED_MIN = 0.25;
 const DRAG_SPEED_MAX = 3;
+/** Fresh load and a cleared panel. The G-panel minimum. */
+const DRAG_SPEED_DEFAULT = 0.25;
 /** Desktop hero-deck card size, as a multiple of the settled stage fit. 1 = that fit. */
 const CARD_SCALE_KEY = "kaik:experiment-2:card-scale";
 const CARD_SCALE_MIN = 0.6;
 const CARD_SCALE_MAX = 1.6;
+/** Fresh load and a cleared panel. */
+const CARD_SCALE_DEFAULT = 0.9;
 
 function clampDragSpeed(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return 1;
+  if (!Number.isFinite(n)) return DRAG_SPEED_DEFAULT;
   return Math.min(DRAG_SPEED_MAX, Math.max(DRAG_SPEED_MIN, Math.round(n * 100) / 100));
 }
 
 function readDragSpeed() {
   try {
     const raw = storage.getItem(DRAG_SPEED_KEY);
-    if (raw == null || raw === "") return 1;
+    if (raw == null || raw === "") return DRAG_SPEED_DEFAULT;
     return clampDragSpeed(JSON.parse(raw));
   } catch {
-    return 1;
+    return DRAG_SPEED_DEFAULT;
   }
 }
 
@@ -66,17 +70,17 @@ let dragSpeed = readDragSpeed();
 
 function clampCardScale(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return 1;
+  if (!Number.isFinite(n)) return CARD_SCALE_DEFAULT;
   return Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, Math.round(n * 100) / 100));
 }
 
 function readCardScale() {
   try {
     const raw = storage.getItem(CARD_SCALE_KEY);
-    if (raw == null || raw === "") return 1;
+    if (raw == null || raw === "") return CARD_SCALE_DEFAULT;
     return clampCardScale(JSON.parse(raw));
   } catch {
-    return 1;
+    return CARD_SCALE_DEFAULT;
   }
 }
 
@@ -125,7 +129,7 @@ function setDragSpeed(value, { persist = true } = {}) {
 }
 
 function resetDragSpeed() {
-  dragSpeed = 1;
+  dragSpeed = DRAG_SPEED_DEFAULT;
   try {
     storage.removeItem(DRAG_SPEED_KEY);
   } catch {
@@ -133,7 +137,7 @@ function resetDragSpeed() {
   }
   postDragSpeedToDecks();
   const input = settingsPanel?.querySelector('[name="dragSpeed"]');
-  if (input) input.value = "1";
+  if (input) input.value = String(DRAG_SPEED_DEFAULT);
 }
 
 function setCardScale(value, { persist = true } = {}) {
@@ -149,7 +153,7 @@ function setCardScale(value, { persist = true } = {}) {
 }
 
 function resetCardScale() {
-  cardScale = 1;
+  cardScale = CARD_SCALE_DEFAULT;
   try {
     storage.removeItem(CARD_SCALE_KEY);
   } catch {
@@ -157,7 +161,7 @@ function resetCardScale() {
   }
   postCardScaleToDecks();
   const input = settingsPanel?.querySelector('[name="cardScale"]');
-  if (input) input.value = "1";
+  if (input) input.value = String(CARD_SCALE_DEFAULT);
 }
 const ENTER_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const ENTER_MS = 520;
