@@ -316,8 +316,10 @@ function initDeck() {
    * @type {HTMLElement[]}
    */
   let pileOrder = state.filter((item) => inDeckFlow(item.el)).map((item) => item.el);
-  /** @type {null | { id: number, el: HTMLElement, startX: number, startY: number, x: number, y: number, vx: number, vy: number, lastX: number, lastY: number, lastT: number, moved: boolean }} */
+  /** @type {null | { id: number, el: HTMLElement, startX: number, startY: number, x: number, y: number, vx: number, vy: number, lastX: number, lastY: number, lastT: number, moved: boolean, axis: "x" | "y" | null, scrolled: boolean }} */
   let pileDrag = null;
+  /** Vertical drag on empty pile space. Scrolls the parent page instead of a card. */
+  let pagePan = null;
   /** @type {null | { mode: "back" | "off", el: HTMLElement, x: number, y: number, vx?: number, vy?: number, dirX?: number, dirY?: number, speed?: number, startDist?: number }} */
   let pileAnim = null;
   /**
@@ -442,6 +444,21 @@ function initDeck() {
   /** Stage deck on a phone: a centered pile. Drag the top card to the back. */
   function stagePile() {
     return document.documentElement.classList.contains("deck-stage") && isMobile();
+  }
+
+  /** Finger-up on the phone pile scrolls experiment-2. The parent ignores this while the deck is closed. */
+  function postStagePageScroll(deltaY) {
+    if (!deltaY || !window.parent || window.parent === window) return;
+    window.parent.postMessage({ type: "kaik:deck-stage-page-wheel", deltaY }, "*");
+  }
+
+  function swallowNextClick(el) {
+    if (!(el instanceof Element)) return;
+    const stop = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    el.addEventListener("click", stop, { capture: true, once: true });
   }
 
   function deckMax() {
@@ -884,6 +901,8 @@ function initDeck() {
       lastY: event.clientY,
       lastT: performance.now(),
       moved: false,
+      axis: null,
+      scrolled: false,
     };
   }
 
@@ -898,6 +917,25 @@ function initDeck() {
     }
     const sdx = event.clientX - pileDrag.startX;
     const sdy = event.clientY - pileDrag.startY;
+    if (!pileDrag.axis) {
+      if (Math.hypot(sdx, sdy) <= PILE_TAP_PX) return;
+      /* A vertical finger scrolls the page. The lettering strip stays put.
+         A sideways drag still tugs the pile and can send the top card back. */
+      pileDrag.axis = Math.abs(sdy) > Math.abs(sdx) ? "y" : "x";
+    }
+    if (pileDrag.axis === "y") {
+      const delta = pileDrag.lastY - event.clientY;
+      pileDrag.lastX = event.clientX;
+      pileDrag.lastY = event.clientY;
+      pileDrag.lastT = performance.now();
+      if (!pileDrag.scrolled) {
+        pileDrag.scrolled = true;
+        swallowNextClick(pileDrag.el);
+      }
+      if (event.cancelable) event.preventDefault();
+      postStagePageScroll(delta);
+      return;
+    }
     if (!pileDrag.moved && Math.hypot(sdx, sdy) <= PILE_TAP_PX) return;
     if (!pileDrag.moved) {
       pileDrag.moved = true;
@@ -972,9 +1010,48 @@ function initDeck() {
     scheduleRender();
   }
 
+  function beginPagePan(event) {
+    if (event.button && event.button !== 0) return;
+    if (programLocked() || focusOpen() || isFocusFrozen() || isAuthorLightboxOpen()) return;
+    pagePan = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      lastY: event.clientY,
+      axis: null,
+    };
+  }
+
+  function onPagePanMove(event) {
+    if (!pagePan || event.pointerId !== pagePan.id) return;
+    if (programLocked() || focusOpen() || isFocusFrozen()) {
+      pagePan = null;
+      return;
+    }
+    if (!pagePan.axis) {
+      const dx = event.clientX - pagePan.x;
+      const dy = event.clientY - pagePan.y;
+      if (Math.hypot(dx, dy) <= PILE_TAP_PX) return;
+      pagePan.axis = Math.abs(dy) > Math.abs(dx) ? "y" : "x";
+    }
+    if (pagePan.axis !== "y") return;
+    const delta = pagePan.lastY - event.clientY;
+    pagePan.lastY = event.clientY;
+    if (event.cancelable) event.preventDefault();
+    postStagePageScroll(delta);
+  }
+
+  function endPagePan(event) {
+    if (!pagePan || (event && event.pointerId !== pagePan.id)) return;
+    const scrolled = pagePan.axis === "y";
+    pagePan = null;
+    if (scrolled && event?.target instanceof Element) swallowNextClick(event.target);
+  }
+
   function onDeckPointerDown(event) {
     if (stagePile()) {
       onPilePointerDown(event);
+      if (!pileDrag) beginPagePan(event);
       return;
     }
     if (document.documentElement.classList.contains("deck-stage") && !isMobile()) {
@@ -1026,7 +1103,10 @@ function initDeck() {
       onPilePointerMove(event);
       return;
     }
-    if (stagePile()) return;
+    if (stagePile()) {
+      onPagePanMove(event);
+      return;
+    }
     if (desktopDrag && event.pointerId === desktopDrag.id) {
       if (programLocked()) {
         desktopDrag = null;
@@ -1083,6 +1163,10 @@ function initDeck() {
       endPileDrag();
       return;
     }
+    if (pagePan && (!event || event.pointerId === pagePan.id)) {
+      endPagePan(event);
+      return;
+    }
     if (stagePile()) return;
     if (desktopDrag && (!event || event.pointerId === desktopDrag.id)) {
       const { moved, vel, lastT } = desktopDrag;
@@ -1116,6 +1200,7 @@ function initDeck() {
   });
 
   document.addEventListener("kaik:cancel-deck-drag", () => {
+    pagePan = null;
     if (pileDrag) {
       const id = pileDrag.id;
       pileDrag = null;
@@ -1180,8 +1265,14 @@ function initDeck() {
     }
     if (isMobile()) {
       event.preventDefault();
-      /* Stage pile ignores the wheel. `/` still advances on vertical wheel. */
-      if (stagePile()) return;
+      /* Phone stage pile: vertical wheel scrolls the parent page.
+         `/` still advances the flying stack. */
+      if (stagePile()) {
+        if (focusOpen() || isFocusFrozen() || isAuthorLightboxOpen()) return;
+        const line = event.deltaMode === 1 ? 16 : 1;
+        postStagePageScroll(event.deltaY * line);
+        return;
+      }
       if (drag) return;
       cancelSnap();
       const unit = cardUnitPx(getParams());

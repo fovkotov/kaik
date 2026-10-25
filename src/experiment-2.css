@@ -1565,7 +1565,24 @@ button.work-card__art:active {
   }
 
   body.is-hero-deck .filter-bar > * {
+    position: relative;
+    z-index: 1;
     pointer-events: auto;
+  }
+
+  /* The open deck used to be a full-bleed iframe, so it was the hit target
+     for the filter island and the schedule chip, and a vertical swipe flew
+     the top card (and its lettering strip) off instead of scrolling. Keep
+     the frame between those two controls. Explicit height, not bottom, so
+     the hidden preload boots at this same size. */
+  body.is-hero-deck-preload .lettering-hero__deck,
+  body.is-hero-deck .lettering-hero__deck:not([hidden]) {
+    top: calc(12px + var(--island-h) + 8px - var(--edge));
+    height: calc(100vh - var(--island-h) - 96px - var(--frame-clip-top) - var(--frame-clip-bottom));
+  }
+
+  body.is-hero-deck-preload:not(.is-hero-deck) .lettering-hero__deck-frame {
+    pointer-events: none;
   }
 
   body.is-hero-deck .lettering-hero__deck-frame {
