@@ -320,6 +320,12 @@ function initDeck() {
   let pileDrag = null;
   /** @type {null | { mode: "back" | "off", el: HTMLElement, x: number, y: number, vx?: number, vy?: number, dirX?: number, dirY?: number, speed?: number, startDist?: number }} */
   let pileAnim = null;
+  /**
+   * Buried cards after a fly-off. Eased home on its own so they stay in the
+   * pile. Live drags and spring-backs trail the top card directly instead.
+   * @type {null | { x: number, y: number, tilt: number, depth: Map<HTMLElement, number> }}
+   */
+  let pileTug = null;
   const RUBBER = 0.28;
   /** Max reverse overscroll (progress units) after damp — maps to ~6px / 0.985. */
   const REVERSE_RUBBER_MAX = 0.06;
@@ -400,7 +406,7 @@ function initDeck() {
     if (isFocusFrozen()) return false;
     if (deckIntro || deckOutro) return true;
     if (desktopDrag || Math.abs(desktopCoast) > 0.35) return true;
-    if (pileDrag || pileAnim) return true;
+    if (pileDrag || pileAnim || pileTug) return true;
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
@@ -611,6 +617,13 @@ function initDeck() {
 
   const PILE_TAP_PX = 6;
   const PILE_FLICK = 0.55;
+  /** Card directly under the top trails this fraction of the drag, then a cap. */
+  const PILE_FOLLOW_GAIN = 0.34;
+  const PILE_FOLLOW_CAP = 22;
+  /** Each card deeper trails this fraction of the card above it. */
+  const PILE_FOLLOW_FALLOFF = 0.45;
+  /** Share of the top card's drag tilt. Same falloff by depth. */
+  const PILE_FOLLOW_TILT = 0.3;
 
   function pileScreenScale() {
     const s = Number(getParams().deckScale);
@@ -684,6 +697,64 @@ function initDeck() {
     pileOrder.push(el);
   }
 
+  function pileDragTilt(x) {
+    return clamp(x / 22, -12, 12);
+  }
+
+  /** Gesture buried cards trail. Fly-off uses the snapshot in `pileTug`. */
+  function pileTugSource() {
+    if (programLocked() || focusOpen() || isFocusFrozen()) {
+      pileTug = null;
+      return null;
+    }
+    if (pileDrag?.moved) {
+      return { x: pileDrag.x, y: pileDrag.y, tilt: pileDragTilt(pileDrag.x), live: true };
+    }
+    if (pileAnim?.mode === "back") {
+      return { x: pileAnim.x, y: pileAnim.y, tilt: pileDragTilt(pileAnim.x), live: true };
+    }
+    return pileTug;
+  }
+
+  function rememberPileTug(x, y) {
+    const depth = new Map();
+    pileOrder.forEach((el, idx) => {
+      if (idx > 0) depth.set(el, idx);
+    });
+    pileTug = { x, y, tilt: pileDragTilt(x), depth };
+  }
+
+  function stepPileTug() {
+    if (!pileTug || pileDrag?.moved || pileAnim?.mode === "back") return;
+    const k = 0.18;
+    pileTug.x += -pileTug.x * k;
+    pileTug.y += -pileTug.y * k;
+    pileTug.tilt += -pileTug.tilt * k;
+    if (Math.hypot(pileTug.x, pileTug.y) < 0.4 && Math.abs(pileTug.tilt) < 0.08) pileTug = null;
+  }
+
+  /**
+   * Rest-pose offset for a buried card. Depth 1 is the card under the top.
+   * Deeper cards move less, and never as far or as tilted as the top card.
+   */
+  function pileFollow(el) {
+    const src = pileTugSource();
+    if (!src) return { x: 0, y: 0, r: 0 };
+    const depth = src.live ? pileOrder.indexOf(el) : src.depth.get(el) || 0;
+    if (depth < 1) return { x: 0, y: 0, r: 0 };
+    const falloff = PILE_FOLLOW_FALLOFF ** (depth - 1);
+    let x = src.x * PILE_FOLLOW_GAIN * falloff;
+    let y = src.y * PILE_FOLLOW_GAIN * falloff;
+    const cap = PILE_FOLLOW_CAP * falloff;
+    const mag = Math.hypot(x, y);
+    if (mag > cap && mag > 0) {
+      const s = cap / mag;
+      x *= s;
+      y *= s;
+    }
+    return { x, y, r: src.tilt * PILE_FOLLOW_TILT * falloff };
+  }
+
   function stepPileAnim() {
     if (!pileAnim) return;
     if (pileAnim.mode === "back") {
@@ -746,7 +817,9 @@ function initDeck() {
     if (!pileDrag || event.pointerId !== pileDrag.id) return;
     if (programLocked() || focusOpen() || isFocusFrozen()) {
       pileDrag = null;
+      pileTug = null;
       deck.classList.remove("is-dragging");
+      scheduleRender();
       return;
     }
     const sdx = event.clientX - pileDrag.startX;
@@ -790,6 +863,7 @@ function initDeck() {
     const flick = speed > PILE_FLICK;
     if ((far || flick) && dist > PILE_TAP_PX) {
       if (reduceMotion()) {
+        pileTug = null;
         pileSendToBack(current.el);
         scheduleRender();
         return;
@@ -797,6 +871,7 @@ function initDeck() {
       const useVel = flick && speed > 0.05;
       const dirX = useVel ? current.vx / speed : current.x / dist;
       const dirY = useVel ? current.vy / speed : current.y / dist;
+      rememberPileTug(current.x, current.y);
       pileAnim = {
         mode: "off",
         el: current.el,
@@ -807,6 +882,7 @@ function initDeck() {
         speed: Math.max(22, speed * 16),
       };
     } else if (!reduceMotion()) {
+      pileTug = null;
       pileAnim = {
         mode: "back",
         el: current.el,
@@ -816,6 +892,8 @@ function initDeck() {
         vy: stale ? 0 : current.vy * 16,
         startDist: Math.max(dist, 1),
       };
+    } else {
+      pileTug = null;
     }
     scheduleRender();
   }
@@ -967,6 +1045,7 @@ function initDeck() {
     if (pileDrag) {
       const id = pileDrag.id;
       pileDrag = null;
+      pileTug = null;
       deck.classList.remove("is-dragging");
       try {
         if (pileOrder[0]?.hasPointerCapture?.(id)) pileOrder[0].releasePointerCapture(id);
@@ -1101,6 +1180,7 @@ function initDeck() {
     }
     pileDrag = null;
     pileAnim = null;
+    pileTug = null;
     deck.classList.remove("is-dragging");
     ensurePileOrder();
     lastDeckProgress = null;
@@ -1126,6 +1206,7 @@ function initDeck() {
     raf = 0;
     if (document.visibilityState === "hidden" || deckConcealed) return;
     if (isFocusFrozen()) {
+      pileTug = null;
       if (deckIntro) {
         deckIntro = null;
         cancelIntroAnimations();
@@ -1242,7 +1323,11 @@ function initDeck() {
     if (mobile && stagePile()) {
       ensurePileOrder();
       if (!locked) stepPileAnim();
+      if (!locked && !focusOpen()) stepPileTug();
+      else pileTug = null;
       pileY = pileRestY(vh);
+    } else if (pileTug) {
+      pileTug = null;
     }
 
     items.forEach((item, i) => {
@@ -1289,13 +1374,14 @@ function initDeck() {
         const peek = pileOffset(depth);
         const extraX = active === item.el ? pileDrag?.x ?? pileAnim?.x ?? 0 : 0;
         const extraY = active === item.el ? pileDrag?.y ?? pileAnim?.y ?? 0 : 0;
-        const tilt = active === item.el ? clamp(extraX / 22, -12, 12) : 0;
+        const tilt = active === item.el ? pileDragTilt(extraX) : 0;
+        const follow = active === item.el ? { x: 0, y: 0, r: 0 } : pileFollow(item.el);
         const pileIndex = Math.max(0, pileOrder.indexOf(item.el));
         const introShift = deckIntro ? deckIntro.shift(i, now, vw) : 0;
         const outroShift = deckOutro ? deckOutro.shift(pileIndex, now, vw) : 0;
-        const x = peek.x + extraX + introShift + outroShift;
-        const yPos = pileY + peek.y + extraY;
-        const pose = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${peek.r + tilt}deg) rotateY(0deg) rotateX(0deg) scale(1)`;
+        const x = peek.x + extraX + follow.x + introShift + outroShift;
+        const yPos = pileY + peek.y + extraY + follow.y;
+        const pose = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${peek.r + tilt + follow.r}deg) rotateY(0deg) rotateX(0deg) scale(1)`;
         if (item.el.style.transform !== pose) item.el.style.transform = pose;
         if (item.el.style.opacity !== "1") item.el.style.opacity = "1";
         const lifted =
@@ -1644,6 +1730,7 @@ function initDeck() {
         deckOutro = null;
         pileDrag = null;
         pileAnim = null;
+        pileTug = null;
         desktopCoast = 0;
         desktopDrag = null;
         deck.classList.remove("is-dragging");
@@ -1689,6 +1776,7 @@ function initDeck() {
       deckIntro = null;
       pileDrag = null;
       pileAnim = null;
+      pileTug = null;
       desktopCoast = 0;
       desktopDrag = null;
       deck.classList.remove("is-dragging");
