@@ -54,6 +54,10 @@ const STUDENTS = [
       arrow: [141, 47, 134, 185, -2.09, -0.26, P("arrow-alena.svg")],
     },
     start: 2610,
+    review: [
+      "I hate drawing. Every time I sit down to draw, I get stressed. But for some reason, this course felt completely different — I genuinely enjoyed it and felt really comfortable.",
+      "As a creative outlet, it was an amazing way to unwind. Honestly, this course was exactly what I needed — like a breath of fresh air at that point in my life.",
+    ],
     cover: FINAL("wrk_9977bb38_10.webp"),
     weeks: [
       {
@@ -115,6 +119,10 @@ const STUDENTS = [
       arrow: [141, 47, 134, 120, -2.09, -0.41, P("arrow-roma.svg")],
     },
     start: 1710,
+    review: [
+      "I had never done lettering before, and I was not particularly good at drawing either. But after this course, I feel like I have become much better at both lettering and drawing.",
+      "Through these daily exercises, you start discovering your own creative approaches and techniques. That is where your individuality begins to emerge.",
+    ],
     cover: FINAL("wrk_4d695bf9_0.webp"),
     weeks: [
       {
@@ -176,6 +184,11 @@ const STUDENTS = [
       arrow: [100, 45, 174, 57, -1.61, -0.85, P("arrow-yan.svg")],
     },
     start: 1024,
+    review: [
+      "I came into the course as a complete beginner, with no prior experience, so the daily practice was especially interesting to me.",
+      "I tried to do as much as I could, and it was really exciting to explore something entirely new. I particularly enjoyed the modular typography and the daily letter-drawing exercises.",
+      "Thank you for the course. I really enjoyed it — it was interesting from start to finish.",
+    ],
     cover: FINAL("wrk_47e05e10_0.webp"),
     weeks: [
       {
@@ -251,6 +264,10 @@ const STUDENTS = [
       arrow: [114.125, 47, 161, 87, -1.74, -0.56, P("arrow-alyona.svg")],
     },
     start: 2210,
+    review: [
+      "I now have a whole foundation of letters that I can use as a starting point to create all kinds of things.",
+      "It is difficult to come up with ideas out of thin air, but the requirement to fill an entire page was really interesting. Some of the letterforms I came up with were ones I would never have thought of on my own.",
+    ],
     cover: FINAL("wrk_e6dd2cde_0.webp"),
     weeks: [
       {
@@ -485,6 +502,22 @@ function hydrateFinals(scope) {
   subscribeWorksCatalog(paint);
 }
 
+function captionHtml(student) {
+  if (!student.review?.length) {
+    return `<p class="work-card__blurb" data-i18n="work.review">${esc(t("work.review"))}</p>`;
+  }
+  return `<div class="work-card__review" style="display:flex;flex-direction:column;gap:0.75em">${student.review
+    .map((para) => `<p class="work-card__blurb">${esc(para)}</p>`)
+    .join("")}</div>`;
+}
+
+function videoHtml(student) {
+  if (student.review?.length) return "";
+  return `<div class="work-card__video" data-progress-video data-video-start="${student.start}">
+            <div class="work-card__frame" data-progress-frame></div>
+          </div>`;
+}
+
 function sheetHtml(student) {
   return `<div class="work-card__full work-card__full--${esc(student.id)}" data-work-full="${esc(student.id)}">
         <div class="work-card__intro">
@@ -493,11 +526,9 @@ function sheetHtml(student) {
               <span data-i18n="name.progress.${esc(student.id)}">${esc(t(`name.progress.${student.id}`))}</span>
               <a class="work-card__ig" data-work-ig href="https://www.instagram.com/${esc(student.nick)}/" target="_top" rel="noopener">@${esc(student.nick)}</a>
             </p>
-            <p class="work-card__blurb" data-i18n="work.review">${esc(t("work.review"))}</p>
+            ${captionHtml(student)}
           </header>
-          <div class="work-card__video" data-progress-video data-video-start="${student.start}">
-            <div class="work-card__frame" data-progress-frame></div>
-          </div>
+          ${videoHtml(student)}
         </div>
         ${student.weeks.map(weekHtml).join("\n        ")}
         <section class="work-card__week">
@@ -685,6 +716,21 @@ function bindFinal(final) {
   });
 }
 
+/** Written reviews have no player, so the shared sound chip stays off their sheet. */
+function syncReviewChrome(card, mount) {
+  const current = card.getAttribute("data-work-student") || "";
+  const written = Boolean(STUDENTS.find((student) => student.id === current)?.review?.length);
+  const btn = soundBtn(mount);
+  if (!btn) return;
+  if (written) {
+    btn.setAttribute("hidden", "");
+    btn.style.display = "none";
+  } else {
+    btn.removeAttribute("hidden");
+    btn.style.display = "";
+  }
+}
+
 /**
  * The card owns the open state (`is-work-open` + `data-work-student`); the
  * players just follow it. Works the same whether program-modal (deck) or
@@ -699,6 +745,7 @@ function watchCard(card, mount) {
       const id = media.closest("[data-work-full]")?.getAttribute("data-work-full") || "";
       setVideoActive(media, open && id === current);
     });
+    syncReviewChrome(card, mount);
     const key = open ? current : "";
     if (key !== last) {
       last = key;
