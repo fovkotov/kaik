@@ -164,7 +164,7 @@ function flyExitPose(t, exitDist, params = getParams()) {
   };
 }
 
-/** Same key the experiment-2 G panel writes. Default 1 keeps the /6 drag. */
+/** Same key the experiment-2 G panel writes. Default 1 is the unscaled stage drag. */
 const DECK_STAGE_DRAG_SPEED_KEY = "kaik:experiment-2:drag-speed";
 
 function clampDeckStageDragScale(value) {
@@ -291,8 +291,8 @@ function initDeck() {
   /** Leftover px/frame after a desktop flick; decays like mobile inertia. */
   let desktopCoast = 0;
   /**
-   * Desktop deck-stage pointer drag, as a multiple of the current /6 ratio.
-   * 1 matches the unscaled feel. The G panel on experiment-2 posts updates.
+   * Desktop deck-stage pointer drag, as a multiple of the stage base (/12).
+   * 1 matches that base. The G panel on experiment-2 posts updates on top.
    */
   let deckStageDragScale = document.documentElement.classList.contains("deck-stage")
     ? readDeckStageDragScale()
@@ -627,8 +627,9 @@ function initDeck() {
     const params = getParams();
     const total = maxProgress(liveCount(), params);
     const travel = Math.max((getViewportSize().width || 1) * (params.travelMult || 1.1), 1);
-    const ratio = (total / travel) / 6;
-    if (!document.documentElement.classList.contains("deck-stage")) return ratio;
+    const stage = document.documentElement.classList.contains("deck-stage");
+    const ratio = (total / travel) / (stage ? 12 : 6);
+    if (!stage) return ratio;
     return ratio * deckStageDragScale;
   }
 
@@ -1295,7 +1296,7 @@ function initDeck() {
       if (horizontal) {
         const dx = pxX || pxY;
         const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
-        root.scrollTop = clamp((root.scrollTop || 0) + dx * 2.2, 0, maxTop);
+        root.scrollTop = clamp((root.scrollTop || 0) + dx * 1.1, 0, maxTop);
         scheduleRender();
         return;
       }
