@@ -2631,6 +2631,7 @@ function initDeckStage() {
   let heroDeckOpen = false;
   let heroClosing = false;
   let outroTimer = 0;
+  let settleTimer = 0;
 
   function setExpanded(on) {
     document.querySelectorAll("[data-about]").forEach((btn) => {
@@ -2732,12 +2733,14 @@ function initDeckStage() {
 
   function openHero() {
     window.clearTimeout(outroTimer);
+    window.clearTimeout(settleTimer);
     outroTimer = 0;
     heroClosing = false;
     heroDeckOpen = true;
     setExpanded(true);
     scrollPageTo(0, 0.55);
     pauseHeroMotion();
+    document.body.classList.remove("is-hero-deck-settling");
     document.body.classList.add("is-hero-deck");
     setHeroDeckFocus(false);
     heroDeck.hidden = false;
@@ -2757,6 +2760,12 @@ function initDeckStage() {
     heroDeck.inert = true;
     heroDeck.setAttribute("aria-hidden", "true");
     document.body.classList.remove("is-hero-deck");
+    /* Keep the tabs pinned until the hero height has eased back. Dropping
+       the fixed pin in the same frame slides them while the box is still tall. */
+    document.body.classList.add("is-hero-deck-settling");
+    settleTimer = window.setTimeout(() => {
+      document.body.classList.remove("is-hero-deck-settling");
+    }, 560);
     setHeroDeckFocus(false);
     syncHeroMode();
   }

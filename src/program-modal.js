@@ -709,42 +709,77 @@ export function initProgramModal() {
     el.style.setProperty("--fly-ms", "0ms");
   }
 
-  function flattenLanded(el) {
-    if (!el || isWorksHost(el)) return;
-    const painted = el.getBoundingClientRect();
-    const dest = destVisual();
-    const box =
-      painted.width > 1 && painted.height > 1
-        ? {
-            left: painted.left,
-            top: painted.top,
-            width: painted.width,
-            height: painted.height,
-          }
-        : dest;
-    landSiblings(el);
-    document.documentElement.classList.add("is-focus-landed");
-    el.classList.add("is-program-scroll");
+  /** Deck slot to restore after a fullscreen card leaves the transformed pile. */
+  const focusSlots = new WeakMap();
+
+  function focusLayer() {
+    let layer = document.querySelector("[data-deck-focus-layer]");
+    if (layer) return layer;
+    layer = document.createElement("div");
+    layer.className = "deck-focus-layer";
+    layer.setAttribute("data-deck-focus-layer", "");
+    const scroll = document.querySelector("[data-scroll-root]");
+    if (scroll?.parentNode) scroll.parentNode.insertBefore(layer, scroll.nextSibling);
+    else document.body.appendChild(layer);
+    return layer;
+  }
+
+  function portalFocusCard(el) {
+    if (!el) return;
+    const layer = focusLayer();
+    if (el.parentElement === layer) return;
+    focusSlots.set(el, { parent: el.parentNode, next: el.nextSibling });
+    layer.appendChild(el);
+  }
+
+  function restoreFocusCard(el) {
+    if (!el) return;
+    const home = focusSlots.get(el);
+    if (!home?.parent) return;
+    const next = home.next && home.next.parentNode === home.parent ? home.next : null;
+    home.parent.insertBefore(el, next);
+    focusSlots.delete(el);
+  }
+
+  /**
+   * Paint `box` in viewport pixels. One correction if a leftover ancestor
+   * still contains position:fixed (Safari perspective / transform).
+   */
+  function settleFocusBox(el, box) {
     placeFlat(el, box);
-    if (isMobile()) return;
-    // Desktop flight keeps transform-style: preserve-3d, and landing does not
-    // clear it. The deck stays the fixed containing block after the scale drop,
-    // so viewport left/top slide by the deck's border box. Rebase in this frame.
     const placed = el.getBoundingClientRect();
     const dx = placed.left - box.left;
     const dy = placed.top - box.top;
-    if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
+    const dw = placed.width - box.width;
+    const dh = placed.height - box.height;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(dw) < 1 && Math.abs(dh) < 1) return;
     placeFlat(el, {
       left: box.left - dx,
       top: box.top - dy,
-      width: box.width,
-      height: box.height,
+      width: box.width - dw,
+      height: box.height - dh,
     });
+  }
+
+  /** Move the open card out of .deck so fixed coordinates are the iframe. */
+  function mountFullscreen(el) {
+    if (!el) return;
+    portalFocusCard(el);
+    settleFocusBox(el, destVisual());
+  }
+
+  function flattenLanded(el) {
+    if (!el || isWorksHost(el)) return;
+    landSiblings(el);
+    document.documentElement.classList.add("is-focus-landed");
+    el.classList.add("is-program-scroll");
+    mountFullscreen(el);
   }
 
   /** Clear one card's flatten inline styles; never touches the deck-wide landed state. */
   function unflattenEl(el) {
     if (!el) return;
+    restoreFocusCard(el);
     el.classList.remove("is-program-scroll");
     el.style.position = "";
     el.style.left = "";
@@ -1093,9 +1128,11 @@ export function initProgramModal() {
             host.setAttribute("data-expand-settled", "");
           }
           if (isWorksHost()) {
-            // Works board keeps its own inner scroller; a fixed flatten breaks it.
+            // Inner board scrolls; skip the sibling unscale. Still leave .deck
+            // so Safari does not pin the open card to the deck box.
             host.classList.add("is-program-scroll");
             host.style.setProperty("--fly-ms", "0ms");
+            mountFullscreen(host);
           } else {
             flattenLanded(host);
           }

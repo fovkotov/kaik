@@ -296,6 +296,15 @@ export function syncCardMetrics() {
       : MOBILE_DEFAULTS.cardSize;
     w = Math.max(1, Math.round(w * cardSize * 100) / 100);
     h = Math.max(1, Math.round(h * cardSize * 100) / 100);
+    /* Phone stage only (≤760, not isMobile's 900). Size / 1.15.
+       `/` and the desktop G-panel scale (0.9) stay on their own branches. */
+    if (
+      document.documentElement.classList.contains("deck-stage") &&
+      window.matchMedia("(max-width: 760px)").matches
+    ) {
+      w = Math.max(1, Math.round((w / 1.15) * 100) / 100);
+      h = Math.max(1, Math.round((h / 1.15) * 100) / 100);
+    }
     writeCardBox(w, h);
     return;
   }

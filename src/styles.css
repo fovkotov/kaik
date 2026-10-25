@@ -640,6 +640,35 @@ html:not(.i18n-ready) [data-card] [data-i18n] {
   overflow: visible;
 }
 
+/* Fullscreen focus leaves .deck. perspective, transform, and preserve-3d on
+   .deck are a Safari fixed containing block — this layer is a sibling of the
+   scroll root and has none of those, so position:fixed is the iframe viewport. */
+.deck-focus-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
+  pointer-events: none;
+  contain: none;
+  transform: none;
+  filter: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  perspective: none;
+  will-change: auto;
+  clip-path: none;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.deck-focus-layer > .card {
+  pointer-events: auto;
+}
+
 .card {
   --base-x: 0px;
   --base-y: 0px;
@@ -5911,6 +5940,15 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
     overflow: visible;
   }
 
+  /* Stage phone: the deck box is not a crop frame (pile, dog, card tops). */
+  html.deck-stage .deck {
+    overflow: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+    clip-path: none;
+    contain: none;
+  }
+
   .card[data-landing-card] {
     --u: calc(var(--card-w) / 320);
     background: #fff;
@@ -7280,10 +7318,34 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   }
 }
 
+/* Stage phone cards are 1.15× smaller than the ≤900 fit. Desktop scale stays
+   the G-panel value. `/` does not have html.deck-stage. */
+@media (max-width: 760px) {
+  html.deck-stage {
+    --stack-card-w: calc(min(320px, var(--frame-w)) * 1.07 / 1.15);
+    --card-w: var(--stack-card-w);
+    --card-h: calc(var(--stack-card-w) * 450 / 320);
+    --stack-card-h: var(--card-h);
+  }
+}
+
 /* ≤760 stacked and fullscreen faces: dachshund across the top (head at the
    top-left, body over the title and first lines). Same cards that already
-   have the dog. 761–900 keeps the bottom peek; desktop stays top-pinned. */
+   have the dog. 761–900 keeps the bottom peek; desktop stays top-pinned.
+   1.2× grows from the box center so the head, back, and tail cross the card.
+   The close control stays above the dog (viewport z-index). */
 @media (max-width: 760px) {
+  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned),
+  .card[data-program-card]:not(.is-program-open):not(.is-fly-pinned) .program-card,
+  .card[data-works-card]:not(.is-program-open):not(.is-fly-pinned),
+  .card[data-history-card]:not(.is-program-open):not(.is-fly-pinned),
+  .card.is-program-open[data-expand-closing][data-program-card],
+  .card.is-program-open[data-expand-closing][data-program-card] .program-card,
+  .card.is-program-open[data-expand-closing][data-works-card],
+  .card.is-program-open[data-expand-closing][data-history-card] {
+    overflow: visible;
+  }
+
   .card[data-program-card] .program-card > .card-illust--program,
   .card[data-program-card].is-program-open .program-card > .card-illust--program,
   .card[data-program-card].is-program-open[data-expand-host] .program-card > .card-illust--program,
@@ -7296,6 +7358,9 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   .card.is-program-open[data-expand-closing] .card-illust--program[data-fly-illust-close] {
     top: var(--program-dog-y, 0);
     bottom: auto;
+    z-index: 6;
+    transform: translateX(-50%) scale(1.2);
+    transform-origin: 50% 50%;
   }
 }
 

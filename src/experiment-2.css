@@ -146,12 +146,8 @@ html.is-viewer-open .experiment-two__scroll {
   overscroll-behavior: contain;
 }
 
-/* Desktop: the flying deck replaces the lettering and the hero grows to the
-   iframe. The filter row stays fixed above that frame.
-   Phone (≤760px) keeps the resting hero height. There the filter row is pulled
-   up by --hero-h and the works grid is pushed down by the same amount, while
-   the hero height eases over 520ms. Growing it slid the tabs down on close and
-   brought the grid up from below the fold. */
+/* Open deck, both widths: the hero grows to the iframe and the lettering
+   strip under it leaves the viewport. The filter row stays pinned above. */
 @media (min-width: 761px) {
   body.is-hero-deck .works-page {
     --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
@@ -1568,38 +1564,57 @@ button.work-card__art:active {
   }
 
   /* Deck iframe is z-index 5 inside the hero. The island and the bottom chip
-     stay clickable above it; the empty bar must not eat taps on the pile. */
+     stay clickable above it; the empty bar must not eat taps on the pile.
+     Settling keeps the same pin while the hero height eases shut. */
   body.is-hero-deck .filter-bar,
-  body.is-hero-deck .mobile-bar {
+  body.is-hero-deck .mobile-bar,
+  body.is-hero-deck-settling .filter-bar {
     z-index: 60;
   }
 
-  body.is-hero-deck .filter-bar {
+  body.is-hero-deck .filter-bar,
+  body.is-hero-deck-settling .filter-bar {
     pointer-events: none;
   }
 
-  body.is-hero-deck .filter-bar > * {
+  body.is-hero-deck .filter-bar > *,
+  body.is-hero-deck-settling .filter-bar > * {
     position: relative;
     z-index: 1;
     pointer-events: auto;
   }
 
-  /* The hero box stays the resting DVD height, so clip the frame to it.
-     overflow:visible (the desktop open rule) would let a tall iframe paint
-     over the works grid, and hiding that iframe on close would pop the grid in. */
-  body.is-hero-deck .lettering-hero {
-    overflow: hidden;
+  /* Open: the hero fills the iframe so the lettering strip is pushed below
+     the fold. Tabs are position:fixed — a margin tied to --hero-h slid them
+     while the height eased. The deck box itself does not crop. */
+  body.is-hero-deck .works-page {
+    --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
+    --hero-h: calc(var(--hero-frame) - var(--edge));
   }
 
-  /* The open deck used to be a full-bleed iframe, so it was the hit target
-     for the filter island and the schedule chip, and a vertical swipe flew
-     the top card (and its lettering strip) off instead of scrolling. Keep
-     the frame in the hero, under the filter island and above the works.
-     Explicit height, not bottom, so the hidden preload boots at this same size. */
-  body.is-hero-deck-preload .lettering-hero__deck,
+  body.is-hero-deck .filter-bar,
+  body.is-hero-deck-settling .filter-bar {
+    position: fixed;
+    top: calc(12px + var(--frame-clip-top));
+    left: 12px;
+    right: 12px;
+    width: auto;
+    margin: 0;
+  }
+
+  body.is-hero-deck .works-panel,
+  body.is-hero-deck-settling .works-panel {
+    margin-top: 24px;
+  }
+
+  body.is-hero-deck .lettering-hero,
+  body.is-hero-deck .lettering-hero__deck,
   body.is-hero-deck .lettering-hero__deck:not([hidden]) {
-    top: calc(12px + var(--island-h) + 8px - var(--edge));
-    height: calc(var(--hero-h) - 12px - var(--island-h) - 8px + var(--edge));
+    overflow: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+    clip-path: none;
+    contain: none;
   }
 
   body.is-hero-deck-preload:not(.is-hero-deck) .lettering-hero__deck-frame {

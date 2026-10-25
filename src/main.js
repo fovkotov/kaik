@@ -364,7 +364,7 @@ function initDeck() {
    * carries data-fly-lock / is-program-open / is-fly-pinned / data-rest-lock.
    */
   const FOCUS_SEL = "[data-card]";
-  flyLockedFlag = Boolean(deck.querySelector("[data-fly-lock]"));
+  flyLockedFlag = Boolean(document.querySelector("[data-fly-lock]"));
   const lockup = document.querySelector("[data-lockup]");
   if (lockup) {
     lockup.style.transform = "";
@@ -1352,10 +1352,12 @@ function initDeck() {
   });
 
   new MutationObserver(() => {
-    flyLockedFlag = Boolean(deck.querySelector("[data-fly-lock]"));
+    // The open card leaves .deck for the focus layer, so the lock attr is
+    // not always a deck descendant.
+    flyLockedFlag = Boolean(document.querySelector("[data-fly-lock]"));
     holdFlyLock();
     scheduleRender();
-  }).observe(deck, {
+  }).observe(document.body, {
     subtree: true,
     attributes: true,
     // data-program-open lives on the deck: closing must wake the loop
