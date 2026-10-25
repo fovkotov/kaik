@@ -87,6 +87,10 @@
         html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
           transform: translate3d(0, -100vh, 0);
         }
+        /* Stage pile arrives from the right. `/` still deals from above. */
+        html.deck-stage:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {
+          transform: translate3d(100vw, 0, 0);
+        }
       }
       @media (min-width: 901px) and (prefers-reduced-motion: no-preference) {
         html:not(.intro-ready) .deck .card:not(.is-program-open):not(.is-fly-pinned) {

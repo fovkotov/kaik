@@ -238,10 +238,12 @@ function deckStageConcealed() {
 }
 
 function deckIntroOptions(count) {
+  const stage = document.documentElement.classList.contains("deck-stage");
   const mobile = deckStageWide() ? false : isMobile();
-  const stage = document.documentElement.classList.contains("deck-stage") && !mobile;
+  /* Stage pile uses the desktop deal: back of the stack first, from the right. */
+  const stageMobile = stage && mobile;
   return {
-    frontFirst: mobile,
+    frontFirst: mobile && !stageMobile,
     ...(stage ? { stagger: stageDeckStagger(count) } : {}),
   };
 }
@@ -308,6 +310,16 @@ function initDeck() {
   let snapAnim = null;
   /** @type {null | { id: number, startX: number, startY: number, startProgress: number, lastY: number, lastT: number, vel: number, moved: boolean }} */
   let drag = null;
+  /**
+   * Stage pile order on a phone. Index 0 is the top card. Element refs, not
+   * DOM order — program-modal keeps cards by element, so this must not reorder nodes.
+   * @type {HTMLElement[]}
+   */
+  let pileOrder = state.filter((item) => inDeckFlow(item.el)).map((item) => item.el);
+  /** @type {null | { id: number, el: HTMLElement, startX: number, startY: number, x: number, y: number, vx: number, vy: number, lastX: number, lastY: number, lastT: number, moved: boolean }} */
+  let pileDrag = null;
+  /** @type {null | { mode: "back" | "off", el: HTMLElement, x: number, y: number, vx?: number, vy?: number, dirX?: number, dirY?: number, speed?: number, startDist?: number }} */
+  let pileAnim = null;
   const RUBBER = 0.28;
   /** Max reverse overscroll (progress units) after damp — maps to ~6px / 0.985. */
   const REVERSE_RUBBER_MAX = 0.06;
@@ -388,6 +400,7 @@ function initDeck() {
     if (isFocusFrozen()) return false;
     if (deckIntro || deckOutro) return true;
     if (desktopDrag || Math.abs(desktopCoast) > 0.35) return true;
+    if (pileDrag || pileAnim) return true;
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
@@ -420,20 +433,12 @@ function initDeck() {
     return Number.isFinite(n) && n > 0 ? n : 1;
   }
 
-  /** experiment-2 fullscreen on a phone: peel one card up, then the next. */
-  function stagePeel() {
+  /** Stage deck on a phone: a centered pile. Drag the top card to the back. */
+  function stagePile() {
     return document.documentElement.classList.contains("deck-stage") && isMobile();
   }
 
-  /** Pixels that carry a centered card fully above the iframe. One progress unit. */
-  function peelExitPx() {
-    const cardH = cardBoxH || state[0]?.el.offsetHeight || 400;
-    const deckTop = deck.getBoundingClientRect().top || 0;
-    return Math.max(cardH + 24, deckTop + cardH + 20);
-  }
-
   function deckMax() {
-    if (stagePeel()) return liveCount();
     return Math.max(0, liveCount() - 1) * focusSpanOf();
   }
 
@@ -448,7 +453,6 @@ function initDeck() {
   }
 
   function cardUnitPx(params) {
-    if (stagePeel()) return peelExitPx();
     const h = cardBoxH || state[0]?.el.offsetHeight || 400;
     // 1.36 = 2.04 / 1.5 — same swipe advances another 1.5× farther.
     // Floor 0.05 (was 0.3) so the speed slider works below 0.3.
@@ -605,7 +609,222 @@ function initDeck() {
     return ratio * deckStageDragScale;
   }
 
+  const PILE_TAP_PX = 6;
+  const PILE_FLICK = 0.55;
+
+  function pileScreenScale() {
+    const s = Number(getParams().deckScale);
+    return Number.isFinite(s) && s > 0.01 ? s : 1;
+  }
+
+  function ensurePileOrder() {
+    const live = liveItems().map((item) => item.el);
+    const liveSet = new Set(live);
+    pileOrder = pileOrder.filter((el) => liveSet.has(el));
+    for (const el of live) {
+      if (!pileOrder.includes(el)) pileOrder.push(el);
+    }
+  }
+
+  /** Slight offset and rotation so the cards under the top one show a colored edge. */
+  function pileOffset(depth) {
+    const d = Math.max(0, depth);
+    if (d < 0.001) return { x: 0, y: 0, r: 0 };
+    const sample = (n) => {
+      if (n <= 0) return { x: 0, y: 0, r: 0 };
+      const ang = n * 2.399963229728653;
+      const mag = Math.min(22, 12 + n * 2.2);
+      return {
+        x: Math.cos(ang) * mag,
+        y: Math.sin(ang) * mag * 0.66,
+        r: Math.sin(ang * 1.17) * Math.min(8, 3.6 + n * 0.45),
+      };
+    };
+    const lo = Math.floor(d);
+    const t = d - lo;
+    const a = sample(lo);
+    const b = sample(lo + 1);
+    return {
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t,
+      r: a.r + (b.r - a.r) * t,
+    };
+  }
+
+  function pileRestY(vh) {
+    const cardH = cardBoxH || state[0]?.el.offsetHeight || 0;
+    if (!(vh > 0) || !(cardH > 0)) return 0;
+    return (vh - cardH) / 2 - (deck.getBoundingClientRect().top || 0);
+  }
+
+  /**
+   * Depth in the resting pile. While the top card is dragged or flying off,
+   * the card under it is already depth 0. A spring-back eases the others home.
+   */
+  function pileDepth(el) {
+    const idx = pileOrder.indexOf(el);
+    if (idx < 0) return 0;
+    const lifted = pileDrag?.el || (pileAnim?.mode === "off" ? pileAnim.el : null);
+    if (lifted) {
+      if (el === lifted) return 0;
+      return Math.max(0, idx - 1);
+    }
+    if (pileAnim?.mode === "back" && idx > 0) {
+      const start = Math.max(1, pileAnim.startDist || 1);
+      const settle = 1 - clamp(Math.hypot(pileAnim.x, pileAnim.y) / start, 0, 1);
+      return idx - 1 + settle;
+    }
+    return idx;
+  }
+
+  function pileSendToBack(el) {
+    const idx = pileOrder.indexOf(el);
+    if (idx < 0) return;
+    pileOrder.splice(idx, 1);
+    pileOrder.push(el);
+  }
+
+  function stepPileAnim() {
+    if (!pileAnim) return;
+    if (pileAnim.mode === "back") {
+      const k = 0.28;
+      const damp = 0.72;
+      pileAnim.vx = ((pileAnim.vx || 0) - pileAnim.x * k) * damp;
+      pileAnim.vy = ((pileAnim.vy || 0) - pileAnim.y * k) * damp;
+      pileAnim.x += pileAnim.vx;
+      pileAnim.y += pileAnim.vy;
+      if (Math.hypot(pileAnim.x, pileAnim.y) < 0.5 && Math.hypot(pileAnim.vx, pileAnim.vy) < 0.5) {
+        pileAnim = null;
+      }
+      return;
+    }
+    pileAnim.speed = Math.min((pileAnim.speed || 22) * 1.06, 84);
+    pileAnim.x += (pileAnim.dirX || 0) * pileAnim.speed;
+    pileAnim.y += (pileAnim.dirY || 0) * pileAnim.speed;
+    const { width: vw, height: vh } = getViewportSize();
+    const exit =
+      Math.hypot(vw || 1, vh || 1) * 0.55 +
+      Math.hypot(cardBoxW || 280, cardBoxH || 400) * 0.55;
+    if (Math.hypot(pileAnim.x, pileAnim.y) >= exit) {
+      const el = pileAnim.el;
+      pileAnim = null;
+      pileSendToBack(el);
+    }
+  }
+
+  function pilePointerTarget(event) {
+    const node = event.target instanceof Element ? event.target : event.target?.parentElement;
+    return node instanceof Element ? node : null;
+  }
+
+  function onPilePointerDown(event) {
+    if (event.button && event.button !== 0) return;
+    if (deckIntro || deckOutro || pileAnim) return;
+    if (programLocked() || focusOpen() || isFocusFrozen() || isAuthorLightboxOpen()) return;
+    ensurePileOrder();
+    const top = pileOrder[0];
+    const node = pilePointerTarget(event);
+    if (!top || !node || !top.contains(node)) return;
+    if (node.closest(DRAG_IGNORE)) return;
+    pileDrag = {
+      id: event.pointerId,
+      el: top,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      lastT: performance.now(),
+      moved: false,
+    };
+  }
+
+  function onPilePointerMove(event) {
+    if (!pileDrag || event.pointerId !== pileDrag.id) return;
+    if (programLocked() || focusOpen() || isFocusFrozen()) {
+      pileDrag = null;
+      deck.classList.remove("is-dragging");
+      return;
+    }
+    const sdx = event.clientX - pileDrag.startX;
+    const sdy = event.clientY - pileDrag.startY;
+    if (!pileDrag.moved && Math.hypot(sdx, sdy) <= PILE_TAP_PX) return;
+    if (!pileDrag.moved) {
+      pileDrag.moved = true;
+      deck.classList.add("is-dragging");
+      try {
+        pileDrag.el.setPointerCapture(event.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+    const scale = pileScreenScale();
+    pileDrag.x = sdx / scale;
+    pileDrag.y = sdy / scale;
+    const now = performance.now();
+    const dt = Math.max(1, now - pileDrag.lastT);
+    pileDrag.vx = (event.clientX - pileDrag.lastX) / dt / scale;
+    pileDrag.vy = (event.clientY - pileDrag.lastY) / dt / scale;
+    pileDrag.lastX = event.clientX;
+    pileDrag.lastY = event.clientY;
+    pileDrag.lastT = now;
+    event.preventDefault();
+    scheduleRender();
+  }
+
+  function endPileDrag() {
+    const current = pileDrag;
+    pileDrag = null;
+    deck.classList.remove("is-dragging");
+    if (!current?.moved) {
+      scheduleRender();
+      return;
+    }
+    const dist = Math.hypot(current.x, current.y);
+    const stale = performance.now() - current.lastT > 48;
+    const speed = stale ? 0 : Math.hypot(current.vx, current.vy);
+    const far = dist > Math.min(128, Math.max(78, (cardBoxW || 280) * 0.36));
+    const flick = speed > PILE_FLICK;
+    if ((far || flick) && dist > PILE_TAP_PX) {
+      if (reduceMotion()) {
+        pileSendToBack(current.el);
+        scheduleRender();
+        return;
+      }
+      const useVel = flick && speed > 0.05;
+      const dirX = useVel ? current.vx / speed : current.x / dist;
+      const dirY = useVel ? current.vy / speed : current.y / dist;
+      pileAnim = {
+        mode: "off",
+        el: current.el,
+        x: current.x,
+        y: current.y,
+        dirX,
+        dirY,
+        speed: Math.max(22, speed * 16),
+      };
+    } else if (!reduceMotion()) {
+      pileAnim = {
+        mode: "back",
+        el: current.el,
+        x: current.x,
+        y: current.y,
+        vx: stale ? 0 : current.vx * 16,
+        vy: stale ? 0 : current.vy * 16,
+        startDist: Math.max(dist, 1),
+      };
+    }
+    scheduleRender();
+  }
+
   function onDeckPointerDown(event) {
+    if (stagePile()) {
+      onPilePointerDown(event);
+      return;
+    }
     if (document.documentElement.classList.contains("deck-stage") && !isMobile()) {
       if (event.button && event.button !== 0) return;
       if (programLocked() || isAuthorLightboxOpen()) return;
@@ -651,6 +870,11 @@ function initDeck() {
   }
 
   function onDeckPointerMove(event) {
+    if (pileDrag && event.pointerId === pileDrag.id) {
+      onPilePointerMove(event);
+      return;
+    }
+    if (stagePile()) return;
     if (desktopDrag && event.pointerId === desktopDrag.id) {
       if (programLocked()) {
         desktopDrag = null;
@@ -703,6 +927,11 @@ function initDeck() {
   }
 
   function endDrag(event) {
+    if (pileDrag && (!event || event.pointerId === pileDrag.id)) {
+      endPileDrag();
+      return;
+    }
+    if (stagePile()) return;
     if (desktopDrag && (!event || event.pointerId === desktopDrag.id)) {
       const { moved, vel, lastT } = desktopDrag;
       desktopDrag = null;
@@ -735,6 +964,16 @@ function initDeck() {
   });
 
   document.addEventListener("kaik:cancel-deck-drag", () => {
+    if (pileDrag) {
+      const id = pileDrag.id;
+      pileDrag = null;
+      deck.classList.remove("is-dragging");
+      try {
+        if (pileOrder[0]?.hasPointerCapture?.(id)) pileOrder[0].releasePointerCapture(id);
+      } catch {
+        // ignore
+      }
+    }
     if (!drag) return;
     const id = drag.id;
     dragProgress = drag.startProgress;
@@ -788,6 +1027,8 @@ function initDeck() {
     }
     if (isMobile()) {
       event.preventDefault();
+      /* Stage pile ignores the wheel. `/` still advances on vertical wheel. */
+      if (stagePile()) return;
       if (drag) return;
       cancelSnap();
       const unit = cardUnitPx(getParams());
@@ -858,6 +1099,10 @@ function initDeck() {
       dragInertia = 0;
       dragProgress = 0;
     }
+    pileDrag = null;
+    pileAnim = null;
+    deck.classList.remove("is-dragging");
+    ensurePileOrder();
     lastDeckProgress = null;
     lastDesktopDeltaAt = 0;
     refreshCardBox();
@@ -924,9 +1169,7 @@ function initDeck() {
           dragInertia = 0;
           animateProgress(dragProgress < 0 ? 0 : max);
         } else if (Math.abs(dragInertia) > INERTIA_MIN) {
-          /* Peel is one card at a time — a flick must not skip a card in one frame. */
-          const step = stagePeel() ? clamp(dragInertia, -0.12, 0.12) : dragInertia;
-          dragProgress += step;
+          dragProgress += dragInertia;
           dragInertia *= INERTIA_FRICTION;
           if (dragProgress <= 0) {
             dragProgress = 0;
@@ -995,6 +1238,13 @@ function initDeck() {
       pointerSmooth.y = easeTo(pointerSmooth.y, pointer.y, params.pointerLerp);
     }
 
+    let pileY = 0;
+    if (mobile && stagePile()) {
+      ensurePileOrder();
+      if (!locked) stepPileAnim();
+      pileY = pileRestY(vh);
+    }
+
     items.forEach((item, i) => {
       const t = mobile ? 0 : cardFlightT(i, count, params, p);
       const slot = mobileStackSlot(i, mobile ? Math.max(0, y) : y, focusSpanOf(params));
@@ -1026,10 +1276,38 @@ function initDeck() {
         if (hoveredIndex === i) hoveredIndex = -1;
         item.hoverTarget = item.hover;
         if (mobile) {
-          item.el.style.zIndex = String(count - i);
+          item.el.style.zIndex = stagePile() ? "80" : String(count - i);
           item.el.style.opacity = "1";
         }
         setStackHit(item.el, { mobile, inert: false });
+        return;
+      }
+
+      if (mobile && stagePile()) {
+        const active = pileDrag?.el || pileAnim?.el || null;
+        const depth = pileDepth(item.el);
+        const peek = pileOffset(depth);
+        const extraX = active === item.el ? pileDrag?.x ?? pileAnim?.x ?? 0 : 0;
+        const extraY = active === item.el ? pileDrag?.y ?? pileAnim?.y ?? 0 : 0;
+        const tilt = active === item.el ? clamp(extraX / 22, -12, 12) : 0;
+        const pileIndex = Math.max(0, pileOrder.indexOf(item.el));
+        const introShift = deckIntro ? deckIntro.shift(i, now, vw) : 0;
+        const outroShift = deckOutro ? deckOutro.shift(pileIndex, now, vw) : 0;
+        const x = peek.x + extraX + introShift + outroShift;
+        const yPos = pileY + peek.y + extraY;
+        const pose = `translate3d(${x}px, ${yPos}px, 0) rotateZ(${peek.r + tilt}deg) rotateY(0deg) rotateX(0deg) scale(1)`;
+        if (item.el.style.transform !== pose) item.el.style.transform = pose;
+        if (item.el.style.opacity !== "1") item.el.style.opacity = "1";
+        const lifted =
+          pileDrag?.moved || pileAnim?.mode === "off" ? pileDrag?.el || pileAnim?.el : null;
+        const clickable = lifted ? pileOrder[1] || pileOrder[0] : pileOrder[0];
+        const inert = item.el !== clickable;
+        if (item.inert !== inert) {
+          item.inert = inert;
+          setStackHit(item.el, { mobile: true, inert });
+        }
+        const z = String(active === item.el ? count + 5 : count - Math.min(count, Math.round(depth)));
+        if (item.el.style.zIndex !== z) item.el.style.zIndex = z;
         return;
       }
 
@@ -1056,29 +1334,7 @@ function initDeck() {
       let tossX = mobile ? 0 : params.travelDir * t * travel;
       let tossY;
       let stackScale = 1;
-      let peelOpacity = 1;
-      const stagePeelOn = mobile && stagePeel();
-      if (stagePeelOn) {
-        /* One card owns the scroll. It travels straight up. Cards behind stay
-           put until this one has fully left, then the next one starts. */
-        const exitPx = peelExitPx();
-        tossX = -baseX;
-        stackScale = 1;
-        if (y < 0) {
-          tossY = i === 0 ? Math.min(18, -y * exitPx) : 0;
-        } else {
-          const k = Math.floor(y);
-          const frac = y - k;
-          if (i < k) {
-            tossY = -exitPx;
-            peelOpacity = 0;
-          } else if (i === k) {
-            tossY = -frac * exitPx;
-          } else {
-            tossY = 0;
-          }
-        }
-      } else if (mobile) {
+      if (mobile) {
         const lift = Number.isFinite(Number(params.stackLift)) ? Number(params.stackLift) : 3;
         const rear = clamp(Number(params.rearScale) || 0.55, 0.2, 1);
         const curve = Math.max(0.2, Number(params.scaleProgress) || 1);
@@ -1111,7 +1367,6 @@ function initDeck() {
       const scrollX = baseX + tossX;
       const scrollY = baseY - originY + tossY;
       const stackOpacity = (() => {
-        if (stagePeelOn) return peelOpacity;
         if (!mobile || focusing) return 1;
         if (slot >= 0) return 1;
         if (flyExit) {
@@ -1387,10 +1642,13 @@ function initDeck() {
       const type = event.data?.type;
       if (type === "kaik:deck-stage-intro") {
         deckOutro = null;
+        pileDrag = null;
+        pileAnim = null;
         desktopCoast = 0;
         desktopDrag = null;
         deck.classList.remove("is-dragging");
         root.scrollTop = 0;
+        pileOrder = liveItems().map((item) => item.el);
         document.documentElement.classList.remove("intro-ready", "intro-text", "intro-done");
         document.querySelectorAll(".deck .card").forEach((card) => {
           card.style.transform = "";
@@ -1402,14 +1660,14 @@ function initDeck() {
             scheduleRender();
             return;
           }
-          // A just-shown frame can still report the mobile query for a frame.
-          const wide = deckStageWide();
-          if (!wide && isMobile()) {
-            if (tries < 12) requestAnimationFrame(() => arm(tries + 1));
+          // A just-shown desktop frame can still report the mobile query.
+          // After a few frames a real phone is still narrow and plays the pile intro.
+          if (!deckStageWide() && tries < 8) {
+            requestAnimationFrame(() => arm(tries + 1));
             return;
           }
           deckIntro = createDeckIntro(liveCount(), deckIntroOptions(liveCount()));
-          primeDeckStageScroll();
+          if (deckStageWide()) primeDeckStageScroll();
           scheduleRender();
         };
         arm();
@@ -1429,12 +1687,14 @@ function initDeck() {
       document.dispatchEvent(new CustomEvent("kaik:deck-stage-dismiss-focus"));
       closeDeckStageViewers();
       deckIntro = null;
+      pileDrag = null;
+      pileAnim = null;
       desktopCoast = 0;
       desktopDrag = null;
       deck.classList.remove("is-dragging");
-      if (!isMobile() && !reduceMotion()) {
+      if (!reduceMotion()) {
         deckOutro = createDeckOutro(liveCount());
-        playFlySound();
+        if (!isMobile()) playFlySound();
       } else if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: "kaik:deck-stage-outro-done" }, "*");
       }

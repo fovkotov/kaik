@@ -2303,9 +2303,10 @@ function syncIslandSticky() {
 }
 
 /**
- * Flying deck.
- * Mobile: the fullscreen overlay (`[data-deck-stage]`).
- * Desktop: the same `?deck=stage` page, mounted inside the lettering hero.
+ * Flying deck inside the lettering hero, both widths.
+ * The schedule chip scrolls to the top, shows `index.html?deck=stage`, and
+ * swaps the eye. A second tap plays the outro and the hero collapses.
+ * On a phone the scooter is the resting hero; the overlay is not used.
  */
 function initDeckStage() {
   const stage = document.querySelector("[data-deck-stage]");
@@ -2406,7 +2407,7 @@ function initDeckStage() {
   }
 
   function preloadHeroFrame() {
-    if (NARROW.matches) return;
+    if (heroDeckOpen) return;
     document.body.classList.add("is-hero-deck-preload");
     heroDeck.hidden = false;
     heroDeck.inert = true;
@@ -2467,10 +2468,6 @@ function initDeckStage() {
     btn.addEventListener("click", (event) => {
       event.preventDefault();
       playTickClick(event);
-      if (NARROW.matches) {
-        open(btn);
-        return;
-      }
       if (heroDeckOpen && !heroClosing) closeHero();
       else openHero();
     });
@@ -2496,9 +2493,8 @@ function initDeckStage() {
   });
 
   NARROW.addEventListener("change", () => {
-    if (NARROW.matches && heroDeckOpen) finishHeroClose();
     if (!NARROW.matches && isOpen()) close();
-    if (!NARROW.matches) preloadHeroFrame();
+    preloadHeroFrame();
   });
 
   preloadHeroFrame();

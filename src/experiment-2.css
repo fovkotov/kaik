@@ -146,64 +146,65 @@ html.is-viewer-open .experiment-two__scroll {
   overscroll-behavior: contain;
 }
 
-@media (min-width: 761px) {
-  body.is-hero-deck .works-page {
-    --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
-    --hero-h: calc(var(--hero-frame) - var(--edge));
-  }
+/* Both widths: the flying deck replaces the lettering and grows to the iframe.
+   The filter row and the mobile bottom chip stay above the iframe. */
+body.is-hero-deck .works-page {
+  --hero-frame: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
+  --hero-h: calc(var(--hero-frame) - var(--edge));
+}
 
-  body.is-hero-deck .lettering-hero {
-    overflow: visible;
-  }
+body.is-hero-deck .lettering-hero {
+  overflow: visible;
+}
 
-  body.is-hero-deck .lettering-hero.is-loaded .lettering-hero__image,
-  body.is-hero-deck .lettering-hero__image,
-  body.is-hero-deck .lettering-hero__action,
-  body.is-hero-deck .lettering-hero__credit,
-  body.is-hero-deck .lettering-hero__loader {
-    opacity: 0;
-    pointer-events: none;
-  }
+body.is-hero-deck .lettering-hero.is-loaded .lettering-hero__image,
+body.is-hero-deck .lettering-hero__image,
+body.is-hero-deck .lettering-hero__action,
+body.is-hero-deck .lettering-hero__credit,
+body.is-hero-deck .lettering-hero__loader {
+  opacity: 0;
+  pointer-events: none;
+}
 
-  /* Laid out before the click so the iframe boots at desktop width.
-     Height is the opened frame (100vh), not the resting hero. The hero
-     itself grows on open (520ms); if the iframe followed that, card metrics
-     would wait out the animation and the fly-in would pop to a larger size.
-     visibility keeps the lettering in front until the deck is opened. */
-  body.is-hero-deck-preload .lettering-hero__deck,
-  body.is-hero-deck .lettering-hero__deck:not([hidden]) {
-    position: absolute;
-    top: calc(-1 * var(--edge));
-    right: 0;
-    left: 0;
-    bottom: auto;
-    height: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
-    z-index: 5;
-    display: block;
-    overflow: hidden;
-  }
+/* Laid out before the click so the iframe boots at the real frame size.
+   Height is the opened frame (100vh), not the resting hero. The hero
+   itself grows on open (520ms); if the iframe followed that, card metrics
+   would wait out the animation and the fly-in would pop to a larger size.
+   visibility keeps the lettering (or the mobile scooter) in front until open. */
+body.is-hero-deck-preload .lettering-hero__deck,
+body.is-hero-deck .lettering-hero__deck:not([hidden]) {
+  position: absolute;
+  top: calc(-1 * var(--edge));
+  right: 0;
+  left: 0;
+  bottom: auto;
+  height: calc(100vh - var(--frame-clip-top) - var(--frame-clip-bottom));
+  z-index: 5;
+  display: block;
+  overflow: hidden;
+}
 
-  body.is-hero-deck-preload .lettering-hero__deck {
-    visibility: hidden;
-    pointer-events: none;
-  }
+body.is-hero-deck-preload .lettering-hero__deck {
+  visibility: hidden;
+  pointer-events: none;
+}
 
-  body.is-hero-deck .lettering-hero__deck:not([hidden]) {
-    visibility: visible;
-    pointer-events: auto;
-  }
+body.is-hero-deck .lettering-hero__deck:not([hidden]) {
+  visibility: visible;
+  pointer-events: auto;
+}
 
-  /* Fullscreen picture inside the deck. The chip row sits above the iframe;
-     fade it so it cannot take the click. Card focus does not set this class. */
-  body.is-hero-deck .filter-bar {
-    transition: opacity 180ms var(--ease-out);
-  }
+/* Fullscreen picture inside the deck. The chip row sits above the iframe;
+   fade it so it cannot take the click. Card focus does not set this class.
+   Mobile never sets is-hero-deck-focus — the filters and the bottom chip stay. */
+body.is-hero-deck .filter-bar {
+  transition: opacity 180ms var(--ease-out);
+}
 
-  body.is-hero-deck.is-hero-deck-focus .filter-bar,
-  body.is-hero-deck.is-hero-deck-focus .filter-bar > * {
-    opacity: 0;
-    pointer-events: none;
-  }
+body.is-hero-deck.is-hero-deck-focus .filter-bar,
+body.is-hero-deck.is-hero-deck-focus .filter-bar > * {
+  opacity: 0;
+  pointer-events: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1494,6 +1495,25 @@ button.work-card__art:active {
   .mobile-bar .filter-chip {
     padding: 0;
     pointer-events: auto;
+  }
+
+  /* Deck iframe is z-index 5 inside the hero. The island and the bottom chip
+     stay clickable above it; the empty bar must not eat taps on the pile. */
+  body.is-hero-deck .filter-bar,
+  body.is-hero-deck .mobile-bar {
+    z-index: 60;
+  }
+
+  body.is-hero-deck .filter-bar {
+    pointer-events: none;
+  }
+
+  body.is-hero-deck .filter-bar > * {
+    pointer-events: auto;
+  }
+
+  body.is-hero-deck .lettering-hero__deck-frame {
+    touch-action: none;
   }
 
   /* Clip window is full-bleed so swipe neighbors enter/leave at the iframe edges.
