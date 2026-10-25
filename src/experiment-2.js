@@ -2166,8 +2166,9 @@ function initDeckStage() {
   const deckSrc = publicUrl("index.html?deck=stage");
   const origin = window.location.origin;
   let opener = null;
-  // Inner viewer (author lightbox, project deck, history, format clip).
-  // Its X sits under the overlay close button.
+  // Inner viewer (author lightbox, project deck, history, format clip)
+  // or a card focused from the deck. Overlay close leaves that picture.
+  // On the desktop hero, the same signal hides the filter bar.
   let viewerOpen = false;
   let heroDeckOpen = false;
   let heroClosing = false;
@@ -2192,6 +2193,15 @@ function initDeckStage() {
 
   function closeViewer() {
     frame.contentWindow?.postMessage({ type: "kaik:deck-stage-viewer-close" }, origin);
+  }
+
+  function setHeroDeckFocus(on) {
+    const next = Boolean(on) && heroDeckOpen && !heroClosing && !NARROW.matches;
+    document.body.classList.toggle("is-hero-deck-focus", next);
+    const bar = document.querySelector("[data-filter-bar]");
+    if (!bar || NARROW.matches) return;
+    if (next) bar.setAttribute("inert", "");
+    else if (!isOpen()) bar.removeAttribute("inert");
   }
 
   const pageBits = () =>
@@ -2245,6 +2255,7 @@ function initDeckStage() {
     scrollPageTo(0, 0.55);
     follower?.setActive(false);
     document.body.classList.add("is-hero-deck");
+    setHeroDeckFocus(false);
     heroDeck.hidden = false;
     heroDeck.inert = false;
     heroDeck.setAttribute("aria-hidden", "false");
@@ -2260,6 +2271,7 @@ function initDeckStage() {
     heroDeck.inert = true;
     heroDeck.setAttribute("aria-hidden", "true");
     document.body.classList.remove("is-hero-deck");
+    setHeroDeckFocus(false);
     follower?.setActive(true);
     follower?.measure();
   }
@@ -2267,6 +2279,7 @@ function initDeckStage() {
   function closeHero() {
     if (!heroDeckOpen || heroClosing) return;
     heroClosing = true;
+    setHeroDeckFocus(false);
     setExpanded(false);
     scrollPageTo(0, 0.45);
     heroFrame.contentWindow?.postMessage({ type: "kaik:deck-stage-outro" }, origin);
@@ -2317,7 +2330,11 @@ function initDeckStage() {
     if (!fromOverlay && !fromHero) return;
     const type = event.data?.type;
     if (type === "kaik:deck-stage-viewer") {
-      if (fromOverlay && isOpen()) viewerOpen = Boolean(event.data.open);
+      if (fromOverlay && isOpen()) {
+        viewerOpen =
+          event.data.viewer == null ? Boolean(event.data.open) : Boolean(event.data.viewer);
+      }
+      if (fromHero) setHeroDeckFocus(Boolean(event.data.open));
       return;
     }
     if (type === "kaik:deck-stage-page-wheel" && fromHero && heroDeckOpen && !heroClosing) {

@@ -1,4 +1,5 @@
 import { isAuthorLightboxOpen } from "./author-lightbox.js";
+import { notifyDeckStageViewer } from "./deck-stage-viewer.js";
 import { getViewportSize, onFrameMetrics, setFocusFrozen } from "./embed.js";
 import { cancelIntroAnimations } from "./intro.js";
 import { t } from "./scriptik.js";
@@ -957,6 +958,7 @@ export function initProgramModal() {
     applyDeckParams();
     syncAria();
     next?.();
+    if (phase === "idle") notifyDeckStageViewer(false, "program");
   }
 
   function afterFly(fn) {
@@ -1264,6 +1266,7 @@ export function initProgramModal() {
     snapshotPoses();
     card = next;
     phase = "opening";
+    notifyDeckStageViewer(true, "program");
     const saved = poses.get(card);
     rest = saved?.rest ?? capturePose(card);
     restTransform = saved?.restTransform ?? card.style.transform;

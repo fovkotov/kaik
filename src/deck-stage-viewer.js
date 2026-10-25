@@ -5,7 +5,10 @@
  */
 
 const closers = new Set();
+/** Separate holders so a nested lightbox close does not clear a still-open card. */
+const holders = new Set();
 let reported = false;
+let reportedViewer = false;
 
 function inDeckStage() {
   return (
@@ -15,12 +18,22 @@ function inDeckStage() {
   );
 }
 
-export function notifyDeckStageViewer(open) {
+/**
+ * `open` is any fullscreen (focused card or inner viewer).
+ * `viewer` is an inner picture only — the mobile overlay close button
+ * still dismisses the deck when the only thing up is a focused card.
+ */
+export function notifyDeckStageViewer(open, holder = "viewer") {
   if (!inDeckStage()) return;
-  const next = Boolean(open);
-  if (next === reported) return;
+  const key = holder || "viewer";
+  if (open) holders.add(key);
+  else holders.delete(key);
+  const next = holders.size > 0;
+  const viewer = [...holders].some((name) => name !== "program");
+  if (next === reported && viewer === reportedViewer) return;
   reported = next;
-  window.parent.postMessage({ type: "kaik:deck-stage-viewer", open: next }, "*");
+  reportedViewer = viewer;
+  window.parent.postMessage({ type: "kaik:deck-stage-viewer", open: next, viewer }, "*");
 }
 
 export function bindDeckStageViewerClose(close) {

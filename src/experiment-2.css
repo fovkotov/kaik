@@ -171,6 +171,18 @@ html.is-viewer-open .experiment-two__scroll {
     display: block;
     overflow: hidden;
   }
+
+  /* A card opened from this deck fills the iframe; the fixed chip row sits
+     above it (z-index 40). Fade the row out so it cannot take the click. */
+  body.is-hero-deck .filter-bar {
+    transition: opacity 180ms var(--ease-out);
+  }
+
+  body.is-hero-deck.is-hero-deck-focus .filter-bar,
+  body.is-hero-deck.is-hero-deck-focus .filter-bar > * {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
