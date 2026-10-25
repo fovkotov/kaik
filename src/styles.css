@@ -7227,6 +7227,25 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   }
 }
 
+/* ≤760 stacked and fullscreen faces: dachshund across the top (head at the
+   top-left, body over the title and first lines). Same cards that already
+   have the dog. 761–900 keeps the bottom peek; desktop stays top-pinned. */
+@media (max-width: 760px) {
+  .card[data-program-card] .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open[data-expand-host] .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open[data-expand-closing] .program-card > .card-illust--program,
+  .card[data-program-card].is-program-open.is-program-scroll .program-card > .card-illust--program,
+  .card[data-works-card] > .card-illust--program,
+  .card[data-history-card] > .card-illust--program,
+  .card-illust--program[data-fly-illust-close],
+  .card.is-program-open .card-illust--program[data-fly-illust-close],
+  .card.is-program-open[data-expand-closing] .card-illust--program[data-fly-illust-close] {
+    top: var(--program-dog-y, 0);
+    bottom: auto;
+  }
+}
+
 /* —— Live flight tweaks panel (mounted only with ?tweaks) —— */
 .tweaks {
   position: fixed;
