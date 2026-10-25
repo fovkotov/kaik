@@ -1488,6 +1488,8 @@ function initDeck() {
           Number(params.deckScale) || 1,
           p,
           baseX + fanX + worksX,
+          count,
+          params,
         );
         if (settled != null) flightX = settled;
       }
@@ -1853,28 +1855,38 @@ function stageFanLocal(index, count, vw, scale) {
   return (index * visualStep) / s;
 }
 
-/** Resting inset for the last card once the stage deck is fully scrolled.
- *  Layout target sits a little further in than the painted edge: a slight
- *  rotate grows the axis-aligned box past the unrotated right. */
-const STAGE_LAST_MARGIN = 42;
+/** Share of the frame kept clear past the history card's right edge.
+ *  The rest mark is the pink block on the inner right: about a fifth of the
+ *  frame, not a sliver against the window. */
+const STAGE_LAST_INSET = 0.19;
+/** Layout target sits a little further in than the painted edge. The history
+ *  card's rest rotate grows the axis-aligned box past the unrotated right. */
+const STAGE_LAST_ROTATE_PAD = 16;
 
 /**
  * Local toss for the last in-flow desktop stage card.
- * `stageFanLocal` is a constant +X, and the lead curve still gives this card
- * a full `travel` toss at p = 1, so the tail either stays past the right edge
- * or flies off the left. p = 0 keeps the opening fan (toss 0). p = 1 parks
- * the card's right edge `STAGE_LAST_MARGIN` inside the viewport.
+ * The opening fan is p = 0 (toss 0). The card then rides the penultimate
+ * card's lead curve, so it is parked once that card has landed, and the
+ * leftover track does not keep dragging it. At full progress the right edge
+ * sits `STAGE_LAST_INSET` of the frame inside the viewport.
  * `/` and mobile never call this.
  */
-function stageLastFlightX(card, deckEl, vw, scale, p, parkedX) {
+function stageLastFlightX(card, deckEl, vw, scale, p, parkedX, count, params) {
   const s = Math.max(scale || 1, 0.01);
   const layoutRight = card.offsetLeft + card.offsetWidth;
   if (!(layoutRight > 0) || !(vw > 0)) return null;
   const deckLeft = deckEl.getBoundingClientRect().left;
-  const settleX = (vw - STAGE_LAST_MARGIN - deckLeft) / s - layoutRight;
+  const margin = vw * STAGE_LAST_INSET + STAGE_LAST_ROTATE_PAD;
+  const settleX = (vw - margin - deckLeft) / s - layoutRight;
   const flightEnd = settleX - parkedX;
   if (!(flightEnd < 0)) return 0;
-  return clamp(p, 0, 1) * flightEnd;
+  return stageLastFlightU(count, params, p) * flightEnd;
+}
+
+/** 0 at the opening fan, 1 once the card before the last has finished flying. */
+function stageLastFlightU(count, params, p) {
+  const prev = Math.max(0, (count || 1) - 2);
+  return clamp(cardFlightT(prev, Math.max(count || 1, 2), params, p), 0, 1);
 }
 
 /**
