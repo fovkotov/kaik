@@ -958,6 +958,7 @@ export function initProgramModal() {
     applyDeckParams();
     syncAria();
     next?.();
+    // Card focus never reports open. This only clears a leftover program holder.
     if (phase === "idle") notifyDeckStageViewer(false, "program");
   }
 
@@ -1266,7 +1267,6 @@ export function initProgramModal() {
     snapshotPoses();
     card = next;
     phase = "opening";
-    notifyDeckStageViewer(true, "program");
     const saved = poses.get(card);
     rest = saved?.rest ?? capturePose(card);
     restTransform = saved?.restTransform ?? card.style.transform;

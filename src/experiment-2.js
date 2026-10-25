@@ -2249,9 +2249,9 @@ function initDeckStage() {
   bindDragSpeed(frame);
   bindDragSpeed(heroFrame);
   let opener = null;
-  // Inner viewer (author lightbox, project deck, history, format clip)
-  // or a card focused from the deck. Overlay close leaves that picture.
-  // On the desktop hero, the same signal hides the filter bar.
+  // Real fullscreen picture (author lightbox, project deck, history, format clip).
+  // Overlay close leaves that picture, and still closes the deck when only a
+  // card is focused. The desktop hero hides the filter bar on this signal only.
   let viewerOpen = false;
   let heroDeckOpen = false;
   let heroClosing = false;
@@ -2415,11 +2415,10 @@ function initDeckStage() {
     if (!fromOverlay && !fromHero) return;
     const type = event.data?.type;
     if (type === "kaik:deck-stage-viewer") {
-      if (fromOverlay && isOpen()) {
-        viewerOpen =
-          event.data.viewer == null ? Boolean(event.data.open) : Boolean(event.data.viewer);
-      }
-      if (fromHero) setHeroDeckFocus(Boolean(event.data.open));
+      const picture =
+        event.data.viewer == null ? Boolean(event.data.open) : Boolean(event.data.viewer);
+      if (fromOverlay && isOpen()) viewerOpen = picture;
+      if (fromHero) setHeroDeckFocus(picture);
       return;
     }
     if (type === "kaik:deck-stage-page-wheel" && fromHero && heroDeckOpen && !heroClosing) {
