@@ -657,6 +657,28 @@ function initDeck() {
   const onDeckWheel = (event) => {
     if (seenWheel.has(event)) return;
     seenWheel.add(event);
+    // Desktop hero iframe: an open card or lightbox scrolls only itself.
+    // Wheel on the rest of the iframe moves the parent page, not the deck.
+    if (
+      document.documentElement.classList.contains("deck-stage") &&
+      !isMobile() &&
+      (programLocked() || isAuthorLightboxOpen()) &&
+      !eventFrom(
+        event.target,
+        ".is-program-open, [data-author-lightbox], [data-project-viewer-root]",
+      )
+    ) {
+      event.preventDefault();
+      if (programLocked()) holdFlyLock();
+      const line = event.deltaMode === 1 ? 16 : 1;
+      const pxX = event.deltaX * line;
+      const pxY = event.deltaY * line;
+      const horizontal = event.shiftKey || Math.abs(pxX) > Math.abs(pxY);
+      if (!horizontal && window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "kaik:deck-stage-page-wheel", deltaY: pxY }, "*");
+      }
+      return;
+    }
     if (isAuthorLightboxOpen()) {
       event.preventDefault();
       return;
