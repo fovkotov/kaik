@@ -37,6 +37,67 @@ const filters = [...document.querySelectorAll("[data-filter]")];
 const settingsPanel = document.querySelector("[data-grid-settings]");
 const storage = safeStorage();
 const SETTINGS_KEY = "kaik:experiment-2:grid-v2";
+/** Desktop hero-deck pointer drag, as a multiple of the current /6 ratio. */
+const DRAG_SPEED_KEY = "kaik:experiment-2:drag-speed";
+const DRAG_SPEED_MIN = 0.25;
+const DRAG_SPEED_MAX = 3;
+
+function clampDragSpeed(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(DRAG_SPEED_MAX, Math.max(DRAG_SPEED_MIN, Math.round(n * 100) / 100));
+}
+
+function readDragSpeed() {
+  try {
+    const raw = storage.getItem(DRAG_SPEED_KEY);
+    if (raw == null || raw === "") return 1;
+    return clampDragSpeed(JSON.parse(raw));
+  } catch {
+    return 1;
+  }
+}
+
+let dragSpeed = readDragSpeed();
+
+function postDragSpeed(frame) {
+  const win = frame?.contentWindow;
+  if (!win || win === window) return;
+  try {
+    win.postMessage({ type: "kaik:deck-stage-drag-speed", scale: dragSpeed }, window.location.origin);
+  } catch {
+    // The frame can be mid-navigation.
+  }
+}
+
+function postDragSpeedToDecks() {
+  postDragSpeed(document.querySelector("[data-hero-deck-frame]"));
+  postDragSpeed(document.querySelector("[data-deck-stage-frame]"));
+}
+
+function setDragSpeed(value, { persist = true } = {}) {
+  dragSpeed = clampDragSpeed(value);
+  if (persist) {
+    try {
+      storage.setItem(DRAG_SPEED_KEY, JSON.stringify(dragSpeed));
+    } catch {
+      // safeStorage normally absorbs this; storage can still disappear mid-session.
+    }
+  }
+  postDragSpeedToDecks();
+}
+
+function resetDragSpeed() {
+  dragSpeed = 1;
+  try {
+    storage.removeItem(DRAG_SPEED_KEY);
+  } catch {
+    // ignore
+  }
+  postDragSpeedToDecks();
+  const input = settingsPanel?.querySelector('[name="dragSpeed"]');
+  if (input) input.value = "1";
+}
 const ENTER_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const ENTER_MS = 520;
 const ENTER_STAGGER_MS = 40;
@@ -299,6 +360,8 @@ function applyLayout(next, { persist = false } = {}) {
 
 function syncSettingsPanel() {
   if (!settingsPanel) return;
+  const dragInput = settingsPanel.querySelector('[name="dragSpeed"]');
+  if (dragInput && document.activeElement !== dragInput) dragInput.value = String(dragSpeed);
   for (const name of ["columns", "mobileColumns", "heroVh", "heroVhMobile", "cellRatio", "gapX", "gapY"]) {
     const input = settingsPanel.querySelector(`[name="${name}"]`);
     if (input && document.activeElement !== input) input.value = String(Number(layout[name].toFixed?.(3) ?? layout[name]));
@@ -326,6 +389,10 @@ function syncSettingsPanel() {
 function setupGridSettings() {
   if (!settingsPanel) return;
   const updateNumber = (input) => {
+    if (input.name === "dragSpeed") {
+      setDragSpeed(input.value);
+      return;
+    }
     if (input.type === "checkbox") {
       applyLayout({ ...layout, [input.name]: input.checked }, { persist: true });
       return;
@@ -353,6 +420,12 @@ function setupGridSettings() {
   };
   settingsPanel.querySelectorAll("input").forEach((input) => {
     input.addEventListener("input", () => updateNumber(input));
+    if (input.name === "dragSpeed") {
+      input.addEventListener("change", () => {
+        setDragSpeed(input.value);
+        input.value = String(dragSpeed);
+      });
+    }
   });
   settingsPanel.querySelectorAll("[data-align]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -365,6 +438,7 @@ function setupGridSettings() {
   });
   settingsPanel.querySelector("[data-grid-settings-reset]")?.addEventListener("click", () => {
     storage.removeItem(SETTINGS_KEY);
+    resetDragSpeed();
     applyLayout(catalogLayout);
   });
   window.addEventListener("keydown", (event) => {
@@ -2165,6 +2239,15 @@ function initDeckStage() {
 
   const deckSrc = publicUrl("index.html?deck=stage");
   const origin = window.location.origin;
+  const bindDragSpeed = (frameEl) => {
+    frameEl.addEventListener("load", () => {
+      const src = frameEl.getAttribute("src") || "";
+      if (!src || src === "about:blank") return;
+      postDragSpeed(frameEl);
+    });
+  };
+  bindDragSpeed(frame);
+  bindDragSpeed(heroFrame);
   let opener = null;
   // Inner viewer (author lightbox, project deck, history, format clip)
   // or a card focused from the deck. Overlay close leaves that picture.
@@ -2216,6 +2299,7 @@ function initDeckStage() {
   function open(from) {
     opener = from instanceof HTMLElement ? from : null;
     if (frame.getAttribute("src") !== deckSrc) frame.src = deckSrc;
+    postDragSpeed(frame);
     for (const el of pageBits()) el.setAttribute("inert", "");
     stage.hidden = false;
     stage.inert = false;
@@ -2244,6 +2328,7 @@ function initDeckStage() {
   function showHeroFrame() {
     if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
     else heroFrame.contentWindow?.postMessage({ type: "kaik:deck-stage-intro" }, origin);
+    postDragSpeed(heroFrame);
   }
 
   function openHero() {
