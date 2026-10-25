@@ -2325,6 +2325,15 @@ function initDeckStage() {
     opener = null;
   }
 
+  function preloadHeroFrame() {
+    if (NARROW.matches) return;
+    document.body.classList.add("is-hero-deck-preload");
+    heroDeck.hidden = false;
+    heroDeck.inert = true;
+    heroDeck.setAttribute("aria-hidden", "true");
+    if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
+  }
+
   function showHeroFrame() {
     if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
     else heroFrame.contentWindow?.postMessage({ type: "kaik:deck-stage-intro" }, origin);
@@ -2352,7 +2361,9 @@ function initDeckStage() {
     outroTimer = 0;
     heroClosing = false;
     heroDeckOpen = false;
-    heroDeck.hidden = true;
+    /* Stay in the preload layout. display:none would collapse the iframe
+       back to a 0px mobile viewport before the next open. */
+    heroDeck.hidden = false;
     heroDeck.inert = true;
     heroDeck.setAttribute("aria-hidden", "true");
     document.body.classList.remove("is-hero-deck");
@@ -2406,7 +2417,10 @@ function initDeckStage() {
   NARROW.addEventListener("change", () => {
     if (NARROW.matches && heroDeckOpen) finishHeroClose();
     if (!NARROW.matches && isOpen()) close();
+    if (!NARROW.matches) preloadHeroFrame();
   });
+
+  preloadHeroFrame();
 
   window.addEventListener("message", (event) => {
     if (event.origin !== origin) return;

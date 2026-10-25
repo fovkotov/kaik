@@ -67,19 +67,35 @@ export function canPlayTextIntro() {
 }
 
 /**
+ * Desktop stage only. Back of the stack still leads, but the front card
+ * (the one whose rest pose sits in the frame) starts soon enough that its
+ * edge crosses the viewport inside ~150ms. The flight stays a full viewport
+ * from the right — `/` keeps {@link CARD_STAGGER_MS}.
+ */
+export function stageDeckStagger(count) {
+  const steps = Math.max(1, Math.max(1, count) - 1);
+  return Math.min(CARD_STAGGER_MS, Math.round(80 / steps));
+}
+
+/**
  * First-load deck offset. Distance is in deck-local px.
  * Desktop: back of stack first, from the right (1000ms / 100ms).
  * Mobile (`frontFirst`): focus card first, then the ones behind, from above
  * (500ms ease-out / 50ms stagger). Pass a negative distance for from-above.
+ * `stagger` overrides the desktop/mobile step (deck-stage uses a shorter one).
  *
  * Clock starts on `arm()` (first painted from-state), not at module init —
  * otherwise a slow first frame skips the front card and it pops in at rest.
  */
-export function createDeckIntro(count, { frontFirst = false } = {}) {
+export function createDeckIntro(count, { frontFirst = false, stagger: staggerOverride } = {}) {
   let t0 = 0;
   const n = Math.max(1, count);
   const duration = frontFirst ? MOBILE_CARD_MS : CARD_MS;
-  const stagger = frontFirst ? MOBILE_CARD_STAGGER_MS : CARD_STAGGER_MS;
+  const stagger = Number.isFinite(staggerOverride)
+    ? staggerOverride
+    : frontFirst
+      ? MOBILE_CARD_STAGGER_MS
+      : CARD_STAGGER_MS;
   const lastDelay = (n - 1) * stagger;
   return {
     armed: false,

@@ -165,12 +165,26 @@ html.is-viewer-open .experiment-two__scroll {
     pointer-events: none;
   }
 
+  /* Laid out before the click so the iframe boots at desktop width.
+     visibility keeps the lettering in front until the deck is opened. */
+  body.is-hero-deck-preload .lettering-hero__deck {
+    position: absolute;
+    inset: calc(-1 * var(--edge)) 0 0 0;
+    z-index: 5;
+    display: block;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   body.is-hero-deck .lettering-hero__deck:not([hidden]) {
     position: absolute;
     inset: calc(-1 * var(--edge)) 0 0 0;
     z-index: 5;
     display: block;
     overflow: hidden;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   /* Fullscreen picture inside the deck. The chip row sits above the iframe;

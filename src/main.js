@@ -25,6 +25,7 @@ import {
   markIntroDone,
   markIntroReady,
   playTextIntro,
+  stageDeckStagger,
   syncDeckIntroSounds,
 } from "./intro.js";
 import { initTextAppear } from "./text-appear.js";
@@ -179,6 +180,40 @@ function readDeckStageDragScale() {
   } catch {
     return 1;
   }
+}
+
+/**
+ * Desktop stage inside the hero iframe stays parked until the parent posts
+ * `kaik:deck-stage-intro`. A hidden preload must not play the fly-in (or its
+ * sounds) before the deck is shown; the click replays it.
+ */
+function deckStageWide() {
+  if (!document.documentElement.classList.contains("deck-stage")) return false;
+  return (document.documentElement.clientWidth || window.innerWidth || 0) >= 901;
+}
+
+function deckStageIntroHeld() {
+  if (!document.documentElement.classList.contains("deck-stage")) return false;
+  if (window.parent === window) return false;
+  try {
+    const frame = window.frameElement;
+    if (!frame) return false;
+    if (frame.closest("[hidden]")) return true;
+    const host = frame.closest("[data-hero-deck]");
+    const parentBody = frame.ownerDocument?.body;
+    return Boolean(host && parentBody && !parentBody.classList.contains("is-hero-deck"));
+  } catch {
+    return false;
+  }
+}
+
+function deckIntroOptions(count) {
+  const mobile = deckStageWide() ? false : isMobile();
+  const stage = document.documentElement.classList.contains("deck-stage") && !mobile;
+  return {
+    frontFirst: mobile,
+    ...(stage ? { stagger: stageDeckStagger(count) } : {}),
+  };
 }
 
 /**
@@ -798,10 +833,12 @@ function initDeck() {
 
   if (isMobile()) root.scrollTop = 0;
 
-  deckIntro = canPlayCardIntro()
-    ? createDeckIntro(liveCount(), { frontFirst: isMobile() })
-    : null;
-  if (!deckIntro) {
+  const holdStageIntro = deckStageIntroHeld();
+  deckIntro =
+    canPlayCardIntro() && !holdStageIntro
+      ? createDeckIntro(liveCount(), deckIntroOptions(liveCount()))
+      : null;
+  if (!deckIntro && !holdStageIntro) {
     markIntroReady();
     if (canPlayTextIntro()) playTextIntro();
     else markIntroDone();
@@ -819,6 +856,16 @@ function initDeck() {
     }
     const params = getParams();
     const mobile = isMobile();
+    // Hidden stage preload: leave the stylesheet park (100vw / -100vh).
+    // An inline rest pose would show the stack the moment the iframe is revealed.
+    if (
+      document.documentElement.classList.contains("deck-stage") &&
+      !deckIntro &&
+      !deckOutro &&
+      !document.documentElement.classList.contains("intro-ready")
+    ) {
+      return;
+    }
     const items = liveItems();
     const count = items.length;
     const { width: vw, height: vh } = getViewportSize();
@@ -1116,7 +1163,7 @@ function initDeck() {
       deckIntro.arm(now);
       markIntroReady();
     }
-    if (deckIntro && !mobile) syncDeckIntroSounds(deckIntro, count, now);
+    if (deckIntro && !mobile && !deckStageIntroHeld()) syncDeckIntroSounds(deckIntro, count, now);
     if (deckIntro?.done(now)) {
       deckIntro = null;
       if (canPlayTextIntro()) playTextIntro();
@@ -1233,11 +1280,28 @@ function initDeck() {
         desktopDrag = null;
         deck.classList.remove("is-dragging");
         root.scrollTop = 0;
-        if (!isMobile() && !reduceMotion()) {
-          deckIntro = createDeckIntro(liveCount(), { frontFirst: false });
-        }
-        primeDeckStageScroll();
-        scheduleRender();
+        document.documentElement.classList.remove("intro-ready", "intro-text", "intro-done");
+        document.querySelectorAll(".deck .card").forEach((card) => {
+          card.style.transform = "";
+        });
+        const arm = (tries = 0) => {
+          if (reduceMotion()) {
+            markIntroReady();
+            markIntroDone();
+            scheduleRender();
+            return;
+          }
+          // A just-shown frame can still report the mobile query for a frame.
+          const wide = deckStageWide();
+          if (!wide && isMobile()) {
+            if (tries < 12) requestAnimationFrame(() => arm(tries + 1));
+            return;
+          }
+          deckIntro = createDeckIntro(liveCount(), deckIntroOptions(liveCount()));
+          primeDeckStageScroll();
+          scheduleRender();
+        };
+        arm();
         return;
       }
       if (type === "kaik:deck-stage-drag-speed") {
