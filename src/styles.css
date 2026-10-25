@@ -287,6 +287,22 @@ a {
   }
 }
 
+/* Narrower desktops: the pile covers the right of the letter lockup
+   (“from 9 Nov.”, enroll, program, student work). Shrink and shift left
+   so the whole block stays in the clear space. Wide frames keep 1.15.
+   fit 1 at ≥1200px; 0.58 at the 901px edge, with up to 118px extra left. */
+@media (min-width: 901px) and (max-width: 1280px) {
+  .panel__cluster {
+    --pile-fit: clamp(0.58, (100vw - 640px) / 560px, 1);
+    transform: translate3d(
+        calc(var(--lockup-x) - (1 - var(--pile-fit)) * 280px),
+        var(--lockup-y),
+        0
+      )
+      scale(calc(var(--lockup-scale) * var(--pile-fit)));
+  }
+}
+
   .panel a,
   .panel button {
     pointer-events: auto;
