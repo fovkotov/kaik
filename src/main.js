@@ -506,7 +506,7 @@ function initDeck() {
     const params = getParams();
     const total = maxProgress(liveCount(), params);
     const travel = Math.max((getViewportSize().width || 1) * (params.travelMult || 1.1), 1);
-    return (total / travel) / 3;
+    return (total / travel) / 6;
   }
 
   function onDeckPointerDown(event) {
