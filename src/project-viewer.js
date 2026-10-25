@@ -9,6 +9,7 @@
  */
 
 import "./project-viewer.css";
+import { bindDeckStageViewerClose, notifyDeckStageViewer } from "./deck-stage-viewer.js";
 import { getScrollRoot } from "./embed.js";
 import { liveFocusScrollRoot } from "./focus-scrollbar.js";
 import { publicUrl } from "./public-url.js";
@@ -462,6 +463,7 @@ function buildRoot() {
 function setOpen(next) {
   open = next;
   document.documentElement.classList.toggle("is-project-viewer-open", next);
+  notifyDeckStageViewer(next);
   root.hidden = !next;
   root.setAttribute("aria-hidden", next ? "false" : "true");
   if (next) root.removeAttribute("inert");
@@ -523,6 +525,7 @@ function bindRoot() {
     event.stopPropagation();
     close();
   });
+  bindDeckStageViewerClose(close);
 
   const bindHit = (sel, step) => {
     root.querySelector(sel).addEventListener("click", (event) => {

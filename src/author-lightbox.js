@@ -1,3 +1,4 @@
+import { bindDeckStageViewerClose, notifyDeckStageViewer } from "./deck-stage-viewer.js";
 import { getScrollRoot } from "./embed.js";
 import { focusScrollRoot } from "./focus-scrollbar.js";
 import { svgToInline } from "./letters/svg.js";
@@ -454,6 +455,7 @@ function setOpen(next) {
   document.documentElement.classList.toggle("is-author-lb-open", next);
   // Lets a card's own video stand down while the lightbox shows the same clip.
   document.dispatchEvent(new CustomEvent("kaik:lightbox", { detail: { open: next } }));
+  notifyDeckStageViewer(next);
   if (!root) return;
   root.hidden = !next;
   root.setAttribute("aria-hidden", next ? "false" : "true");
@@ -870,6 +872,7 @@ export function initAuthorLightbox() {
     event.stopPropagation();
     closeLb();
   });
+  bindDeckStageViewerClose(closeLb);
 
   const bindHit = (sel, step) => {
     root.querySelector(sel)?.addEventListener("click", (event) => {

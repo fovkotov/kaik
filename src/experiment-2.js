@@ -2158,6 +2158,13 @@ function initDeckStage() {
 
   const deckSrc = publicUrl("index.html?deck=stage");
   let opener = null;
+  // Inner viewer (author lightbox, project deck, history, format clip).
+  // Its X sits under this button.
+  let viewerOpen = false;
+
+  function closeViewer() {
+    frame.contentWindow?.postMessage({ type: "kaik:deck-stage-viewer-close" }, window.location.origin);
+  }
 
   const pageBits = () =>
     [
@@ -2182,6 +2189,7 @@ function initDeckStage() {
 
   function close() {
     if (!isOpen()) return;
+    viewerOpen = false;
     stage.hidden = true;
     stage.inert = true;
     stage.setAttribute("aria-hidden", "true");
@@ -2203,18 +2211,30 @@ function initDeckStage() {
 
   closeBtn.addEventListener("click", (event) => {
     playTickClick(event);
+    if (viewerOpen) {
+      closeViewer();
+      return;
+    }
     close();
   });
 
   window.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || !isOpen()) return;
     event.preventDefault();
+    if (viewerOpen) {
+      closeViewer();
+      return;
+    }
     close();
   });
 
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) return;
     if (event.source !== frame.contentWindow) return;
+    if (event.data?.type === "kaik:deck-stage-viewer") {
+      if (isOpen()) viewerOpen = Boolean(event.data.open);
+      return;
+    }
     if (event.data?.type !== "kaik:deck-stage-close") return;
     close();
   });
