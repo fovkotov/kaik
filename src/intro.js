@@ -104,6 +104,35 @@ export function createDeckIntro(count, { frontFirst = false } = {}) {
   };
 }
 
+/** Reverse of the desktop enter: front card leaves first, all fly off to the right. */
+const OUTRO_MS = 560;
+const OUTRO_STAGGER_MS = 60;
+
+export function createDeckOutro(count) {
+  let t0 = 0;
+  const n = Math.max(1, count);
+  const lastDelay = (n - 1) * OUTRO_STAGGER_MS;
+  return {
+    armed: false,
+    arm(now) {
+      if (this.armed) return;
+      this.armed = true;
+      t0 = now;
+    },
+    progress(index, now) {
+      if (!this.armed) return 0;
+      const delay = index * OUTRO_STAGGER_MS;
+      return CARD_EASE(clamp((now - t0 - delay) / OUTRO_MS, 0, 1));
+    },
+    shift(index, now, distance) {
+      return this.progress(index, now) * distance;
+    },
+    done(now) {
+      return this.armed && now - t0 >= lastDelay + OUTRO_MS;
+    },
+  };
+}
+
 /** whoosh as each card starts, pop as it lands. Skip if AudioContext is still cold. */
 export function syncDeckIntroSounds(intro, count, now) {
   if (isMobile() || !intro?.armed) return;

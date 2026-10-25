@@ -27,6 +27,10 @@ export function bindDeckStageViewerClose(close) {
   closers.add(close);
 }
 
+export function closeDeckStageViewers() {
+  for (const close of closers) close();
+}
+
 window.addEventListener("message", (event) => {
   if (!document.documentElement.classList.contains("deck-stage")) return;
   if (event.origin !== window.location.origin) return;

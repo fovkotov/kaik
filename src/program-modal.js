@@ -1793,6 +1793,9 @@ export function initProgramModal() {
   });
 
   document.addEventListener("kaik:translated", syncAria);
+  document.addEventListener("kaik:deck-stage-dismiss-focus", () => {
+    if (phase === "open" || phase === "opening") closeFocus();
+  });
 
   const onFrameResize = () => {
     if (phase !== "open") return;

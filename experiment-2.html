@@ -39,6 +39,16 @@
             data-i18n-aria="exp2.nextHero"
           ></button>
           <p class="lettering-hero__credit" data-lettering-credit aria-live="polite"></p>
+          <!-- Desktop only: the flying deck lives inside the hero and grows with it.
+               Mobile keeps the fullscreen overlay (data-deck-stage). -->
+          <div class="lettering-hero__deck" data-hero-deck hidden inert aria-hidden="true">
+            <iframe
+              class="lettering-hero__deck-frame"
+              data-hero-deck-frame
+              title="Letter course"
+              allow="autoplay; fullscreen"
+            ></iframe>
+          </div>
         </section>
 
         <!-- Desktop: this row is moved out of the scroller (see pinDesktopNav)
@@ -53,7 +63,11 @@
             aria-label="schedule and program"
             data-i18n-aria="exp2.about"
           >
-            <span class="filter-chip__plate"><span data-i18n="exp2.about">schedule and program</span></span>
+            <span class="filter-chip__plate">
+              <span data-i18n="exp2.about">schedule and program</span>
+              <img class="filter-chip__eye filter-chip__eye--open" src="/assets/author/exp2-eye.svg" alt="" width="18" height="12" draggable="false" aria-hidden="true" />
+              <img class="filter-chip__eye filter-chip__eye--close" src="/assets/author/exp2-eye-off.svg" alt="" width="18" height="12" draggable="false" aria-hidden="true" />
+            </span>
           </button>
 
           <div class="filter-island" data-filter-island role="group" aria-label="Work filters" data-i18n-aria="exp2.filters">
@@ -90,7 +104,11 @@
         aria-label="schedule and program"
         data-i18n-aria="exp2.about"
       >
-        <span class="filter-chip__plate"><span data-i18n="exp2.about">schedule and program</span></span>
+        <span class="filter-chip__plate">
+          <span data-i18n="exp2.about">schedule and program</span>
+          <img class="filter-chip__eye filter-chip__eye--open" src="/assets/author/exp2-eye.svg" alt="" width="18" height="12" draggable="false" aria-hidden="true" />
+          <img class="filter-chip__eye filter-chip__eye--close" src="/assets/author/exp2-eye-off.svg" alt="" width="18" height="12" draggable="false" aria-hidden="true" />
+        </span>
       </button>
     </div>
 

@@ -6,6 +6,8 @@ import { initTickClicks } from "./tick-clicks.js";
 import { initSoundSettings } from "./sound-settings.js";
 import { initStageSettings } from "./stage-settings.js";
 import { initAuthorLightbox, isAuthorLightboxOpen } from "./author-lightbox.js";
+import { closeDeckStageViewers } from "./deck-stage-viewer.js";
+import { playFlySound } from "./lib/sound-catalog.js";
 import { initImgSliders } from "./img-slider.js";
 import { initProgramStrips } from "./program-strip.js";
 import { initProjectViewer } from "./project-viewer.js";
@@ -19,6 +21,7 @@ import {
   canPlayTextIntro,
   cancelIntroAnimations,
   createDeckIntro,
+  createDeckOutro,
   markIntroDone,
   markIntroReady,
   playTextIntro,
@@ -196,6 +199,11 @@ function initDeck() {
   let flyLockedFlag = false;
   /** First-load card deal; assigned after listeners, sampled every frame while armed. */
   let deckIntro = null;
+  let deckOutro = null;
+  /** @type {null | { id: number, startX: number, startScroll: number, lastX: number, lastT: number, vel: number, moved: boolean }} */
+  let desktopDrag = null;
+  /** Leftover px/frame after a desktop flick; decays like mobile inertia. */
+  let desktopCoast = 0;
 
   /** Virtual progress used on mobile instead of page scroll (card units: 0 = first on top) */
   let dragProgress = 0;
@@ -284,7 +292,8 @@ function initDeck() {
 
   function needsDeckFrame(mobile) {
     if (isFocusFrozen()) return false;
-    if (deckIntro) return true;
+    if (deckIntro || deckOutro) return true;
+    if (desktopDrag || Math.abs(desktopCoast) > 0.35) return true;
     if (drag || snapAnim) return true;
     if (Math.abs(dragInertia) > INERTIA_MIN) return true;
     if (mobile) return false;
@@ -493,7 +502,30 @@ function initDeck() {
   const DRAG_IGNORE =
     "a:not(.link-card), button:not([data-author-work]), [data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], [data-fly-close], [data-article-close], [data-lockup] .dropcap, [data-work-ig], .work-card__who, [data-work-student-prev], [data-work-student-next], [data-img-slider], [data-img-slider-dot], [data-img-slider-dots], [data-img-slider-prev], [data-img-slider-next], [data-program-strip], [data-program-strip-prev], [data-program-strip-next], [data-author-lightbox], [data-preview-media]";
 
+  function desktopDragRatio() {
+    const params = getParams();
+    const total = maxProgress(liveCount(), params);
+    const travel = Math.max((getViewportSize().width || 1) * (params.travelMult || 1.1), 1);
+    return total / travel;
+  }
+
   function onDeckPointerDown(event) {
+    if (document.documentElement.classList.contains("deck-stage") && !isMobile()) {
+      if (event.button && event.button !== 0) return;
+      if (programLocked() || isAuthorLightboxOpen()) return;
+      if (event.target.closest?.(DRAG_IGNORE)) return;
+      desktopCoast = 0;
+      desktopDrag = {
+        id: event.pointerId,
+        startX: event.clientX,
+        startScroll: root.scrollTop || 0,
+        lastX: event.clientX,
+        lastT: performance.now(),
+        vel: 0,
+        moved: false,
+      };
+      return;
+    }
     if (!isMobile()) return;
     if (programLocked() || isAuthorLightboxOpen()) return;
     if (event.target.closest?.(DRAG_IGNORE)) return;
@@ -523,6 +555,29 @@ function initDeck() {
   }
 
   function onDeckPointerMove(event) {
+    if (desktopDrag && event.pointerId === desktopDrag.id) {
+      if (programLocked()) {
+        desktopDrag = null;
+        deck.classList.remove("is-dragging");
+        return;
+      }
+      const dx = event.clientX - desktopDrag.startX;
+      if (!desktopDrag.moved && Math.abs(dx) <= 6) return;
+      if (!desktopDrag.moved) {
+        desktopDrag.moved = true;
+        deck.classList.add("is-dragging");
+      }
+      const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
+      root.scrollTop = clamp(desktopDrag.startScroll - dx * desktopDragRatio(), 0, maxTop);
+      const now = performance.now();
+      const dt = Math.max(1, now - desktopDrag.lastT);
+      desktopDrag.vel = (desktopDrag.lastX - event.clientX) / dt;
+      desktopDrag.lastX = event.clientX;
+      desktopDrag.lastT = now;
+      event.preventDefault();
+      scheduleRender();
+      return;
+    }
     if (!drag || event.pointerId !== drag.id) return;
     if (programLocked()) {
       cancelDeckDrag();
@@ -552,6 +607,15 @@ function initDeck() {
   }
 
   function endDrag(event) {
+    if (desktopDrag && (!event || event.pointerId === desktopDrag.id)) {
+      const { moved, vel, lastT } = desktopDrag;
+      desktopDrag = null;
+      deck.classList.remove("is-dragging");
+      const stale = performance.now() - lastT > 48;
+      desktopCoast = moved && !stale ? vel * 16 * desktopDragRatio() : 0;
+      scheduleRender();
+      return;
+    }
     if (!drag || (event && event.pointerId !== drag.id)) return;
     const { moved, vel, lastT } = drag;
     deck.classList.remove("is-dragging");
@@ -617,6 +681,24 @@ function initDeck() {
       dragProgress = applyRubber(raw);
       dragInertia = 0;
       scheduleRender();
+      return;
+    }
+    if (document.documentElement.classList.contains("deck-stage")) {
+      event.preventDefault();
+      const line = event.deltaMode === 1 ? 16 : 1;
+      const pxX = event.deltaX * line;
+      const pxY = event.deltaY * line;
+      const horizontal = event.shiftKey || Math.abs(pxX) > Math.abs(pxY);
+      if (horizontal) {
+        const dx = pxX || pxY;
+        const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
+        root.scrollTop = clamp((root.scrollTop || 0) + dx * 2.2, 0, maxTop);
+        scheduleRender();
+        return;
+      }
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "kaik:deck-stage-page-wheel", deltaY: pxY }, "*");
+      }
       return;
     }
     event.preventDefault();
@@ -729,6 +811,18 @@ function initDeck() {
     }
 
     holdFlyLock();
+    if (
+      !mobile &&
+      document.documentElement.classList.contains("deck-stage") &&
+      !desktopDrag &&
+      Math.abs(desktopCoast) > 0.35
+    ) {
+      const maxTop = Math.max(0, root.scrollHeight - root.clientHeight);
+      const next = clamp((root.scrollTop || 0) + desktopCoast, 0, maxTop);
+      if (root.scrollTop !== next) root.scrollTop = next;
+      desktopCoast *= INERTIA_FRICTION;
+      if (Math.abs(desktopCoast) < 0.35 || next <= 0 || next >= maxTop) desktopCoast = 0;
+    }
     const y = freezeY != null ? freezeY : mobile ? dragProgress : root.scrollTop || 0;
     const span = focusSpanOf(params);
     const cardProgress = mobile
@@ -907,12 +1001,13 @@ function initDeck() {
       const programCard = item.el.hasAttribute("data-program-card");
 
       const introX = deckIntro && !flyLocked && !mobile ? deckIntro.shift(i, now, vw) : 0;
+      const outroX = deckOutro && !flyLocked && !mobile ? deckOutro.shift(i, now, vw) : 0;
       const introY = deckIntro && !flyLocked && mobile ? deckIntro.shift(i, now, -vh) : 0;
       const fanX =
         !mobile && document.documentElement.classList.contains("deck-stage")
           ? stageFanLocal(i, count, vw, Number(params.deckScale) || 1)
           : 0;
-      const x = scrollX + parallaxX + worksX + introX + fanX;
+      const x = scrollX + parallaxX + worksX + introX + fanX + outroX;
       const yPos = scrollY + parallaxY - item.hover * params.hoverLift + worksY + introY;
 
       const twist = mobile
@@ -963,6 +1058,13 @@ function initDeck() {
       deckIntro = null;
       if (canPlayTextIntro()) playTextIntro();
       else markIntroDone();
+    }
+    if (deckOutro && !deckOutro.armed) deckOutro.arm(now);
+    if (deckOutro?.done(now)) {
+      deckOutro = null;
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "kaik:deck-stage-outro-done" }, "*");
+      }
     }
 
     if (document.visibilityState === "hidden") return;
@@ -1055,6 +1157,41 @@ function initDeck() {
    */
   function revealWorks(onReady) {
     revealIndex(worksCardIndex(), onReady);
+  }
+
+  if (document.documentElement.classList.contains("deck-stage")) {
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.source !== window.parent) return;
+      const type = event.data?.type;
+      if (type === "kaik:deck-stage-intro") {
+        deckOutro = null;
+        desktopCoast = 0;
+        desktopDrag = null;
+        deck.classList.remove("is-dragging");
+        root.scrollTop = 0;
+        if (!isMobile() && !reduceMotion()) {
+          deckIntro = createDeckIntro(liveCount(), { frontFirst: false });
+        }
+        primeDeckStageScroll();
+        scheduleRender();
+        return;
+      }
+      if (type !== "kaik:deck-stage-outro") return;
+      document.dispatchEvent(new CustomEvent("kaik:deck-stage-dismiss-focus"));
+      closeDeckStageViewers();
+      deckIntro = null;
+      desktopCoast = 0;
+      desktopDrag = null;
+      deck.classList.remove("is-dragging");
+      if (!isMobile() && !reduceMotion()) {
+        deckOutro = createDeckOutro(liveCount());
+        playFlySound();
+      } else if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "kaik:deck-stage-outro-done" }, "*");
+      }
+      scheduleRender();
+    });
   }
 
   return { revealProgram, revealWorks, revealIndex };

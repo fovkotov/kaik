@@ -117,6 +117,16 @@
       html.deck-stage .fly-close {
         top: calc(var(--focus-close-inset, 16px) + 52px);
       }
+      @media (min-width: 901px) {
+        html.deck-stage .deck,
+        html.deck-stage .card {
+          cursor: grab;
+        }
+        html.deck-stage .deck.is-dragging,
+        html.deck-stage .deck.is-dragging .card {
+          cursor: grabbing;
+        }
+      }
     </style>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>

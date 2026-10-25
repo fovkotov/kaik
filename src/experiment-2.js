@@ -1150,6 +1150,7 @@ async function startHero() {
   if (heroStarted || NARROW.matches || !catalogReady) return;
   heroStarted = true;
   setupHero();
+  if (document.body.classList.contains("is-hero-deck")) follower?.setActive(false);
   action.addEventListener("click", (event) => {
     playTickClick(event);
     nextHero();
@@ -2149,21 +2150,48 @@ function syncIslandSticky() {
   host.style.setProperty("--island-h", `${height}px`);
 }
 
-/** Fullscreen flying deck. The iframe is the course page in `?deck=stage`. */
+/**
+ * Flying deck.
+ * Mobile: the fullscreen overlay (`[data-deck-stage]`).
+ * Desktop: the same `?deck=stage` page, mounted inside the lettering hero.
+ */
 function initDeckStage() {
   const stage = document.querySelector("[data-deck-stage]");
   const frame = document.querySelector("[data-deck-stage-frame]");
   const closeBtn = document.querySelector("[data-deck-stage-close]");
-  if (!stage || !frame || !closeBtn) return;
+  const heroDeck = document.querySelector("[data-hero-deck]");
+  const heroFrame = document.querySelector("[data-hero-deck-frame]");
+  if (!stage || !frame || !closeBtn || !heroDeck || !heroFrame) return;
 
   const deckSrc = publicUrl("index.html?deck=stage");
+  const origin = window.location.origin;
   let opener = null;
   // Inner viewer (author lightbox, project deck, history, format clip).
-  // Its X sits under this button.
+  // Its X sits under the overlay close button.
   let viewerOpen = false;
+  let heroDeckOpen = false;
+  let heroClosing = false;
+  let outroTimer = 0;
+
+  function setExpanded(on) {
+    document.querySelectorAll("[data-about]").forEach((btn) => {
+      btn.setAttribute("aria-expanded", on ? "true" : "false");
+    });
+  }
+
+  function scrollPageTo(top, duration = 0) {
+    if (pageLenis) {
+      pageLenis.scrollTo(top, duration > 0 ? { duration, force: true } : { immediate: true, force: true });
+      return;
+    }
+    const root = document.querySelector("[data-scroll-root]");
+    if (!root) return;
+    if (duration > 0) root.scrollTo({ top, behavior: "smooth" });
+    else root.scrollTop = top;
+  }
 
   function closeViewer() {
-    frame.contentWindow?.postMessage({ type: "kaik:deck-stage-viewer-close" }, window.location.origin);
+    frame.contentWindow?.postMessage({ type: "kaik:deck-stage-viewer-close" }, origin);
   }
 
   const pageBits = () =>
@@ -2183,6 +2211,7 @@ function initDeckStage() {
     stage.inert = false;
     stage.setAttribute("aria-hidden", "false");
     document.body.classList.add("is-deck-stage");
+    setExpanded(true);
     pageLenis?.stop();
     closeBtn.focus();
   }
@@ -2194,6 +2223,7 @@ function initDeckStage() {
     stage.inert = true;
     stage.setAttribute("aria-hidden", "true");
     document.body.classList.remove("is-deck-stage");
+    setExpanded(false);
     for (const el of pageBits()) el.removeAttribute("inert");
     pageLenis?.start();
     frame.src = "about:blank";
@@ -2201,11 +2231,58 @@ function initDeckStage() {
     opener = null;
   }
 
+  function showHeroFrame() {
+    if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
+    else heroFrame.contentWindow?.postMessage({ type: "kaik:deck-stage-intro" }, origin);
+  }
+
+  function openHero() {
+    window.clearTimeout(outroTimer);
+    outroTimer = 0;
+    heroClosing = false;
+    heroDeckOpen = true;
+    setExpanded(true);
+    scrollPageTo(0, 0.55);
+    follower?.setActive(false);
+    document.body.classList.add("is-hero-deck");
+    heroDeck.hidden = false;
+    heroDeck.inert = false;
+    heroDeck.setAttribute("aria-hidden", "false");
+    requestAnimationFrame(showHeroFrame);
+  }
+
+  function finishHeroClose() {
+    window.clearTimeout(outroTimer);
+    outroTimer = 0;
+    heroClosing = false;
+    heroDeckOpen = false;
+    heroDeck.hidden = true;
+    heroDeck.inert = true;
+    heroDeck.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("is-hero-deck");
+    follower?.setActive(true);
+    follower?.measure();
+  }
+
+  function closeHero() {
+    if (!heroDeckOpen || heroClosing) return;
+    heroClosing = true;
+    setExpanded(false);
+    scrollPageTo(0, 0.45);
+    heroFrame.contentWindow?.postMessage({ type: "kaik:deck-stage-outro" }, origin);
+    outroTimer = window.setTimeout(finishHeroClose, 950);
+  }
+
   document.querySelectorAll("[data-about]").forEach((btn) => {
     btn.addEventListener("click", (event) => {
       event.preventDefault();
       playTickClick(event);
-      open(btn);
+      if (NARROW.matches) {
+        open(btn);
+        return;
+      }
+      if (heroDeckOpen && !heroClosing) closeHero();
+      else openHero();
     });
   });
 
@@ -2228,15 +2305,36 @@ function initDeckStage() {
     close();
   });
 
+  NARROW.addEventListener("change", () => {
+    if (NARROW.matches && heroDeckOpen) finishHeroClose();
+    if (!NARROW.matches && isOpen()) close();
+  });
+
   window.addEventListener("message", (event) => {
-    if (event.origin !== window.location.origin) return;
-    if (event.source !== frame.contentWindow) return;
-    if (event.data?.type === "kaik:deck-stage-viewer") {
-      if (isOpen()) viewerOpen = Boolean(event.data.open);
+    if (event.origin !== origin) return;
+    const fromOverlay = event.source === frame.contentWindow;
+    const fromHero = event.source === heroFrame.contentWindow;
+    if (!fromOverlay && !fromHero) return;
+    const type = event.data?.type;
+    if (type === "kaik:deck-stage-viewer") {
+      if (fromOverlay && isOpen()) viewerOpen = Boolean(event.data.open);
       return;
     }
-    if (event.data?.type !== "kaik:deck-stage-close") return;
-    close();
+    if (type === "kaik:deck-stage-page-wheel" && fromHero && heroDeckOpen && !heroClosing) {
+      const delta = Number(event.data.deltaY) || 0;
+      if (!delta) return;
+      const root = document.querySelector("[data-scroll-root]");
+      const top = (pageLenis?.scroll ?? root?.scrollTop ?? 0) + delta;
+      scrollPageTo(top, 0);
+      return;
+    }
+    if (type === "kaik:deck-stage-outro-done" && fromHero) {
+      if (heroClosing) finishHeroClose();
+      return;
+    }
+    if (type !== "kaik:deck-stage-close") return;
+    if (fromOverlay) close();
+    else if (heroDeckOpen) closeHero();
   });
 }
 
