@@ -184,6 +184,7 @@ let heroGeneration = 0;
 const enabledTypes = new Set(VISUAL_TYPES);
 let activeLettering = null;
 let follower = null;
+let bounce = null;
 let viewer = null;
 let measureGridGeometry = () => {};
 let cardMeasureFrame = 0;
@@ -201,7 +202,7 @@ const HERO_WARM_CONCURRENCY = 2;
 let pageLenis = null;
 let enterObserver = null;
 let enterIndex = 0;
-/* Desktop-only: set once the interactive hero has been wired and its letterings requested. */
+/* Set once the hero letterings have been requested, on either width. */
 let heroStarted = false;
 
 /* ---------- helpers ---------- */
@@ -220,7 +221,7 @@ function halfColumns() {
   return Math.max(1, Math.floor(activeColumns() / 2));
 }
 
-/** Desktop: interactive hero height. Mobile: height of the static illustration block. */
+/** Desktop: interactive hero height. Mobile: DVD lettering hero (`heroVhMobile`). */
 function activeHeroVh() {
   return NARROW.matches ? layout.heroVhMobile : layout.heroVh;
 }
@@ -417,8 +418,9 @@ function applyLayout(next, { persist = false } = {}) {
   }
   measureGridGeometry();
   /* Hero height may have changed: re-fit the lettering and re-measure the sticky row. */
-  follower?.measure();
   syncIslandSticky();
+  follower?.measure();
+  bounce?.measure();
   syncSettingsPanel();
   renderGrid();
 }
@@ -1284,33 +1286,288 @@ function createFollower() {
   };
 }
 
-function setupHero() {
-  if (REDUCE.matches || COARSE.matches) {
-    hero.classList.add("is-static");
+/**
+ * Mobile hero (≤760px): one lettering coasts at a steady speed and reverses on
+ * the hero edges, like the DVD logo. A wall hit advances the same queue as a
+ * desktop click. The author credit stays fixed in the upper-middle; the artwork
+ * only travels in the lane below that label.
+ * `prefers-reduced-motion` parks the piece in the centre — a tap still advances.
+ */
+function createBounce() {
+  const SPEED = 74;
+  const pos = { x: 0, y: 0 };
+  const vel = { x: SPEED, y: SPEED };
+  const limit = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+  let artW = 0;
+  let artH = 0;
+  let frame = 0;
+  let active = false;
+  let placed = false;
+  let last = 0;
+  let lastHit = 0;
+
+  function islandHeight() {
+    const raw = getComputedStyle(page || document.documentElement).getPropertyValue("--island-h");
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  /** How far down the flying piece must stay so it cannot cover the author. */
+  function laneTop() {
+    const floor = Math.max(12, islandHeight() + 8);
+    if (!credit || credit.hidden) return floor;
+    if (getComputedStyle(credit).display === "none") return floor;
+    const gap = 20;
+    const below = credit.getBoundingClientRect().bottom - hero.getBoundingClientRect().top + gap;
+    if (Number.isFinite(below) && below > floor) return below;
+    return floor;
+  }
+
+  function seedVelocity() {
+    const angle = ((22 + Math.random() * 46) * Math.PI) / 180;
+    const speed = SPEED * (0.94 + Math.random() * 0.12);
+    vel.x = Math.cos(angle) * speed * (Math.random() < 0.5 ? -1 : 1);
+    vel.y = Math.sin(angle) * speed * (Math.random() < 0.5 ? -1 : 1);
+  }
+
+  function seedPosition() {
+    seedVelocity();
+    const spanX = Math.max(0, limit.maxX - limit.minX);
+    const spanY = Math.max(0, limit.maxY - limit.minY);
+    const alongX = spanX * (0.08 + Math.random() * 0.16);
+    const alongY = spanY * (0.08 + Math.random() * 0.16);
+    pos.x = vel.x > 0 ? limit.minX + alongX : limit.maxX - alongX;
+    pos.y = vel.y > 0 ? limit.minY + alongY : limit.maxY - alongY;
+  }
+
+  /** Pull the centre back inside the hero. A resize clamp does not advance the queue. */
+  function clamp(countHit) {
+    let hit = false;
+    if (limit.maxX > limit.minX) {
+      if (pos.x > limit.maxX) {
+        pos.x = limit.maxX;
+        if (vel.x > 0) vel.x = -vel.x;
+        hit = true;
+      } else if (pos.x < limit.minX) {
+        pos.x = limit.minX;
+        if (vel.x < 0) vel.x = -vel.x;
+        hit = true;
+      }
+    } else {
+      pos.x = limit.minX;
+    }
+    if (limit.maxY > limit.minY) {
+      if (pos.y > limit.maxY) {
+        pos.y = limit.maxY;
+        if (vel.y > 0) vel.y = -vel.y;
+        hit = true;
+      } else if (pos.y < limit.minY) {
+        pos.y = limit.minY;
+        if (vel.y < 0) vel.y = -vel.y;
+        hit = true;
+      }
+    } else {
+      pos.y = limit.minY;
+    }
+    if (!hit || !countHit) return;
+    const now = performance.now();
+    if (now - lastHit < 280) return;
+    lastHit = now;
+    nextHero();
+  }
+
+  function apply() {
+    const transform = `translate(calc(-50% + ${pos.x.toFixed(2)}px), calc(-50% + ${pos.y.toFixed(2)}px))`;
+    letteringImage.style.transform = transform;
+    action.style.left = "50%";
+    action.style.top = "50%";
+    action.style.right = "auto";
+    action.style.bottom = "auto";
+    action.style.width = `${artW}px`;
+    action.style.height = `${artH}px`;
+    action.style.transform = transform;
+  }
+
+  /** Reduced motion: the hit target hugs the centred artwork, it does not fly. */
+  function placeHitFromArt() {
+    const box = hero.getBoundingClientRect();
+    const art = letteringImage.getBoundingClientRect();
+    if (art.width < 2 || art.height < 2) return;
+    action.style.left = `${art.left - box.left}px`;
+    action.style.top = `${art.top - box.top}px`;
+    action.style.right = "auto";
+    action.style.bottom = "auto";
+    action.style.width = `${art.width}px`;
+    action.style.height = `${art.height}px`;
+    action.style.transform = "none";
+  }
+
+  function measure() {
+    artW = letteringImage.offsetWidth;
+    artH = letteringImage.offsetHeight;
+    if (artW < 2 || artH < 2) return;
+    const boxW = hero.clientWidth;
+    const boxH = hero.clientHeight;
+    const padX = 12;
+    const padB = 12;
+    const padT = laneTop();
+    const minCx = padX + artW / 2;
+    const maxCx = boxW - padX - artW / 2;
+    const minCy = padT + artH / 2;
+    const maxCy = boxH - padB - artH / 2;
+    if (maxCx > minCx) {
+      limit.minX = minCx - boxW / 2;
+      limit.maxX = maxCx - boxW / 2;
+    } else {
+      limit.minX = 0;
+      limit.maxX = 0;
+    }
+    if (maxCy > minCy) {
+      limit.minY = minCy - boxH / 2;
+      limit.maxY = maxCy - boxH / 2;
+    } else {
+      /* Taller than the lane under the author: sit the top edge against that lane. */
+      const pinned = minCy - boxH / 2;
+      limit.minY = pinned;
+      limit.maxY = pinned;
+    }
+    if (!placed) {
+      placed = true;
+      seedPosition();
+    } else {
+      clamp(false);
+    }
+    if (active) apply();
+    else if (REDUCE.matches && NARROW.matches) {
+      pos.x = (limit.minX + limit.maxX) / 2;
+      pos.y = (limit.minY + limit.maxY) / 2;
+      apply();
+    }
+  }
+
+  function step(dt) {
+    if (limit.maxX > limit.minX) pos.x += vel.x * dt;
+    if (limit.maxY > limit.minY) pos.y += vel.y * dt;
+    clamp(true);
+    apply();
+  }
+
+  function tick(now) {
+    frame = 0;
+    if (!active) return;
+    const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now;
+    if (dt > 0) step(dt);
+    frame = requestAnimationFrame(tick);
+  }
+
+  function setActive(on) {
+    const next = Boolean(on);
+    if (next === active) {
+      if (next && !frame) frame = requestAnimationFrame(tick);
+      return;
+    }
+    active = next;
+    if (!active) {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      last = 0;
+      return;
+    }
+    last = 0;
+    measure();
+    if (!frame) frame = requestAnimationFrame(tick);
+  }
+
+  function park() {
+    setActive(false);
+    if (letteringImage.offsetWidth < 2) {
+      letteringImage.style.transform = "";
+      requestAnimationFrame(placeHitFromArt);
+      return;
+    }
+    measure();
+  }
+
+  function release() {
+    setActive(false);
+    letteringImage.style.transform = "";
+    action.style.left = "";
+    action.style.top = "";
+    action.style.right = "";
+    action.style.bottom = "";
+    action.style.width = "";
+    action.style.height = "";
+    action.style.transform = "";
+  }
+
+  letteringImage.addEventListener("load", measure);
+  window.addEventListener("resize", measure, { passive: true });
+  new ResizeObserver(measure).observe(hero);
+  const bar = document.querySelector("[data-filter-bar]");
+  if (bar) new ResizeObserver(measure).observe(bar);
+  if (credit) new ResizeObserver(measure).observe(credit);
+
+  return { setActive, measure, park, release };
+}
+
+/** Desktop pointer-follow, or the mobile DVD bounce. Deck-open and reduced-motion pause the motion. */
+function syncHeroMode() {
+  if (!hero || !letteringImage || !action) return;
+  const deckOpen = document.body.classList.contains("is-hero-deck");
+  const paused = deckOpen || document.hidden;
+  if (NARROW.matches) {
+    hero.classList.add("is-dvd");
+    follower?.setActive(false);
+    if (!bounce) bounce = createBounce();
+    if (REDUCE.matches) {
+      bounce.park();
+      return;
+    }
+    bounce.setActive(!paused);
     return;
   }
-  follower = createFollower();
+  hero.classList.remove("is-dvd");
+  bounce?.release();
+  if (REDUCE.matches || COARSE.matches) {
+    hero.classList.add("is-static");
+    follower?.setActive(false);
+    return;
+  }
+  hero.classList.remove("is-static");
+  if (!follower) follower = createFollower();
+  follower.setActive(!paused);
+  follower.measure();
+}
+
+function pauseHeroMotion() {
+  follower?.setActive(false);
+  bounce?.setActive(false);
 }
 
 /**
- * Desktop only (>760px): wire the pointer follower / tap-to-swap and fetch the
- * lettering deck. On mobile the hero block is the static scooter illustration —
- * nothing is wired and no hero SVG is ever requested. Runs at most once, either
- * at boot or the first time the frame widens past the breakpoint.
+ * Both widths share the lettering queue and the tap-to-advance button.
+ * Desktop follows the pointer. Mobile bounces. Runs at most once for the fetch,
+ * then again on breakpoint changes to swap the motion mode.
  */
 async function startHero() {
-  if (heroStarted || NARROW.matches || !catalogReady) return;
-  heroStarted = true;
-  setupHero();
-  if (document.body.classList.contains("is-hero-deck")) follower?.setActive(false);
-  action.addEventListener("click", (event) => {
-    playTickClick(event);
-    nextHero();
-  });
-  const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
-  workshopWorks = await preloadHeroWorks(heroCandidates);
-  if (workshopWorks.length) nextHero();
-  else hero.classList.add("is-loaded");
+  if (!catalogReady || !hero || !letteringImage || !action) return;
+  if (!heroStarted) {
+    heroStarted = true;
+    action.addEventListener("click", (event) => {
+      playTickClick(event);
+      nextHero();
+    });
+    REDUCE.addEventListener("change", syncHeroMode);
+    document.addEventListener("visibilitychange", syncHeroMode);
+    const heroCandidates = catalog.filter((item) => item.type === TYPE_LETTERING && svgFile(item));
+    workshopWorks = await preloadHeroWorks(heroCandidates);
+    /* Show the <img> before assigning src so a display:none mobile rule cannot skip the fetch. */
+    if (NARROW.matches) hero.classList.add("is-dvd");
+    if (workshopWorks.length) nextHero();
+    else hero.classList.add("is-loaded");
+  }
+  syncHeroMode();
 }
 
 /* ---------- fullscreen viewer (port of src/author-lightbox.js mechanics) ---------- */
@@ -2306,7 +2563,7 @@ function syncIslandSticky() {
  * Flying deck inside the lettering hero, both widths.
  * The schedule chip scrolls to the top, shows `index.html?deck=stage`, and
  * swaps the eye. A second tap plays the outro and the hero collapses.
- * On a phone the scooter is the resting hero; the overlay is not used.
+ * On a phone the lettering bounces in the hero; the overlay is not used.
  */
 function initDeckStage() {
   const stage = document.querySelector("[data-deck-stage]");
@@ -2445,7 +2702,7 @@ function initDeckStage() {
     heroDeckOpen = true;
     setExpanded(true);
     scrollPageTo(0, 0.55);
-    follower?.setActive(false);
+    pauseHeroMotion();
     document.body.classList.add("is-hero-deck");
     setHeroDeckFocus(false);
     heroDeck.hidden = false;
@@ -2466,8 +2723,7 @@ function initDeckStage() {
     heroDeck.setAttribute("aria-hidden", "true");
     document.body.classList.remove("is-hero-deck");
     setHeroDeckFocus(false);
-    follower?.setActive(true);
-    follower?.measure();
+    syncHeroMode();
   }
 
   function closeHero() {
@@ -2615,8 +2871,8 @@ async function boot() {
   catalogLayout = normalizeExperiment2Layout(data.layout);
   catalogReady = true;
   grid.removeAttribute("aria-busy");
-  /* Desktop: the hero request goes out before the grid's so it wins the network queue.
-     Mobile: no-op — the grid is the only thing that loads. */
+  /* The hero request goes out before the grid's so it wins the network queue.
+     Desktop follows the pointer; mobile bounces the same lettering queue. */
   const heroReady = startHero();
   applyLayout(readStoredLayout() ?? catalogLayout);
   await heroReady;

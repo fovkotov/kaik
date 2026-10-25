@@ -110,7 +110,7 @@ html.is-viewer-open .experiment-two__scroll {
 
 /* First screen: 16px gutter + hero of --hero-vh (G-panel "hero height (vh)"), filters just after.
    vh is the iframe's own viewport here; 90 leaves the filter row peeking in on desktop.
-   ≤760px the same box holds the static scooter illustration instead (heroVhMobile). */
+   ≤760px the same box is the DVD lettering bounce (heroVhMobile). */
 .works-page {
   /* Measured height of the sticky filter row (see syncIslandSticky). */
   --island-h: 32px;
@@ -1385,15 +1385,13 @@ button.work-card__art:active {
 }
 
 @media (max-width: 760px) {
-  /* Pre-JS fallback; JS writes the catalog / stored heroVhMobile inline.
-     On mobile this is the height of the static illustration block, not a hero. */
+  /* Pre-JS fallback; JS writes the catalog / stored heroVhMobile inline. */
   .works-page {
     --hero-vh: 78;
   }
 
-  /* No interactive hero on mobile: the block keeps its --hero-h box, but the
-     lettering, the tap target and the credit are gone, and the scooter + caption
-     stay put as static content (JS never requests a hero SVG at this width). */
+  /* Until JS marks the DVD hero, keep the scooter. `.is-dvd` brings the same
+     lettering, tap target and centred author back. */
   .lettering-hero {
     touch-action: auto;
   }
@@ -1406,6 +1404,61 @@ button.work-card__art:active {
 
   .lettering-hero.is-loaded .lettering-hero__loader {
     display: flex;
+  }
+
+  /* One lettering flies in the hero, below the author. The name stays fixed
+     in the upper-middle band (about 41vh), and the bounce lane starts under it. */
+  .lettering-hero.is-dvd,
+  .lettering-hero.is-dvd .lettering-hero__action {
+    cursor: pointer;
+  }
+
+  .lettering-hero.is-dvd {
+    touch-action: pan-y;
+  }
+
+  .lettering-hero.is-dvd .lettering-hero__image,
+  .lettering-hero.is-dvd .lettering-hero__action {
+    display: block;
+  }
+
+  .lettering-hero.is-dvd .lettering-hero__image {
+    z-index: 1;
+    /* 1.2× the previous mobile cap. Desktop keeps the base 68% / 62% rules. */
+    max-width: calc(1.2 * min(220px, 62%));
+    max-height: calc(1.2 * min(132px, 22%));
+  }
+
+  .lettering-hero.is-dvd .lettering-hero__action {
+    inset: auto;
+    width: auto;
+    height: auto;
+    touch-action: pan-y;
+  }
+
+  .lettering-hero.is-dvd .lettering-hero__credit {
+    display: flex;
+    /* Upper-middle of the phone hero: ~41vh, never under the filters, never
+       past the upper half so the bounce lane below stays open. */
+    top: clamp(calc(var(--island-h) + 24px), calc(41vh - var(--edge)), 52%);
+    bottom: auto;
+    z-index: 4;
+    font-size: 14px;
+    line-height: 1.25;
+    pointer-events: none;
+    transform: translateY(-50%);
+    text-shadow:
+      0 0 12px var(--bg),
+      0 0 3px var(--bg);
+  }
+
+  .lettering-hero.is-dvd .lettering-hero__credit[hidden],
+  .lettering-hero.is-dvd .lettering-hero__credit:empty {
+    display: none;
+  }
+
+  .lettering-hero.is-dvd.is-loaded .lettering-hero__loader {
+    display: none;
   }
 
   /* Centre the illustration in the room below the sticky island (which overlays the block's top). */
