@@ -1094,8 +1094,9 @@ function bindWorkNav(programApi) {
 }
 
 if (document.documentElement.classList.contains("deck-stage")) {
-  document.querySelector("[data-program-card]")?.remove();
-  document.querySelector("[data-deck-loop]")?.remove();
+  document
+    .querySelectorAll("[data-program-card], [data-landing-card], [data-link-card], [data-deck-loop]")
+    .forEach((el) => el.remove());
 }
 
 /**
