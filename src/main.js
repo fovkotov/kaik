@@ -1292,6 +1292,44 @@ function initDeck() {
     for (const el of [deck, root]) {
       el.addEventListener("touchmove", onStagePileTouchMove, { passive: false });
     }
+
+    /* iOS edge-swipe back is a horizontal touch that starts on this deck.
+       Lock the axis, then cancel only the sideways gesture. A vertical finger
+       stays with the native scroller — no preventDefault, no card pose. */
+    let edgeGuard = null;
+    document.addEventListener(
+      "touchstart",
+      (event) => {
+        if (!phoneStagePile() || event.touches.length !== 1) {
+          edgeGuard = null;
+          return;
+        }
+        const touch = event.touches[0];
+        edgeGuard = { x: touch.clientX, y: touch.clientY, id: touch.identifier, axis: null };
+      },
+      { passive: true, capture: true },
+    );
+    document.addEventListener(
+      "touchmove",
+      (event) => {
+        if (!edgeGuard || !phoneStagePile()) return;
+        const touch = Array.from(event.touches).find((item) => item.identifier === edgeGuard.id);
+        if (!touch) return;
+        if (!edgeGuard.axis) {
+          const dx = touch.clientX - edgeGuard.x;
+          const dy = touch.clientY - edgeGuard.y;
+          if (Math.hypot(dx, dy) <= PILE_TAP_PX) return;
+          edgeGuard.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        }
+        if (edgeGuard.axis === "x" && event.cancelable) event.preventDefault();
+      },
+      { passive: false, capture: true },
+    );
+    const clearEdgeGuard = () => {
+      edgeGuard = null;
+    };
+    document.addEventListener("touchend", clearEdgeGuard, { passive: true, capture: true });
+    document.addEventListener("touchcancel", clearEdgeGuard, { passive: true, capture: true });
   }
 
   document.addEventListener("kaik:cancel-deck-drag", () => {
@@ -1322,13 +1360,27 @@ function initDeck() {
 
   // Kill page scroll on mobile — cards move only via drag
   const seenWheel = new WeakSet();
+  const stageWheel = (event) => {
+    const pxX = lenisWheelPx(event.deltaX, event.deltaMode, window.innerWidth);
+    const pxY = lenisWheelPx(event.deltaY, event.deltaMode, window.innerHeight);
+    return {
+      pxX,
+      pxY,
+      horizontal: Boolean(event.shiftKey || Math.abs(pxX) > Math.abs(pxY)),
+    };
+  };
   const onDeckWheel = (event) => {
     if (seenWheel.has(event)) return;
     seenWheel.add(event);
+    const stageDoc = document.documentElement.classList.contains("deck-stage");
+    const axis = stageDoc ? stageWheel(event) : null;
+    // Reverse trackpad swipe is a horizontal wheel. Consume it so it cannot
+    // become history Back. A vertical wheel stays uncancelled for the page glide.
+    if (axis?.horizontal && event.cancelable) event.preventDefault();
     // Desktop hero iframe: an open card or lightbox scrolls only itself.
     // Wheel on the rest of the iframe moves the parent page, not the deck.
     if (
-      document.documentElement.classList.contains("deck-stage") &&
+      stageDoc &&
       !isMobile() &&
       (programLocked() || isAuthorLightboxOpen()) &&
       !eventFrom(
@@ -1336,12 +1388,8 @@ function initDeck() {
         ".is-program-open, [data-author-lightbox], [data-project-viewer-root]",
       )
     ) {
-      event.preventDefault();
       if (programLocked()) holdFlyLock();
-      const pxX = lenisWheelPx(event.deltaX, event.deltaMode, window.innerWidth);
-      const pxY = lenisWheelPx(event.deltaY, event.deltaMode, window.innerHeight);
-      const horizontal = event.shiftKey || Math.abs(pxX) > Math.abs(pxY);
-      if (!horizontal) postStagePageScroll(pxY, true);
+      if (!axis.horizontal) postStagePageScroll(axis.pxY, true);
       return;
     }
     if (isAuthorLightboxOpen()) {
@@ -1351,11 +1399,17 @@ function initDeck() {
     if (eventFrom(event.target, ".is-program-open")) return;
     if (eventFrom(event.target, "[data-tweaks], [data-tweaks-reopen], [data-deck-tune], [data-stage-settings], [data-sound-settings], .landing-card__enroll, .landing-card__nav a, .landing-card__nav button")) return;
     if (programLocked()) {
-      event.preventDefault();
+      if (!stageDoc) event.preventDefault();
       holdFlyLock();
       return;
     }
     if (isMobile()) {
+      if (stageDoc) {
+        if (axis.horizontal) return;
+        if (focusOpen() || isFocusFrozen() || isAuthorLightboxOpen()) return;
+        postStagePageScroll(axis.pxY, true);
+        return;
+      }
       event.preventDefault();
       /* Phone stage pile: vertical wheel scrolls the parent page.
          `/` still advances the flying stack. */
@@ -1377,16 +1431,12 @@ function initDeck() {
       scheduleRender();
       return;
     }
-    if (document.documentElement.classList.contains("deck-stage")) {
-      event.preventDefault();
-      const pxX = lenisWheelPx(event.deltaX, event.deltaMode, window.innerWidth);
-      const pxY = lenisWheelPx(event.deltaY, event.deltaMode, window.innerHeight);
-      const horizontal = event.shiftKey || Math.abs(pxX) > Math.abs(pxY);
-      if (horizontal) {
-        queueDeckWheel(pxX || pxY);
+    if (stageDoc) {
+      if (axis.horizontal) {
+        queueDeckWheel(axis.pxX || axis.pxY);
         return;
       }
-      postStagePageScroll(pxY, true);
+      postStagePageScroll(axis.pxY, true);
       return;
     }
     event.preventDefault();
@@ -1395,6 +1445,19 @@ function initDeck() {
   };
   window.addEventListener("wheel", onDeckWheel, { passive: false });
   root.addEventListener("wheel", onDeckWheel, { passive: false, capture: true });
+  /* Capture, deck-stage only. A child can stopPropagation before the bubble
+     handler, and the history swipe reads the first uncancelled horizontal wheel.
+     `/` does not register this. Vertical wheels are not cancelled. */
+  if (document.documentElement.classList.contains("deck-stage")) {
+    window.addEventListener(
+      "wheel",
+      (event) => {
+        if (!stageWheel(event).horizontal || !event.cancelable) return;
+        event.preventDefault();
+      },
+      { capture: true, passive: false },
+    );
+  }
 
   root.addEventListener("scroll", () => {
     if (isMobile()) {

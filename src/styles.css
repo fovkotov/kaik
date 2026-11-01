@@ -8140,3 +8140,19 @@ html:not(.is-mobile) .card.is-work-open .work-card__close:not([hidden]) {
   }
 }
 
+/* Stage deck only. `contain` still blocks scroll chaining on the block axis.
+   `none` on x is what stops a reverse trackpad swipe from becoming history
+   Back. `/` keeps the contain shorthand and is not listed here. */
+html.deck-stage,
+html.deck-stage body,
+html.deck-stage body .viewport,
+html.deck-stage .viewport,
+html.deck-stage .viewport.is-fly-locked {
+  overscroll-behavior-x: none;
+}
+
+html.deck-stage .deck {
+  overscroll-behavior: contain;
+  overscroll-behavior-x: none;
+}
+

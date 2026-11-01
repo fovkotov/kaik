@@ -66,6 +66,7 @@ body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: contain;
+  overscroll-behavior-x: none;
   background: var(--bg);
 }
 
@@ -93,6 +94,7 @@ a {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  overscroll-behavior-x: none;
   scrollbar-width: none;
 }
 
@@ -128,6 +130,7 @@ html.is-viewer-open .experiment-two__scroll {
   overflow: hidden;
   isolation: isolate;
   touch-action: pan-y;
+  overscroll-behavior-x: none;
   transition: height 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -144,6 +147,7 @@ html.is-viewer-open .experiment-two__scroll {
   border: 0;
   background: var(--bg);
   overscroll-behavior: contain;
+  overscroll-behavior-x: none;
 }
 
 /* Open deck, both widths: the hero grows to the iframe and the lettering
@@ -1071,6 +1075,7 @@ button.work-card__art:active {
   display: none;
   overflow: hidden;
   overscroll-behavior: contain;
+  overscroll-behavior-x: none;
   background: var(--bg);
 }
 
@@ -1087,6 +1092,7 @@ button.work-card__art:active {
   border: 0;
   background: var(--bg);
   overscroll-behavior: contain;
+  overscroll-behavior-x: none;
 }
 
 .deck-stage__close {
