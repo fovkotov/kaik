@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T22:34:33.778Z",
+  "updatedAt": "2026-11-05T22:35:25.395Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3870,9 +3870,6 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 1600,
-      "height": 900,
-      "gridSpan": "auto",
       "files": [
         "wrk_7733e07f_0.webp",
         "wrk_7733e07f_1.webp",
@@ -3896,8 +3893,26 @@
         "wrk_7733e07f_19.webp",
         "wrk_7733e07f_20.webp"
       ],
+      "width": 1600,
+      "height": 900,
+      "createdAt": "2026-11-05T22:34:33.778Z",
       "originalName": "01.webp",
-      "createdAt": "2026-11-05T22:34:33.778Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_79f8be76",
+      "type": "final",
+      "author": "Алеся",
+      "nick": "alesiado",
+      "stream": "2",
+      "width": 928,
+      "height": 227,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_79f8be76_0.svg"
+      ],
+      "originalName": "_Слой_1.svg",
+      "createdAt": "2026-11-05T22:35:25.394Z"
     }
   ]
 }
