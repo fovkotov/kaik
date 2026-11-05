@@ -550,8 +550,8 @@
       "author": "Алена",
       "nick": "alenapichh",
       "stream": "1",
+      "cover": "wrk_9977bb38_10.webp",
       "files": [
-        "wrk_9977bb38_10.webp",
         "wrk_9977bb38_11.webp",
         "wrk_9977bb38_12.webp",
         "wrk_9977bb38_13.webp",
@@ -590,8 +590,8 @@
       "author": "АРТЕМ",
       "nick": "svrdee",
       "stream": "1",
+      "cover": "wrk_836f8ecb_0.webp",
       "files": [
-        "wrk_836f8ecb_0.webp",
         "wrk_836f8ecb_10.webp",
         "wrk_836f8ecb_11.webp"
       ],
@@ -608,8 +608,8 @@
       "author": "Ян",
       "nick": "l200kmhinthewronglane",
       "stream": "1",
+      "cover": "wrk_47e05e10_0.webp",
       "files": [
-        "wrk_47e05e10_0.webp",
         "wrk_47e05e10_1.webp",
         "wrk_47e05e10_2.webp",
         "wrk_47e05e10_3.webp",
@@ -628,8 +628,8 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
+      "cover": "wrk_4d695bf9_0.webp",
       "files": [
-        "wrk_4d695bf9_0.webp",
         "wrk_4d695bf9_1.webp",
         "wrk_4d695bf9_2.webp",
         "wrk_4d695bf9_3.webp",
@@ -675,8 +675,8 @@
       "author": "Катя",
       "nick": "hurujoi",
       "stream": "1",
+      "cover": "wrk_998fda29_4.webp",
       "files": [
-        "wrk_998fda29_4.webp",
         "wrk_998fda29_5.webp",
         "wrk_998fda29_6.webp",
         "wrk_998fda29_7.webp",
@@ -695,8 +695,8 @@
       "author": "надя",
       "nick": "oh_narcy",
       "stream": "1",
+      "cover": "wrk_cb2691c6_0.webp",
       "files": [
-        "wrk_cb2691c6_0.webp",
         "wrk_cb2691c6_1.webp",
         "wrk_cb2691c6_2.webp",
         "wrk_cb2691c6_3.webp",
@@ -2951,7 +2951,6 @@
       "author": "надя",
       "nick": "oh_narcy",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_651db906_0.svg"
       ],
@@ -2982,7 +2981,6 @@
       "author": "надя",
       "nick": "oh_narcy",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_cf85ba4c_0.svg"
       ],
@@ -3013,7 +3011,6 @@
       "author": "Алёна",
       "nick": "alenuchotam",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_7646aafc_0.svg"
       ],
@@ -3075,7 +3072,6 @@
       "author": "Алёна",
       "nick": "alenapichh",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_f5025a8c_0.svg"
       ],
@@ -3091,7 +3087,6 @@
       "author": "Алёна",
       "nick": "alenapichh",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_a12d46b1_0.svg"
       ],
@@ -3152,7 +3147,6 @@
       "author": "Катя",
       "nick": "hurujoi",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_1fd98157_0.svg"
       ],
@@ -3198,7 +3192,6 @@
       "author": "Андрей",
       "nick": "fovkotov",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_10848fd1_0.svg"
       ],
@@ -3244,7 +3237,6 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_64ace0a6_0.svg"
       ],
@@ -3260,7 +3252,6 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_0ce0356d_0.svg"
       ],
@@ -3276,7 +3267,6 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_122ca0ac_0.svg"
       ],
@@ -3292,7 +3282,6 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_a28bb63e_0.svg"
       ],
@@ -3308,7 +3297,6 @@
       "author": "рома",
       "nick": "rameoky",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_6a277378_0.svg"
       ],
@@ -3324,7 +3312,6 @@
       "author": "надя",
       "nick": "oh_narcy",
       "stream": "1",
-      "hidden": true,
       "files": [
         "wrk_67baf1e9_0.svg"
       ],
@@ -3497,8 +3484,8 @@
       "author": "алёна",
       "nick": "alenuchotam",
       "stream": "1",
+      "cover": "wrk_e6dd2cde_0.webp",
       "files": [
-        "wrk_e6dd2cde_0.webp",
         "wrk_e6dd2cde_1.webp",
         "wrk_e6dd2cde_2.webp",
         "wrk_e6dd2cde_3.webp"
@@ -3515,8 +3502,8 @@
       "author": "надя",
       "nick": "nay0777",
       "stream": "1",
+      "cover": "wrk_deb7ac6c_0.webp",
       "files": [
-        "wrk_deb7ac6c_0.webp",
         "wrk_deb7ac6c_1.webp",
         "wrk_deb7ac6c_2.webp",
         "wrk_deb7ac6c_3.webp",

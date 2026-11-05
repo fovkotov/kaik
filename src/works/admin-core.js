@@ -173,6 +173,28 @@ export function uploadsToFiles(id, uploads, existing = []) {
   return { files, blobs, width, height };
 }
 
+/**
+ * One cover image for a final project. `{ keep }` reuses a file the work
+ * already owns; a new upload is stored as `${id}_cover…` and never shares
+ * a name with a slide, so replacing the cover cannot unlink the new bytes.
+ */
+export function coverFromUpload(id, upload, owned = []) {
+  if (!upload || typeof upload !== "object") throw new Error("Final project needs a cover");
+  if (upload.keep) {
+    const name = String(upload.keep);
+    if (!owned.includes(name)) throw new Error("Unknown file");
+    return { name, blob: null };
+  }
+  const decoded =
+    upload.sha && !upload.data
+      ? { ext: extFrom(upload.filename, upload.mime), sha: String(upload.sha) }
+      : decodeUpload(upload);
+  let name = `${id}_cover${decoded.ext}`;
+  if (owned.includes(name)) name = `${id}_cover_${shortId()}${decoded.ext}`;
+  const blob = decoded.sha ? { name, sha: decoded.sha } : { name, buffer: decoded.buffer };
+  return { name, blob };
+}
+
 export function withMeta(catalog) {
   return hydrateWorksCatalog(catalog);
 }

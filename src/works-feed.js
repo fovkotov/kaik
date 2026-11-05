@@ -11,6 +11,7 @@ import {
   TYPE_LETTERING,
   placeWork,
   sortWorksByDate,
+  workCoverFile,
 } from "./works/taxonomy.js";
 import { fontFlags, settleFontText, shapeFontText } from "./works/font-display.js";
 
@@ -53,7 +54,8 @@ function isFontFile(name) {
 }
 
 export function imageFiles(item) {
-  return (item?.files || []).filter((file) => !isFontFile(file));
+  const cover = String(item?.cover || "");
+  return (item?.files || []).filter((file) => !isFontFile(file) && file !== cover);
 }
 
 function pickWord(id, lang) {
@@ -123,6 +125,10 @@ function mediaMarkup(item, opts) {
   if (item.type === TYPE_FONT && fontFile) return fontMarkup(item, fontFile, opts);
   if (fontFile && !imageFiles(item).length) return fontMarkup(item, fontFile, opts);
   const images = imageFiles(item);
+  if (item.type === TYPE_FINAL) {
+    const cover = workCoverFile(item);
+    if (cover) return artMarkup(workFileUrl(cover), item);
+  }
   if (!images.length) return "";
   if (item.type === TYPE_FINAL && images.length > 1) return sliderMarkup(item, images, opts);
   return artMarkup(workFileUrl(images[0]), item);

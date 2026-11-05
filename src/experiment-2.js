@@ -10,6 +10,8 @@ import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
 import {
   TYPE_DAILY,
   TYPE_FINAL,
+  isRasterDeckFinal,
+  workCoverFile,
   TYPE_FONT,
   TYPE_LETTERING,
   normalizeExperiment2Layout,
@@ -227,7 +229,8 @@ function activeHeroVh() {
 }
 
 function imageFiles(item) {
-  return (item?.files || []).filter((file) => !FONT_RE.test(file));
+  const cover = String(item?.cover || "");
+  return (item?.files || []).filter((file) => !FONT_RE.test(file) && file !== cover);
 }
 
 function isSvgFile(file) {
@@ -236,7 +239,7 @@ function isSvgFile(file) {
 
 /** Raster finals stay 16:9 cover. SVG covers keep their real aspect so swashes are not cropped. */
 function usesCoverCrop(item) {
-  return item?.type === TYPE_FINAL && !isSvgFile(imageFiles(item)[0]);
+  return item?.type === TYPE_FINAL && !isSvgFile(workCoverFile(item));
 }
 
 function fontFile(item) {
@@ -906,7 +909,7 @@ function bindArtworkMetrics(card, preview, image) {
 
 function cardFor(item, span) {
   if (item.type === TYPE_FONT) return fontCardFor(item, span);
-  const cover = imageFiles(item)[0];
+  const cover = workCoverFile(item) || imageFiles(item)[0];
   const card = document.createElement("article");
   card.className = "work-card is-enter";
   card.dataset.workId = item.id;
@@ -995,14 +998,14 @@ function finalsTabOnly() {
 }
 
 function visibleWorks() {
-  const hideFromFinals = finalsTabOnly();
-  return catalog.filter(
-    (item) =>
-      !(hideFromFinals && item.hidden) &&
-      enabledTypes.has(item.type) &&
-      VISUAL_TYPES.includes(item.type) &&
-      (item.type === TYPE_FONT ? Boolean(fontFile(item)) : imageFiles(item).length > 0),
-  );
+  const finalsOnly = finalsTabOnly();
+  return catalog.filter((item) => {
+    if (!enabledTypes.has(item.type) || !VISUAL_TYPES.includes(item.type)) return false;
+    if (item.type === TYPE_FONT) return Boolean(fontFile(item));
+    // The finals tab is presentations only: several raster slides, never a lone picture or an SVG.
+    if (finalsOnly && (item.hidden || !isRasterDeckFinal(item))) return false;
+    return imageFiles(item).length > 0 || Boolean(workCoverFile(item));
+  });
 }
 
 function slideFor(item, file) {

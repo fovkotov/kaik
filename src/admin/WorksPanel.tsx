@@ -73,6 +73,8 @@ type WorkItem = {
   latin?: boolean;
   cyrillic?: boolean;
   hidden?: boolean;
+  /** Final projects only: the card image, not one of the slides. */
+  cover?: string;
   files: string[];
   width?: number;
   height?: number;
@@ -108,6 +110,8 @@ type InboxItem = {
   stream: string;
   glyph?: string;
   files: UploadFile[];
+  /** Final projects only. Required before the inbox row can be saved. */
+  cover?: UploadFile;
 };
 
 type GridSpan = "auto" | 1 | 3;
@@ -363,8 +367,25 @@ function toSlide(upload: UploadFile): Slide {
   return { key: `up-${Date.now()}-${Math.random()}`, upload };
 }
 
+function coverSlideFrom(item: WorkItem | null): Slide | null {
+  if (!item || normalizeWorkType(item.type) !== TYPE_FINAL) return null;
+  if (item.cover) return { key: `cover-${item.cover}`, file: item.cover };
+  // Only a real deck promotes its first picture into the cover slot.
+  if ((item.files || []).length < 2) return null;
+  const file = item.files.find((name) => !isFontPath(name));
+  return file ? { key: `cover-${file}`, file } : null;
+}
+
 function slidesFrom(item: WorkItem | null): Slide[] {
-  return (item?.files || []).map((file) => ({ key: file, file }));
+  const files = item?.files || [];
+  // An older multi-slide final with no cover field still shows its first picture as the cover, not as a slide.
+  if (item && normalizeWorkType(item.type) === TYPE_FINAL && !item.cover && files.length > 1) {
+    const first = files.findIndex((name) => !isFontPath(name));
+    if (first >= 0) {
+      return files.filter((_, index) => index !== first).map((file) => ({ key: file, file }));
+    }
+  }
+  return files.map((file) => ({ key: file, file }));
 }
 
 function revokeSlides(slides: Slide[]) {
@@ -651,7 +672,7 @@ function fileSrc(item: WorkItem, file: string) {
 }
 
 function thumbSrc(item: WorkItem) {
-  const file = item.files?.[0];
+  const file = (normalizeWorkType(item.type) === TYPE_FINAL && item.cover) || item.files?.[0];
   if (!file || isFontPath(file)) return "";
   return fileSrc(item, file);
 }
@@ -719,8 +740,10 @@ export function WorksPanel({
   });
   const [editFiles, setEditFiles] = useState<UploadFile[] | null>(null);
   const [editSlides, setEditSlides] = useState<Slide[]>([]);
+  const [editCover, setEditCover] = useState<Slide | null>(null);
   const [editDrop, setEditDrop] = useState(false);
   const [editDropSlide, setEditDropSlide] = useState<number | null>(null);
+  const [editDropCover, setEditDropCover] = useState(false);
   const [slideView, setSlideView] = useState<SlideView>("stack");
   // Slide being dragged and the slide it currently hovers, for the reorder preview.
   const [slideDrag, setSlideDrag] = useState<{ from: number; over: number } | null>(null);
@@ -752,6 +775,9 @@ export function WorksPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const slideInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const inboxCoverRef = useRef<HTMLInputElement>(null);
+  const inboxCoverKey = useRef<string | null>(null);
   // Index of the slide being replaced; null = append picked files to the end.
   const slideTarget = useRef<number | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -761,8 +787,11 @@ export function WorksPanel({
   const captured = useRef(false);
   const addFilesRef = useRef<(list: FileList | File[]) => Promise<void>>(async () => undefined);
   const applyEditUploadsRef = useRef<
-    (list: FileList | File[], target?: number | "all" | "append") => Promise<void>
+    (list: FileList | File[], target?: number | "all" | "append" | "cover") => Promise<void>
   >(async () => undefined);
+  const assignInboxCoverRef = useRef<(key: string | null, list: FileList | File[]) => Promise<void>>(
+    async () => undefined,
+  );
   const editTypeRef = useRef(editDraft.type);
   editTypeRef.current = editDraft.type;
   const lassoRef = useRef<Lasso | null>(null);
@@ -954,15 +983,23 @@ export function WorksPanel({
       if (!files?.length) return;
       // Open editor: a drop on the left pane replaces that work's file.
       // Anywhere else in the dialog is ignored so it does not land in the inbox.
+      const node = event.target instanceof Element ? event.target : null;
       if (editingRef.current) {
-        const node = event.target instanceof Element ? event.target : null;
+        const cover = node?.closest("[data-edit-cover]");
         const slide = node?.closest("[data-edit-slide]");
         const surface = node?.closest("[data-edit-surface]");
-        if (slide) {
+        if (cover) {
+          applyEditUploadsRef.current(files, "cover");
+        } else if (slide) {
           applyEditUploadsRef.current(files, Number(slide.getAttribute("data-edit-slide")));
         } else if (surface) {
           applyEditUploadsRef.current(files, "all");
         }
+        return;
+      }
+      const inboxCover = node?.closest("[data-inbox-cover]");
+      if (inboxCover) {
+        assignInboxCoverRef.current(inboxCover.getAttribute("data-inbox-cover"), files);
         return;
       }
       addFilesRef.current(files);
@@ -1003,12 +1040,45 @@ export function WorksPanel({
 
   // Author, nick and stream are optional — only the files are required.
   function inboxReady(item: InboxItem) {
-    return item.files.length > 0;
+    if (!item.files.length) return false;
+    if (item.type === TYPE_FINAL && !item.cover) return false;
+    return true;
   }
+
+  async function assignInboxCover(key: string | null, list: FileList | File[]) {
+    const image = [...list].find((file) => {
+      const kind = kindOf(file);
+      return kind === "raster" || kind === "svg";
+    });
+    if (!key || !image) {
+      toast.error(copy("admin.missingCover"));
+      return;
+    }
+    let uploaded: UploadFile;
+    try {
+      uploaded = await fileToUpload(image, true);
+    } catch {
+      toast.error(copy("admin.error"));
+      return;
+    }
+    setInbox((current) =>
+      current.map((entry) => {
+        if (entry.key !== key) return entry;
+        if (entry.cover) revokeUpload(entry.cover);
+        return { ...entry, cover: uploaded };
+      }),
+    );
+  }
+
+  assignInboxCoverRef.current = assignInboxCover;
 
   async function saveInbox() {
     if (!canWrite) {
       toast.error(copy("admin.devOnly"));
+      return;
+    }
+    if (inbox.some((item) => item.type === TYPE_FINAL && item.files.length > 0 && !item.cover)) {
+      toast.error(copy("admin.missingCover"));
       return;
     }
     if (inbox.some((item) => !inboxReady(item))) {
@@ -1018,7 +1088,7 @@ export function WorksPanel({
     if (busyRef.current) return;
     busyRef.current = true;
     let leftover = [...inbox];
-    const totalFiles = leftover.reduce((sum, item) => sum + item.files.length, 0);
+    const totalFiles = leftover.reduce((sum, item) => sum + item.files.length + (item.cover ? 1 : 0), 0);
     let saved = 0;
     let uploading = 0;
     const report = () => {
@@ -1028,28 +1098,30 @@ export function WorksPanel({
     try {
       // Works are committed in batches: one GitHub commit per batch instead of
       // one per work, which is what made 150 SVGs at once fall over.
-      let batch: { item: InboxItem; files: PackedFile[] }[] = [];
+      let batch: { item: InboxItem; files: PackedFile[]; cover?: PackedFile }[] = [];
       let batchBytes = 0;
       const flush = async () => {
         if (!batch.length) return;
         const data = await worksApi("", {
           method: "POST",
           body: JSON.stringify({
-            items: batch.map(({ item, files }) => ({
+            items: batch.map(({ item, files, cover }) => ({
               type: item.type,
               author: item.author,
               nick: item.nick,
               stream: item.stream,
               glyph: item.glyph || "",
-              ...itemDims(item.files),
+              ...itemDims(item.cover ? [item.cover, ...item.files] : item.files),
               files,
+              ...(cover ? { cover } : {}),
             })),
           }),
         });
         const done = new Set(batch.map(({ item }) => item.key));
         for (const { item } of batch) {
           revokeUploads(item.files);
-          saved += item.files.length;
+          if (item.cover) revokeUpload(item.cover);
+          saved += item.files.length + (item.cover ? 1 : 0);
         }
         uploading = 0;
         batch = [];
@@ -1068,11 +1140,19 @@ export function WorksPanel({
           }
           return packed;
         });
-        const bytes = JSON.stringify(files).length;
+        let cover: PackedFile | undefined;
+        if (item.cover) {
+          cover = await packFile(item.cover);
+          if (cover.sha) {
+            uploading += 1;
+            report();
+          }
+        }
+        const bytes = JSON.stringify({ files, cover }).length;
         if (batch.length && (batch.length >= BATCH_ITEMS || batchBytes + bytes > BATCH_BYTES)) {
           await flush();
         }
-        batch.push({ item, files });
+        batch.push({ item, files, cover });
         batchBytes += bytes;
       }
       await flush();
@@ -1089,6 +1169,7 @@ export function WorksPanel({
   function discardEditUploads() {
     if (editFiles) revokeUploads(editFiles);
     revokeSlides(editSlides);
+    if (editCover?.upload) revokeUpload(editCover.upload);
   }
 
   function openEditor(item: WorkItem) {
@@ -1109,7 +1190,9 @@ export function WorksPanel({
     });
     setEditFiles(null);
     setEditSlides(slidesFrom(item));
+    setEditCover(coverSlideFrom(item));
     setSlideDrag(null);
+    setEditDropCover(false);
   }
 
   function closeEditor() {
@@ -1117,8 +1200,10 @@ export function WorksPanel({
     setEditing(null);
     setEditFiles(null);
     setEditSlides([]);
+    setEditCover(null);
     setEditDrop(false);
     setEditDropSlide(null);
+    setEditDropCover(false);
     setSlideDrag(null);
   }
 
@@ -1174,10 +1259,32 @@ export function WorksPanel({
     if (Number.isInteger(from)) moveSlide(from, index);
   }
 
-  async function applyEditUploads(list: FileList | File[], target: number | "all" | "append" = "all") {
+  async function applyEditUploads(list: FileList | File[], target: number | "all" | "append" | "cover" = "all") {
     const type = editTypeRef.current;
     const incoming = [...list];
     if (!incoming.length) return;
+    if (target === "cover") {
+      const image = incoming.find((file) => {
+        const kind = kindOf(file);
+        return kind === "raster" || kind === "svg";
+      });
+      if (!image) {
+        toast.error(copy("admin.missingCover"));
+        return;
+      }
+      let uploaded: UploadFile;
+      try {
+        uploaded = await fileToUpload(image, true);
+      } catch {
+        toast.error(copy("admin.error"));
+        return;
+      }
+      setEditCover((current) => {
+        if (current?.upload) revokeUpload(current.upload);
+        return toSlide(uploaded);
+      });
+      return;
+    }
     let files: UploadFile[];
     try {
       files = await filesForType(incoming, type);
@@ -1224,8 +1331,11 @@ export function WorksPanel({
     event.preventDefault();
     event.stopPropagation();
     if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
-    const slide = event.target instanceof Element ? event.target.closest("[data-edit-slide]") : null;
+    const node = event.target instanceof Element ? event.target : null;
+    const cover = node?.closest("[data-edit-cover]");
+    const slide = cover ? null : node?.closest("[data-edit-slide]");
     setEditDrop(true);
+    setEditDropCover(Boolean(cover));
     setEditDropSlide(slide ? Number(slide.getAttribute("data-edit-slide")) : null);
   }
 
@@ -1234,6 +1344,7 @@ export function WorksPanel({
     if (next instanceof Node && event.currentTarget.contains(next)) return;
     setEditDrop(false);
     setEditDropSlide(null);
+    setEditDropCover(false);
   }
 
   function onEditSurfaceDrop(event: ReactDragEvent<HTMLDivElement>) {
@@ -1242,10 +1353,13 @@ export function WorksPanel({
     event.stopPropagation();
     setEditDrop(false);
     setEditDropSlide(null);
+    setEditDropCover(false);
     const files = event.dataTransfer?.files;
     if (!files?.length) return;
-    const slide = event.target instanceof Element ? event.target.closest("[data-edit-slide]") : null;
-    applyEditUploads(files, slide ? Number(slide.getAttribute("data-edit-slide")) : "all");
+    const node = event.target instanceof Element ? event.target : null;
+    const cover = node?.closest("[data-edit-cover]");
+    const slide = cover ? null : node?.closest("[data-edit-slide]");
+    applyEditUploads(files, cover ? "cover" : slide ? Number(slide.getAttribute("data-edit-slide")) : "all");
   }
 
   function goEdit(dir: number) {
@@ -1264,6 +1378,11 @@ export function WorksPanel({
       return;
     }
     const finalMode = editDraft.type === TYPE_FINAL;
+    const coverRequired = finalMode && (editSlides.length > 1 || Boolean(editing.cover) || Boolean(editCover?.upload));
+    if (coverRequired && !editCover) {
+      toast.error(copy("admin.missingCover"));
+      return;
+    }
     if (finalMode && slidesDirty && !editSlides.length) {
       toast.error(copy("admin.minSlide"));
       return;
@@ -1280,6 +1399,14 @@ export function WorksPanel({
         filesPatch = {
           ...itemDims(editFiles),
           files: await mapPool(editFiles, UPLOAD_CONCURRENCY, (file) => packFile(file)),
+        };
+      }
+      if (finalMode && coverDirty && editCover) {
+        const packed = await packSlide(editCover);
+        filesPatch = {
+          ...filesPatch,
+          cover: packed,
+          ...(editCover.upload ? itemDims([editCover.upload]) : {}),
         };
       }
       const data = await worksApi(`/${editing.id}`, {
@@ -1305,6 +1432,7 @@ export function WorksPanel({
       setEditing(updated);
       setEditFiles(null);
       setEditSlides(slidesFrom(updated));
+      setEditCover(coverSlideFrom(updated));
       toast.success(copy("admin.saved"));
     } catch (error) {
       toastApiError(error, copy);
@@ -1522,6 +1650,8 @@ export function WorksPanel({
     editSlides.some((slide) => slide.upload) ||
     editSlides.length !== (editing?.files?.length ?? 0) ||
     editSlides.some((slide, index) => slide.file !== editing?.files?.[index]);
+  const coverDirty =
+    showingSlides && (Boolean(editCover?.upload) || (editCover?.file || "") !== (editing?.cover || ""));
 
   return (
     <>
@@ -1533,6 +1663,18 @@ export function WorksPanel({
         className="sr-only"
         onChange={(event) => {
           if (event.target.files) addFiles(event.target.files);
+          event.target.value = "";
+        }}
+      />
+      <input
+        ref={inboxCoverRef}
+        type="file"
+        accept="image/*,.svg,.png,.jpg,.jpeg,.webp"
+        className="sr-only"
+        onChange={(event) => {
+          const key = inboxCoverKey.current;
+          inboxCoverKey.current = null;
+          if (event.target.files) assignInboxCover(key, event.target.files);
           event.target.value = "";
         }}
       />
@@ -1607,7 +1749,9 @@ export function WorksPanel({
                     "grid items-center gap-3 rounded-xl border p-2",
                     item.type === TYPE_DAILY
                       ? "sm:grid-cols-[72px_auto_5rem_1fr_auto]"
-                      : "sm:grid-cols-[72px_auto_1fr_1fr_auto]",
+                      : item.type === TYPE_FINAL
+                        ? "sm:grid-cols-[72px_72px_auto_1fr_1fr_auto]"
+                        : "sm:grid-cols-[72px_auto_1fr_1fr_auto]",
                   )}
                 >
                   <div className="relative size-[72px] overflow-hidden rounded-lg bg-muted">
@@ -1622,19 +1766,52 @@ export function WorksPanel({
                       </span>
                     ) : null}
                   </div>
+                  {item.type === TYPE_FINAL ? (
+                    <button
+                      type="button"
+                      data-inbox-cover={item.key}
+                      title={copy("admin.pickCover")}
+                      className="relative flex size-[72px] items-center justify-center overflow-hidden rounded-lg bg-muted text-[10px] leading-tight text-muted-foreground ring-1 ring-foreground/15"
+                      onClick={() => {
+                        inboxCoverKey.current = item.key;
+                        inboxCoverRef.current?.click();
+                      }}
+                      onDragOver={(event) => {
+                        if (!event.dataTransfer?.types?.includes("Files")) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                      }}
+                      onDrop={(event) => {
+                        if (!event.dataTransfer?.files?.length) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        assignInboxCover(item.key, event.dataTransfer.files);
+                      }}
+                    >
+                      {item.cover?.preview ? (
+                        <img src={item.cover.preview} alt="" className="size-full object-contain" />
+                      ) : (
+                        <span className="px-1 text-center">{copy("admin.pickCover")}</span>
+                      )}
+                      <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-background/80 px-1 text-center text-[10px] leading-4">
+                        {copy("admin.cover")}
+                      </span>
+                    </button>
+                  ) : null}
                   <TypeSelect
                     value={item.type}
                     onChange={(type) => {
                       setInbox((current) =>
-                        current.map((entry) =>
-                          entry.key === item.key
-                            ? {
-                                ...entry,
-                                type,
-                                ...(type === TYPE_DAILY ? { author: "", nick: "" } : {}),
-                              }
-                            : entry,
-                        ),
+                        current.map((entry) => {
+                          if (entry.key !== item.key) return entry;
+                          if (type !== TYPE_FINAL && entry.cover) revokeUpload(entry.cover);
+                          return {
+                            ...entry,
+                            type,
+                            ...(type === TYPE_DAILY ? { author: "", nick: "" } : {}),
+                            ...(type !== TYPE_FINAL ? { cover: undefined } : {}),
+                          };
+                        }),
                       );
                     }}
                     copy={copy}
@@ -1693,6 +1870,7 @@ export function WorksPanel({
                       size="sm"
                       onClick={() => {
                         revokeUploads(item.files);
+                        if (item.cover) revokeUpload(item.cover);
                         setInbox((current) => current.filter((entry) => entry.key !== item.key));
                       }}
                     >
@@ -1709,7 +1887,10 @@ export function WorksPanel({
               variant="ghost"
               disabled={Boolean(progress)}
               onClick={() => {
-                inbox.forEach((item) => revokeUploads(item.files));
+                inbox.forEach((item) => {
+                  revokeUploads(item.files);
+                  if (item.cover) revokeUpload(item.cover);
+                });
                 setInbox([]);
               }}
             >
@@ -1914,7 +2095,9 @@ export function WorksPanel({
                 data-edit-surface
                 className={cn(
                   "grid gap-2 rounded-xl transition-[box-shadow]",
-                  editDrop && editDropSlide === null ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "",
+                  editDrop && editDropSlide === null && !editDropCover
+                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    : "",
                 )}
                 onDragOver={onEditSurfaceDragOver}
                 onDragLeave={onEditSurfaceDragLeave}
@@ -1942,8 +2125,49 @@ export function WorksPanel({
                     event.target.value = "";
                   }}
                 />
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*,.svg,.png,.jpg,.jpeg,.webp"
+                  className="sr-only"
+                  onChange={(event) => {
+                    if (event.target.files) applyEditUploads(event.target.files, "cover");
+                    event.target.value = "";
+                  }}
+                />
                 {showingSlides ? (
-                  <div className="grid gap-3">
+                  <div className="grid gap-6">
+                    <section
+                      data-edit-cover
+                      className={cn("grid gap-2", editDropCover ? "rounded-xl ring-2 ring-primary" : "")}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm text-muted-foreground">{copy("admin.cover")}</p>
+                        <Button type="button" size="sm" variant="secondary" onClick={() => coverInputRef.current?.click()}>
+                          {editCover ? copy("admin.replaceCover") : copy("admin.pickCover")}
+                        </Button>
+                      </div>
+                      <button
+                        type="button"
+                        title={copy("admin.replaceCover")}
+                        className="flex min-h-40 w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-muted"
+                        onClick={() => coverInputRef.current?.click()}
+                      >
+                        {editCover?.upload?.preview || (editing && editCover?.file) ? (
+                          <img
+                            src={
+                              editCover?.upload?.preview ||
+                              (editing && editCover?.file ? fileSrc(editing, editCover.file) : "")
+                            }
+                            alt=""
+                            draggable={false}
+                            className="block max-h-[min(24rem,calc(var(--frame-h)*0.45))] w-auto max-w-full"
+                          />
+                        ) : (
+                          <span className="p-6 text-sm text-muted-foreground">{copy("admin.pickCover")}</span>
+                        )}
+                      </button>
+                    </section>
                     {editSlides.length ? (
                       <ol
                         className={cn(

@@ -85,7 +85,8 @@ function prefetchCatalog() {
 }
 
 function imagesOf(item) {
-  return (item?.files || []).filter((file) => !isFontFile(file));
+  const cover = String(item?.cover || "");
+  return (item?.files || []).filter((file) => !isFontFile(file) && file !== cover);
 }
 
 function newest(a, b) {

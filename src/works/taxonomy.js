@@ -140,6 +140,31 @@ export function normalizeGlyph(value) {
     .join("");
 }
 
+function isFontName(name) {
+  return /\.(ttf|otf|woff2?)$/i.test(String(name || ""));
+}
+
+function isRasterName(name) {
+  return /\.(png|jpe?g|webp|gif)$/i.test(String(name || ""));
+}
+
+/** Cover image of a final project, or the first picture when an older item has none yet. */
+export function workCoverFile(item) {
+  const cover = String(item?.cover || "").trim();
+  if (cover) return cover;
+  return (item?.files || []).find((file) => !isFontName(file)) || "";
+}
+
+/**
+ * A final project that belongs in the finals tab: a deck of raster slides,
+ * not a single picture and not an SVG element.
+ */
+export function isRasterDeckFinal(item) {
+  if (normalizeWorkType(item?.type) !== TYPE_FINAL) return false;
+  const slides = (item?.files || []).filter((file) => !isFontName(file));
+  return slides.length > 1 && slides.every((file) => isRasterName(file));
+}
+
 export function emptyWorksCatalog() {
   return {
     version: 1,
@@ -172,6 +197,7 @@ export function normalizeWorkItem(item) {
     latin:
       type === TYPE_FONT && !normalizeFlag(item.cyrillic) && normalizeFlag(item.latin) ? true : undefined,
     hidden: normalizeFlag(item.hidden) ? true : undefined,
+    cover: type === TYPE_FINAL && String(item.cover || "").trim() ? String(item.cover).trim() : undefined,
     files,
     width: Number(item.width) > 0 ? Number(item.width) : 0,
     height: Number(item.height) > 0 ? Number(item.height) : 0,

@@ -1,5 +1,9 @@
-import { fieldsFromBody, layoutFromBody, shortId, uploadsToFiles } from "./admin-core.js";
-import { normalizeFlag, normalizeGridSpan, normalizeWorkType, TYPE_DAILY } from "./taxonomy.js";
+import { coverFromUpload, fieldsFromBody, layoutFromBody, shortId, uploadsToFiles } from "./admin-core.js";
+import { normalizeFlag, normalizeGridSpan, normalizeWorkType, TYPE_DAILY, TYPE_FINAL } from "./taxonomy.js";
+
+function ownedFiles(entry) {
+  return [...new Set([...(entry?.files || []), entry?.cover].filter(Boolean))];
+}
 
 const RETRY_DELAYS_MS = [600, 1500, 3000];
 
@@ -75,7 +79,7 @@ async function bulkDeleteWorksOnce(readCatalog, commit, body) {
   return commit({
     catalog: current,
     upserts: [],
-    removes: removed.flatMap((entry) => entry.files || []),
+    removes: [...new Set(removed.flatMap((entry) => ownedFiles(entry)))],
   });
 }
 
@@ -91,17 +95,29 @@ async function createWorksOnce(readCatalog, commit, body) {
   for (const item of items) {
     const fields = fieldsFromBody(item);
     const uploads = Array.isArray(item.files) ? item.files : [];
+    if (fields.type === TYPE_FINAL && !item.cover) {
+      const error = new Error("Final project needs a cover");
+      error.status = 400;
+      throw error;
+    }
     if (!uploads.length) throw new Error("Each work needs a file");
     const id = `wrk_${shortId()}`;
     const written = uploadsToFiles(id, uploads);
     upserts.push(...written.blobs);
+    let cover;
+    if (fields.type === TYPE_FINAL) {
+      const stored = coverFromUpload(id, item.cover, written.files);
+      cover = stored.name;
+      if (stored.blob) upserts.push(stored.blob);
+    }
     current.items.push({
       id,
       ...fields,
+      ...(cover ? { cover } : {}),
       files: written.files,
       width: fields.width || written.width,
       height: fields.height || written.height,
-      originalName: String(uploads[0]?.filename || written.files[0]),
+      originalName: String(item.cover?.filename || uploads[0]?.filename || written.files[0]),
       createdAt: new Date().toISOString(),
     });
   }
@@ -121,16 +137,36 @@ async function patchWorkOnce(readCatalog, commit, id, body) {
   const uploads = Array.isArray(body.files) ? body.files : [];
   const upserts = [];
   const removes = [];
+  const previousFiles = entry.files || [];
+  const previousCover = entry.cover || "";
+  // The new cover may be a slide this same save is pulling out of `files`.
+  const keptCover = body.cover?.keep ? String(body.cover.keep) : "";
   if (uploads.length) {
-    const previous = entry.files || [];
-    const written = uploadsToFiles(entry.id, uploads, previous);
-    // Only drop files that are neither kept nor overwritten by a new upload.
-    removes.push(...previous.filter((name) => !written.files.includes(name)));
+    const written = uploadsToFiles(entry.id, uploads, previousFiles);
+    removes.push(
+      ...previousFiles.filter(
+        (name) => !written.files.includes(name) && name !== previousCover && name !== keptCover,
+      ),
+    );
     upserts.push(...written.blobs);
     entry.files = written.files;
     entry.width = entry.width || written.width;
     entry.height = entry.height || written.height;
     if (!uploads[0]?.keep) entry.originalName = String(uploads[0]?.filename || written.files[0]);
+    entry.updatedAt = new Date().toISOString();
+  }
+  if (entry.type !== TYPE_FINAL) {
+    if (previousCover && !(entry.files || []).includes(previousCover)) removes.push(previousCover);
+    delete entry.cover;
+  } else if (body.cover) {
+    const owned = [...new Set([...previousFiles, ...(entry.files || []), previousCover].filter(Boolean))];
+    const stored = coverFromUpload(entry.id, body.cover, owned);
+    if (stored.blob) upserts.push(stored.blob);
+    entry.cover = stored.name;
+    if (previousCover && previousCover !== stored.name && !(entry.files || []).includes(previousCover)) {
+      removes.push(previousCover);
+    }
+    if (!body.cover.keep && body.cover.filename) entry.originalName = String(body.cover.filename);
     entry.updatedAt = new Date().toISOString();
   }
   return commit({ catalog: current, upserts, removes });
@@ -145,7 +181,7 @@ async function deleteWorkOnce(readCatalog, commit, id) {
     throw error;
   }
   const [removed] = current.items.splice(index, 1);
-  return commit({ catalog: current, upserts: [], removes: removed?.files || [] });
+  return commit({ catalog: current, upserts: [], removes: ownedFiles(removed) });
 }
 
 async function bulkPatchWorksOnce(readCatalog, commit, body) {
@@ -158,6 +194,7 @@ async function bulkPatchWorksOnce(readCatalog, commit, body) {
   }
   const current = await readCatalog();
   const wanted = new Set(ids);
+  const removes = [];
   let found = 0;
   current.items = current.items.map((entry) => {
     if (!wanted.has(entry.id)) return entry;
@@ -167,6 +204,10 @@ async function bulkPatchWorksOnce(readCatalog, commit, body) {
       const type = normalizeWorkType(patch.type);
       next = { ...next, type };
       if (type === TYPE_DAILY) next = { ...next, author: "", nick: "" };
+      if (type !== TYPE_FINAL && next.cover) {
+        if (!(next.files || []).includes(next.cover)) removes.push(next.cover);
+        next = { ...next, cover: undefined };
+      }
     }
     if (patch.gridSpan !== undefined) {
       next = { ...next, gridSpan: normalizeGridSpan(patch.gridSpan) };
@@ -181,5 +222,5 @@ async function bulkPatchWorksOnce(readCatalog, commit, body) {
     error.status = 404;
     throw error;
   }
-  return commit({ catalog: current, upserts: [], removes: [] });
+  return commit({ catalog: current, upserts: [], removes });
 }
