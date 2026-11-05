@@ -187,8 +187,8 @@ export function normalizeWorkItem(item) {
   return {
     id,
     type,
-    author: type === TYPE_DAILY ? "" : normalizeName(item.author),
-    nick: type === TYPE_DAILY ? "" : normalizeNick(item.nick),
+    author: normalizeName(item.author),
+    nick: normalizeNick(item.nick),
     stream: String(item.stream || "").trim(),
     sample: normalizeSample(item.sample) || undefined,
     glyph: normalizeGlyph(item.glyph) || undefined,

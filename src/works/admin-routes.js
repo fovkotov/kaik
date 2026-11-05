@@ -1,5 +1,5 @@
 import { coverFromUpload, fieldsFromBody, layoutFromBody, shortId, uploadsToFiles } from "./admin-core.js";
-import { normalizeFlag, normalizeGridSpan, normalizeWorkType, TYPE_DAILY, TYPE_FINAL } from "./taxonomy.js";
+import { normalizeFlag, normalizeGridSpan, normalizeWorkType, TYPE_FINAL } from "./taxonomy.js";
 
 function ownedFiles(entry) {
   return [...new Set([...(entry?.files || []), entry?.cover].filter(Boolean))];
@@ -211,7 +211,6 @@ async function bulkPatchWorksOnce(readCatalog, commit, body) {
     if (patch.type !== undefined) {
       const type = normalizeWorkType(patch.type);
       next = { ...next, type };
-      if (type === TYPE_DAILY) next = { ...next, author: "", nick: "" };
       if (type !== TYPE_FINAL && next.cover) {
         if (!(next.files || []).includes(next.cover)) removes.push(next.cover);
         next = { ...next, cover: undefined };

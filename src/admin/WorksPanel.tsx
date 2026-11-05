@@ -582,15 +582,21 @@ function TypeSelect({
   value,
   onChange,
   copy,
+  id,
+  className,
 }: {
   value: WorkType;
   onChange: (value: WorkType) => void;
   copy: (key: string) => string;
+  id?: string;
+  className?: string;
 }) {
   return (
     <select
+      id={id}
       value={value}
       aria-label={copy("admin.kind")}
+      className={className}
       onChange={(event) => {
         const next = event.target.value as WorkType;
         if (WORK_TYPES.includes(next)) onChange(next);
@@ -738,6 +744,7 @@ export function WorksPanel({
   const [bulkAuthor, setBulkAuthor] = useState("");
   const [bulkNick, setBulkNick] = useState("");
   const [bulkStream, setBulkStream] = useState("");
+  const [bulkType, setBulkType] = useState<WorkType>(TYPE_LETTERING);
   const [catalogType, setCatalogType] = useState<WorkType>(TYPE_LETTERING);
   const [hot, setHot] = useState(false);
   const [editing, setEditing] = useState<WorkItem | null>(null);
@@ -948,8 +955,8 @@ export function WorksPanel({
         next.push({
           key: `${file.name}-${Math.random()}`,
           type: singleType,
-          author: dailyMode ? "" : bulkAuthor,
-          nick: dailyMode ? "" : normalizeNick(bulkNick),
+          author: bulkAuthor,
+          nick: normalizeNick(bulkNick),
           stream: bulkStream,
           files: [await fileToUpload(file, dailyMode)],
         });
@@ -1732,21 +1739,29 @@ function inboxReady(item: InboxItem) {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end gap-3">
-              {inbox.some((item) => item.type !== TYPE_DAILY) ? (
-                <div className="grid gap-1.5">
-                  <Label htmlFor="works-bulk-author">{copy("admin.author")}</Label>
-                  <AuthorNickInput
-                    id="works-bulk-author"
-                    placeholder={copy("admin.authorNick")}
-                    author={bulkAuthor}
-                    nick={bulkNick}
-                    onChange={({ author, nick }) => {
-                      setBulkAuthor(author);
-                      setBulkNick(nick);
-                    }}
-                  />
-                </div>
-              ) : null}
+              <div className="grid gap-1.5">
+                <Label htmlFor="works-bulk-type">{copy("admin.kind")}</Label>
+                <TypeSelect
+                  id="works-bulk-type"
+                  value={bulkType}
+                  onChange={setBulkType}
+                  copy={copy}
+                  className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="works-bulk-author">{copy("admin.author")}</Label>
+                <AuthorNickInput
+                  id="works-bulk-author"
+                  placeholder={copy("admin.authorNick")}
+                  author={bulkAuthor}
+                  nick={bulkNick}
+                  onChange={({ author, nick }) => {
+                    setBulkAuthor(author);
+                    setBulkNick(nick);
+                  }}
+                />
+              </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="works-bulk-stream">{copy("admin.stream")}</Label>
                 <Input
@@ -1761,16 +1776,18 @@ function inboxReady(item: InboxItem) {
                 variant="outline"
                 onClick={() => {
                   setInbox((current) =>
-                    current.map((item) =>
-                      item.type === TYPE_DAILY
-                        ? { ...item, stream: bulkStream.trim() || item.stream }
-                        : {
-                            ...item,
-                            author: bulkAuthor.trim() || item.author,
-                            nick: normalizeNick(bulkNick) || item.nick,
-                            stream: bulkStream.trim() || item.stream,
-                          },
-                    ),
+                    current.map((item) => {
+                      const dropCover = bulkType !== TYPE_FINAL && item.cover;
+                      if (dropCover && item.cover) revokeUpload(item.cover);
+                      return {
+                        ...item,
+                        type: bulkType,
+                        author: bulkAuthor.trim() || item.author,
+                        nick: normalizeNick(bulkNick) || item.nick,
+                        stream: bulkStream.trim() || item.stream,
+                        ...(dropCover ? { cover: undefined } : {}),
+                      };
+                    }),
                   );
                 }}
               >
@@ -1784,7 +1801,7 @@ function inboxReady(item: InboxItem) {
                   className={cn(
                     "grid items-center gap-3 rounded-xl border p-2",
                     item.type === TYPE_DAILY
-                      ? "sm:grid-cols-[72px_auto_5rem_1fr_auto]"
+                      ? "sm:grid-cols-[72px_auto_5rem_1fr_1fr_auto]"
                       : finalNeedsCover(item)
                         ? "sm:grid-cols-[72px_72px_auto_1fr_1fr_auto]"
                         : "sm:grid-cols-[72px_auto_1fr_1fr_auto]",
@@ -1844,7 +1861,6 @@ function inboxReady(item: InboxItem) {
                           return {
                             ...entry,
                             type,
-                            ...(type === TYPE_DAILY ? { author: "", nick: "" } : {}),
                             ...(type !== TYPE_FINAL ? { cover: undefined } : {}),
                           };
                         }),
@@ -1866,19 +1882,18 @@ function inboxReady(item: InboxItem) {
                         );
                       }}
                     />
-                  ) : (
-                    <AuthorNickInput
-                      placeholder={copy("admin.authorNick")}
-                      aria-label={copy("admin.author")}
-                      author={item.author}
-                      nick={item.nick}
-                      onChange={({ author, nick }) => {
-                        setInbox((current) =>
-                          current.map((entry) => (entry.key === item.key ? { ...entry, author, nick } : entry)),
-                        );
-                      }}
-                    />
-                  )}
+                  ) : null}
+                  <AuthorNickInput
+                    placeholder={copy("admin.authorNick")}
+                    aria-label={copy("admin.author")}
+                    author={item.author}
+                    nick={item.nick}
+                    onChange={({ author, nick }) => {
+                      setInbox((current) =>
+                        current.map((entry) => (entry.key === item.key ? { ...entry, author, nick } : entry)),
+                      );
+                    }}
+                  />
                   <Input
                     placeholder={copy("admin.stream")}
                     list="works-stream-list"
@@ -1972,9 +1987,14 @@ function inboxReady(item: InboxItem) {
                 tabIndex={0}
                 data-work-id={item.id}
                 title={
-                  item.type === TYPE_DAILY
-                    ? [item.glyph, item.stream].filter(Boolean).join(" · ")
-                    : [item.author, item.nick && `@${item.nick}`, item.stream].filter(Boolean).join(" · ")
+                  [
+                    item.type === TYPE_DAILY ? item.glyph : "",
+                    item.author,
+                    item.nick && `@${item.nick}`,
+                    item.stream,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
                 }
                 className={cn(
                   "grid cursor-pointer gap-2 overflow-hidden rounded-xl bg-card p-2 text-left ring-1 ring-foreground/10 transition hover:ring-foreground/40",
@@ -2007,14 +2027,11 @@ function inboxReady(item: InboxItem) {
                   )}
                 </div>
                 <div className="min-w-0">
-                  {item.type === TYPE_DAILY ? (
-                    <p className="truncate text-sm font-medium">{item.glyph || copy(typeKey(item.type))}</p>
-                  ) : (
-                    <p className="truncate text-sm font-medium">
-                      {item.author || "—"}
-                      {item.nick ? ` @${item.nick}` : ""}
-                    </p>
-                  )}
+                  <p className="truncate text-sm font-medium">
+                    {item.type === TYPE_DAILY && item.glyph ? `${item.glyph} · ` : ""}
+                    {item.author || "—"}
+                    {item.nick ? ` @${item.nick}` : ""}
+                  </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {item.hidden ? `${copy("admin.hidden")} · ` : ""}
                     {copy(typeKey(item.type))}
@@ -2418,16 +2435,9 @@ function inboxReady(item: InboxItem) {
                 ) : null}
                 <TypeTabs
                   value={editDraft.type}
-                  onChange={(type) =>
-                    setEditDraft((current) => ({
-                      ...current,
-                      type,
-                      ...(type === TYPE_DAILY ? { author: "", nick: "" } : {}),
-                    }))
-                  }
+                  onChange={(type) => setEditDraft((current) => ({ ...current, type }))}
                   copy={copy}
                 />
-                {editDraft.type === TYPE_DAILY ? null : (
                 <div className="grid gap-1.5">
                   <Label htmlFor="work-edit-author">{copy("admin.author")}</Label>
                   <AuthorNickInput
@@ -2440,7 +2450,6 @@ function inboxReady(item: InboxItem) {
                     }
                   />
                 </div>
-                )}
                 <div className="grid gap-1.5">
                   <Label htmlFor="work-edit-stream">{copy("admin.stream")}</Label>
                   <Input
