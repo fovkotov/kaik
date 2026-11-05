@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T22:51:54.145Z",
+  "updatedAt": "2026-11-05T23:05:49.132Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3967,14 +3967,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 419,
-      "height": 334,
-      "gridSpan": "auto",
       "files": [
         "wrk_6052ee26_0.svg"
       ],
+      "width": 419,
+      "height": 334,
+      "createdAt": "2026-11-05T22:51:54.144Z",
       "originalName": "_Слой_2.svg",
-      "createdAt": "2026-11-05T22:51:54.144Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_337a38b6",
@@ -3982,14 +3982,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 408,
-      "height": 277,
-      "gridSpan": "auto",
       "files": [
         "wrk_337a38b6_0.svg"
       ],
+      "width": 408,
+      "height": 277,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "_Слой_3.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_78043cca",
@@ -3997,14 +3997,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 529,
-      "height": 264,
-      "gridSpan": "auto",
       "files": [
         "wrk_78043cca_0.svg"
       ],
+      "width": 529,
+      "height": 264,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "_Слой_4-1.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_186fd311",
@@ -4012,14 +4012,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 477,
-      "height": 267,
-      "gridSpan": "auto",
       "files": [
         "wrk_186fd311_0.svg"
       ],
+      "width": 477,
+      "height": 267,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "_Слой_4.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_50e7434c",
@@ -4027,14 +4027,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 572,
-      "height": 360,
-      "gridSpan": "auto",
       "files": [
         "wrk_50e7434c_0.svg"
       ],
+      "width": 572,
+      "height": 360,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "Group 2087325976.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_10e92276",
@@ -4042,14 +4042,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 498,
-      "height": 317,
-      "gridSpan": "auto",
       "files": [
         "wrk_10e92276_0.svg"
       ],
+      "width": 498,
+      "height": 317,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "Vector.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_1adf203a",
@@ -4057,14 +4057,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 898,
-      "height": 340,
-      "gridSpan": "auto",
       "files": [
         "wrk_1adf203a_0.svg"
       ],
+      "width": 898,
+      "height": 340,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "воршкоп-1.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_80a2b02e",
@@ -4072,14 +4072,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 955,
-      "height": 357,
-      "gridSpan": "auto",
       "files": [
         "wrk_80a2b02e_0.svg"
       ],
+      "width": 955,
+      "height": 357,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "воршкоп-2.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_4ba0eae7",
@@ -4087,14 +4087,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 968,
-      "height": 264,
-      "gridSpan": "auto",
       "files": [
         "wrk_4ba0eae7_0.svg"
       ],
+      "width": 968,
+      "height": 264,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "воршкоп-3.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_ef6ae471",
@@ -4102,14 +4102,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 955,
-      "height": 320,
-      "gridSpan": "auto",
       "files": [
         "wrk_ef6ae471_0.svg"
       ],
+      "width": 955,
+      "height": 320,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "воршкоп-4.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_d86e6ab2",
@@ -4117,14 +4117,14 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 974,
-      "height": 337,
-      "gridSpan": "auto",
       "files": [
         "wrk_d86e6ab2_0.svg"
       ],
+      "width": 974,
+      "height": 337,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "воршкоп-5.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_5dcde8c6",
@@ -4132,14 +4132,42 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 1027,
-      "height": 380,
-      "gridSpan": "auto",
       "files": [
         "wrk_5dcde8c6_0.svg"
       ],
+      "width": 1027,
+      "height": 380,
+      "createdAt": "2026-11-05T22:51:54.145Z",
       "originalName": "воршкоп.svg",
-      "createdAt": "2026-11-05T22:51:54.145Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_7acbc383",
+      "type": "final",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "width": 1600,
+      "height": 900,
+      "gridSpan": "auto",
+      "cover": "wrk_7acbc383_cover.webp",
+      "files": [
+        "wrk_7acbc383_0.webp",
+        "wrk_7acbc383_1.webp",
+        "wrk_7acbc383_2.webp",
+        "wrk_7acbc383_3.webp",
+        "wrk_7acbc383_4.webp",
+        "wrk_7acbc383_5.webp",
+        "wrk_7acbc383_6.webp",
+        "wrk_7acbc383_7.webp",
+        "wrk_7acbc383_8.webp",
+        "wrk_7acbc383_9.webp",
+        "wrk_7acbc383_10.webp",
+        "wrk_7acbc383_11.webp",
+        "wrk_7acbc383_12.webp"
+      ],
+      "originalName": "06.webp",
+      "createdAt": "2026-11-05T23:05:49.132Z"
     }
   ]
 }
