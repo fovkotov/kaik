@@ -5,6 +5,13 @@ function ownedFiles(entry) {
   return [...new Set([...(entry?.files || []), entry?.cover].filter(Boolean))];
 }
 
+function uploadIsSvg(upload) {
+  const name = String(upload?.filename || "");
+  const mime = String(upload?.mime || "");
+  const data = String(upload?.data || "").trimStart();
+  return mime.includes("svg") || name.toLowerCase().endsWith(".svg") || data.startsWith("<");
+}
+
 const RETRY_DELAYS_MS = [600, 1500, 3000];
 
 /**
@@ -95,7 +102,8 @@ async function createWorksOnce(readCatalog, commit, body) {
   for (const item of items) {
     const fields = fieldsFromBody(item);
     const uploads = Array.isArray(item.files) ? item.files : [];
-    if (fields.type === TYPE_FINAL && !item.cover) {
+    const svgFinal = uploads.length > 0 && uploads.every(uploadIsSvg);
+    if (fields.type === TYPE_FINAL && !svgFinal && !item.cover) {
       const error = new Error("Final project needs a cover");
       error.status = 400;
       throw error;
@@ -105,7 +113,7 @@ async function createWorksOnce(readCatalog, commit, body) {
     const written = uploadsToFiles(id, uploads);
     upserts.push(...written.blobs);
     let cover;
-    if (fields.type === TYPE_FINAL) {
+    if (fields.type === TYPE_FINAL && item.cover) {
       const stored = coverFromUpload(id, item.cover, written.files);
       cover = stored.name;
       if (stored.blob) upserts.push(stored.blob);

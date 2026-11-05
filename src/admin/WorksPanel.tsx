@@ -140,6 +140,14 @@ function isFontPath(name: string) {
   return /\.(ttf|otf|woff2?)$/i.test(name);
 }
 
+function isSvgName(name: string, mime = "", data = "") {
+  return (
+    mime.includes("svg") ||
+    name.toLowerCase().endsWith(".svg") ||
+    data.trimStart().startsWith("<")
+  );
+}
+
 let pasteCounter = 0;
 
 function looksLikeSvg(text: string) {
@@ -370,16 +378,24 @@ function toSlide(upload: UploadFile): Slide {
 function coverSlideFrom(item: WorkItem | null): Slide | null {
   if (!item || normalizeWorkType(item.type) !== TYPE_FINAL) return null;
   if (item.cover) return { key: `cover-${item.cover}`, file: item.cover };
-  // Only a real deck promotes its first picture into the cover slot.
-  if ((item.files || []).length < 2) return null;
-  const file = item.files.find((name) => !isFontPath(name));
+  const files = (item.files || []).filter((name) => !isFontPath(name));
+  // SVG finals are the artwork itself — they don't get a separate cover.
+  if (files.length < 2 || files.every((name) => isSvgName(name))) return null;
+  const file = files[0];
   return file ? { key: `cover-${file}`, file } : null;
 }
 
 function slidesFrom(item: WorkItem | null): Slide[] {
   const files = item?.files || [];
   // An older multi-slide final with no cover field still shows its first picture as the cover, not as a slide.
-  if (item && normalizeWorkType(item.type) === TYPE_FINAL && !item.cover && files.length > 1) {
+  const pictures = files.filter((name) => !isFontPath(name));
+  if (
+    item &&
+    normalizeWorkType(item.type) === TYPE_FINAL &&
+    !item.cover &&
+    pictures.length > 1 &&
+    !pictures.every((name) => isSvgName(name))
+  ) {
     const first = files.findIndex((name) => !isFontPath(name));
     if (first >= 0) {
       return files.filter((_, index) => index !== first).map((file) => ({ key: file, file }));
@@ -1039,11 +1055,20 @@ export function WorksPanel({
   }, []);
 
   // Author, nick and stream are optional — only the files are required.
-  function inboxReady(item: InboxItem) {
-    if (!item.files.length) return false;
-    if (item.type === TYPE_FINAL && !item.cover) return false;
-    return true;
-  }
+  function uploadIsSvg(file: UploadFile) {
+  return isSvgName(file.filename, file.mime, file.data || "");
+}
+
+/** Raster and PDF finals need a cover. An SVG final is the picture itself. */
+function finalNeedsCover(item: { type: WorkType; files: UploadFile[] }) {
+  return item.type === TYPE_FINAL && !(item.files.length > 0 && item.files.every(uploadIsSvg));
+}
+
+function inboxReady(item: InboxItem) {
+  if (!item.files.length) return false;
+  if (finalNeedsCover(item) && !item.cover) return false;
+  return true;
+}
 
   async function assignInboxCover(key: string | null, list: FileList | File[]) {
     const image = [...list].find((file) => {
@@ -1077,7 +1102,7 @@ export function WorksPanel({
       toast.error(copy("admin.devOnly"));
       return;
     }
-    if (inbox.some((item) => item.type === TYPE_FINAL && item.files.length > 0 && !item.cover)) {
+    if (inbox.some((item) => finalNeedsCover(item) && !item.cover)) {
       toast.error(copy("admin.missingCover"));
       return;
     }
@@ -1378,7 +1403,13 @@ export function WorksPanel({
       return;
     }
     const finalMode = editDraft.type === TYPE_FINAL;
-    const coverRequired = finalMode && (editSlides.length > 1 || Boolean(editing.cover) || Boolean(editCover?.upload));
+    const slidesAreSvg =
+      editSlides.length > 0 &&
+      editSlides.every((slide) => isSvgName(slide.upload?.filename || slide.file || "", slide.upload?.mime || ""));
+    const coverRequired =
+      finalMode &&
+      !slidesAreSvg &&
+      (editSlides.length > 1 || Boolean(editing.cover) || Boolean(editCover?.upload));
     if (coverRequired && !editCover) {
       toast.error(copy("admin.missingCover"));
       return;
@@ -1650,8 +1681,13 @@ export function WorksPanel({
     editSlides.some((slide) => slide.upload) ||
     editSlides.length !== (editing?.files?.length ?? 0) ||
     editSlides.some((slide, index) => slide.file !== editing?.files?.[index]);
+  const slidesAreSvg =
+    editSlides.length > 0 &&
+    editSlides.every((slide) => isSvgName(slide.upload?.filename || slide.file || "", slide.upload?.mime || ""));
   const coverDirty =
-    showingSlides && (Boolean(editCover?.upload) || (editCover?.file || "") !== (editing?.cover || ""));
+    showingSlides &&
+    !slidesAreSvg &&
+    (Boolean(editCover?.upload) || (editCover?.file || "") !== (editing?.cover || ""));
 
   return (
     <>
@@ -1749,7 +1785,7 @@ export function WorksPanel({
                     "grid items-center gap-3 rounded-xl border p-2",
                     item.type === TYPE_DAILY
                       ? "sm:grid-cols-[72px_auto_5rem_1fr_auto]"
-                      : item.type === TYPE_FINAL
+                      : finalNeedsCover(item)
                         ? "sm:grid-cols-[72px_72px_auto_1fr_1fr_auto]"
                         : "sm:grid-cols-[72px_auto_1fr_1fr_auto]",
                   )}
@@ -1766,7 +1802,7 @@ export function WorksPanel({
                       </span>
                     ) : null}
                   </div>
-                  {item.type === TYPE_FINAL ? (
+                  {finalNeedsCover(item) ? (
                     <button
                       type="button"
                       data-inbox-cover={item.key}
@@ -2137,6 +2173,7 @@ export function WorksPanel({
                 />
                 {showingSlides ? (
                   <div className="grid gap-6">
+                    {slidesAreSvg ? null : (
                     <section
                       data-edit-cover
                       className={cn("grid gap-2", editDropCover ? "rounded-xl ring-2 ring-primary" : "")}
@@ -2168,6 +2205,7 @@ export function WorksPanel({
                         )}
                       </button>
                     </section>
+                    )}
                     {editSlides.length ? (
                       <ol
                         className={cn(
