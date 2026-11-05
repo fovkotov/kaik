@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T23:47:38.341Z",
+  "updatedAt": "2026-11-05T23:53:06.429Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -4172,646 +4172,6 @@
       "gridSpan": "auto"
     },
     {
-      "id": "wrk_3a793514",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "k",
-      "files": [
-        "wrk_3a793514_0.svg"
-      ],
-      "width": 232,
-      "height": 214,
-      "createdAt": "2026-11-05T23:13:22.226Z",
-      "originalName": "Frame 141.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_40e7bcf4",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "b",
-      "files": [
-        "wrk_40e7bcf4_0.svg"
-      ],
-      "width": 241,
-      "height": 211,
-      "createdAt": "2026-11-05T23:13:22.226Z",
-      "originalName": "Group 2087326145.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_637b9570",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "b",
-      "files": [
-        "wrk_637b9570_0.svg"
-      ],
-      "width": 228,
-      "height": 200,
-      "createdAt": "2026-11-05T23:13:22.226Z",
-      "originalName": "Group 2087326146.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_15b279d7",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "l",
-      "files": [
-        "wrk_15b279d7_0.svg"
-      ],
-      "width": 29,
-      "height": 37,
-      "createdAt": "2026-11-05T23:13:22.226Z",
-      "originalName": "Group-1.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_feb9070a",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "r",
-      "files": [
-        "wrk_feb9070a_0.svg"
-      ],
-      "width": 144,
-      "height": 178,
-      "createdAt": "2026-11-05T23:13:22.226Z",
-      "originalName": "Group-2.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_70d0c416",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "o",
-      "files": [
-        "wrk_70d0c416_0.svg"
-      ],
-      "width": 128,
-      "height": 136,
-      "createdAt": "2026-11-05T23:13:22.226Z",
-      "originalName": "Group-3.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_52422b4e",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "l",
-      "files": [
-        "wrk_52422b4e_0.svg"
-      ],
-      "width": 142,
-      "height": 197,
-      "createdAt": "2026-11-05T23:13:22.226Z",
-      "originalName": "Group-4.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_6ee50b4d",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_6ee50b4d_0.svg"
-      ],
-      "width": 99,
-      "height": 225,
-      "createdAt": "2026-11-05T23:13:22.227Z",
-      "originalName": "Group-5.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_70adcd60",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_70adcd60_0.svg"
-      ],
-      "width": 133,
-      "height": 219,
-      "createdAt": "2026-11-05T23:13:22.227Z",
-      "originalName": "Group-6.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_892f7e64",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "o",
-      "files": [
-        "wrk_892f7e64_0.svg"
-      ],
-      "width": 322,
-      "height": 349,
-      "createdAt": "2026-11-05T23:13:28.917Z",
-      "originalName": "Group-7.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_649b268b",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "t",
-      "files": [
-        "wrk_649b268b_0.svg"
-      ],
-      "width": 269,
-      "height": 266,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Group-8.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_09af10ac",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_09af10ac_0.svg"
-      ],
-      "width": 88,
-      "height": 122,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Group.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_bc44bb0c",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "a",
-      "files": [
-        "wrk_bc44bb0c_0.svg"
-      ],
-      "width": 206,
-      "height": 154,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Union.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_b031a5ef",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "a",
-      "files": [
-        "wrk_b031a5ef_0.svg"
-      ],
-      "width": 152,
-      "height": 160,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-1.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_99ba7942",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "c",
-      "files": [
-        "wrk_99ba7942_0.svg"
-      ],
-      "width": 179,
-      "height": 229,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-2.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_85bed1cd",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "t",
-      "files": [
-        "wrk_85bed1cd_0.svg"
-      ],
-      "width": 140,
-      "height": 131,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-4.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_746cf3f3",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "r",
-      "files": [
-        "wrk_746cf3f3_0.svg"
-      ],
-      "width": 117,
-      "height": 142,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-5.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_68107885",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "k",
-      "files": [
-        "wrk_68107885_0.svg"
-      ],
-      "width": 195,
-      "height": 356,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-6.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_246f0488",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "o",
-      "files": [
-        "wrk_246f0488_0.svg"
-      ],
-      "width": 87,
-      "height": 129,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-7.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_7659a35b",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "o",
-      "files": [
-        "wrk_7659a35b_0.svg"
-      ],
-      "width": 130,
-      "height": 123,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-8.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_abfc4a17",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "c",
-      "files": [
-        "wrk_abfc4a17_0.svg"
-      ],
-      "width": 267,
-      "height": 90,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-9.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_14b9399d",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_14b9399d_0.svg"
-      ],
-      "width": 172,
-      "height": 190,
-      "createdAt": "2026-11-05T23:13:32.645Z",
-      "originalName": "Vector-10.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_f9b0753e",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_f9b0753e_0.svg"
-      ],
-      "width": 170,
-      "height": 234,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-11.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_a4822aa0",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "c",
-      "files": [
-        "wrk_a4822aa0_0.svg"
-      ],
-      "width": 156,
-      "height": 168,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-12.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_44d751c4",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "c",
-      "files": [
-        "wrk_44d751c4_0.svg"
-      ],
-      "width": 117,
-      "height": 117,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-13.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_a75782e6",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "c",
-      "files": [
-        "wrk_a75782e6_0.svg"
-      ],
-      "width": 104,
-      "height": 145,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-14.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_5cfd3eee",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_5cfd3eee_0.svg"
-      ],
-      "width": 218,
-      "height": 192,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-15.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_d2ee1120",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_d2ee1120_0.svg"
-      ],
-      "width": 100,
-      "height": 129,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-16.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_593168b5",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_593168b5_0.svg"
-      ],
-      "width": 136,
-      "height": 193,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-17.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_f14c4a04",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "o",
-      "files": [
-        "wrk_f14c4a04_0.svg"
-      ],
-      "width": 126,
-      "height": 185,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-18.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_6552d298",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "p",
-      "files": [
-        "wrk_6552d298_0.svg"
-      ],
-      "width": 146,
-      "height": 221,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-19.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_3a34d8fe",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "h",
-      "files": [
-        "wrk_3a34d8fe_0.svg"
-      ],
-      "width": 154,
-      "height": 203,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-20.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_7f08532c",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "h",
-      "files": [
-        "wrk_7f08532c_0.svg"
-      ],
-      "width": 294,
-      "height": 258,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-21.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_5fac0c7e",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "m",
-      "files": [
-        "wrk_5fac0c7e_0.svg"
-      ],
-      "width": 538,
-      "height": 247,
-      "createdAt": "2026-11-05T23:13:39.026Z",
-      "originalName": "Vector-22.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_5aef0155",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "m",
-      "files": [
-        "wrk_5aef0155_0.svg"
-      ],
-      "width": 214,
-      "height": 254,
-      "createdAt": "2026-11-05T23:13:44.930Z",
-      "originalName": "Vector-23.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_a3f4d423",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "m",
-      "files": [
-        "wrk_a3f4d423_0.svg"
-      ],
-      "width": 385,
-      "height": 214,
-      "createdAt": "2026-11-05T23:13:44.931Z",
-      "originalName": "Vector-24.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_a7c99804",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "m",
-      "files": [
-        "wrk_a7c99804_0.svg"
-      ],
-      "width": 117,
-      "height": 108,
-      "createdAt": "2026-11-05T23:13:44.931Z",
-      "originalName": "Vector-25.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_23eaf268",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "m",
-      "files": [
-        "wrk_23eaf268_0.svg"
-      ],
-      "width": 156,
-      "height": 117,
-      "createdAt": "2026-11-05T23:13:44.931Z",
-      "originalName": "Vector-26.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_77a0a367",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "b",
-      "files": [
-        "wrk_77a0a367_0.svg"
-      ],
-      "width": 134,
-      "height": 120,
-      "createdAt": "2026-11-05T23:13:44.931Z",
-      "originalName": "Vector-27.svg",
-      "gridSpan": "auto"
-    },
-    {
-      "id": "wrk_628475cb",
-      "type": "daily",
-      "author": "",
-      "nick": "",
-      "stream": "2",
-      "glyph": "R",
-      "files": [
-        "wrk_628475cb_0.svg"
-      ],
-      "width": 197,
-      "height": 412,
-      "createdAt": "2026-11-05T23:13:44.931Z",
-      "originalName": "Vector.svg",
-      "gridSpan": "auto"
-    },
-    {
       "id": "wrk_120d4d68",
       "type": "lettering",
       "author": "Алиса",
@@ -6535,14 +5895,14 @@
       "author": "Элина",
       "nick": "elnkrpvn",
       "stream": "2",
-      "width": 1917,
-      "height": 612,
-      "gridSpan": "auto",
       "files": [
         "wrk_ed47c11d_0.svg"
       ],
+      "width": 1917,
+      "height": 612,
+      "createdAt": "2026-11-05T23:47:38.338Z",
       "originalName": "Group 2087326196.svg",
-      "createdAt": "2026-11-05T23:47:38.338Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_7c433cbe",
@@ -6550,14 +5910,14 @@
       "author": "Элина",
       "nick": "elnkrpvn",
       "stream": "2",
-      "width": 2006,
-      "height": 928,
-      "gridSpan": "auto",
       "files": [
         "wrk_7c433cbe_0.svg"
       ],
+      "width": 2006,
+      "height": 928,
+      "createdAt": "2026-11-05T23:47:38.340Z",
       "originalName": "image 194 [Vectorized].svg",
-      "createdAt": "2026-11-05T23:47:38.340Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_03ea9c63",
@@ -6565,14 +5925,14 @@
       "author": "Элина",
       "nick": "elnkrpvn",
       "stream": "2",
-      "width": 446,
-      "height": 697,
-      "gridSpan": "auto",
       "files": [
         "wrk_03ea9c63_0.svg"
       ],
+      "width": 446,
+      "height": 697,
+      "createdAt": "2026-11-05T23:47:38.340Z",
       "originalName": "Union-1.svg",
-      "createdAt": "2026-11-05T23:47:38.340Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_efe9a049",
@@ -6580,14 +5940,14 @@
       "author": "Элина",
       "nick": "elnkrpvn",
       "stream": "2",
-      "width": 417,
-      "height": 584,
-      "gridSpan": "auto",
       "files": [
         "wrk_efe9a049_0.svg"
       ],
+      "width": 417,
+      "height": 584,
+      "createdAt": "2026-11-05T23:47:38.340Z",
       "originalName": "Union-2.svg",
-      "createdAt": "2026-11-05T23:47:38.340Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_28a3852e",
@@ -6595,14 +5955,14 @@
       "author": "Элина",
       "nick": "elnkrpvn",
       "stream": "2",
-      "width": 589,
-      "height": 304,
-      "gridSpan": "auto",
       "files": [
         "wrk_28a3852e_0.svg"
       ],
+      "width": 589,
+      "height": 304,
+      "createdAt": "2026-11-05T23:47:38.340Z",
       "originalName": "Union-3.svg",
-      "createdAt": "2026-11-05T23:47:38.340Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_c0efcc84",
@@ -6610,14 +5970,14 @@
       "author": "Элина",
       "nick": "elnkrpvn",
       "stream": "2",
-      "width": 2182,
-      "height": 1055,
-      "gridSpan": "auto",
       "files": [
         "wrk_c0efcc84_0.svg"
       ],
+      "width": 2182,
+      "height": 1055,
+      "createdAt": "2026-11-05T23:47:38.341Z",
       "originalName": "Union.svg",
-      "createdAt": "2026-11-05T23:47:38.341Z"
+      "gridSpan": "auto"
     }
   ]
 }
