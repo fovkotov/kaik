@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T22:25:55.884Z",
+  "updatedAt": "2026-11-05T22:29:56.723Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3745,14 +3745,14 @@
       "author": "Мага",
       "nick": "basntype",
       "stream": "2",
-      "width": 1060,
-      "height": 417,
-      "gridSpan": "auto",
       "files": [
         "wrk_872990d7_0.svg"
       ],
+      "width": 1060,
+      "height": 417,
+      "createdAt": "2026-11-05T22:25:55.881Z",
       "originalName": "Vector-7.svg",
-      "createdAt": "2026-11-05T22:25:55.881Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_ef230469",
@@ -3760,14 +3760,14 @@
       "author": "Мага",
       "nick": "basntype",
       "stream": "2",
-      "width": 784,
-      "height": 358,
-      "gridSpan": "auto",
       "files": [
         "wrk_ef230469_0.svg"
       ],
+      "width": 784,
+      "height": 358,
+      "createdAt": "2026-11-05T22:25:55.881Z",
       "originalName": "Vector-8.svg",
-      "createdAt": "2026-11-05T22:25:55.881Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_e97ddddb",
@@ -3775,14 +3775,14 @@
       "author": "Мага",
       "nick": "basntype",
       "stream": "2",
-      "width": 730,
-      "height": 234,
-      "gridSpan": "auto",
       "files": [
         "wrk_e97ddddb_0.svg"
       ],
+      "width": 730,
+      "height": 234,
+      "createdAt": "2026-11-05T22:25:55.884Z",
       "originalName": "Vector.svg",
-      "createdAt": "2026-11-05T22:25:55.884Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_7e69f659",
@@ -3790,14 +3790,14 @@
       "author": "Мага",
       "nick": "basntype",
       "stream": "2",
-      "width": 961,
-      "height": 201,
-      "gridSpan": "auto",
       "files": [
         "wrk_7e69f659_0.svg"
       ],
+      "width": 961,
+      "height": 201,
+      "createdAt": "2026-11-05T22:25:55.884Z",
       "originalName": "Group 1.svg",
-      "createdAt": "2026-11-05T22:25:55.884Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_17048062",
@@ -3805,14 +3805,14 @@
       "author": "Мага",
       "nick": "basntype",
       "stream": "2",
-      "width": 966,
-      "height": 220,
-      "gridSpan": "auto",
       "files": [
         "wrk_17048062_0.svg"
       ],
+      "width": 966,
+      "height": 220,
+      "createdAt": "2026-11-05T22:25:55.884Z",
       "originalName": "Group 2.svg",
-      "createdAt": "2026-11-05T22:25:55.884Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_ac847a0a",
@@ -3820,14 +3820,49 @@
       "author": "Мага",
       "nick": "basntype",
       "stream": "2",
-      "width": 952,
-      "height": 222,
-      "gridSpan": "auto",
       "files": [
         "wrk_ac847a0a_0.svg"
       ],
+      "width": 952,
+      "height": 222,
+      "createdAt": "2026-11-05T22:25:55.884Z",
       "originalName": "Group 3.svg",
-      "createdAt": "2026-11-05T22:25:55.884Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_0590d35b",
+      "type": "final",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 1600,
+      "height": 900,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_0590d35b_0.webp",
+        "wrk_0590d35b_1.webp",
+        "wrk_0590d35b_2.webp",
+        "wrk_0590d35b_3.webp",
+        "wrk_0590d35b_4.webp",
+        "wrk_0590d35b_5.webp",
+        "wrk_0590d35b_6.webp",
+        "wrk_0590d35b_7.webp",
+        "wrk_0590d35b_8.webp",
+        "wrk_0590d35b_9.webp",
+        "wrk_0590d35b_10.webp",
+        "wrk_0590d35b_11.webp",
+        "wrk_0590d35b_12.webp",
+        "wrk_0590d35b_13.webp",
+        "wrk_0590d35b_14.webp",
+        "wrk_0590d35b_15.webp",
+        "wrk_0590d35b_16.webp",
+        "wrk_0590d35b_17.webp",
+        "wrk_0590d35b_18.webp",
+        "wrk_0590d35b_19.webp",
+        "wrk_0590d35b_20.webp"
+      ],
+      "originalName": "01.webp",
+      "createdAt": "2026-11-05T22:29:56.723Z"
     }
   ]
 }
