@@ -279,8 +279,26 @@ function copy(key) {
   return t(key, PAGE_LOCALE);
 }
 
-/** Name, @nick and stream as spans; muted parts get `.is-muted`. */
-function metaNodes(item) {
+/** Tab copy for a work, so the mixed feed can name the piece the same way the chips do. */
+function workTypeLabel(item) {
+  if (item?.type === TYPE_FINAL) return copy("exp2.filter.final");
+  if (item?.type === TYPE_DAILY) return copy("exp2.filter.daily");
+  if (item?.type === TYPE_FONT) return copy("exp2.filter.font");
+  if (item?.type === TYPE_LETTERING) return copy("exp2.filter.workshop");
+  return "";
+}
+
+/** A single chip is on: the tab already names the type, so the caption stays author + stream. */
+function specificFilterActive() {
+  return enabledTypes.size === 1;
+}
+
+/**
+ * Name, @nick and stream as spans; muted parts get `.is-muted`.
+ * Feed cards pass `includeType` so the mixed feed also prints the work type
+ * in that same quiet span. A specific filter tab omits it.
+ */
+function metaNodes(item, { includeType = false } = {}) {
   if (!hasAuthorIdentity(item)) return [];
   const nodes = [];
   const author = authorText(item);
@@ -302,6 +320,16 @@ function metaNodes(item) {
     streamEl.className = "is-muted";
     streamEl.textContent = stream;
     nodes.push(streamEl);
+  }
+  if (includeType && !specificFilterActive()) {
+    const label = workTypeLabel(item);
+    if (label) {
+      const typeEl = document.createElement("span");
+      typeEl.className = "is-muted";
+      typeEl.dataset.workType = "";
+      typeEl.textContent = label;
+      nodes.push(typeEl);
+    }
   }
   return nodes;
 }
@@ -343,7 +371,7 @@ function syncCardMeta(card, item) {
     meta.className = "work-card__meta";
     card.append(meta);
   }
-  meta.replaceChildren(...metaNodes(item));
+  meta.replaceChildren(...metaNodes(item, { includeType: true }));
 }
 
 /* ---------- language ---------- */
@@ -949,7 +977,7 @@ function cardFor(item, span) {
   if (hasAuthorIdentity(item)) {
     const meta = document.createElement("div");
     meta.className = "work-card__meta";
-    meta.append(...metaNodes(item));
+    meta.append(...metaNodes(item, { includeType: true }));
     card.append(meta);
   }
   art.addEventListener("click", (event) => openViewerFor(item, card, event));
@@ -985,7 +1013,7 @@ function fontCardFor(item, span) {
   if (hasAuthorIdentity(item)) {
     const meta = document.createElement("div");
     meta.className = "work-card__meta";
-    meta.append(...metaNodes(item));
+    meta.append(...metaNodes(item, { includeType: true }));
     card.append(meta);
   }
   mountFontSpecimen(specimen, item);
