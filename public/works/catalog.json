@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T22:35:25.395Z",
+  "updatedAt": "2026-11-05T22:40:07.213Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3905,14 +3905,29 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
-      "width": 928,
-      "height": 227,
-      "gridSpan": "auto",
       "files": [
         "wrk_79f8be76_0.svg"
       ],
+      "width": 928,
+      "height": 227,
+      "createdAt": "2026-11-05T22:35:25.394Z",
       "originalName": "_Слой_1.svg",
-      "createdAt": "2026-11-05T22:35:25.394Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_077c7802",
+      "type": "lettering",
+      "author": "Алеся",
+      "nick": "alesiado",
+      "stream": "2",
+      "width": 1392,
+      "height": 1392,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_077c7802_0.webp"
+      ],
+      "originalName": "Srebrny reliefowy monogram na szarym tle 1.webp",
+      "createdAt": "2026-11-05T22:40:07.213Z"
     }
   ]
 }
