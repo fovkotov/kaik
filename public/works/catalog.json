@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T23:26:54.073Z",
+  "updatedAt": "2026-11-05T23:27:42.075Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -5572,14 +5572,14 @@
       "author": "Ваня",
       "nick": "Balabama_AI",
       "stream": "2",
-      "width": 366,
-      "height": 483,
-      "gridSpan": "auto",
       "files": [
         "wrk_4373d88d_0.svg"
       ],
+      "width": 366,
+      "height": 483,
+      "createdAt": "2026-11-05T23:26:54.072Z",
       "originalName": "Vector 498.svg",
-      "createdAt": "2026-11-05T23:26:54.072Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_db451bae",
@@ -5587,14 +5587,14 @@
       "author": "Ваня",
       "nick": "Balabama_AI",
       "stream": "2",
-      "width": 752,
-      "height": 216,
-      "gridSpan": "auto",
       "files": [
         "wrk_db451bae_0.svg"
       ],
+      "width": 752,
+      "height": 216,
+      "createdAt": "2026-11-05T23:26:54.072Z",
       "originalName": "Vector-1.svg",
-      "createdAt": "2026-11-05T23:26:54.072Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_5ae9d668",
@@ -5602,14 +5602,36 @@
       "author": "Ваня",
       "nick": "Balabama_AI",
       "stream": "2",
-      "width": 1719,
-      "height": 331,
-      "gridSpan": "auto",
       "files": [
         "wrk_5ae9d668_0.svg"
       ],
+      "width": 1719,
+      "height": 331,
+      "createdAt": "2026-11-05T23:26:54.073Z",
       "originalName": "Vector.svg",
-      "createdAt": "2026-11-05T23:26:54.073Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_cb36c473",
+      "type": "final",
+      "author": "Ваня",
+      "nick": "Balabama_AI",
+      "stream": "2",
+      "width": 1600,
+      "height": 900,
+      "gridSpan": "auto",
+      "cover": "wrk_cb36c473_cover.webp",
+      "files": [
+        "wrk_cb36c473_0.webp",
+        "wrk_cb36c473_1.webp",
+        "wrk_cb36c473_2.webp",
+        "wrk_cb36c473_3.webp",
+        "wrk_cb36c473_4.webp",
+        "wrk_cb36c473_5.webp",
+        "wrk_cb36c473_6.webp"
+      ],
+      "originalName": "02.webp",
+      "createdAt": "2026-11-05T23:27:42.075Z"
     }
   ]
 }
