@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T23:16:47.387Z",
+  "updatedAt": "2026-11-05T23:18:29.453Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3858,8 +3858,8 @@
       "author": "Алеся",
       "nick": "alesiado",
       "stream": "2",
+      "cover": "wrk_7733e07f_cover.webp",
       "files": [
-        "wrk_7733e07f_0.webp",
         "wrk_7733e07f_1.webp",
         "wrk_7733e07f_2.webp",
         "wrk_7733e07f_3.webp",
@@ -3884,7 +3884,8 @@
       "width": 1600,
       "height": 900,
       "createdAt": "2026-11-05T22:34:33.778Z",
-      "originalName": "01.webp",
+      "updatedAt": "2026-11-05T23:18:29.453Z",
+      "originalName": "07.webp",
       "gridSpan": "auto"
     },
     {
@@ -5176,14 +5177,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 463,
-      "height": 205,
-      "gridSpan": "auto",
       "files": [
         "wrk_5c5b3fee_0.svg"
       ],
+      "width": 463,
+      "height": 205,
+      "createdAt": "2026-11-05T23:16:47.387Z",
       "originalName": "Vector-9 1.svg",
-      "createdAt": "2026-11-05T23:16:47.387Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_d24a10f6",
@@ -5191,14 +5192,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1215,
-      "height": 176,
-      "gridSpan": "auto",
       "files": [
         "wrk_d24a10f6_0.svg"
       ],
+      "width": 1215,
+      "height": 176,
+      "createdAt": "2026-11-05T23:16:47.387Z",
       "originalName": "Vector-10 1.svg",
-      "createdAt": "2026-11-05T23:16:47.387Z"
+      "gridSpan": "auto"
     }
   ]
 }
