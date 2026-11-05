@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T23:56:46.355Z",
+  "updatedAt": "2026-11-05T23:56:51.807Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -6370,14 +6370,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "c",
-      "width": 117,
-      "height": 117,
-      "gridSpan": "auto",
       "files": [
         "wrk_9216f965_0.svg"
       ],
+      "width": 117,
+      "height": 117,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-13 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_6fb77a19",
@@ -6386,14 +6386,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "c",
-      "width": 104,
-      "height": 145,
-      "gridSpan": "auto",
       "files": [
         "wrk_6fb77a19_0.svg"
       ],
+      "width": 104,
+      "height": 145,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-14 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_48ae678a",
@@ -6402,14 +6402,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "p",
-      "width": 218,
-      "height": 192,
-      "gridSpan": "auto",
       "files": [
         "wrk_48ae678a_0.svg"
       ],
+      "width": 218,
+      "height": 192,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-15 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_dab1b710",
@@ -6418,14 +6418,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "b",
-      "width": 100,
-      "height": 129,
-      "gridSpan": "auto",
       "files": [
         "wrk_dab1b710_0.svg"
       ],
+      "width": 100,
+      "height": 129,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-16 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_bf076730",
@@ -6434,14 +6434,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "p",
-      "width": 136,
-      "height": 193,
-      "gridSpan": "auto",
       "files": [
         "wrk_bf076730_0.svg"
       ],
+      "width": 136,
+      "height": 193,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-17 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_cad23534",
@@ -6450,14 +6450,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "o",
-      "width": 126,
-      "height": 185,
-      "gridSpan": "auto",
       "files": [
         "wrk_cad23534_0.svg"
       ],
+      "width": 126,
+      "height": 185,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-18 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_d40d7689",
@@ -6466,14 +6466,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "p",
-      "width": 146,
-      "height": 221,
-      "gridSpan": "auto",
       "files": [
         "wrk_d40d7689_0.svg"
       ],
+      "width": 146,
+      "height": 221,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-19 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_d82826e7",
@@ -6482,14 +6482,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "h",
-      "width": 154,
-      "height": 203,
-      "gridSpan": "auto",
       "files": [
         "wrk_d82826e7_0.svg"
       ],
+      "width": 154,
+      "height": 203,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-20 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_fc0c1b3a",
@@ -6498,14 +6498,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "h",
-      "width": 294,
-      "height": 258,
-      "gridSpan": "auto",
       "files": [
         "wrk_fc0c1b3a_0.svg"
       ],
+      "width": 294,
+      "height": 258,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-21 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_c1f1ad0e",
@@ -6514,14 +6514,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "w",
-      "width": 538,
-      "height": 247,
-      "gridSpan": "auto",
       "files": [
         "wrk_c1f1ad0e_0.svg"
       ],
+      "width": 538,
+      "height": 247,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-22 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_b0835a10",
@@ -6530,14 +6530,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "m",
-      "width": 214,
-      "height": 254,
-      "gridSpan": "auto",
       "files": [
         "wrk_b0835a10_0.svg"
       ],
+      "width": 214,
+      "height": 254,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-23 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_94a4c57f",
@@ -6546,14 +6546,62 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "m",
-      "width": 385,
-      "height": 214,
-      "gridSpan": "auto",
       "files": [
         "wrk_94a4c57f_0.svg"
       ],
+      "width": 385,
+      "height": 214,
+      "createdAt": "2026-11-05T23:56:46.355Z",
       "originalName": "Vector-24 1.svg",
-      "createdAt": "2026-11-05T23:56:46.355Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_2e2c89c3",
+      "type": "daily",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "glyph": "m",
+      "width": 117,
+      "height": 108,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_2e2c89c3_0.svg"
+      ],
+      "originalName": "Vector-25 1.svg",
+      "createdAt": "2026-11-05T23:56:51.807Z"
+    },
+    {
+      "id": "wrk_2d383b90",
+      "type": "daily",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "glyph": "m",
+      "width": 156,
+      "height": 117,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_2d383b90_0.svg"
+      ],
+      "originalName": "Vector-26 1.svg",
+      "createdAt": "2026-11-05T23:56:51.807Z"
+    },
+    {
+      "id": "wrk_f3ff30c1",
+      "type": "daily",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "glyph": "b",
+      "width": 134,
+      "height": 120,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_f3ff30c1_0.svg"
+      ],
+      "originalName": "Vector-27 1.svg",
+      "createdAt": "2026-11-05T23:56:51.807Z"
     }
   ]
 }
