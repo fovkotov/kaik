@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T23:28:12.925Z",
+  "updatedAt": "2026-11-05T23:40:12.422Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -5639,14 +5639,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 815,
-      "height": 924,
-      "gridSpan": "auto",
       "files": [
         "wrk_52b9741a_0.svg"
       ],
+      "width": 815,
+      "height": 924,
+      "createdAt": "2026-11-05T23:28:12.924Z",
       "originalName": "Group 2087326138.svg",
-      "createdAt": "2026-11-05T23:28:12.924Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_cf564ca2",
@@ -5654,14 +5654,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1394,
-      "height": 564,
-      "gridSpan": "auto",
       "files": [
         "wrk_cf564ca2_0.svg"
       ],
+      "width": 1394,
+      "height": 564,
+      "createdAt": "2026-11-05T23:28:12.924Z",
       "originalName": "Group 2087326139.svg",
-      "createdAt": "2026-11-05T23:28:12.924Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_150269d5",
@@ -5669,14 +5669,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1322,
-      "height": 392,
-      "gridSpan": "auto",
       "files": [
         "wrk_150269d5_0.svg"
       ],
+      "width": 1322,
+      "height": 392,
+      "createdAt": "2026-11-05T23:28:12.924Z",
       "originalName": "Group 2087326140.svg",
-      "createdAt": "2026-11-05T23:28:12.924Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_a42aa1dc",
@@ -5684,14 +5684,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 577,
-      "height": 612,
-      "gridSpan": "auto",
       "files": [
         "wrk_a42aa1dc_0.svg"
       ],
+      "width": 577,
+      "height": 612,
+      "createdAt": "2026-11-05T23:28:12.925Z",
       "originalName": "Group 2087326141.svg",
-      "createdAt": "2026-11-05T23:28:12.925Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_947a9fd0",
@@ -5699,14 +5699,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1279,
-      "height": 568,
-      "gridSpan": "auto",
       "files": [
         "wrk_947a9fd0_0.svg"
       ],
+      "width": 1279,
+      "height": 568,
+      "createdAt": "2026-11-05T23:28:12.925Z",
       "originalName": "Group 2087326170.svg",
-      "createdAt": "2026-11-05T23:28:12.925Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_cc871b88",
@@ -5714,14 +5714,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1033,
-      "height": 482,
-      "gridSpan": "auto",
       "files": [
         "wrk_cc871b88_0.svg"
       ],
+      "width": 1033,
+      "height": 482,
+      "createdAt": "2026-11-05T23:28:12.925Z",
       "originalName": "Group 2087326192.svg",
-      "createdAt": "2026-11-05T23:28:12.925Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_2f01b09d",
@@ -5729,14 +5729,43 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1531,
-      "height": 397,
-      "gridSpan": "auto",
       "files": [
         "wrk_2f01b09d_0.svg"
       ],
+      "width": 1531,
+      "height": 397,
+      "createdAt": "2026-11-05T23:28:12.925Z",
       "originalName": "Vector.svg",
-      "createdAt": "2026-11-05T23:28:12.925Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_52311666",
+      "type": "final",
+      "author": "Катя",
+      "nick": "softw1nd",
+      "stream": "2",
+      "width": 1600,
+      "height": 900,
+      "gridSpan": "auto",
+      "cover": "wrk_52311666_cover.webp",
+      "files": [
+        "wrk_52311666_0.webp",
+        "wrk_52311666_1.webp",
+        "wrk_52311666_2.webp",
+        "wrk_52311666_3.webp",
+        "wrk_52311666_4.webp",
+        "wrk_52311666_5.webp",
+        "wrk_52311666_6.webp",
+        "wrk_52311666_7.webp",
+        "wrk_52311666_8.webp",
+        "wrk_52311666_9.webp",
+        "wrk_52311666_10.webp",
+        "wrk_52311666_11.webp",
+        "wrk_52311666_12.webp",
+        "wrk_52311666_13.webp"
+      ],
+      "originalName": "09.webp",
+      "createdAt": "2026-11-05T23:40:12.422Z"
     }
   ]
 }
