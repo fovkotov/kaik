@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-13T20:09:46.098Z",
+  "updatedAt": "2026-11-05T22:25:35.297Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -3528,6 +3528,111 @@
       "createdAt": "2026-09-12T15:29:20.367Z",
       "originalName": "01.webp",
       "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_16c1cbaa",
+      "type": "lettering",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 787,
+      "height": 290,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_16c1cbaa_0.svg"
+      ],
+      "originalName": "_Слой_1-1.svg",
+      "createdAt": "2026-11-05T22:25:35.291Z"
+    },
+    {
+      "id": "wrk_0a18463a",
+      "type": "lettering",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 313,
+      "height": 356,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_0a18463a_0.svg"
+      ],
+      "originalName": "_Слой_1.svg",
+      "createdAt": "2026-11-05T22:25:35.293Z"
+    },
+    {
+      "id": "wrk_390baaf0",
+      "type": "lettering",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 564,
+      "height": 382,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_390baaf0_0.svg"
+      ],
+      "originalName": "Group 9.svg",
+      "createdAt": "2026-11-05T22:25:35.293Z"
+    },
+    {
+      "id": "wrk_dc14e6d4",
+      "type": "lettering",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 592,
+      "height": 402,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_dc14e6d4_0.svg"
+      ],
+      "originalName": "Group 10.svg",
+      "createdAt": "2026-11-05T22:25:35.294Z"
+    },
+    {
+      "id": "wrk_fcaafa38",
+      "type": "lettering",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 284,
+      "height": 424,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_fcaafa38_0.svg"
+      ],
+      "originalName": "Group 24.svg",
+      "createdAt": "2026-11-05T22:25:35.295Z"
+    },
+    {
+      "id": "wrk_c505577e",
+      "type": "final",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 1021,
+      "height": 508,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_c505577e_0.svg"
+      ],
+      "originalName": "Group 31.svg",
+      "createdAt": "2026-11-05T22:25:35.296Z"
+    },
+    {
+      "id": "wrk_0009459c",
+      "type": "lettering",
+      "author": "Мага",
+      "nick": "basntype",
+      "stream": "2",
+      "width": 589,
+      "height": 539,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_0009459c_0.svg"
+      ],
+      "originalName": "Group 34.svg",
+      "createdAt": "2026-11-05T22:25:35.296Z"
     }
   ]
 }
