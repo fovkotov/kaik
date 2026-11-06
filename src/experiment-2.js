@@ -1317,8 +1317,8 @@ function createFollower() {
     if (active && !frame) frame = requestAnimationFrame(tick);
   }
 
-  /** Modest pad around each desktop chip. The red zones, not the whole hero. */
-  const CURSOR_PAD = 20;
+  /** 30px pad around each desktop chip. The red zones, not the whole hero. */
+  const CURSOR_PAD = 30;
 
   function pointerInChipZone(x, y) {
     const nodes = document.querySelectorAll(
