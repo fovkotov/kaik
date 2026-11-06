@@ -4,7 +4,7 @@
  * A program-strip slide marked `data-project-viewer="<nick>"` (or a work id)
  * opens this overlay instead of the plain image lightbox: the student's own
  * deck from the works catalog, pale `.viewer-btn` chrome, scale-weighted
- * pager and the `name @nick 1` caption. Fixed to the iframe, so the
+ * pager and the `name @nick 1 workshop` caption. Fixed to the iframe, so the
  * focused card keeps its inner scroll and comes back untouched on close.
  */
 
@@ -16,6 +16,7 @@ import { publicUrl } from "./public-url.js";
 import { t } from "./scriptik.js";
 import { isMobile } from "./tweaks.js";
 import { loadWorksCatalog, workFileUrl } from "./works/catalog.js";
+import { TYPE_DAILY, TYPE_FINAL, TYPE_FONT, TYPE_LETTERING } from "./works/taxonomy.js";
 
 const COARSE = window.matchMedia("(pointer: coarse)");
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -134,7 +135,17 @@ function slidesOf(works) {
   return out;
 }
 
-/** Name, then muted @nick and stream number — same line as the experiment-2 viewer. */
+/** Singular type, same strings as the experiment-2 fullscreen caption. */
+function workTypeLabel(work) {
+  const type = work?.type;
+  if (type === TYPE_FINAL) return t("exp2.type.final");
+  if (type === TYPE_DAILY) return t("exp2.type.daily");
+  if (type === TYPE_FONT) return t("exp2.type.font");
+  if (type === TYPE_LETTERING) return t("exp2.type.workshop");
+  return "";
+}
+
+/** Name, then muted @nick, stream, and singular type — same line as the experiment-2 viewer. */
 function captionNodes(work) {
   const nodes = [];
   const add = (text, muted) => {
@@ -147,7 +158,24 @@ function captionNodes(work) {
   add(work?.author, false);
   if (work?.nick) add(`@${work.nick}`, true);
   if (work?.stream) add(String(work.stream), true);
+  const type = workTypeLabel(work);
+  if (type) {
+    const span = document.createElement("span");
+    span.className = "is-muted";
+    span.dataset.workType = "";
+    span.textContent = type;
+    nodes.push(span);
+  }
   return nodes;
+}
+
+/** Caption follows the open slide, so a mixed deck keeps the visible work's type. */
+let captionWork = null;
+function syncCaption(active = index) {
+  const work = deck[wrap(active)]?.work;
+  if (!caption || !work || work === captionWork) return;
+  captionWork = work;
+  caption.replaceChildren(...captionNodes(work));
 }
 
 const count = () => deck.length || 1;
@@ -225,6 +253,7 @@ function syncDots(active = index) {
   const current = wrap(active);
   slides.forEach((slide, i) => slide.classList.toggle("is-active", i === current));
   layoutDots(current);
+  syncCaption(current);
 }
 
 function cancelSpring() {
@@ -698,6 +727,9 @@ function bindRoot() {
     root.querySelectorAll("[data-i18n-aria]").forEach((el) => {
       el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria")));
     });
+    if (!open) return;
+    captionWork = null;
+    syncCaption();
   });
 }
 
@@ -718,7 +750,8 @@ export async function openProjectViewer(key, el = null) {
   savedScroller = card ? liveFocusScrollRoot(card) : null;
   savedScroll = savedScroller?.scrollTop ?? 0;
   savedDeckY = getScrollRoot()?.scrollTop ?? 0;
-  caption.replaceChildren(...captionNodes(deck[0].work));
+  captionWork = null;
+  syncCaption(0);
   root.classList.toggle("is-single", deck.length < 2);
   buildSlides();
   buildDots();

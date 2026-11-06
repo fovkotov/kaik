@@ -159,7 +159,7 @@ html.is-mobile .pviewer__hit {
   transform: scale(0.97);
 }
 
-/* Bottom-left student line: name, then muted @nick and stream. */
+/* Bottom-left student line: name, then muted @nick, stream, and type. */
 .pviewer__caption {
   position: absolute;
   left: 24px;

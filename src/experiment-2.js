@@ -303,8 +303,9 @@ function captionOmitsType() {
  * Name, @nick and stream as spans; muted parts get `.is-muted`.
  * Feed cards pass `includeType` so the caption prints the singular work type
  * in that same quiet span. A single tab other than daily practice omits it.
+ * Fullscreen passes `alwaysType` so the type stays even on those tabs.
  */
-function metaNodes(item, { includeType = false } = {}) {
+function metaNodes(item, { includeType = false, alwaysType = false } = {}) {
   if (!hasAuthorIdentity(item)) return [];
   const nodes = [];
   const author = authorText(item);
@@ -327,7 +328,7 @@ function metaNodes(item, { includeType = false } = {}) {
     streamEl.textContent = stream;
     nodes.push(streamEl);
   }
-  if (includeType && !captionOmitsType()) {
+  if (alwaysType || (includeType && !captionOmitsType())) {
     const label = workTypeLabel(item);
     if (label) {
       const typeEl = document.createElement("span");
@@ -1063,7 +1064,11 @@ function visibleWorks() {
 }
 
 function slideFor(item, file) {
-  return { src: workFileUrl(file), alt: altFor(item), caption: () => metaNodes(item) };
+  return {
+    src: workFileUrl(file),
+    alt: altFor(item),
+    caption: () => metaNodes(item, { alwaysType: true }),
+  };
 }
 
 /**

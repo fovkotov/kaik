@@ -4,10 +4,11 @@
  * bound to the `[data-viewer]` markup. Light palette, fixed to the iframe.
  */
 
+import { t } from "./scriptik.js";
 import { isMobile } from "./tweaks.js";
 import { workFileUrl } from "./works/catalog.js";
 import { imageFiles } from "./works-feed.js";
-import { TYPE_FINAL } from "./works/taxonomy.js";
+import { TYPE_DAILY, TYPE_FINAL, TYPE_FONT, TYPE_LETTERING } from "./works/taxonomy.js";
 
 const COARSE = window.matchMedia("(pointer: coarse)");
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -30,7 +31,17 @@ const DOTS_VISIBLE = DOTS_MAIN + 4;
 const DOT_SLOT = 16;
 const DOT_SCALE = [1, 0.75, 0.5, 0.33];
 
-/** Name, @nick and stream as spans; muted parts get `.is-muted`. */
+/** Singular type, same strings as the experiment-2 fullscreen caption. */
+function workTypeLabel(item) {
+  const type = item?.type;
+  if (type === TYPE_FINAL) return t("exp2.type.final");
+  if (type === TYPE_DAILY) return t("exp2.type.daily");
+  if (type === TYPE_FONT) return t("exp2.type.font");
+  if (type === TYPE_LETTERING) return t("exp2.type.workshop");
+  return "";
+}
+
+/** Name, @nick, stream, and singular type as spans; muted parts get `.is-muted`. */
 export function workMetaNodes(item) {
   const nodes = [];
   if (item.author) {
@@ -49,6 +60,14 @@ export function workMetaNodes(item) {
     stream.className = "is-muted";
     stream.textContent = String(item.stream);
     nodes.push(stream);
+  }
+  const type = workTypeLabel(item);
+  if (type) {
+    const typeEl = document.createElement("span");
+    typeEl.className = "is-muted";
+    typeEl.dataset.workType = "";
+    typeEl.textContent = type;
+    nodes.push(typeEl);
   }
   return nodes;
 }
