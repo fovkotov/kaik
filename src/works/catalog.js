@@ -32,10 +32,14 @@ export async function loadWorksCatalog({ bust = false } = {}) {
 
   const req = (async () => {
     try {
-      const live = await fetchCatalog("/api/works", true);
-      if (live) {
-        lastGood = live;
-        return live;
+      // `/api/works` exists only on the Vite dev server. In production it is a
+      // 404 (Pages) or the whole index.html fallback (Vercel), so skip it.
+      if (import.meta.env.DEV) {
+        const live = await fetchCatalog("/api/works", true);
+        if (live) {
+          lastGood = live;
+          return live;
+        }
       }
       fileBase = "";
       const data = await fetchCatalog(CATALOG_URL, bust);

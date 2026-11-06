@@ -182,6 +182,8 @@ let catalogReady = false;
 let workshopWorks = [];
 let heroQueue = [];
 let heroQueueIndex = -1;
+let heroPending = [];
+let heroWarming = false;
 let heroGeneration = 0;
 const enabledTypes = new Set(VISUAL_TYPES);
 let activeLettering = null;
@@ -194,13 +196,14 @@ let cardGuardPasses = 0;
 /* Card media (img src / webfont) is fetched only when the card nears the viewport. */
 let mediaObserver = null;
 const pendingHydration = new Map();
-/* Lookahead for fetching card files: 1.5 screens on desktop, 1.5× that on mobile,
-   where a thumb-flick covers more screens per second and the link is slower. */
-const MEDIA_ROOT_MARGIN = "150% 0px";
-const MEDIA_ROOT_MARGIN_MOBILE = "225% 0px";
-/* How many hero letterings block the first reveal; the rest warm up in idle time. */
+/* Lookahead for fetching card files: a bit more than one screen, not the whole feed. */
+const MEDIA_ROOT_MARGIN = "60% 0px";
+const MEDIA_ROOT_MARGIN_MOBILE = "90% 0px";
+/* How many card files may start at once. Images return immediately; fonts hold a slot. */
+const HYDRATE_LIMIT = 4;
+/* How many hero letterings block the first reveal. The next few warm one at a time. */
 const HERO_EAGER = 1;
-const HERO_WARM_CONCURRENCY = 2;
+const HERO_LOOKAHEAD = 3;
 let pageLenis = null;
 let enterObserver = null;
 let enterIndex = 0;
@@ -609,7 +612,9 @@ function fitFontSpecimen(specimen) {
   const prev = specimen.style.getPropertyValue("--font-fit");
   if (rounded >= 0.999) specimen.style.removeProperty("--font-fit");
   else specimen.style.setProperty("--font-fit", String(rounded));
-  if (specimen.style.getPropertyValue("--font-fit") !== prev) scheduleCardMeasure();
+  if (specimen.style.getPropertyValue("--font-fit") !== prev) {
+    scheduleCardMeasure(specimen.closest(".work-card"));
+  }
 }
 
 function bindFontSpecimen(specimen, fallback, flags = {}) {
@@ -647,7 +652,7 @@ function bindFontSpecimen(specimen, fallback, flags = {}) {
   });
   new ResizeObserver(() => {
     fitFontSpecimen(specimen);
-    scheduleCardMeasure();
+    scheduleCardMeasure(specimen.closest(".work-card"));
   }).observe(specimen);
 }
 
@@ -670,7 +675,7 @@ async function hydrateFontSpecimen(specimen, item, file) {
     await document.fonts.load(`48px "${family}"`).catch(() => {});
     loaded.loaded.then(() => {
       fitFontSpecimen(specimen);
-      scheduleCardMeasure();
+      scheduleCardMeasure(specimen.closest(".work-card"));
     }).catch(() => {});
   } catch {
     specimen.classList.add("is-font-error");
@@ -681,7 +686,7 @@ async function hydrateFontSpecimen(specimen, item, file) {
     /* third-party iframe can reject FontFaceSet */
   }
   fitFontSpecimen(specimen);
-  scheduleCardMeasure();
+  scheduleCardMeasure(specimen.closest(".work-card"));
   markCardEnterReady(specimen.closest(".work-card"));
 }
 
@@ -758,8 +763,10 @@ function intrinsicSpecimenHeight(card) {
  * ink that overflows into the caption), so a single pass never ping-pongs
  * between a "measure" and a "guard" value. Returns true when a span changed.
  */
-function measureCards() {
-  const cards = grid.querySelectorAll(".work-card");
+function measureCards(only) {
+  const cards = only
+    ? [...only].filter((card) => card?.isConnected)
+    : grid.querySelectorAll(".work-card");
   if (!cards.length) return false;
   const rowUnit = rowUnitPx();
   if (!(rowUnit > 0)) return false;
@@ -801,15 +808,36 @@ function measureCards() {
   return writes.length > 0;
 }
 
+/** Cards whose span must be recomputed. A call with no card measures the whole grid. */
+const dirtyCards = new Set();
+let measureAll = false;
+
 /** Double-rAF so styles/images have settled; re-runs while spans still move, a few times at most. */
-function scheduleCardMeasure() {
+function scheduleCardMeasure(card) {
+  if (arguments.length === 0) measureAll = true;
+  else if (card instanceof Element) dirtyCards.add(card);
+  if (!measureAll && !dirtyCards.size) return;
+  queueCardMeasure();
+}
+
+function queueCardMeasure() {
   cancelAnimationFrame(cardMeasureFrame);
   cardMeasureFrame = requestAnimationFrame(() => {
     cardMeasureFrame = requestAnimationFrame(() => {
-      const changed = measureCards();
+      const all = measureAll;
+      const only = all ? null : new Set(dirtyCards);
+      dirtyCards.clear();
+      measureAll = false;
+      if (!all && only && !only.size) {
+        cardGuardPasses = 0;
+        return;
+      }
+      const changed = measureCards(only);
       if (changed && cardGuardPasses < 4) {
         cardGuardPasses += 1;
-        scheduleCardMeasure();
+        if (all) measureAll = true;
+        else only.forEach((entry) => dirtyCards.add(entry));
+        queueCardMeasure();
         return;
       }
       cardGuardPasses = 0;
@@ -839,12 +867,26 @@ function observeCardMedia() {
   pendingHydration.forEach((_, card) => mediaObserver.observe(card));
 }
 
+let hydrating = 0;
+const hydrateWait = [];
+
 function hydrateCard(card) {
   const run = pendingHydration.get(card);
   if (!run) return;
   pendingHydration.delete(card);
   mediaObserver?.unobserve(card);
-  run();
+  const start = () => {
+    hydrating += 1;
+    Promise.resolve()
+      .then(run)
+      .finally(() => {
+        hydrating -= 1;
+        const next = hydrateWait.shift();
+        if (next) next();
+      });
+  };
+  if (hydrating >= HYDRATE_LIMIT) hydrateWait.push(start);
+  else start();
 }
 
 function queueCardMedia(card, run) {
@@ -927,11 +969,11 @@ function bindArtworkMetrics(card, preview, image) {
       image.style.overflow = "visible";
     }
     if (!setArtworkDimensions(card, preview, image.naturalWidth, image.naturalHeight)) return;
-    scheduleCardMeasure();
+    scheduleCardMeasure(card);
   };
   /* `load` alone: an eager decode() would force every lazy image to download at once. */
   image.addEventListener("load", applyNatural);
-  image.addEventListener("error", () => scheduleCardMeasure(), { once: true });
+  image.addEventListener("error", () => scheduleCardMeasure(card), { once: true });
   if (image.complete && image.naturalWidth) queueMicrotask(applyNatural);
 }
 
@@ -958,9 +1000,8 @@ function cardFor(item, span) {
     preview.style.aspectRatio = `${Number(item.width)} / ${Number(item.height)}`;
   }
   const image = document.createElement("img");
-  /* Not `loading="lazy"`: the viewport gate is our IntersectionObserver (with its
-     wider mobile lookahead). The browser's own lazy distance (~1250px on 4G in
-     Chrome) would otherwise hold the fetch back until the card is much closer. */
+  /* Not `loading="lazy"`: the viewport gate is our IntersectionObserver.
+     The browser's own lazy distance would hold the fetch until the card is closer. */
   image.loading = "eager";
   image.decoding = "async";
   image.draggable = false;
@@ -968,7 +1009,7 @@ function cardFor(item, span) {
   const ready = () => markCardEnterReady(card);
   image.addEventListener("load", ready, { once: true });
   image.addEventListener("error", ready, { once: true });
-  if (coverCrop) image.addEventListener("load", () => scheduleCardMeasure());
+  if (coverCrop) image.addEventListener("load", () => scheduleCardMeasure(card));
   else bindArtworkMetrics(card, preview, image);
   preview.append(image);
   art.append(preview);
@@ -984,6 +1025,7 @@ function cardFor(item, span) {
   /* src (and alt, so an src-less img never paints alt text) wait for the viewport. */
   queueCardMedia(card, () => {
     image.alt = altFor(item);
+    image.fetchPriority = cardInScrollView(card) ? "high" : "low";
     image.src = workFileUrl(cover);
     if (image.complete && image.naturalWidth) queueMicrotask(ready);
   });
@@ -1154,11 +1196,12 @@ function revealOnLoad(image, frame, { skeleton = true } = {}) {
 
 /* ---------- hero ---------- */
 
-function preloadHeroImage(item) {
+function preloadHeroImage(item, priority = "low") {
   return new Promise((resolve) => {
     const image = new Image();
     const done = (ok) => resolve(ok ? item : null);
     image.decoding = "async";
+    image.fetchPriority = priority;
     image.addEventListener("load", () => done(true), { once: true });
     image.addEventListener("error", () => done(false), { once: true });
     image.src = workFileUrl(svgFile(item));
@@ -1166,35 +1209,36 @@ function preloadHeroImage(item) {
   });
 }
 
-const idle =
-  typeof requestIdleCallback === "function"
-    ? (fn) => requestIdleCallback(fn, { timeout: 1500 })
-    : (fn) => setTimeout(fn, 200);
-
 /**
- * Reveal the hero as soon as the first lettering has pixels; the rest of the
- * deck warms the image cache in idle time, a couple of files at a time, and
- * joins `workshopWorks` as it lands — so a tap always hits a cached SVG, but
- * the first paint on a slow link no longer waits for all ~50 downloads.
+ * Reveal the hero as soon as the first lettering has pixels. The rest stay
+ * queued; `scheduleHeroWarm` keeps only the next few SVGs in cache.
  */
 async function preloadHeroWorks(items) {
   const queue = [...items];
   const ready = [];
   while (queue.length && ready.length < HERO_EAGER) {
-    const item = await preloadHeroImage(queue.shift());
+    const item = await preloadHeroImage(queue.shift(), "high");
     if (item) ready.push(item);
   }
-  const warm = () => {
-    if (!queue.length) return;
-    const batch = queue.splice(0, HERO_WARM_CONCURRENCY);
-    Promise.all(batch.map(preloadHeroImage)).then((loaded) => {
-      /* `ready` becomes `workshopWorks` in boot; pushing here grows the live deck. */
-      loaded.filter(Boolean).forEach((item) => ready.push(item));
-      idle(warm);
-    });
-  };
-  idle(warm);
+  heroPending = queue;
   return ready;
+}
+
+/** Keep `HERO_LOOKAHEAD` unshown letterings decoded. One file at a time. */
+function scheduleHeroWarm() {
+  if (heroWarming || !heroPending.length) return;
+  const ahead = workshopWorks.length - Math.max(heroQueueIndex, 0);
+  if (ahead >= HERO_LOOKAHEAD) return;
+  heroWarming = true;
+  const item = heroPending.shift();
+  preloadHeroImage(item).then((loaded) => {
+    heroWarming = false;
+    if (loaded) {
+      workshopWorks.push(loaded);
+      if (heroQueueIndex >= 0) heroQueue.push(loaded);
+    }
+    scheduleHeroWarm();
+  });
 }
 
 function refillHeroQueue() {
@@ -1233,6 +1277,7 @@ function nextHero() {
   const next = heroQueue[heroQueueIndex];
   heroQueueIndex += 1;
   setHero(next);
+  scheduleHeroWarm();
 }
 
 /**
@@ -2848,6 +2893,28 @@ function initDeckStage() {
     if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
   }
 
+  let heroPreloadId = 0;
+  /** After the lettering hero is up. Idle so it does not compete with the first SVG. */
+  function scheduleHeroPreload() {
+    if (heroDeckOpen || heroFrame.getAttribute("src") === deckSrc || heroPreloadId) return;
+    const run = () => {
+      heroPreloadId = 0;
+      preloadHeroFrame();
+    };
+    if (typeof requestIdleCallback === "function") {
+      heroPreloadId = requestIdleCallback(run, { timeout: 2500 });
+      return;
+    }
+    heroPreloadId = window.setTimeout(run, 1200);
+  }
+
+  function kickHeroPreload() {
+    if (typeof requestIdleCallback === "function" && heroPreloadId) cancelIdleCallback(heroPreloadId);
+    else window.clearTimeout(heroPreloadId);
+    heroPreloadId = 0;
+    preloadHeroFrame();
+  }
+
   function showHeroFrame() {
     if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
     else heroFrame.contentWindow?.postMessage({ type: "kaik:deck-stage-intro" }, origin);
@@ -2908,9 +2975,12 @@ function initDeckStage() {
   }
 
   document.querySelectorAll("[data-about]").forEach((btn) => {
+    btn.addEventListener("pointerenter", kickHeroPreload, { passive: true });
+    btn.addEventListener("touchstart", kickHeroPreload, { passive: true });
     btn.addEventListener("click", (event) => {
       event.preventDefault();
       playTickClick(event);
+      kickHeroPreload();
       if (heroDeckOpen && !heroClosing) closeHero();
       else openHero();
     });
@@ -2939,12 +3009,12 @@ function initDeckStage() {
     if (!NARROW.matches) clearChipReturn();
     if (!NARROW.matches && isOpen()) close();
     pinStageFrame(false);
-    preloadHeroFrame();
     applyHeroChrome();
   });
 
   pinStageFrame(false);
-  preloadHeroFrame();
+
+  return { scheduleHeroPreload };
 
   window.addEventListener("message", (event) => {
     if (event.origin !== origin) return;
@@ -3018,7 +3088,7 @@ async function boot() {
   grid.style.setProperty("--grid-half-columns", String(halfColumns()));
   setupGridGeometry();
   setupFilters();
-  initDeckStage();
+  const deckStage = initDeckStage();
   placeFilterBar();
   const syncFilterBar = () => {
     placeFilterBar();
@@ -3037,7 +3107,7 @@ async function boot() {
 
   let data;
   try {
-    data = await loadWorksCatalog({ bust: true });
+    data = await loadWorksCatalog({ bust: import.meta.env.DEV });
   } catch (error) {
     console.warn("Experiment 2 catalog unavailable", error);
     data = { items: [] };
@@ -3051,9 +3121,8 @@ async function boot() {
   const heroReady = startHero();
   applyLayout(readStoredLayout() ?? catalogLayout);
   await heroReady;
+  deckStage?.scheduleHeroPreload();
   document.fonts.ready.then(() => scheduleCardMeasure()).catch(() => {});
-  document.fonts.addEventListener("loadingdone", () => scheduleCardMeasure());
-  document.fonts.addEventListener("loadingerror", () => scheduleCardMeasure());
 }
 
 boot();

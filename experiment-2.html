@@ -16,6 +16,7 @@
       rel="icon"
       href="https://freight.cargo.site/t/original/i/H2765952418214795329571591071100/kaik_favicon.ico"
     />
+    <link rel="preload" href="/works/catalog.json" as="fetch" crossorigin />
     <link rel="stylesheet" href="/src/experiment-2.css" />
   </head>
   <body class="experiment-two">
@@ -30,7 +31,7 @@
             <img class="lettering-hero__loader-mark" src="/assets/author/exp2-loader.svg" alt="" width="92" height="111" draggable="false" />
             <p class="lettering-hero__loader-text">letterfolio<br />by letter course students</p>
           </div>
-          <img class="lettering-hero__image" data-lettering-image alt="" draggable="false" />
+          <img class="lettering-hero__image" data-lettering-image alt="" draggable="false" fetchpriority="high" decoding="async" />
           <button
             class="lettering-hero__action"
             data-lettering-action

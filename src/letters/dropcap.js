@@ -314,10 +314,14 @@ function syncHostRest(host, button, rest) {
   host.append(document.createTextNode(rest));
 }
 
-/** Kick the catalog fetch as soon as this module evaluates — before deck/modals. */
-const catalogReady = loadCatalog();
+/** Kick the catalog fetch as soon as this module evaluates — before deck/modals.
+ *  The stage iframe never shows a dropcap; don't spend the request there. */
+const catalogReady = document.documentElement.classList.contains("deck-stage")
+  ? null
+  : loadCatalog();
 
 export async function initDropcaps() {
+  if (!catalogReady) return;
   let catalog = await catalogReady;
   const hosts = [...document.querySelectorAll("[data-dropcap]")];
   if (!hosts.length) return;

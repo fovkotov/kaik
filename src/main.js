@@ -2342,6 +2342,10 @@ initProgramStrips();
 initProjectViewer();
 initFormatVideo();
 initPreviewMedia();
-initDropcaps();
-initWorksFeed();
+// The stage iframe hides the lockup and has no works feed. Skip both so a
+// preloaded deck does not fetch the letter catalog or warm every dropcap SVG.
+if (!document.documentElement.classList.contains("deck-stage")) {
+  initDropcaps();
+  initWorksFeed();
+}
 bindDeckStageEscape();

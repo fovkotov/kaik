@@ -42,6 +42,22 @@ function tryPlay(video) {
   if (play && typeof play.catch === "function") play.catch(() => {});
 }
 
+/** Hero preload keeps this iframe visibility:hidden. Don't decode the clip until it is shown. */
+function stageConcealed() {
+  if (!document.documentElement.classList.contains("deck-stage")) return false;
+  if (window.parent === window) return false;
+  try {
+    const frame = window.frameElement;
+    const host = frame?.closest("[data-hero-deck], [data-deck-stage]") || frame;
+    if (!host) return false;
+    if (host.closest("[hidden]")) return true;
+    const style = host.ownerDocument.defaultView.getComputedStyle(host);
+    return style.display === "none" || style.visibility === "hidden";
+  } catch {
+    return false;
+  }
+}
+
 function bindFormatVideo(media) {
   const video = media.querySelector("video");
   const btn = media.querySelector("[data-format-mute]");
@@ -61,6 +77,10 @@ function bindFormatVideo(media) {
   const hostOpen = () => Boolean(media.closest("[data-focus-open], .is-program-open"));
 
   const playIfAllowed = () => {
+    if (stageConcealed()) {
+      video.pause();
+      return;
+    }
     if (reduce() && video.muted) {
       video.pause();
       return;
@@ -103,6 +123,27 @@ function bindFormatVideo(media) {
   io.observe(media);
 
   if (!reduce()) playIfAllowed();
+
+  if (document.documentElement.classList.contains("deck-stage") && window.parent !== window) {
+    try {
+      const host = window.frameElement?.closest("[data-hero-deck], [data-deck-stage]") || window.frameElement;
+      if (host) {
+        new MutationObserver(playIfAllowed).observe(host, {
+          attributes: true,
+          attributeFilter: ["hidden", "class", "style"],
+        });
+        const parentBody = host.ownerDocument?.body;
+        if (parentBody) {
+          new MutationObserver(playIfAllowed).observe(parentBody, {
+            attributes: true,
+            attributeFilter: ["class"],
+          });
+        }
+      }
+    } catch {
+      // A cross-origin frame has no host to watch; the clip stays paused.
+    }
+  }
 
   document.addEventListener("kaik:focus-frozen", () => {
     if (!hostOpen()) video.pause();
