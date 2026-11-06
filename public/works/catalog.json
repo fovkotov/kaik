@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-06T01:20:50.550Z",
+  "updatedAt": "2026-11-06T01:21:06.742Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -6684,6 +6684,21 @@
       "createdAt": "2026-11-06T00:20:54.560Z",
       "originalName": "DreamyGlyph_blbm-Curvy.otf",
       "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_14e299be",
+      "type": "lettering",
+      "author": "Алеся",
+      "nick": "alesiado",
+      "stream": "2",
+      "width": 1600,
+      "height": 1600,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_14e299be_0.webp"
+      ],
+      "originalName": "Винтажная монета с готическим монограммой 1.webp",
+      "createdAt": "2026-11-06T01:21:06.742Z"
     }
   ]
 }
