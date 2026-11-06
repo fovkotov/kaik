@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T23:56:51.807Z",
+  "updatedAt": "2026-11-06T00:01:37.285Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -6562,14 +6562,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "m",
-      "width": 117,
-      "height": 108,
-      "gridSpan": "auto",
       "files": [
         "wrk_2e2c89c3_0.svg"
       ],
+      "width": 117,
+      "height": 108,
+      "createdAt": "2026-11-05T23:56:51.807Z",
       "originalName": "Vector-25 1.svg",
-      "createdAt": "2026-11-05T23:56:51.807Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_2d383b90",
@@ -6578,14 +6578,14 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "m",
-      "width": 156,
-      "height": 117,
-      "gridSpan": "auto",
       "files": [
         "wrk_2d383b90_0.svg"
       ],
+      "width": 156,
+      "height": 117,
+      "createdAt": "2026-11-05T23:56:51.807Z",
       "originalName": "Vector-26 1.svg",
-      "createdAt": "2026-11-05T23:56:51.807Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_f3ff30c1",
@@ -6594,14 +6594,44 @@
       "nick": "coloredbluee",
       "stream": "2",
       "glyph": "b",
-      "width": 134,
-      "height": 120,
-      "gridSpan": "auto",
       "files": [
         "wrk_f3ff30c1_0.svg"
       ],
+      "width": 134,
+      "height": 120,
+      "createdAt": "2026-11-05T23:56:51.807Z",
       "originalName": "Vector-27 1.svg",
-      "createdAt": "2026-11-05T23:56:51.807Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_87151e50",
+      "type": "lettering",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "width": 1911,
+      "height": 671,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_87151e50_0.svg"
+      ],
+      "originalName": "Group 2087326198.svg",
+      "createdAt": "2026-11-06T00:01:37.284Z"
+    },
+    {
+      "id": "wrk_36f0d091",
+      "type": "final",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "width": 1108,
+      "height": 257,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_36f0d091_0.svg"
+      ],
+      "originalName": "Group 2087325994.svg",
+      "createdAt": "2026-11-06T00:01:37.284Z"
     }
   ]
 }
