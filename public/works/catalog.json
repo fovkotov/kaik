@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-06T00:01:37.285Z",
+  "updatedAt": "2026-11-06T00:11:24.564Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -6609,14 +6609,14 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1911,
-      "height": 671,
-      "gridSpan": "auto",
       "files": [
         "wrk_87151e50_0.svg"
       ],
+      "width": 1911,
+      "height": 671,
+      "createdAt": "2026-11-06T00:01:37.284Z",
       "originalName": "Group 2087326198.svg",
-      "createdAt": "2026-11-06T00:01:37.284Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_36f0d091",
@@ -6624,14 +6624,47 @@
       "author": "Алиса",
       "nick": "coloredbluee",
       "stream": "2",
-      "width": 1108,
-      "height": 257,
-      "gridSpan": "auto",
       "files": [
         "wrk_36f0d091_0.svg"
       ],
+      "width": 1108,
+      "height": 257,
+      "createdAt": "2026-11-06T00:01:37.284Z",
       "originalName": "Group 2087325994.svg",
-      "createdAt": "2026-11-06T00:01:37.284Z"
+      "gridSpan": "auto"
+    },
+    {
+      "id": "wrk_956d6a9e",
+      "type": "daily",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "glyph": "k",
+      "width": 1600,
+      "height": 1477,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_956d6a9e_0.webp",
+        "wrk_956d6a9e_1.webp"
+      ],
+      "originalName": "Frame 141 1.webp",
+      "createdAt": "2026-11-06T00:11:24.564Z"
+    },
+    {
+      "id": "wrk_c7f8552a",
+      "type": "daily",
+      "author": "Алиса",
+      "nick": "coloredbluee",
+      "stream": "2",
+      "glyph": "o",
+      "width": 1036,
+      "height": 1600,
+      "gridSpan": "auto",
+      "files": [
+        "wrk_c7f8552a_0.webp"
+      ],
+      "originalName": "Group-7 1.webp",
+      "createdAt": "2026-11-06T00:11:24.564Z"
     }
   ]
 }
