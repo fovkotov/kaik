@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-06T00:20:54.560Z",
+  "updatedAt": "2026-11-06T00:23:07.033Z",
   "layout": {
     "columns": 12,
     "mobileColumns": 4,
@@ -6672,14 +6672,16 @@
       "author": "Ваня",
       "nick": "Balabama_AI",
       "stream": "2",
-      "width": 0,
-      "height": 0,
-      "gridSpan": "auto",
+      "sample": "twilight",
+      "latin": true,
       "files": [
         "wrk_5dca8d7e_0.otf"
       ],
+      "width": 0,
+      "height": 0,
+      "createdAt": "2026-11-06T00:20:54.559Z",
       "originalName": "DreamyGlyph_blbm-Wavy.otf",
-      "createdAt": "2026-11-06T00:20:54.559Z"
+      "gridSpan": "auto"
     },
     {
       "id": "wrk_60547339",
@@ -6687,14 +6689,14 @@
       "author": "Ваня",
       "nick": "Balabama_AI",
       "stream": "2",
-      "width": 0,
-      "height": 0,
-      "gridSpan": "auto",
       "files": [
         "wrk_60547339_0.otf"
       ],
+      "width": 0,
+      "height": 0,
+      "createdAt": "2026-11-06T00:20:54.560Z",
       "originalName": "DreamyGlyph_blbm-Curvy.otf",
-      "createdAt": "2026-11-06T00:20:54.560Z"
+      "gridSpan": "auto"
     }
   ]
 }
