@@ -1274,6 +1274,14 @@ function initDeck() {
     el.addEventListener("pointercancel", endDrag);
   });
 
+  /* A finger that starts on a strip or gallery belongs to that scroller.
+     The pile still takes a horizontal swipe that starts on the card face. */
+  const SLIDER_HIT = "[data-program-strip], [data-img-slider]";
+  const touchOnSlider = (event) => {
+    const node = event.target instanceof Element ? event.target : event.target?.parentElement;
+    return Boolean(node?.closest?.(SLIDER_HIT));
+  };
+
   /* Horizontal pile drag only. A vertical touchmove must stay default so the
      page can pan; touch-action: pan-y is what lets Safari start that pan. */
   if (document.documentElement.classList.contains("deck-stage")) {
@@ -1295,7 +1303,9 @@ function initDeck() {
 
     /* iOS edge-swipe back is a horizontal touch that starts on this deck.
        Lock the axis, then cancel only the sideways gesture. A vertical finger
-       stays with the native scroller — no preventDefault, no card pose. */
+       stays with the native scroller — no preventDefault, no card pose.
+       A finger that starts on a program strip, img slider, or progress gallery
+       is that slider's: cancelling it here is what froze those rows. */
     let edgeGuard = null;
     document.addEventListener(
       "touchstart",
@@ -1305,14 +1315,20 @@ function initDeck() {
           return;
         }
         const touch = event.touches[0];
-        edgeGuard = { x: touch.clientX, y: touch.clientY, id: touch.identifier, axis: null };
+        edgeGuard = {
+          x: touch.clientX,
+          y: touch.clientY,
+          id: touch.identifier,
+          axis: null,
+          slider: touchOnSlider(event),
+        };
       },
       { passive: true, capture: true },
     );
     document.addEventListener(
       "touchmove",
       (event) => {
-        if (!edgeGuard || !phoneStagePile()) return;
+        if (!edgeGuard || !phoneStagePile() || edgeGuard.slider) return;
         const touch = Array.from(event.touches).find((item) => item.identifier === edgeGuard.id);
         if (!touch) return;
         if (!edgeGuard.axis) {

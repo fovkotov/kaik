@@ -10,10 +10,18 @@ const AXIS_PX = 8;
 const TAP_PX = AXIS_PX;
 const FINE = window.matchMedia("(hover: hover) and (pointer: fine)");
 const MOBILE = window.matchMedia("(max-width: 900px)");
+const PHONE_STAGE = window.matchMedia("(max-width: 760px)");
 const REDUCE = window.matchMedia("(prefers-reduced-motion: reduce)");
 const EASE_OUT = "transform 320ms cubic-bezier(0.23, 1, 0.32, 1)";
 
+/** ≤760 stage deck: html/body are touch-action pan-y, and the pile cancels
+    horizontal touches. Native overflow-x cannot move, so the strip pans in JS. */
+function stagePhone() {
+  return PHONE_STAGE.matches && document.documentElement.classList.contains("deck-stage");
+}
+
 function nativePan() {
+  if (stagePhone()) return false;
   return MOBILE.matches || document.documentElement.classList.contains("is-mobile");
 }
 
@@ -356,6 +364,15 @@ function bindStrip(root) {
   root.addEventListener("pointerdown", onPointerDown);
   root.addEventListener("pointermove", onPointerMove, { passive: false });
   root.addEventListener("pointerup", onPointerUp);
+  root.addEventListener(
+    "touchmove",
+    (event) => {
+      if (nativePan() || !swipe || swipe.axis !== "x") return;
+      if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
+    },
+    { passive: false },
+  );
   root.addEventListener("pointercancel", (event) => {
     if (press && event.pointerId === press.id) press = null;
     onPointerUp(event);
@@ -406,6 +423,10 @@ function bindStrip(root) {
   const syncMode = () => {
     const native = nativePan();
     root.classList.toggle("is-native-pan", native);
+    /* Phone stage keeps the mobile overflow-x rule, but an ancestor pan-y
+       means that scroller never moves. Clip it and let the JS pan own X. */
+    root.style.overflowX = !native && stagePhone() ? "hidden" : "";
+    root.style.touchAction = !native && stagePhone() ? "pan-y" : "";
     if (!native) return;
     x = 0;
     track.style.transition = "none";
@@ -451,6 +472,7 @@ function bindStrip(root) {
     root.classList.toggle("is-fine", FINE.matches);
   });
   MOBILE.addEventListener("change", refresh);
+  PHONE_STAGE.addEventListener("change", refresh);
 }
 
 export function initProgramStrips(scope = document) {
