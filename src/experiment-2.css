@@ -229,6 +229,17 @@ body.is-hero-deck.is-hero-deck-focus .mobile-bar > * {
   .lettering-hero__action {
     cursor: none;
   }
+
+  /* Near the schedule chip and the filter chips the system cursor comes back.
+     The pad itself is detected in JS; this only paints it. */
+  .lettering-hero.is-cursor-ui,
+  .lettering-hero.is-cursor-ui .lettering-hero__action {
+    cursor: auto;
+  }
+
+  .filter-bar .filter-chip {
+    cursor: auto;
+  }
 }
 
 /* Centred by default; JS nudges the transform so the lettering trails the pointer. */

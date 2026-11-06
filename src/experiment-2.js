@@ -612,12 +612,8 @@ function fitFontSpecimen(specimen) {
     next = Math.max(0.12, Math.min(next, current * (height / ink.height) * 0.9));
   }
   const rounded = Math.round(next * 1000) / 1000;
-  const prev = specimen.style.getPropertyValue("--font-fit");
   if (rounded >= 0.999) specimen.style.removeProperty("--font-fit");
   else specimen.style.setProperty("--font-fit", String(rounded));
-  if (specimen.style.getPropertyValue("--font-fit") !== prev) {
-    scheduleCardMeasure(specimen.closest(".work-card"));
-  }
 }
 
 function bindFontSpecimen(specimen, fallback, flags = {}) {
@@ -654,8 +650,10 @@ function bindFontSpecimen(specimen, fallback, flags = {}) {
     event.stopPropagation();
   });
   new ResizeObserver(() => {
+    /* Width changes refit the glyphs into the locked strip. Typing must not
+       ask the grid for a new row span. */
+    if (document.activeElement === specimen) return;
     fitFontSpecimen(specimen);
-    scheduleCardMeasure(specimen.closest(".work-card"));
   }).observe(specimen);
 }
 
@@ -735,28 +733,20 @@ function intrinsicArtHeight(card, boxWidth) {
 }
 
 /**
- * Desktop tester is 365px and ink may overflow, so we span painted glyphs.
- * Mobile is a fixed strip (`--font-card-h-mobile`) whose specimen is sized from
- * the strip and clipped, so the strip itself is the whole answer.
+ * The strip is the resting specimen box (`--font-tester-h`), not the live ink.
+ * Typed text scales inside that box; measuring scrollHeight would grow the row
+ * on every wrap.
  */
-function intrinsicSpecimenHeight(card) {
-  if (NARROW.matches) return fontTesterMobilePx();
-  const specimen = card.querySelector(".work-card__font-specimen");
-  const art = card.querySelector(".work-card__art");
-  if (!specimen) return art?.scrollHeight || FONT_TESTER_PX;
-  let textHeight = 0;
-  if (specimen.firstChild) {
-    const range = document.createRange();
-    range.selectNodeContents(specimen);
-    textHeight = range.getBoundingClientRect().height;
-  }
-  return Math.max(
-    FONT_TESTER_PX,
-    specimen.scrollHeight,
-    specimen.offsetHeight,
-    art?.scrollHeight || 0,
-    textHeight,
-  );
+function fontStripPx() {
+  const host = document.querySelector(".experiment-two") || document.documentElement;
+  const raw = getComputedStyle(host).getPropertyValue("--font-tester-h");
+  const px = Number.parseFloat(raw);
+  if (px > 0) return px;
+  return NARROW.matches ? fontTesterMobilePx() : FONT_TESTER_PX;
+}
+
+function intrinsicSpecimenHeight() {
+  return fontStripPx();
 }
 
 /**
@@ -785,20 +775,11 @@ function measureCards(only) {
     const metaBox = meta?.getBoundingClientRect();
     const metaHeight = meta ? Math.max(meta.scrollHeight, metaBox?.height || 0) : 0;
     const isFont = card.classList.contains("work-card--font");
-    /* Mobile font strip: fixed height, clipped specimen — already contained, so no
-       painted-overflow guard may bump it. */
-    const fixedArt = isFont && NARROW.matches;
-    let artHeight = isFont ? intrinsicSpecimenHeight(card) : intrinsicArtHeight(card, boxWidth);
+    /* Font strip stays the resting box at every width. Live ink and the caption
+       overflow guard must not change the row while someone is typing. */
+    const fixedArt = isFont;
+    let artHeight = isFont ? intrinsicSpecimenHeight() : intrinsicArtHeight(card, boxWidth);
     if (!fixedArt) artHeight = Math.max(artHeight, art?.scrollHeight || 0);
-    /* Ink spilling into the caption: only meaningful while the caption is rendered —
-       a `display: none` meta reports a zero rect at y=0, which would read as
-       "overflows by the card's whole viewport offset". */
-    if (isFont && !fixedArt && art && metaBox && metaBox.height > 0) {
-      const artBox = art.getBoundingClientRect();
-      if (artBox.bottom > metaBox.top + 0.5) {
-        artHeight = Math.max(artHeight, artBox.height + (artBox.bottom - metaBox.top));
-      }
-    }
     if (!(artHeight > 0)) continue;
     const needed = artHeight + stackGap + metaHeight;
     const rowSpan = Math.max(1, Math.ceil((needed + layout.gapY) / rowPitch));
@@ -1331,7 +1312,33 @@ function createFollower() {
     if (active && !frame) frame = requestAnimationFrame(tick);
   }
 
+  /** Modest pad around each desktop chip. The red zones, not the whole hero. */
+  const CURSOR_PAD = 20;
+
+  function pointerInChipZone(x, y) {
+    const nodes = document.querySelectorAll(
+      "[data-filter-bar] [data-about], [data-filter-bar] [data-filter]",
+    );
+    for (const el of nodes) {
+      const box = el.getBoundingClientRect();
+      if (box.width < 1 || box.height < 1) continue;
+      if (
+        x >= box.left - CURSOR_PAD &&
+        x <= box.right + CURSOR_PAD &&
+        y >= box.top - CURSOR_PAD &&
+        y <= box.bottom + CURSOR_PAD
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function onPointerMove(event) {
+    const nearChip = pointerInChipZone(event.clientX, event.clientY);
+    hero.classList.toggle("is-cursor-ui", nearChip);
+    /* Leave the lettering where it is. A hidden cursor must not keep chasing. */
+    if (nearChip) return;
     const rect = hero.getBoundingClientRect();
     const x = event.clientX - rect.left - rect.width / 2;
     const y = event.clientY - rect.top - rect.height / 2;
@@ -1340,7 +1347,12 @@ function createFollower() {
     wake();
   }
 
-  function onPointerLeave() {
+  function onPointerLeave(event) {
+    if (pointerInChipZone(event.clientX, event.clientY)) {
+      hero.classList.add("is-cursor-ui");
+      return;
+    }
+    hero.classList.remove("is-cursor-ui");
     target.x = 0;
     target.y = 0;
     wake();
@@ -1348,6 +1360,7 @@ function createFollower() {
 
   hero.addEventListener("pointermove", onPointerMove, { passive: true });
   hero.addEventListener("pointerleave", onPointerLeave, { passive: true });
+  document.querySelector("[data-filter-bar]")?.addEventListener("pointermove", onPointerMove, { passive: true });
   /* A new SVG has a new aspect, so the free room changes with every pick. */
   letteringImage.addEventListener("load", measure);
   window.addEventListener("resize", measure, { passive: true });
@@ -2968,7 +2981,10 @@ function initDeckStage() {
     heroDeck.hidden = false;
     heroDeck.inert = false;
     heroDeck.setAttribute("aria-hidden", "false");
-    requestAnimationFrame(showHeroFrame);
+    /* Flush visibility before navigation. A frame callback never runs while the
+       tab is in the background, and Dia drops a src set on a hidden host. */
+    void heroDeck.offsetHeight;
+    showHeroFrame();
   }
 
   function finishHeroClose() {
