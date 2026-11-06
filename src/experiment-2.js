@@ -282,24 +282,27 @@ function copy(key) {
   return t(key, PAGE_LOCALE);
 }
 
-/** Tab copy for a work, so the mixed feed can name the piece the same way the chips do. */
+/** Singular caption. The filter chips keep the plural tab labels. */
 function workTypeLabel(item) {
-  if (item?.type === TYPE_FINAL) return copy("exp2.filter.final");
-  if (item?.type === TYPE_DAILY) return copy("exp2.filter.daily");
-  if (item?.type === TYPE_FONT) return copy("exp2.filter.font");
-  if (item?.type === TYPE_LETTERING) return copy("exp2.filter.workshop");
+  if (item?.type === TYPE_FINAL) return copy("exp2.type.final");
+  if (item?.type === TYPE_DAILY) return copy("exp2.type.daily");
+  if (item?.type === TYPE_FONT) return copy("exp2.type.font");
+  if (item?.type === TYPE_LETTERING) return copy("exp2.type.workshop");
   return "";
 }
 
-/** A single chip is on: the tab already names the type, so the caption stays author + stream. */
-function specificFilterActive() {
-  return enabledTypes.size === 1;
+/**
+ * One chip other than daily practice already names the type, so that caption
+ * stays author + stream. Daily practice still prints its type. The mixed feed does too.
+ */
+function captionOmitsType() {
+  return enabledTypes.size === 1 && !enabledTypes.has(TYPE_DAILY);
 }
 
 /**
  * Name, @nick and stream as spans; muted parts get `.is-muted`.
- * Feed cards pass `includeType` so the mixed feed also prints the work type
- * in that same quiet span. A specific filter tab omits it.
+ * Feed cards pass `includeType` so the caption prints the singular work type
+ * in that same quiet span. A single tab other than daily practice omits it.
  */
 function metaNodes(item, { includeType = false } = {}) {
   if (!hasAuthorIdentity(item)) return [];
@@ -324,7 +327,7 @@ function metaNodes(item, { includeType = false } = {}) {
     streamEl.textContent = stream;
     nodes.push(streamEl);
   }
-  if (includeType && !specificFilterActive()) {
+  if (includeType && !captionOmitsType()) {
     const label = workTypeLabel(item);
     if (label) {
       const typeEl = document.createElement("span");
@@ -2731,6 +2734,7 @@ function initDeckStage() {
       if (!src || src === "about:blank") return;
       postDragSpeed(frameEl);
       postCardScale(frameEl);
+      if (frameEl === heroFrame) postHeroIntro();
     });
   };
   bindDragSpeed(frame);
@@ -2890,7 +2894,28 @@ function initDeckStage() {
     heroDeck.hidden = false;
     heroDeck.inert = true;
     heroDeck.setAttribute("aria-hidden", "true");
-    if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
+    /* Leave src empty. Dia skips a navigation that starts while this host is
+       visibility:hidden, and the cards then never arrive. */
+  }
+
+  /** The stage document actually finished, not merely an src attribute. */
+  function stageDocumentReady() {
+    try {
+      const win = heroFrame.contentWindow;
+      const href = win?.location?.href || "";
+      if (!href || href === "about:blank" || !href.includes("deck=stage")) return false;
+      return win.document?.readyState === "complete";
+    } catch {
+      return false;
+    }
+  }
+
+  /** Replay the fly-in only into the loaded stage document, never about:blank. */
+  function postHeroIntro() {
+    if (!heroDeckOpen || heroClosing || !stageDocumentReady()) return;
+    heroFrame.contentWindow.postMessage({ type: "kaik:deck-stage-intro" }, origin);
+    postDragSpeed(heroFrame);
+    postCardScale(heroFrame);
   }
 
   let heroPreloadId = 0;
@@ -2916,10 +2941,15 @@ function initDeckStage() {
   }
 
   function showHeroFrame() {
-    if (heroFrame.getAttribute("src") !== deckSrc) heroFrame.src = deckSrc;
-    else heroFrame.contentWindow?.postMessage({ type: "kaik:deck-stage-intro" }, origin);
-    postDragSpeed(heroFrame);
-    postCardScale(heroFrame);
+    if (!heroDeckOpen) return;
+    if (stageDocumentReady()) {
+      postHeroIntro();
+      return;
+    }
+    /* Host is already visible. A stuck hidden navigation has to start over. */
+    const current = heroFrame.getAttribute("src") || "";
+    if (current === deckSrc) heroFrame.src = "about:blank";
+    heroFrame.src = deckSrc;
   }
 
   function openHero() {
@@ -3014,8 +3044,6 @@ function initDeckStage() {
 
   pinStageFrame(false);
 
-  return { scheduleHeroPreload };
-
   window.addEventListener("message", (event) => {
     if (event.origin !== origin) return;
     const fromOverlay = event.source === frame.contentWindow;
@@ -3046,6 +3074,8 @@ function initDeckStage() {
     if (fromOverlay) close();
     else if (heroDeckOpen) closeHero();
   });
+
+  return { scheduleHeroPreload };
 }
 
 function initSmoothScroll() {
